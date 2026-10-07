@@ -53,6 +53,13 @@ h2{font-size:16px;font-weight:600;margin:0}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
 .pad{padding:16px}
 .scroll{overflow-x:auto}
+.cards{max-width:640px}
+.card{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.card:last-child{border-bottom:0}
+.ctop{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.cwhen{font-weight:600;font-variant-numeric:tabular-nums}
+.cright{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.cnote{color:var(--muted);font-size:14px}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -122,7 +129,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
 <body>
 <div class="app">
   <aside class="side">
-    <div class="brand"><span class="b1">PHUKET KING</span><span class="b2">Back office</span></div>
+    <div class="brand"><span class="b1">PHUKET KING</span><span class="b2" id="mode">Back office</span></div>
     <nav id="nav" aria-label="Sections"></nav>
     <div class="who" id="who"></div>
   </aside>
@@ -313,7 +320,7 @@ function editPackage(p){ p=p||{};
 function editStaff(s){ s=s||{};
   openForm({title:s.id?'Edit staff member':'New staff member',values:s,fields:[
     {key:'name',label:'Name',required:true},
-    {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Leave empty if they do not need a login.'},
+    {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
     {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['manager','Manager']]},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches.'},
     {key:'phone',label:'Phone'},
@@ -692,7 +699,7 @@ function vCommission(){
       {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],sortBy(done,'date','time'),'')):null];
 }
 function vCoach(){
-  var ch=coaches(), head='A preview of what each coach will see in their own app. No prices, only their share.';
+  var ch=coaches(), head='What each coach sees when they sign in. No prices, only their share.';
   if(!ch.length) return [pageHead('Coach view',head),h('div',{class:'panel empty'},'No coaches yet. Add a coach in Staff and their view shows here.')];
   if(!ch.some(function(c){return c.id===ui.coachId;})) ui.coachId=ch[0].id;
   var me=byId('staff',ui.coachId), day=ymd(new Date()), wd=(new Date().getDay()+6)%7, month=day.slice(0,7);
@@ -735,10 +742,9 @@ function vSettings(){
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),
     section('Not in this version yet',null,h('div',{class:'panel pad'},h('ul',{class:'plain'},
       h('li',null,'Card payments. Sales are recorded by hand for now.'),
-      h('li',null,'The coach app. Coaches can be added in Staff, but their own screens come next.'),
       h('li',null,'The customer app.'))))];
 }
-var VIEWS={today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings};
+var VIEWS={today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,mine:function(){ return vMine(); }};
 
 function renderNav(){
   $nav.replaceChildren.apply($nav,TABS.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1]); }));
@@ -816,11 +822,84 @@ function makeDb(){
   };
 }
 
+/* ---------- coach app ---------- */
+var CO=null;
+function loadCoach(){ lastLoad=Date.now(); return sb.rpc('coach_home').then(function(res){ CO=must(res); schedule(); }); }
+function coachDo(fn,args,okMsg){ run(sb.rpc(fn,args).then(must).then(loadCoach),okMsg); }
+function coachAskMove(p){
+  openForm({title:'Ask to move this private',saveLabel:'Send to a manager',values:{date:p.date,time:p.time},fields:[
+    {key:'date',label:'New date',type:'date',required:true},
+    {key:'time',label:'New time',type:'time',required:true},
+    {key:'note',label:'Reason',hint:'A manager sees this and decides. The private stays where it is until then.'}],
+    onSave:function(v){
+      if(v.date<CO.today) return 'That date has already passed.';
+      if(v.date===p.date&&v.time===p.time) return 'That is the time it is already booked for.';
+      return sb.rpc('coach_ask_move',{p_private:p.id,p_date:v.date,p_time:v.time,p_note:v.note||null}).then(must).then(loadCoach); }});
+}
+function coachHoliday(){
+  openForm({title:'Request holiday',saveLabel:'Send request',fields:[
+    {key:'from',label:'First day off',type:'date',required:true},{key:'to',label:'Last day off',type:'date',required:true},{key:'note',label:'Note'}],
+    onSave:function(v){
+      if(v.to<v.from) return 'The last day is before the first day.';
+      return sb.rpc('coach_request_holiday',{p_from:v.from,p_to:v.to,p_note:v.note||null}).then(must).then(loadCoach); }});
+}
+function vMine(){
+  if(!CO) return [h('div',{class:'panel empty'},'Loading your work.')];
+  var day=CO.today, wd=(parseYmd(day).getDay()+6)%7, month=day.slice(0,7), prev=addDays(month+'-01',-1).slice(0,7), all=CO.privates;
+  function when(p){ return fmtDate(p.date)+' '+(p.time||''); }
+  function sum(list){ return list.reduce(function(t,p){ return t+Number(p.share_thb||0); },0); }
+  function needsMe(p){ var r=p.reschedule; return !!(r&&r.by==='customer'&&r.needs_coach&&!r.coach_agreed); }
+  function moveBtn(p){
+    if(p.status!=='confirmed') return null;
+    if(needsMe(p)) return chip('Customer asked to move, see below','warn');
+    if(p.reschedule) return chip('Move asked, waiting for a manager','warn');
+    return btn('Ask to move',function(){ coachAskMove(p); },'small');
+  }
+  function doneBtn(p){
+    if(p.status==='done') return chip('Done','ok');
+    return h('div',{class:'row'},btn('Mark done',function(){ coachDo('coach_mark_done',{p_private:p.id},'Marked done.'); },'primary small'),moveBtn(p));
+  }
+  var classes=CO.classes.filter(function(c){ return Number(c.day)===wd; });
+  var todayP=all.filter(function(p){ return p.date===day; });
+  var late=all.filter(function(p){ return p.status==='confirmed'&&p.date<day; });
+  var upcoming=all.filter(function(p){ return p.date>day; });
+  var asks=all.filter(needsMe);
+  var doneM=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===month; });
+  var doneP=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===prev; });
+  function card(p,act,right){ return {when:when(p),title:p.customer,note:p.notes,right:right,act:act}; }
+  var todayItems=classes.map(function(c){ return {t:c.time||'',when:c.time||'',title:c.title,note:'Group class'}; })
+    .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:'Private with '+p.customer,note:p.notes,act:doneBtn(p)}; }));
+  todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
+  return [pageHead('My work',DAYS[wd]+' '+fmtDate(day)),
+    h('div',{class:'stats'},
+      h('span',null,h('b',null,doneM.length),'privates done this month'),
+      h('span',null,h('b',null,thb(sum(doneM))||'0 THB'),'earned this month'),
+      h('span',null,h('b',null,thb(sum(doneP))||'0 THB'),'last month')),
+    section('Today',null,cards(todayItems,'Nothing booked for you today.')),
+    asks.length?section('Customers asking to move at short notice',null,cards(asks.map(function(p){
+      return {when:when(p),title:p.customer,note:'Wants '+fmtDate(p.reschedule.date)+' '+(p.reschedule.time||'')+(p.reschedule.note?'. '+p.reschedule.note:''),act:h('div',{class:'row'},
+        btn('I agree',function(){ coachDo('coach_answer_move',{p_private:p.id,p_agree:true},'Sent to a manager to authorize.'); },'primary small'),
+        btn('I do not agree',function(){ coachDo('coach_answer_move',{p_private:p.id,p_agree:false},'Declined. The private stays as booked.'); },'small'))}; }),'')):null,
+    late.length?section('Earlier privates not marked done',null,cards(late.map(function(p){ return card(p,doneBtn(p)); }),'')):null,
+    section('Coming up',null,cards(upcoming.map(function(p){ return card(p,moveBtn(p)); }),'No privates coming up.')),
+    section('Privates done this month',null,cards(doneM.map(function(p){ return {when:fmtDate(p.date),title:p.customer,right:thb(p.share_thb)}; })
+      .concat(doneM.length?[{when:'Total',right:thb(sum(doneM))}]:[]),'None marked done yet this month.')),
+    section('My group classes',null,cards(CO.classes.map(function(c){ return {when:DAYS[Number(c.day)]+' '+c.time,title:c.title}; }),'You are not down for any group classes yet.')),
+    section('Holidays',btn('Request holiday',coachHoliday,'small'),cards(CO.holidays.map(function(x){
+      return {when:fmtDate(x.from)+(x.to!==x.from?' to '+fmtDate(x.to):''),note:x.note,right:chip(x.status==='approved'?'Approved':'Waiting for a manager',x.status==='approved'?'ok':'warn')}; }),'No holidays requested.'))];
+}
+function cards(items,emptyMsg){
+  if(!items.length) return h('div',{class:'panel empty'},emptyMsg);
+  return h('div',{class:'panel cards'},items.map(function(it){ return h('div',{class:'card'},
+    h('div',{class:'ctop'},h('span',{class:'cwhen'},it.when),it.right?h('span',{class:'cright'},it.right):null),
+    it.title?h('div',null,it.title):null, it.note?h('div',{class:'cnote'},it.note):null, it.act?h('div',{class:'row'},it.act):null); }));
+}
+
 /* ---------- signing in ---------- */
 function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut(); }},'Sign out'); }
 function notice(title,text){ $view.replaceChildren(h('div',{class:'panel pad login'},h('h1',null,title),h('p',{class:'sub'},text),h('div',null,signOutBtn()))); }
 function showSignIn(){
-  me=null; db=null; allReady=false; TABS=[]; renderNav(); $who.replaceChildren();
+  me=null; db=null; CO=null; allReady=false; TABS=[]; renderNav(); $who.replaceChildren();
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
   var note=h('p',{class:'sub',role:'status'});
   var send=h('button',{type:'submit',class:'btn primary'},'Email me a sign in link');
@@ -846,7 +925,8 @@ function enter(user){
     var row=must(res);
     $who.replaceChildren(h('span',null,h('b',null,row?row.name:user.email),row?' '+(ROLES[row.role]||''):''),signOutBtn());
     if(!row||row.active===false) return notice('Not on the staff list','You are signed in as '+user.email+', but that email is not an active staff login. Ask a manager to add it in Staff. The customer app is still being built.');
-    if(row.role==='coach') return notice('Coach app coming next','You are signed in as a coach. Your own screens are being built and will appear here.');
+    document.getElementById('mode').textContent=row.role==='coach'?'Coach':'Back office';
+    if(row.role==='coach'){ me=row; db=makeDb(); TABS=[['mine','My work']]; ui.tab='mine'; return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
     TABS=row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return ['today','customers','timetable','privates'].indexOf(t[0])>=0; });
     if(!TABS.some(function(t){return t[0]===ui.tab;})) ui.tab='today';
@@ -863,7 +943,7 @@ if(!window.supabase||!window.supabase.createClient){
     if(session&&session.user) setTimeout(function(){ enter(session.user); },0);
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; showSignIn(); }
   });
-  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) loadAll().catch(function(){}); });
+  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='coach'?loadCoach():loadAll()).catch(function(){}); });
 }
 })();
 </script>
