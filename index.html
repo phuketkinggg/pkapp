@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Phuket King Back Office</title>
+<title>Phuket King</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -60,6 +61,29 @@ h2{font-size:16px;font-weight:600;margin:0}
 .cwhen{font-weight:600;font-variant-numeric:tabular-nums}
 .cright{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
 .cnote{color:var(--muted);font-size:14px}
+.done{max-width:640px;border-color:var(--ok);background:var(--ok-bg);display:flex;flex-direction:column;gap:6px}
+.donebig{font-family:var(--display);font-weight:700;font-size:34px;line-height:1;text-transform:uppercase;color:var(--ok)}
+.donewhat{font-size:18px;font-weight:600}
+.checkin{max-width:640px}
+.checkin .hit:first-of-type{border-top:0}
+.narrow{max-width:640px}
+.poster{max-width:360px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.poster .p1{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.1em;color:var(--gold-ink)}
+.poster .p2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;text-transform:uppercase}
+.poster ol{margin:0;padding-left:20px;text-align:left;font-size:14px;color:var(--muted)}
+.qr{width:220px;background:#fff;padding:8px;border-radius:8px}
+.qr svg{display:block;width:100%;height:auto}
+@media print{
+  body.print-poster{background:#fff}
+  body.print-poster .side,body.print-poster #banner,body.print-poster #toast,body.print-poster .noprint,body.print-poster #view>*:not(.posterwrap){display:none!important}
+  body.print-poster main{padding:0}
+  body.print-poster #view{max-width:none}
+  body.print-poster .poster{max-width:none;border:0;background:#fff;color:#000;gap:8mm;padding-top:20mm}
+  body.print-poster .poster .p1{font-size:16mm;color:#000}
+  body.print-poster .poster .p2{font-size:22mm}
+  body.print-poster .poster ol{font-size:7mm;color:#000}
+  body.print-poster .qr{width:120mm;padding:0}
+}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
 td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -276,7 +300,7 @@ function openForm(spec){
     if(!armed){ armed=true; delBtn.textContent='Tap again to delete'; return; }
     delBtn.disabled=true; spec.onDelete().then(function(){ $dlg.close(); toast('Deleted.'); },function(e){ showErr(errText(e)); delBtn.disabled=false; });
   }},'Delete'):h('span');
-  var form=h('form',{novalidate:true},h('h2',null,spec.title),rows,err,
+  var form=h('form',{novalidate:true},h('h2',null,spec.title),spec.note?h('p',{class:'sub'},spec.note):null,rows,err,
     h('div',{class:'factions'},delBtn,h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),saveBtn)));
   form.addEventListener('submit',function(ev){
     ev.preventDefault(); var out={};
@@ -286,7 +310,7 @@ function openForm(spec){
     var res; try{ res=spec.onSave(out); }catch(e){ showErr(errText(e)); return; }
     if(typeof res==='string'){ showErr(res); return; }
     saveBtn.disabled=true;
-    Promise.resolve(res).then(function(){ $dlg.close(); toast('Saved.'); },function(e){ showErr(errText(e)); saveBtn.disabled=false; });
+    Promise.resolve(res).then(function(){ $dlg.close(); toast(spec.doneMsg||'Saved.'); },function(e){ showErr(errText(e)); saveBtn.disabled=false; });
   });
   $dlg.replaceChildren(form);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
@@ -350,7 +374,7 @@ function sellPackage(c){
     {key:'fz',label:'Add Fitness Zone access (the add-on price set on the package)',type:'checkbox',onChange:function(v,set,get){ reprice(set,get); }},
     {key:'price_thb',label:'Price charged (THB)',type:'number',required:true},
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:[['cash','Cash'],['card','Card or Stripe link'],['transfer','Bank transfer or PromptPay'],['agent','Paid through an agent']]},
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS},
     {key:'paid',label:'Payment received',type:'checkbox',def:true}],
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
       if(v.fz&&addonFor(pk,group)==null) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
@@ -384,7 +408,7 @@ function editClass(c){ c=c||{};
 }
 function packOpts(customerId,priv){
   var o=[['','Pay per session']];
-  S.purchases.forEach(function(x){ if(x.customer_id!==customerId||!isPrivatePack(x)||x.cancelled) return;
+  S.purchases.forEach(function(x){ if(x.customer_id!==customerId||!isPrivatePack(x)||x.cancelled||unpaidOrder(x)) return;
     var n=x.class_limit-packUsed(x,priv.id), live=!x.expires_on||x.expires_on>=ymd(new Date());
     if((n>0&&live)||x.id===priv.purchase_id) o.push([x.id,x.package_name+' ('+n+' of '+x.class_limit+' left'+(x.expires_on?', use by '+fmtDate(x.expires_on):'')+')']); });
   return o;
@@ -485,6 +509,13 @@ function undoCheckIn(e){
   if(!guard()) return;
   run(sb.from('checkins').delete().eq('id',e.key).select('id').then(must).then(function(){ return Promise.all([reload('checkin_days'),reload('purchases')]); }),'Check in removed.');
 }
+function unpaidOrder(p){ return !!(p.ordered_in_app&&!p.paid&&!p.cancelled); }
+var PAYOPTS=[['cash','Cash'],['card','Card or Stripe link'],['transfer','Bank transfer or PromptPay'],['agent','Paid through an agent']];
+function takePayment(p){
+  openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(p.price_thb)+'.',saveLabel:'Payment received',doneMsg:'Paid. The package is ready to use.',fields:[
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS}],
+    onSave:function(v){ return sb.rpc('take_payment',{p_purchase:p.id,p_method:v.method}).then(must).then(function(){ return reload('purchases'); }); }});
+}
 function purchaseLine(p,st){ var bits=[p.package_name||'Package'];
   if(p.class_limit) bits.push(left(p)+' of '+p.class_limit+' left');
   if(p.expires_on) bits.push('to '+fmtDate(p.expires_on)); else if(!p.starts_on&&p.start_by) bits.push('start by '+fmtDate(p.start_by));
@@ -499,6 +530,7 @@ function vToday(){
   var pToday=sortBy(S.privates.filter(function(p){return p.date===day&&p.status!=='cancelled'&&p.status!=='requested';}),'time');
   var waiting=sortBy(S.privates.filter(function(p){return p.status==='requested';}),'date','time');
   var moves=sortBy(S.privates.filter(function(p){return p.reschedule&&p.status!=='cancelled';}),'date','time');
+  var orders=sortBy(S.purchases.filter(unpaidOrder),'purchased_on');
   var q=ui.q.trim().toLowerCase(), hits=[];
   if(q) hits=sortBy(S.customers.filter(function(c){ return [c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
   var search=h('input',{id:'q',class:'search',type:'search',placeholder:'Type a name, email or phone',value:ui.q,'aria-label':'Find a customer to check in',oninput:function(ev){ ui.q=ev.target.value; schedule(); }});
@@ -515,7 +547,7 @@ function vToday(){
     var mine=entries.filter(function(e){return e.customer_id===c.id;}), already=mine[0];
     var ps=S.purchases.filter(function(p){return p.customer_id===c.id&&!isPrivatePack(p);}).map(function(p){
       var st=stateOf(p,day), classToday=mine.some(function(e){return e.purchase_id===p.id&&e.class_id;});
-      return {p:p,st:st,can:canCheckIn(p,st,target,classToday)}; });
+      return {p:p,st:st,can:unpaidOrder(p)?{ok:false,reason:'(ordered in the app, not paid yet)'}:canCheckIn(p,st,target,classToday)}; });
     var usable=ps.filter(function(x){return x.can.ok;}), right;
     if(usable.length) right=h('div',{class:'row'},usable.map(function(x){ return btn((already?'Check in again: ':'Check in: ')+x.p.package_name,function(){ checkIn(c,x.p,target); },'primary small'); }));
     else { var live=ps.filter(function(x){return x.st.ok;})[0];
@@ -529,13 +561,21 @@ function vToday(){
     if(why.length) renew.push({p:p,why:why.join(', ')}); });
   return [
     pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})),
-    h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager')),
+    h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
     section('Check someone in',null,h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small')):hitRows)),
+    orders.length?section('App orders waiting for payment',null,table([
+      {label:'Customer',cell:function(p){return linkBtn(nameOf('customers',p.customer_id),function(){ openCustomer(p.customer_id); });}},
+      {label:'Package',cell:function(p){return p.package_name;}},
+      {label:'To pay',num:true,cell:function(p){return thb(p.price_thb);}},
+      {label:'Ordered',cell:function(p){return fmtDate(p.purchased_on);}},
+      {label:'',cell:function(p){return btn('Take payment',function(){ takePayment(p); },'primary small');}}],orders,'')):null,
     waiting.length?section('Privates waiting for approval',null,table([
       {label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
       {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
+      {label:'Paid with',cell:payLabel},
+      {label:'Note',cell:function(p){return p.notes||'';}},
       {label:'',cell:function(p){return h('div',{class:'row'},btn('Approve',function(){ setPrivate(p,{status:'confirmed'},'Private confirmed.'); },'primary small'),btn('Decline',function(){ setPrivate(p,{status:'cancelled'},'Private declined.'); },'small'));}}],waiting,'')):null,
     moves.length?section('Requests to move a private',null,table([
       {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
@@ -581,11 +621,11 @@ function vCustomers(){
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
         {label:'Price',num:true,cell:function(p){return thb(p.price_thb);}},
-        {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip('Not paid','warn');}},
+        {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip(p.ordered_in_app?'App order, not paid':'Not paid','warn');}},
         {label:'Visits left',num:true,cell:function(p){return p.class_limit?left(p)+' of '+p.class_limit:'Unlimited';}},
         {label:'Runs',cell:function(p){return p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
         {label:'Status',cell:function(p){return stateChip(stateOf(p,day));}},
-        {label:'',cell:function(p){return btn('Edit',function(){ editPurchase(p); },'small');}}],ps,'No packages yet. Use Sell a package to record the first one.')),
+        {label:'',cell:function(p){return h('div',{class:'row'},!p.paid&&!p.cancelled?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'));}}],ps,'No packages yet. Use Sell a package to record the first one.')),
       section('Recent visits',null,table([
         {label:'Date',cell:function(v){return fmtDate(v.day);}},{label:'Time',cell:function(v){return v.e.time;}},
         {label:'For',cell:function(v){return entryWhat(v.e);}}],visits.slice(0,12),'No visits yet.'))
@@ -733,21 +773,52 @@ function vCoach(){
         onSave:function(v){ if(v.to<v.from) return 'The last day is before the first day.'; return save('holidays',null,Object.assign({staff_id:me.id,status:'requested'},v)); }});
     },'small'),table([{label:'From',cell:function(x){return fmtDate(x.from);}},{label:'To',cell:function(x){return fmtDate(x.to);}},{label:'Status',cell:function(x){return chip(x.status==='approved'?'Approved':'Waiting for a manager',x.status==='approved'?'ok':'warn');}}],hol,'No holidays requested.'))];
 }
+var CODE=null;
+function loadCode(){ return sb.from('app_settings').select('value').eq('key','checkin_code').maybeSingle().then(function(res){ var d=must(res); CODE=d?d.value:null; schedule(); }); }
+function checkinUrl(){ return location.origin+location.pathname+'?c='+CODE; }
+function qrNode(url){
+  if(!window.qrcode) return null;
+  try{ var q=window.qrcode(0,'M'); q.addData(url); q.make(); var d=h('div',{class:'qr'}); d.innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true}); return d; }catch(e){ return null; }
+}
+function newCode(){
+  if(!guard()) return;
+  if(!ui.armCode){ ui.armCode=true; schedule(); return; }
+  ui.armCode=false;
+  var a=new Uint8Array(16); window.crypto.getRandomValues(a);
+  var v=Array.prototype.map.call(a,function(b){ return ('0'+b.toString(16)).slice(-2); }).join('');
+  run(sb.from('app_settings').update({value:v,updated_at:new Date().toISOString()}).eq('key','checkin_code').select('key').then(function(res){
+    var d=must(res); if(!d||!d.length) throw {message:'Only a manager can change the code.'}; CODE=v; schedule(); }),'New code made. Print the new poster and take the old one down.');
+}
+function printPoster(){ document.body.classList.add('print-poster'); window.print(); }
+window.addEventListener('afterprint',function(){ document.body.classList.remove('print-poster'); });
+function posterSection(){
+  var qr=CODE?qrNode(checkinUrl()):null;
+  return h('section',{class:'sec posterwrap'},
+    h('div',{class:'sechead noprint'},h('h2',null,'Check in QR code'),h('div',{class:'row'},
+      qr?btn('Print poster',printPoster,'primary small'):null,
+      CODE?btn(ui.armCode?'Tap again. The old poster stops working':'Make a new code',newCode,'small'+(ui.armCode?' danger':'')):null)),
+    !CODE?h('div',{class:'panel empty'},'The check in code could not be loaded. Reload the page.'):
+    h('div',{class:'panel pad poster'},h('div',{class:'p1'},'PHUKET KING'),h('div',{class:'p2'},'Scan to check in'),
+      qr||h('p',{class:'sub'},'The QR picture could not be drawn. Reload the page with a connection.'),
+      h('ol',null,h('li',null,'Open your phone camera and point it here'),h('li',null,'Sign in with your email the first time'),h('li',null,'Tap your class'))),
+    h('p',{class:'sub noprint'},'Put this at the front desk. Customers scan it, sign in once, and tap their class. The check in shows on Today like any other. Someone with a photo of the code could check in from outside, so if you see that, make a new code and reprint.'));
+}
 function vSettings(){
   return [pageHead('Settings'),
+    posterSection(),
     section('Booking sources',btn('Add source',function(){ editSource(); },'small'),table([
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),
     section('Not in this version yet',null,h('div',{class:'panel pad'},h('ul',{class:'plain'},
-      h('li',null,'Card payments. Sales are recorded by hand for now.'),
-      h('li',null,'The customer app.'))))];
+      h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
+      h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,mine:function(){ return vMine(); }};
+var VIEWS={today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
-  $nav.replaceChildren.apply($nav,TABS.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1]); }));
+  $nav.replaceChildren.apply($nav,TABS.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1]); }));
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
 }
 var raf=0;
@@ -809,7 +880,7 @@ function reload(col){
   }
   return sb.from(MAP[col].t).select('*').then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
-function loadAll(){ lastLoad=Date.now(); return Promise.all(COLS.map(reload)); }
+function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); return Promise.all(jobs); }
 function makeDb(){
   function changed(res){ var d=must(res); if(!d||!d.length) throw {message:'You do not have permission to change this, or it no longer exists.'}; }
   function then(q,col){ return q.select('id').then(changed).then(function(){ return reload(col); }); }
@@ -895,16 +966,237 @@ function cards(items,emptyMsg){
     it.title?h('div',null,it.title):null, it.note?h('div',{class:'cnote'},it.note):null, it.act?h('div',{class:'row'},it.act):null); }));
 }
 
+/* ---------- customer app ---------- */
+var CU=null, cuCode=null, cuAt=0, cuDone=null, cuBusy=false;
+var CTABS=[['c_home','Home'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates']];
+(function(){
+  /* the QR poster opens the app with ?c=code. Keep it for 20 minutes so it survives signing in. */
+  try{
+    var c=new URLSearchParams(location.search).get('c');
+    if(c){ cuCode=c; cuAt=Date.now(); history.replaceState(null,'',location.pathname+location.hash); localStorage.setItem('pk_code',JSON.stringify({c:c,t:cuAt})); }
+    else { var st=JSON.parse(localStorage.getItem('pk_code')||'null'); if(st&&st.c){ cuCode=st.c; cuAt=Number(st.t)||0; } }
+  }catch(e){}
+})();
+function liveCode(){ return cuCode&&Date.now()-cuAt<20*60000?cuCode:null; }
+function forgetCode(){ cuCode=null; try{ localStorage.removeItem('pk_code'); }catch(e){} }
+function loadCustomer(){ lastLoad=Date.now(); return sb.rpc('customer_home').then(function(res){ CU=must(res); schedule(); }); }
+function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
+function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
+function cuWd(){ return (parseYmd(CU.today).getDay()+6)%7; }
+function cuUsable(p){ return p.paid||!p.ordered_in_app; }
+function cuState(p){ return purchaseState(p,CU.today,p.used_week||0); }
+function cuClassPacks(){ return CU.purchases.filter(function(p){ return !isPrivatePack(p)&&cuUsable(p); }); }
+function cuTargets(){
+  var wd=cuWd(), cut=shiftTime(bkkTime(Date.now()),-120), ps=cuClassPacks();
+  var mine=CU.checkins.filter(function(e){ return e.day===CU.today; }), classToday=mine.some(function(e){ return !!e.class_id; });
+  function usable(t){ return ps.some(function(p){ return canCheckIn(p,cuState(p),t,classToday).ok; }); }
+  var out=[];
+  CU.classes.forEach(function(c){
+    if(Number(c.day)!==wd) return;
+    var t={kind:'class',id:c.id,discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title};
+    t.done=mine.some(function(e){ return e.class_id===c.id; });
+    if(!t.done&&c.time&&c.time<cut) return;
+    t.ok=usable(t); out.push(t); });
+  FACILITIES.forEach(function(f){
+    var t={kind:'facility',name:f,label:f};
+    t.done=mine.some(function(e){ return e.facility===f; }); t.ok=usable(t);
+    if(t.ok||t.done) out.push(t); });
+  return out;
+}
+function cuCheckIn(t){
+  var code=liveCode();
+  if(!code){ forgetCode(); toast('Scan the QR code at the front desk again.'); schedule(); return; }
+  if(cuBusy) return; cuBusy=true;
+  sb.rpc('customer_check_in',{p_code:code,p_class:t.kind==='class'?t.id:null,p_facility:t.kind==='facility'?t.name:null}).then(must).then(function(d){
+    cuDone=d; return loadCustomer();
+  }).catch(function(e){
+    var m=(e&&e.message)||'That did not work. Try again.';
+    if(/out of date/.test(m)) forgetCode();
+    toast(m); schedule();
+  }).then(function(){ cuBusy=false; });
+}
+function cuCheckInCard(){
+  if(cuDone) return h('div',{class:'panel pad done',role:'status'},
+    h('div',{class:'donebig'},'Checked in'),h('div',{class:'donewhat'},cuDone.what),
+    h('div',{class:'cnote'},CU.me.name+'. '+fmtDate(CU.today)+' at '+cuDone.time+'. '+cuDone.package+'.'),
+    h('div',{class:'row'},btn('Check in for something else',function(){ cuDone=null; schedule(); },'small')));
+  if(!liveCode()) return h('div',{class:'panel pad narrow'},h('b',null,'To check in'),
+    h('p',{class:'sub'},'Scan the QR code at the front desk with your phone camera. It opens this app and you tap your class.'));
+  var ts=cuTargets(), any=cuClassPacks().some(function(p){ return cuState(p).ok; });
+  if(!any&&CU.purchases.some(function(p){ return !cuUsable(p); })) return h('div',{class:'panel pad narrow'},h('b',null,'Almost there'),
+    h('p',{class:'sub'},'Your order is waiting for payment. Pay at the front desk, then tap Home again to check in.'));
+  if(!any) return h('div',{class:'panel pad narrow'},h('b',null,'No active package'),
+    h('p',{class:'sub'},'You need a paid package to check in. Order one here and pay at the front desk, or ask the team.'),
+    h('div',{class:'row'},btn('See packages',function(){ go('c_buy'); },'primary small')));
+  return h('div',{class:'panel checkin'},h('div',{class:'pad'},h('b',null,'Check in'),h('p',{class:'sub'},'Tap what you are here for.')),
+    ts.length?ts.map(function(t){ return h('div',{class:'hit'},h('span',null,t.label),
+      t.done?chip('Checked in','ok'):t.ok?btn('Check in',function(){ cuCheckIn(t); },'primary'):chip('Not in your package')); }):
+    h('div',{class:'hit'},h('span',{class:'sub'},'No more classes today.')));
+}
+function pkgCard(p){
+  var st=cuState(p), pack=isPrivatePack(p), bits=[];
+  if(p.class_limit) bits.push(classesLeft(p)+' of '+p.class_limit+(pack?' sessions':' visits')+' left');
+  if(p.per_week_limit) bits.push((p.used_week||0)+' of '+p.per_week_limit+' used this week');
+  if(p.expires_on) bits.push((st.status==='expired'?'Ended ':'Valid until ')+fmtDate(p.expires_on));
+  else if(!p.starts_on) bits.push('Starts on your first visit'+(p.start_by?', start by '+fmtDate(p.start_by):''));
+  if(p.times&&p.times.length) bits.push('Only the '+p.times.join(' and ')+' classes');
+  var c=st.status==='active'?chip('Active','ok'):st.status==='not_started'?chip('Ready to use','ok'):st.status==='week_limit'?chip('Weekly limit reached','warn'):chip(st.label,'bad');
+  return {when:p.package_name,right:c,note:bits.join('. ')};
+}
+function orderCard(p){
+  return {when:p.package_name,right:thb(p.price_thb),note:'Pay at the front desk. It is ready to use as soon as payment is taken.',
+    act:btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')};
+}
+function editMe(){
+  openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'}],
+    onSave:function(v){ return cuCall('customer_join',{p_name:v.name,p_phone:v.phone||null}); }});
+}
+function vCHome(){
+  var day=CU.today, wd=cuWd(), first=String(CU.me.name||'').split(' ')[0];
+  var waiting=CU.purchases.filter(function(p){ return !cuUsable(p); });
+  var mineP=CU.purchases.filter(cuUsable), live=mineP.filter(function(p){ return cuState(p).ok||cuState(p).status==='week_limit'; });
+  var past=mineP.filter(function(p){ return live.indexOf(p)<0; }).slice(0,3);
+  var mine=CU.checkins.filter(function(e){ return e.day===day; });
+  var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd; });
+  var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
+  return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day)),
+    cuCheckInCard(),
+    waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
+    section('My packages',btn('Buy a package',function(){ go('c_buy'); },'small'),cards(live.map(pkgCard),'No active package yet. Order one here and pay at the front desk.')),
+    nextP?section('Next private',btn('All privates',function(){ go('c_pt'); },'small'),cards([ptCard(nextP,true)],'')):null,
+    section('Today at the gym',btn('Full timetable',function(){ go('c_classes'); },'small'),cards(todayC.map(function(c){
+      return {when:c.time||'',title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:mine.some(function(e){ return e.class_id===c.id; })?chip('Checked in','ok'):null}; }),'No group classes today.')),
+    past.length?section('Finished packages',null,cards(past.map(pkgCard),'')):null,
+    section('My details',btn('Edit',editMe,'small'),h('div',{class:'panel pad kv narrow'},
+      h('div',null,h('small',null,'Name'),CU.me.name),h('div',null,h('small',null,'Email'),CU.me.email||''),h('div',null,h('small',null,'Phone'),CU.me.phone||'Not given')))];
+}
+function vCClasses(){
+  var wd=cuWd(), ps=cuClassPacks().filter(function(p){ return cuState(p).ok||cuState(p).status==='week_limit'; });
+  var out=[pageHead('Timetable','Group classes are turn up and check in. No booking needed.')];
+  if(!CU.classes.length){ out.push(h('div',{class:'panel empty'},'The timetable is not set up yet.')); return out; }
+  for(var i=0;i<7;i++){ (function(d,isToday){
+    var rows=CU.classes.filter(function(c){ return Number(c.day)===d; }); if(!rows.length) return;
+    out.push(section(DAYS[d]+(isToday?', today':''),null,cards(rows.map(function(c){
+      var cov=!ps.length||ps.some(function(p){ return !coverReason(p,{kind:'class',discipline:c.discipline,time:c.time||''}); });
+      return {when:c.time||'Time to be set',title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:cov?null:chip('Not in your package')}; }),'')));
+  })((wd+i)%7,i===0); }
+  return out;
+}
+function pkgDays(n){
+  if(n===1) return '1 day';
+  if(n<28&&n%7===0) return n/7===1?'1 week':(n/7)+' weeks';
+  var m=Math.round(n/30.4); if(n>=28&&Math.abs(n-m*30.4)<=4) return m===1?'1 month':m+' months';
+  return n+' days';
+}
+function pkgDetail(k){
+  var pack=!!(k.covers&&k.covers.indexOf('Privates')>=0), b=[];
+  b.push(k.class_limit?k.class_limit+(pack?' private session':' visit')+(k.class_limit===1?'':'s'):'Unlimited visits');
+  if(k.per_week_limit) b.push('up to '+k.per_week_limit+' a week');
+  if(k.duration_days) b.push('valid '+pkgDays(k.duration_days)+(k.clock==='purchase'?' from the day you pay':' from your first visit'));
+  if(k.start_within_days) b.push('start within '+pkgDays(k.start_within_days));
+  var s=b.join(', ')+'.';
+  if(k.times&&k.times.length) s+=' Only the '+k.times.join(' and ')+' classes.';
+  var inc=(k.covers||[]).filter(function(c){ return c!=='Privates'; }); if(inc.length) s+=' Includes '+inc.join(', ')+'.';
+  if(k.addon_thb!=null) s+=' Fitness Zone can be added for '+thb(k.addon_thb)+'.';
+  return s;
+}
+function orderPkg(k){
+  openForm({title:'Order '+k.name,note:thb(k.price_thb)+'. Pay at the front desk. It is ready to use as soon as payment is taken.',saveLabel:'Order',doneMsg:'Ordered. Pay at the front desk.',
+    fields:k.addon_thb!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(k.addon_thb),type:'checkbox'}]:[],
+    onSave:function(v){ return cuCall('customer_buy',{p_package:k.id,p_fz:!!v.fz}).then(function(){ go('c_home'); }); }});
+}
+function vCBuy(){
+  var g=CU.me.price_group||'standard', fams=[], by={};
+  function put(f,k,label){ if(!by[f]){ by[f]=[]; fams.push(f); } by[f].push({k:k,label:label}); }
+  CU.packages.forEach(function(k){ var i=k.name.indexOf(','); if(i>0) put(k.name.slice(0,i).trim(),k,k.name.slice(i+1).trim()); });
+  CU.packages.forEach(function(k){ if(k.name.indexOf(',')>0) return;
+    var f=fams.filter(function(x){ return x!=='More'&&k.name.toLowerCase().indexOf(x.toLowerCase())===0&&k.name.length>x.length; })[0];
+    if(f) put(f,k,k.name.slice(f.length).trim()); else put('More',k,k.name); });
+  function rank(f){ return f==='More'?2:/^training/i.test(f)?0:1; }
+  fams.sort(function(a,b){ return rank(a)-rank(b)||(a<b?-1:1); });
+  var waiting=CU.purchases.filter(function(p){ return !cuUsable(p); });
+  var out=[pageHead('Packages','Order here and pay at the front desk.'+(g!=='standard'?' You are on '+GROUPS[g].toLowerCase()+' prices.':''))];
+  if(waiting.length) out.push(section('Waiting for payment',null,cards(waiting.map(orderCard),'')));
+  if(!CU.packages.length) out.push(h('div',{class:'panel empty'},'No packages are on sale in the app yet. Ask at the front desk.'));
+  fams.forEach(function(f){
+    var list=by[f].slice().sort(function(a,b){ return a.k.price_thb-b.k.price_thb; });
+    out.push(section(f,null,cards(list.map(function(x){
+      return {when:x.label,right:thb(x.k.price_thb),note:pkgDetail(x.k),act:btn('Order',function(){ orderPkg(x.k); },'primary small')}; }),'')));
+  });
+  return out;
+}
+function cuPack(){ return CU.purchases.filter(function(p){ return isPrivatePack(p)&&cuUsable(p)&&cuState(p).ok; })[0]||null; }
+function requestPrivate(){
+  if(!CU.coaches.length){ toast('Privates cannot be requested in the app yet. Ask at the front desk.'); return; }
+  var pack=cuPack(), cost=pack?'This uses 1 session from your pack. You have '+classesLeft(pack)+' left. ':(CU.private_price!=null?'A private is '+thb(CU.private_price)+', paid at the front desk. ':'');
+  openForm({title:'Request a private',note:cost+'The front desk checks with the coach. It is booked when it shows Confirmed here.',saveLabel:'Send request',doneMsg:'Request sent.',fields:[
+    {key:'coach',label:'Coach',type:'select',options:CU.coaches.map(function(c){ return [c.id,c.name]; }),def:CU.coaches[0].id,hint:'Not sure who? Pick anyone and say so in the note.'},
+    {key:'date',label:'Date',type:'date',required:true,def:addDays(CU.today,1)},
+    {key:'time',label:'Start time',type:'time',required:true},
+    {key:'note',label:'Anything we should know',type:'textarea'}],
+    onSave:function(v){ if(v.date<CU.today) return 'That date has already passed.';
+      return cuCall('customer_request_private',{p_coach:v.coach,p_date:v.date,p_time:v.time,p_note:v.note||null}); }});
+}
+function cuAskMove(p){
+  var late=CU.today>=p.date;
+  openForm({title:'Ask to move this private',note:late?'It is the day of the private, so your coach has to agree first. Then a manager authorizes it. It stays as booked until then.':'A manager has to authorize the move. It stays as booked until then.',
+    saveLabel:'Send request',doneMsg:'Request sent.',values:{date:p.date,time:p.time},fields:[
+    {key:'date',label:'New date',type:'date',required:true},{key:'time',label:'New start time',type:'time',required:true},{key:'note',label:'Reason'}],
+    onSave:function(v){ if(v.date<CU.today) return 'That date has already passed.'; if(v.date===p.date&&v.time===p.time) return 'That is the time it is already booked for.';
+      return cuCall('customer_ask_move',{p_private:p.id,p_date:v.date,p_time:v.time,p_note:v.note||null}); }});
+}
+function ptCard(p,brief){
+  var r=p.reschedule, note=[], act=null;
+  var st=p.status==='requested'?chip('Waiting for confirmation','warn'):p.status==='confirmed'?chip('Confirmed','ok'):p.status==='done'?chip('Done','ok'):chip('Not booked','bad');
+  if(p.status!=='cancelled') note.push(p.pack?'Paid with your pack':(p.paid?'Paid':'Pay at the front desk'));
+  if(r&&p.status==='confirmed') note.push((r.by==='coach'?'Your coach asked to move this to ':'You asked to move this to ')+fmtDate(r.date)+' '+r.time+'. '+(r.by==='customer'&&r.needs_coach&&!r.coach_agreed?'Waiting for your coach':'Waiting for a manager'));
+  else if(!brief&&p.status==='confirmed'&&p.date>=CU.today) act=btn('Ask to move',function(){ cuAskMove(p); },'small');
+  return {when:fmtDate(p.date)+' '+p.time,right:st,title:'With '+p.coach,note:note.join('. '),act:act};
+}
+function vCPt(){
+  var day=CU.today, pack=cuPack();
+  var up=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='requested'||p.status==='confirmed'); });
+  var past=CU.privates.filter(function(p){ return up.indexOf(p)<0; }).reverse();
+  var info=pack?'Your pack has '+classesLeft(pack)+' of '+pack.class_limit+' sessions left'+(pack.expires_on?', use by '+fmtDate(pack.expires_on):'')+'.'
+    :(CU.private_price!=null?'A private is '+thb(CU.private_price)+'. Packs of sessions are in Packages.':'One to one with a coach.');
+  return [pageHead('Privates',info,btn('Request a private',requestPrivate,'primary')),
+    section('Coming up',null,cards(up.map(function(p){ return ptCard(p); }),'Nothing booked. Request a private and the front desk will confirm it.')),
+    past.length?section('Earlier',null,cards(past.map(function(p){ return ptCard(p); }),'')):null,
+    h('p',{class:'sub narrow'},'To cancel a private, speak to a manager at the front desk.')];
+}
+function showJoin(email){
+  var name=h('input',{id:'join-name',autocomplete:'name'}), phone=h('input',{id:'join-phone',type:'tel',autocomplete:'tel'});
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), send=h('button',{type:'submit',class:'btn primary'},'Continue');
+  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,'Welcome'),
+    h('p',{class:'sub'},'You are signed in as '+email+'. Add your name to finish.'),
+    h('div',{class:'field'},h('label',{for:'join-name'},'Your name'),name),
+    h('div',{class:'field'},h('label',{for:'join-phone'},'Phone or WhatsApp'),phone,h('small',null,'Optional. So the team can reach you about a booking.')),
+    h('div',null,send),err);
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault(); var v=name.value.trim();
+    if(v.length<2){ err.textContent='Enter your name.'; err.hidden=false; name.focus(); return; }
+    send.disabled=true; err.hidden=true;
+    cuCall('customer_join',{p_name:v,p_phone:phone.value.trim()||null}).then(startCustomer,function(e){ send.disabled=false; err.textContent=(e&&e.message)||'That did not save. Try again.'; err.hidden=false; });
+  });
+  $view.replaceChildren(form); name.focus();
+}
+function startCustomer(){
+  if(!CU||!CU.me) return showJoin((CU&&CU.email)||'');
+  TABS=CTABS; if(liveCode()||!TABS.some(function(t){ return t[0]===ui.tab; })) ui.tab='c_home';
+  allReady=true; schedule();
+}
+function enterCustomer(){ me={role:'customer'}; db=makeDb(); return loadCustomer().then(startCustomer); }
+
 /* ---------- signing in ---------- */
 function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut(); }},'Sign out'); }
 function notice(title,text){ $view.replaceChildren(h('div',{class:'panel pad login'},h('h1',null,title),h('p',{class:'sub'},text),h('div',null,signOutBtn()))); }
 function showSignIn(){
-  me=null; db=null; CO=null; allReady=false; TABS=[]; renderNav(); $who.replaceChildren();
+  me=null; db=null; CO=null; CU=null; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; renderNav(); $who.replaceChildren();
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
   var note=h('p',{class:'sub',role:'status'});
   var send=h('button',{type:'submit',class:'btn primary'},'Email me a sign in link');
   var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,'Sign in'),
-    h('p',{class:'sub'},'Enter your email and we will send you a link. Open the link on this device to sign in. There is no password.'),
+    h('p',{class:'sub'},'Enter your email and we will send you a link. Open the link on this phone to sign in. There is no password. New here? Use your email and you are set up as a member.'),
     h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),h('div',null,send),note);
   form.addEventListener('submit',function(ev){
     ev.preventDefault(); var v=email.value.trim();
@@ -923,9 +1215,10 @@ function enter(user){
   $view.replaceChildren(h('div',{class:'panel empty'},'Signing you in.'));
   sb.from('staff').select('*').eq('user_id',user.id).maybeSingle().then(function(res){
     var row=must(res);
-    $who.replaceChildren(h('span',null,h('b',null,row?row.name:user.email),row?' '+(ROLES[row.role]||''):''),signOutBtn());
-    if(!row||row.active===false) return notice('Not on the staff list','You are signed in as '+user.email+', but that email is not an active staff login. Ask a manager to add it in Staff. The customer app is still being built.');
-    document.getElementById('mode').textContent=row.role==='coach'?'Coach':'Back office';
+    $who.replaceChildren(h('span',null,h('b',null,row&&row.active!==false?row.name:user.email),row&&row.active!==false?' '+(ROLES[row.role]||''):''),signOutBtn());
+    var staff=!!(row&&row.active!==false);
+    document.getElementById('mode').textContent=!staff?'Members':row.role==='coach'?'Coach':'Back office';
+    if(!staff) return enterCustomer();
     if(row.role==='coach'){ me=row; db=makeDb(); TABS=[['mine','My work']]; ui.tab='mine'; return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
     TABS=row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return ['today','customers','timetable','privates'].indexOf(t[0])>=0; });
@@ -943,7 +1236,7 @@ if(!window.supabase||!window.supabase.createClient){
     if(session&&session.user) setTimeout(function(){ enter(session.user); },0);
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; showSignIn(); }
   });
-  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='coach'?loadCoach():loadAll()).catch(function(){}); });
+  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='coach'?loadCoach():me.role==='customer'?loadCustomer():loadAll()).catch(function(){}); });
 }
 })();
 </script>
