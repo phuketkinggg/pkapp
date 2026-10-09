@@ -274,7 +274,7 @@ function moveNeedsCoach(privateDate,today){ return today>=privateDate; }
 function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; }
 /*LOGIC-END*/
 
-var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges'];
+var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
 var ALLTABS=[['today','Today'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['staff','Staff'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
@@ -283,7 +283,7 @@ var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
 var TIERS={train:'Train',progress:'Progress',pangea:'Pangea'};
 var GROUPS={standard:'Standard',local:'Local resident',thai:'Thai'};
-var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort'};
+var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping'};
 var PSTATUS={requested:'Requested',confirmed:'Confirmed',done:'Done',cancelled:'Cancelled'};
 var ui={tab:'today',q:'',cq:'',customerId:null,target:'',targetAuto:true,pfilter:'upcoming',coachId:'',month:ymd(new Date()).slice(0,7)};
 var $view=document.getElementById('view'), $nav=document.getElementById('nav'), $dlg=document.getElementById('dlg'), $toast=document.getElementById('toast'), $banner=document.getElementById('banner'), $who=document.getElementById('who');
@@ -401,7 +401,7 @@ function editStaff(s){ s=s||{};
   openForm({title:s.id?'Edit staff member':'New staff member',values:s,fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
-    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['manager','Manager']]},
+    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['manager','Manager']]},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches.'},
     {key:'phone',label:'Phone'},
     {key:'active',label:'Working here now',type:'checkbox',def:true}],
@@ -689,11 +689,11 @@ function editStay(st){
 function setStay(st,patch,msg){ if(guard()) run(db.doc('stays/'+st.id).update(patch),msg); }
 function addCharge(st,after){
   openForm({title:'Add to room bill',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id),saveLabel:'Add',doneMsg:'Added to the bill.',fields:[
-    {key:'kind',label:'What for',type:'select',def:'cafe',options:[['cafe','Cafe'],['room','Room'],['gym','Gym'],['other','Other']]},
+    {key:'kind',label:'What for',type:'select',def:'cafe',options:[['cafe','Cafe'],['minibar','Mini bar'],['room','Room'],['gym','Gym'],['other','Other']]},
     {key:'description',label:'Details',required:true,hint:'For example: 2 coffees and a smoothie.'},
     {key:'amount_thb',label:'Amount (THB)',type:'number',required:true},
     {key:'day',label:'Date',type:'date',def:ymd(new Date()),required:true}],
-    onSave:function(v){ var label={cafe:'Cafe',room:'Room',gym:'Gym',other:''}[v.kind];
+    onSave:function(v){ var label={cafe:'Cafe',minibar:'Mini bar',room:'Room',gym:'Gym',other:''}[v.kind];
       return save('charges',null,{stay_id:st.id,day:v.day,description:(label?label+': ':'')+v.description,amount_thb:v.amount_thb,kind:v.kind}).then(function(){ if(after) after(); }); }});
 }
 function mealServed(st,p){
@@ -843,7 +843,64 @@ function vStays(){
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
       return {when:nameOf('rooms',st.room_id),right:thb(billTotal(st)),title:g.name||'Guest',note:'Left '+fmtDate(st.check_out),act:btn('Settle',function(){ openBill(st); },'primary small')}; }),'')):null,
+    hkDeskSections(),
     section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.'))]);
+}
+
+/* ---------- housekeeping: clean rooms, report problems, record mini bar use ---------- */
+var HK=null;
+function loadHK(){ lastLoad=Date.now(); return sb.rpc('housekeeping_home').then(function(res){ HK=must(res); schedule(); }); }
+function hkDo(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return (me&&me.role==='housekeeping'?loadHK():reloadHKDesk()).then(function(){ return d; }); }); }
+function hkState(r){
+  if(r.needs_full) return {rank:r.arriving?0:1,chip:chip(r.arriving?'Clean now, guest arriving':'Needs full clean','bad')};
+  if(r.leaving&&!r.cleaned_today) return {rank:3,chip:chip('Guest leaving today','warn')};
+  if(r.occupied&&!r.cleaned_today) return {rank:2,chip:chip('Daily clean','warn')};
+  if(r.cleaned_today) return {rank:5,chip:chip('Cleaned today','ok')};
+  return {rank:4,chip:chip('Clean','ok')};
+}
+function hkMinibar(r){
+  if(!HK.items.length){ toast('No mini bar items yet. A manager adds them in Settings.'); return; }
+  openForm({title:'Mini bar, '+r.name,note:'How many of each was used? It goes on the guest\'s room bill.',saveLabel:'Add to bill',doneMsg:'Added to the room bill.',
+    fields:HK.items.map(function(m){ return {key:'q_'+m.id,label:m.name+' ('+thb(m.price)+')',type:'number',def:0}; }),
+    onSave:function(v){
+      var items=HK.items.map(function(m){ return {id:m.id,qty:Number(v['q_'+m.id])||0}; }).filter(function(x){ return x.qty>0; });
+      if(!items.length) return 'Enter how many of at least one item.';
+      return hkDo('hk_minibar',{p_room:r.id,p_items:items});
+    }});
+}
+function hkIssue(r){
+  openForm({title:'Problem in '+r.name,note:'Something broken or not working. The manager sees it straight away.',saveLabel:'Report',doneMsg:'Reported.',fields:[
+    {key:'text',label:'What is wrong',type:'textarea',required:true}],
+    onSave:function(v){ return hkDo('hk_report_issue',{p_room:r.id,p_text:v.text}); }});
+}
+function hkCard(r,staffView){
+  var st=hkState(r), bits=[];
+  bits.push(r.arriving?'Guest arriving today':r.leaving?'Guest leaving today':r.occupied?'Guest staying':'Empty');
+  bits.push(r.last_cleaned?'Last cleaned '+fmtDate(r.last_cleaned.slice(0,10))+' '+r.last_cleaned.slice(11):'Not cleaned in the app yet');
+  var again=r.cleaned_today&&!r.needs_full;
+  var acts=[btn(again?'Cleaned again':'Cleaned',function(){ run(hkDo('hk_cleaned',{p_room:r.id}),r.name+' marked clean.'); },again?'small':'primary small')];
+  if(!staffView&&r.guest_in) acts.push(btn('Mini bar',function(){ hkMinibar(r); },'small'));
+  if(!staffView) acts.push(btn('Problem',function(){ hkIssue(r); },'small'));
+  return {when:r.name,right:st.chip,note:bits.join('. ')+(r.issues.length?'. Problem: '+r.issues.map(function(i){ return i.text; }).join('; '):''),act:acts};
+}
+function vHK(){
+  if(!HK) return [h('div',{class:'panel empty'},'Loading rooms.')];
+  var rooms=HK.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
+  var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length;
+  return [pageHead('Rooms',DAYS[(parseYmd(HK.today).getDay()+6)%7]+' '+fmtDate(HK.today)+'. '+(todo?todo+' to clean':'All clean')),
+    cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
+}
+/* the desk and managers see the same picture on the Stays page, and close problems there */
+var HKD=null;
+function reloadHKDesk(){ return sb.rpc('housekeeping_home').then(function(res){ HKD=must(res); if(!HKD||!HKD.rooms) HKD={rooms:[],items:[]}; schedule(); }); }
+function fixIssue(i){ if(guard()) run(sb.from('room_issues').update({status:'fixed',fixed_at:new Date().toISOString(),fixed_by:me.id||null}).eq('id',i.id).select('id').then(must).then(reloadHKDesk),'Marked fixed.'); }
+function hkDeskSections(){
+  if(!HKD){ if(!ui.hkAsked){ ui.hkAsked=true; reloadHKDesk().catch(function(){}); } return []; }
+  var issues=[]; HKD.rooms.forEach(function(r){ r.issues.forEach(function(i){ issues.push({room:r.name,i:i}); }); });
+  var dirty=HKD.rooms.filter(function(r){ return hkState(r).rank<4; }).sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
+  return [
+    issues.length?section('Problems reported',null,cards(issues.map(function(x){ return {when:x.room,right:fmtDate(x.i.at),title:x.i.text,act:btn('Fixed',function(){ fixIssue(x.i); },'primary small')}; }),'')):null,
+    section('Housekeeping today',btn('Refresh',function(){ reloadHKDesk(); },'small'),cards(dirty.map(function(r){ return hkCard(r,true); }),'All rooms are clean.'))];
 }
 
 /* ---------- views ---------- */
@@ -1138,6 +1195,14 @@ function posterSection(){
       h('ol',null,h('li',null,'Open your phone camera and point it here'),h('li',null,'Sign in with your email the first time'),h('li',null,'Tap your class'))),
     h('p',{class:'sub noprint'},'Put this at the front desk. Customers scan it, sign in once, and tap their class. The check in shows on Today like any other. Someone with a photo of the code could check in from outside, so if you see that, make a new code and reprint.'));
 }
+function editMinibar(m){ m=m||{};
+  openForm({title:m.id?'Edit mini bar item':'New mini bar item',values:m,fields:[
+    {key:'name',label:'Item',required:true,hint:'For example: Coke, Chang beer, water.'},
+    {key:'price_thb',label:'Price the guest pays (THB)',type:'number',required:true},
+    {key:'sort',label:'Order in the list',type:'number',def:S.minibar.length+1},
+    {key:'active',label:'In the mini bar',type:'checkbox',def:true}],
+    onSave:function(v){ return save('minibar',m.id,Object.assign({},m,v)); }});
+}
 function editRoom(r){ r=r||{};
   openForm({title:r.id?'Edit room':'New room',values:r,fields:[{key:'name',label:'Name',required:true},{key:'sort',label:'Order in lists',type:'number',def:S.rooms.length+1},{key:'active',label:'In use',type:'checkbox',def:true}],
     onSave:function(v){ return save('rooms',r.id,Object.assign({},r,v)); }});
@@ -1145,6 +1210,11 @@ function editRoom(r){ r=r||{};
 function vSettings(){
   return [pageHead('Settings'),
     posterSection(),
+    section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
+      {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
+      {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
+      {label:'In the mini bar',cell:function(m){ return m.active===false?chip('No'):chip('Yes','ok'); }}],
+      S.minibar.slice().sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(b.name); }),'No items yet. Add what you stock, with the price the guest pays.')),
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
       {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
@@ -1157,7 +1227,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   $nav.replaceChildren.apply($nav,TABS.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1]); }));
@@ -1189,7 +1259,8 @@ var MAP={
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests']},
-  charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']}
+  charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
+  minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
 };
 function must(res){
   if(res.error){ var e=res.error, m=e.message||'Something went wrong.';
@@ -1628,7 +1699,7 @@ function staffTabs(row){ var keep=row.role==='resort'?['stays','customers']:['to
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  me=null; db=null; CO=null; CU=null; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -1657,7 +1728,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  me=null; db=null; CO=null; CU=null; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -1746,6 +1817,7 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
+    if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); TABS=[['hk','Rooms']]; ui.tab='hk'; return loadHK().then(function(){ allReady=true; schedule(); }); }
     if(row.role==='coach'){ me=row; db=makeDb(); TABS=[['mine','My work']]; ui.tab='mine'; return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
     TABS=staffTabs(row);
@@ -1774,7 +1846,7 @@ if(!window.supabase||!window.supabase.createClient){
     if(session&&session.user){ if(linkNote){ toast(linkNote); linkNote=''; } setTimeout(function(){ enter(session.user); },0); }
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; recovering=false; signMode='in'; showSignIn(); }
   });
-  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():loadAll()).catch(function(){}); });
+  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); });
 }
 })();
 </script>
