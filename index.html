@@ -171,6 +171,36 @@ body.kiosk #view{max-width:1100px;margin:0 auto}
 .kdone .donewhat{font-size:26px}
 .kfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-size:15px}
 .kerr{max-width:760px;padding:16px 20px;border-radius:12px;background:var(--bad-bg);color:var(--bad);font-size:18px}
+
+/* booking calendar: dates across, rooms down, one bar per stay */
+.calbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.calwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cal{--day:38px;--room:170px;display:grid;grid-template-columns:var(--room) repeat(var(--days),var(--day));min-width:max-content;font-size:13px}
+.cal .ch{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);text-align:center;padding:6px 0 4px;line-height:1.15;color:var(--muted);z-index:2}
+.cal .ch b{display:block;color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
+.cal .ch.we{background:var(--sunken)}
+.cal .ch.today b{color:var(--gold-ink)}
+.cal .ch.mon{border-left:1px solid var(--line)}
+.cal .corner{position:sticky;left:0;top:0;z-index:4;background:var(--surface);border-bottom:1px solid var(--line);padding:6px 10px;font-weight:600;display:flex;align-items:flex-end}
+.cal .rn{position:sticky;left:0;z-index:3;background:var(--surface);border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0 10px;display:flex;align-items:center;font-weight:600;min-height:44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal .crow{display:grid;gap:0;grid-column:2 / -1;grid-template-columns:repeat(var(--days),var(--day));border-bottom:1px solid var(--line);position:relative;min-height:44px}
+.cal .cell{appearance:none;border:0;border-left:1px solid var(--line);background:transparent;cursor:pointer;grid-row:1;min-height:44px;padding:0}
+.cal .cell.we{background:var(--sunken)}
+.cal .cell.today{box-shadow:inset 2px 0 0 var(--gold)}
+.cal .cell:hover{background:var(--warn-bg)}
+.cal .bk{grid-row:1;align-self:center;height:30px;margin:0 2px;border-radius:7px;border:0;cursor:pointer;color:#fff;font:600 12px var(--body);text-align:left;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:1;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cal .bk.cut-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:0}
+.cal .bk.cut-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:0}
+.cal .bk.booked{opacity:.9}
+.cal .bk.in{outline:2px solid var(--ink);outline-offset:-2px}
+.cal .bk.out{opacity:.45}
+.src-website{background:#B88A44}.src-airbnb{background:#D9485F}.src-booking{background:#2F5DA8}.src-agoda{background:#7A4FB0}.src-direct{background:#2E8B57}.src-other{background:#5A605B}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:5px}
+.seg{display:inline-flex;gap:4px;padding:4px;background:var(--sunken);border-radius:10px}
+.seg button{appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);min-height:36px;padding:0 14px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
+@media (max-width:760px){ .cal{--room:118px;--day:34px} }
 @media (prefers-reduced-motion:no-preference){ .btn,#nav button{transition:background-color .12s,border-color .12s} }
 </style>
 </head>
@@ -736,6 +766,64 @@ function syncLine(){
   return h('div',{class:'row'},h('span',{class:'sub'},txt),btn(ui.syncing?'Syncing.':'Sync now',syncNow,'small'),
     errs?h('details',null,h('summary',{class:'sub'},errs.length+' booking'+(errs.length===1?'':'s')+' could not come in'),h('ul',{class:'plain'},errs.map(function(e){ return h('li',null,e); }))):null);
 }
+function srcClass(st){
+  var n=String(nameOf('sources',st.source_id,'')).toLowerCase();
+  if(!st.source_id) return 'src-direct';
+  if(n.indexOf('website')>=0) return 'src-website';
+  if(n.indexOf('airbnb')>=0) return 'src-airbnb';
+  if(n.indexOf('booking')>=0) return 'src-booking';
+  if(n.indexOf('agoda')>=0) return 'src-agoda';
+  if(n.indexOf('direct')>=0) return 'src-direct';
+  return 'src-other';
+}
+function stayDialog(st){
+  var day=ymd(new Date()), it=stayCard(st,day), close=function(){ $dlg.close(); };
+  var box=h('div',{class:'billbox'},h('h2',null,it.title),
+    h('div',{class:'row'},h('b',null,it.when),it.right),
+    h('p',{class:'sub'},it.note),
+    h('div',{class:'row',onclick:function(ev){ if(ev.target.tagName==='BUTTON') close(); }},it.act),
+    h('div',{class:'factions'},h('span'),btn('Close',close)));
+  $dlg.replaceChildren(box);
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function vCalendar(){
+  var today=ymd(new Date()), days=window.innerWidth<760?14:28;
+  if(!ui.calStart) ui.calStart=addDays(today,-2);
+  var start=ui.calStart, end=addDays(start,days), dates=[];
+  for(var i=0;i<days;i++) dates.push(addDays(start,i));
+  var rooms=S.rooms.filter(function(r){ return r.active!==false; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(String(b.name),'en',{numeric:true}); });
+  var live=S.stays.filter(function(st){ return st.status!=='cancelled'&&st.check_in<end&&st.check_out>start; });
+  function idx(d){ return Math.round((parseYmd(d)-parseYmd(start))/86400000); }
+  var heads=dates.map(function(d){ var dt=parseYmd(d), wd=dt.getDay();
+    return h('div',{class:'ch'+(wd===0||wd===6?' we':'')+(d===today?' today':'')+(dt.getDate()===1?' mon':''),title:fmtDate(d)},
+      dt.toLocaleDateString('en-GB',{weekday:'narrow'}),h('b',null,dt.getDate()),dt.getDate()===1||d===start?dt.toLocaleDateString('en-GB',{month:'short'}):' '); });
+  var rows=[];
+  rooms.forEach(function(r){
+    var cells=dates.map(function(d,i){ var wd=parseYmd(d).getDay();
+      return h('button',{type:'button',class:'cell'+(wd===0||wd===6?' we':'')+(d===today?' today':''),style:'grid-column:'+(i+1),'aria-label':r.name+', '+fmtDate(d)+', free',
+        onclick:function(){ editStay({room_id:r.id,check_in:d,check_out:addDays(d,1)}); }}); });
+    var bars=live.filter(function(st){ return st.room_id===r.id; }).map(function(st){
+      var a=Math.max(0,idx(st.check_in)), b=Math.min(days,idx(st.check_out)), g=byId('customers',st.customer_id)||{};
+      if(b<=a) return null;
+      var name=String(g.name||'Guest'), label=b-a>=3?name:name.split(' ')[0];
+      return h('button',{type:'button',class:'bk '+srcClass(st)+' '+st.status+(st.check_in<start?' cut-l':'')+(st.check_out>end?' cut-r':''),style:'grid-column:'+(a+1)+' / '+(b+1),
+        title:name+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+(st.source_id?', '+nameOf('sources',st.source_id):''),
+        onclick:function(){ stayDialog(st); }},label);
+    });
+    rows.push(h('div',{class:'rn',title:r.name},r.name),h('div',{class:'crow'},cells,bars));
+  });
+  var free=dates.map(function(d){ return rooms.filter(function(r){ return !live.some(function(st){ return st.room_id===r.id&&st.check_in<=d&&d<st.check_out; }); }).length; });
+  rows.push(h('div',{class:'rn',style:'color:var(--muted);font-weight:500'},'Free rooms'),h('div',{class:'crow'},free.map(function(n,i){ return h('div',{class:'cell',style:'grid-column:'+(i+1)+';display:flex;align-items:center;justify-content:center;cursor:default;color:'+(n?'var(--ok)':'var(--bad)')+';font-weight:600'},n); })));
+  var nav=h('div',{class:'row'},
+    btn('‹ Earlier',function(){ ui.calStart=addDays(ui.calStart,-7); schedule(); },'small'),
+    btn('Today',function(){ ui.calStart=addDays(today,-2); schedule(); },'small'),
+    btn('Later ›',function(){ ui.calStart=addDays(ui.calStart,7); schedule(); },'small'),
+    h('input',{type:'date','aria-label':'Go to date',value:start,onchange:function(ev){ if(ev.target.value){ ui.calStart=ev.target.value; schedule(); } }}));
+  var legend=h('div',{class:'legend'},[['src-website','Website'],['src-airbnb','Airbnb'],['src-booking','Booking.com'],['src-agoda','Agoda'],['src-direct','Direct or walk-in'],['src-other','Other']].map(function(x){ return h('span',null,h('i',{class:x[0]}),x[1]); }),
+    h('span',null,'Outlined: checked in. Faded: checked out. Tap a free square to add a stay.'));
+  return [h('div',{class:'calbar'},h('b',null,fmtDate(start)+' to '+fmtDate(addDays(end,-1))),nav),
+    h('div',{class:'panel calwrap'},h('div',{class:'cal',style:'--days:'+days},h('div',{class:'corner'},'Room'),heads,rows)),legend];
+}
 function vStays(){
   if(MPSYNC===null&&!ui.mpAsked){ ui.mpAsked=true; loadMpSync().catch(function(){}); }
   var day=ymd(new Date()), soon=addDays(day,30);
@@ -746,13 +834,16 @@ function vStays(){
   var coming=sortBy(S.stays.filter(function(st){ return st.status==='booked'&&st.check_in>day&&st.check_in<=soon; }),'check_in');
   var open=sortBy(S.stays.filter(function(st){ return !st.settled&&(st.status==='out'||(st.status!=='cancelled'&&st.check_out<day))&&billTotal(st)>0; }),'check_out');
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
-  return [pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',btn('Add a stay',function(){ editStay(); },'primary')),
-    syncLine(),
+  var view=ui.stayView||'calendar';
+  var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
+  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Add a stay',function(){ editStay(); },'primary'))),syncLine()];
+  if(view==='calendar') return head.concat(vCalendar());
+  return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
       return {when:nameOf('rooms',st.room_id),right:thb(billTotal(st)),title:g.name||'Guest',note:'Left '+fmtDate(st.check_out),act:btn('Settle',function(){ openBill(st); },'primary small')}; }),'')):null,
-    section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.'))];
+    section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.'))]);
 }
 
 /* ---------- views ---------- */
