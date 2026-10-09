@@ -1311,7 +1311,7 @@ function setPassword(){
     {key:'pw',label:'New password',type:'password',autocomplete:'new-password',required:true,hint:'At least 8 characters.'},
     {key:'pw2',label:'Type it again',type:'password',autocomplete:'new-password',required:true}],
     onSave:function(v){ if(v.pw.length<8) return 'Use at least 8 characters.'; if(v.pw!==v.pw2) return 'The two passwords are different.';
-      return sb.auth.updateUser({password:v.pw}).then(function(res){ if(res.error) throw {plain:true,message:authText(res.error)}; }); }});
+      return sb.auth.updateUser({password:v.pw}).then(function(res){ if(res.error){ lostSession(res.error); throw {plain:true,message:authText(res.error)}; } }); }});
 }
 function notice(title,text){ $view.replaceChildren(h('div',{class:'panel pad login'},h('h1',null,title),h('p',{class:'sub'},text),h('div',null,signOutBtn()))); }
 function authText(e){
@@ -1321,16 +1321,18 @@ function authText(e){
   if(/rate limit|too many/i.test(m)) return 'Too many tries. Wait a few minutes and try again.';
   if(/should be at least|weak/i.test(m)) return 'That password is too short or too easy to guess. Use at least 8 characters.';
   if(/same as the old|different from the old/i.test(m)) return 'That is already your password.';
+  if(/session missing|not authenticated|jwt/i.test(m)) return 'You are not signed in on this phone any more. Sign in again, then set your password.';
   return m||'Something went wrong. Try again.';
 }
-var signMode='in', recovering=false;
+var signMode='in', recovering=false, linkNote='';
+function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
   me=null; db=null; CO=null; CU=null; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
   var pw=h('input',{id:'login-pw',type:'password',autocomplete:mode==='up'?'new-password':'current-password'});
-  var note=h('p',{class:'sub',role:'status'});
+  var note=h('p',{class:'sub',role:'status'},linkNote); linkNote='';
   var go=h('button',{type:'submit',class:'btn primary'},mode==='up'?'Create account':mode==='link'?'Email me a sign in link':mode==='reset'?'Email me a reset link':'Sign in');
   function say(t){ note.textContent=t; }
   var intro={in:'Sign in with your email and password. You stay signed in on this phone until you sign out.',
@@ -1380,7 +1382,7 @@ function showNewPassword(){
     go.disabled=true; note.textContent='Saving.';
     sb.auth.updateUser({password:pw.value}).then(function(res){
       go.disabled=false;
-      if(res.error){ note.textContent=authText(res.error); return; }
+      if(res.error){ note.textContent=authText(res.error); lostSession(res.error); return; }
       recovering=false; toast('Password saved.');
       sb.auth.getSession().then(function(r){ var u=r.data&&r.data.session&&r.data.session.user; if(u) enter(u); });
     });
@@ -1392,6 +1394,7 @@ function enter(user){
   currentUser=user.id; authUser=user; currentEmail=user.email||'';
   $view.replaceChildren(h('div',{class:'panel empty'},'Signing you in.'));
   sb.from('staff').select('*').eq('user_id',user.id).maybeSingle().then(function(res){
+    if(recovering){ currentUser=null; return; }
     var row=must(res), staff=!!(row&&row.active!==false), asMember=staff&&pref('pk_view')==='member';
     var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
@@ -1409,11 +1412,20 @@ var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
 if(!window.supabase||!window.supabase.createClient){
   noDb('The app could not load fully. Check your connection and reload the page.');
 } else {
+  (function(){
+    var hp=new URLSearchParams((location.hash||'').replace(/^#/,'')), qp=new URLSearchParams(location.search||'');
+    var code=hp.get('error_code')||qp.get('error_code'), err=hp.get('error')||qp.get('error');
+    if(code||err){
+      linkNote=code==='otp_expired'?'That email link has expired or was already used. Each link works once. Ask for a new one below.':'That email link did not work. Ask for a new one below.';
+      try{ history.replaceState(null,'',location.pathname); }catch(e){}
+    }
+    if(hp.get('type')==='recovery') recovering=true;
+  })();
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange(function(event,session){
     if(event==='PASSWORD_RECOVERY'){ recovering=true; setTimeout(showNewPassword,0); return; }
     if(recovering&&session) return;
-    if(session&&session.user) setTimeout(function(){ enter(session.user); },0);
+    if(session&&session.user){ if(linkNote){ toast(linkNote); linkNote=''; } setTimeout(function(){ enter(session.user); },0); }
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; recovering=false; signMode='in'; showSignIn(); }
   });
   window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():loadAll()).catch(function(){}); });
