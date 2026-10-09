@@ -1236,8 +1236,33 @@ function editRoom(r){ r=r||{};
   openForm({title:r.id?'Edit room':'New room',values:r,fields:[{key:'name',label:'Name',required:true},{key:'sort',label:'Order in lists',type:'number',def:S.rooms.length+1},{key:'active',label:'In use',type:'checkbox',def:true}],
     onSave:function(v){ return save('rooms',r.id,Object.assign({},r,v)); }});
 }
+/* ---------- backups: download everything as one file, and see the nightly copies ---------- */
+var BK=null;
+var BACKUP_TABLES=['staff','customers','packages','purchases','classes','checkins','booking_sources','privates','holidays','rooms','stays','room_charges','minibar_items','room_cleanings','room_issues','app_settings'];
+function downloadBackup(){
+  if(!guard()||ui.backingUp) return; ui.backingUp=true; schedule();
+  var out={app:'Phuket King',taken_at:new Date().toISOString(),tables:{}}, jobs=BACKUP_TABLES.map(function(t){
+    function page(from,acc){ return sb.from(t).select('*').range(from,from+999).then(must).then(function(rows){ acc=acc.concat(rows||[]); return rows&&rows.length===1000?page(from+1000,acc):acc; }); }
+    return page(0,[]).then(function(rows){ out.tables[t]=rows; });
+  });
+  Promise.all(jobs).then(function(){
+    var blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'}), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='phuketking-backup-'+ymd(new Date())+'.json'; document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000);
+    var n=0; Object.keys(out.tables).forEach(function(k){ n+=out.tables[k].length; });
+    toast('Backup downloaded: '+n+' records. Keep it somewhere safe, like Google Drive.');
+  }).catch(function(e){ toast('Backup did not download. '+((e&&e.message)||'')); }).then(function(){ ui.backingUp=false; schedule(); });
+}
+function backupSection(){
+  if(BK===null&&!ui.bkAsked){ ui.bkAsked=true; sb.rpc('backup_status').then(function(res){ BK=!res.error&&Array.isArray(res.data)?res.data:[]; schedule(); }); }
+  var last=BK&&BK.length?BK[0]:null;
+  return section('Backups',btn(ui.backingUp?'Preparing.':'Download backup',downloadBackup,'primary small'),h('div',{class:'panel pad'},
+    h('p',{class:'sub',style:'margin:0'},'Every night at 3am the app saves a full copy of all its data, and keeps the last 14 nights. '+(last?'Last copy: '+new Date(last.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+', '+last.rows+' records. ':'')+
+      'Those copies sit in the same place as the app, so also tap Download backup once a week and save the file to Google Drive. That copy is yours, wherever the app is.')));
+}
 function vSettings(){
   return [pageHead('Settings'),
+    backupSection(),
     posterSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
