@@ -150,6 +150,26 @@ ul.plain{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
   h1{font-size:28px}
   .scroll table{min-width:620px}
 }
+body.kiosk .side{display:none}
+body.kiosk main{padding:24px}
+body.kiosk #view{max-width:1100px;margin:0 auto}
+.khead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.khead h1{font-size:44px}
+.kbrand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.1em;color:var(--gold-ink)}
+.ksearch{width:100%;font-size:22px;min-height:60px;padding:10px 16px;border-radius:12px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.kname,.kbig{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;cursor:pointer;text-align:left}
+.kname{font:600 20px var(--body);min-height:72px;padding:12px 16px}
+.kname:active,.kbig:active{border-color:var(--gold)}
+.kbig{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;font:600 22px var(--body);min-height:84px;padding:16px 20px}
+.kbig .ktime{font-family:var(--display);font-size:30px;font-variant-numeric:tabular-nums;min-width:90px}
+.kbig[disabled]{cursor:default;opacity:.75}
+.klist{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.kdone{max-width:760px;border-color:var(--ok);background:var(--ok-bg);padding:32px;display:flex;flex-direction:column;gap:10px}
+.kdone .donebig{font-size:64px}
+.kdone .donewhat{font-size:26px}
+.kfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-size:15px}
+.kerr{max-width:760px;padding:16px 20px;border-radius:12px;background:var(--bad-bg);color:var(--bad);font-size:18px}
 @media (prefers-reduced-motion:no-preference){ .btn,#nav button{transition:background-color .12s,border-color .12s} }
 </style>
 </head>
@@ -250,7 +270,7 @@ function thb(n){ return n==null||n===''?'':Number(n).toLocaleString('en-US')+' T
 function fmtDate(s){ if(!s) return ''; return parseYmd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
 function timeNow(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function errText(e){ return e&&e.code==='quota_exceeded' ? 'The test database is full. Delete some old records first.' : 'That did not save. '+((e&&e.message)||'Try again.'); }
+function errText(e){ if(e&&e.plain) return e.message; return e&&e.code==='quota_exceeded' ? 'The test database is full. Delete some old records first.' : 'That did not save. '+((e&&e.message)||'Try again.'); }
 var toastTimer=0;
 function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){$toast.hidden=true;},3200); }
 function chip(text,kind){ return h('span',{class:'chip'+(kind?' '+kind:'')},text); }
@@ -563,7 +583,7 @@ function vToday(){
     var why=[]; if(p.expires_on&&p.expires_on<=soon) why.push('expires '+fmtDate(p.expires_on)); if(p.class_limit&&left(p)<=2) why.push(left(p)+' visits left');
     if(why.length) renew.push({p:p,why:why.join(', ')}); });
   return [
-    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})),
+    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
     h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
     section('Check someone in',null,h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small')):hitRows)),
@@ -818,7 +838,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   $nav.replaceChildren.apply($nav,TABS.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1]); }));
@@ -1190,6 +1210,98 @@ function startCustomer(){
 }
 function enterCustomer(){ me={role:'customer'}; db=makeDb(); return loadCustomer().then(startCustomer); }
 
+/* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */
+var kTimer=0, kRefresh=0;
+function pref(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){ return null; } }
+function startDeskMode(){
+  openForm({title:'Desk mode',saveLabel:'Start desk mode',doneMsg:'Desk mode on.',
+    note:'This screen becomes a check in screen. Members tap their name, then their class. To leave desk mode you need the password for '+(me.email||currentEmail)+'. Best on a tablet signed in with a front desk login, not a manager one.',
+    fields:[],onSave:function(){ pref('pk_kiosk','1'); enterKiosk(); return Promise.resolve(); }});
+}
+function enterKiosk(){
+  document.body.classList.add('kiosk'); TABS=[]; ui.tab='kiosk'; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr='';
+  try{ history.replaceState(null,'','#'); }catch(e){}
+  try{ if(document.documentElement.requestFullscreen&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); }catch(e){}
+  clearInterval(kRefresh); kRefresh=setInterval(function(){ if(ui.tab==='kiosk'&&!ui.kc&&!ui.kdone) loadAll().catch(function(){}); },60000);
+  schedule();
+}
+function kReset(){ ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr=''; schedule(); }
+function kIdle(ms){ clearTimeout(kTimer); kTimer=setTimeout(kReset,ms); }
+document.addEventListener('pointerdown',function(){ if(ui.tab==='kiosk'&&(ui.kc||ui.kq)&&!ui.kdone) kIdle(30000); },true);
+function exitKiosk(){
+  var email=me.email||currentEmail;
+  openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
+    {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:true}],
+    onSave:function(v){ return sb.auth.signInWithPassword({email:email,password:v.pw}).then(function(res){
+      if(res.error) throw {plain:true,message:/invalid/i.test(res.error.message)?'That password is wrong.':authText(res.error)};
+      pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk');
+      try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
+      TABS=staffTabs(me); ui.tab='today'; schedule(); }); }});
+}
+function kLabel(c,all){
+  var parts=String(c.name||'').trim().split(/\s+/), first=parts[0]||'Member', last=parts.length>1?parts[parts.length-1]:'';
+  var short=first+(last?' '+last.charAt(0)+'.':'');
+  return all.filter(function(o){ return o.short===short; }).length>1?c.name:short;
+}
+function kUsable(p,day){ if(isPrivatePack(p)||unpaidOrder(p)||p.cancelled) return false; var st=stateOf(p,day); return st.ok||st.status==='week_limit'||st.status==='used_up'; }
+function kTargets(c,day){
+  var wd=(parseYmd(day).getDay()+6)%7, cut=shiftTime(timeNow(),-120), entries=entriesOf(day).filter(function(e){ return e.customer_id===c.id; });
+  var classToday=entries.some(function(e){ return !!e.class_id; });
+  var ps=S.purchases.filter(function(p){ return p.customer_id===c.id&&kUsable(p,day); });
+  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd; }),'time').map(function(k){ return {kind:'class',id:k.id,discipline:k.discipline,time:k.time||'',label:k.title}; })
+    .concat(FACILITIES.map(function(f){ return {kind:'facility',name:f,time:'',label:f}; }));
+  var out=[];
+  ts.forEach(function(t){
+    t.done=entries.some(function(e){ return t.kind==='class'?e.class_id===t.id:e.facility===t.name; });
+    t.pack=ps.filter(function(p){ return canCheckIn(p,stateOf(p,day),t,classToday).ok; })[0]||null;
+    if(t.kind==='class'&&!t.done&&t.time&&t.time<cut) return;
+    if(t.pack||t.done) out.push(t);
+  });
+  return out;
+}
+function kCheckIn(c,t){
+  if(ui.kbusy) return; ui.kbusy=true; ui.kerr='';
+  sb.rpc('check_in',{p_customer:c.id,p_purchase:t.pack.id,p_class:t.kind==='class'?t.id:null,p_facility:t.kind==='facility'?t.name:null}).then(must).then(function(){
+    ui.kdone={name:String(c.name||'').split(' ')[0],what:(t.time?t.time+' ':'')+t.label,pack:t.pack.package_name};
+    kIdle(5000); return Promise.all([reload('checkin_days'),reload('purchases')]);
+  }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; schedule(); }).then(function(){ ui.kbusy=false; schedule(); });
+}
+function vKiosk(){
+  var day=ymd(new Date());
+  var head=h('div',{class:'khead'},h('div',null,h('div',{class:'kbrand'},'PHUKET KING'),h('h1',null,ui.kdone?'Welcome':ui.kc?'Hi '+String((byId('customers',ui.kc)||{}).name||'').split(' ')[0]:'Check in'),
+    h('p',{class:'sub'},new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}))),
+    ui.kc&&!ui.kdone?h('button',{type:'button',class:'btn',onclick:kReset},'Not you? Back'):null);
+  var foot=h('div',{class:'kfoot'},h('span',null,'Not listed, or need a package? See the front desk.'),h('button',{type:'button',class:'link',onclick:exitKiosk},'Staff'));
+  if(ui.kdone) return [head,h('div',{class:'panel kdone',role:'status'},h('div',{class:'donebig'},'Checked in'),h('div',{class:'donewhat'},ui.kdone.what),
+    h('div',{class:'cnote'},ui.kdone.name+', enjoy your session. '+ui.kdone.pack+'.'),h('div',null,h('button',{type:'button',class:'btn primary',onclick:kReset},'Done'))),foot];
+  if(ui.kc){
+    var c=byId('customers',ui.kc); if(!c){ kReset(); return [head]; }
+    var ts=kTargets(c,day);
+    return [head,ui.kerr?h('div',{class:'kerr',role:'alert'},ui.kerr):null,
+      ts.length?h('div',{class:'klist'},h('p',{class:'sub'},'Tap what you are here for.'),ts.map(function(t){
+        return h('button',{type:'button',class:'kbig',disabled:t.done||ui.kbusy?true:null,onclick:function(){ kCheckIn(c,t); }},
+          h('span',{class:'row'},t.time?h('span',{class:'ktime'},t.time):null,h('span',null,t.label)),t.done?chip('Checked in','ok'):h('span',{class:'chip ok'},'Check in')); }))
+      :h('div',{class:'kerr'},'Nothing to check in for right now on your package. See the front desk.'),foot];
+  }
+  var all=S.customers.filter(function(c){ return S.purchases.some(function(p){ return p.customer_id===c.id&&kUsable(p,day)&&stateOf(p,day).ok; }); })
+    .map(function(c){ var parts=String(c.name||'').trim().split(/\s+/); return {c:c,short:(parts[0]||'')+(parts.length>1?' '+parts[parts.length-1].charAt(0)+'.':'')}; });
+  all.forEach(function(o){ o.label=kLabel(o.c,all); });
+  var q=String(ui.kq||'').trim().toLowerCase();
+  var list=all.filter(function(o){ return !q||String(o.c.name||'').toLowerCase().split(/\s+/).some(function(w){ return w.indexOf(q)===0; })||String(o.c.name||'').toLowerCase().indexOf(q)===0; });
+  list.sort(function(a,b){ return a.label.toLowerCase()<b.label.toLowerCase()?-1:1; });
+  var search=h('input',{id:'kq',class:'ksearch',type:'search',autocomplete:'off',placeholder:'Type your name',value:ui.kq||'','aria-label':'Type your name',oninput:function(ev){ ui.kq=ev.target.value; schedule(); }});
+  return [head,search,
+    list.length?h('div',{class:'kgrid'},list.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ ui.kc=o.c.id; ui.kq=''; ui.kerr=''; kIdle(30000); schedule(); }},o.label); }))
+      :h('div',{class:'panel empty'},q?'No member with an active package matches that name.':'No members with an active package yet.'),foot];
+}
+function staffTabs(row){ return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return ['today','customers','timetable','privates'].indexOf(t[0])>=0; }); }
+var currentEmail='', authUser=null;
+function switchView(v){
+  pref('pk_view',v==='member'?'member':null);
+  me=null; db=null; CO=null; CU=null; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  enter(authUser);
+}
+
 /* ---------- signing in ---------- */
 function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut(); }},'Sign out'); }
 function passwordBtn(){ return h('button',{type:'button',class:'btn small',onclick:setPassword},'Password'); }
@@ -1199,7 +1311,7 @@ function setPassword(){
     {key:'pw',label:'New password',type:'password',autocomplete:'new-password',required:true,hint:'At least 8 characters.'},
     {key:'pw2',label:'Type it again',type:'password',autocomplete:'new-password',required:true}],
     onSave:function(v){ if(v.pw.length<8) return 'Use at least 8 characters.'; if(v.pw!==v.pw2) return 'The two passwords are different.';
-      return sb.auth.updateUser({password:v.pw}).then(function(res){ if(res.error) throw {message:authText(res.error)}; }); }});
+      return sb.auth.updateUser({password:v.pw}).then(function(res){ if(res.error) throw {plain:true,message:authText(res.error)}; }); }});
 }
 function notice(title,text){ $view.replaceChildren(h('div',{class:'panel pad login'},h('h1',null,title),h('p',{class:'sub'},text),h('div',null,signOutBtn()))); }
 function authText(e){
@@ -1213,7 +1325,7 @@ function authText(e){
 }
 var signMode='in', recovering=false;
 function showSignIn(){
-  me=null; db=null; CO=null; CU=null; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; renderNav(); $who.replaceChildren();
+  me=null; db=null; CO=null; CU=null; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -1277,19 +1389,19 @@ function showNewPassword(){
 }
 function enter(user){
   if(currentUser===user.id&&me) return;
-  currentUser=user.id;
+  currentUser=user.id; authUser=user; currentEmail=user.email||'';
   $view.replaceChildren(h('div',{class:'panel empty'},'Signing you in.'));
   sb.from('staff').select('*').eq('user_id',user.id).maybeSingle().then(function(res){
-    var row=must(res);
-    $who.replaceChildren(h('span',null,h('b',null,row&&row.active!==false?row.name:user.email),row&&row.active!==false?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},passwordBtn(),signOutBtn()));
-    var staff=!!(row&&row.active!==false);
-    document.getElementById('mode').textContent=!staff?'Members':row.role==='coach'?'Coach':'Back office';
-    if(!staff) return enterCustomer();
+    var row=must(res), staff=!!(row&&row.active!==false), asMember=staff&&pref('pk_view')==='member';
+    var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
+    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
+    document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
+    if(!staff||asMember) return enterCustomer();
     if(row.role==='coach'){ me=row; db=makeDb(); TABS=[['mine','My work']]; ui.tab='mine'; return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
-    TABS=row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return ['today','customers','timetable','privates'].indexOf(t[0])>=0; });
+    TABS=staffTabs(row);
     if(!TABS.some(function(t){return t[0]===ui.tab;})) ui.tab='today';
-    return loadAll().then(function(){ allReady=true; schedule(); });
+    return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });
   }).catch(function(e){ noDb('The gym database could not be reached. '+((e&&e.message)||'')+' Reload the page to try again.'); });
 }
 
@@ -1304,7 +1416,7 @@ if(!window.supabase||!window.supabase.createClient){
     if(session&&session.user) setTimeout(function(){ enter(session.user); },0);
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; recovering=false; signMode='in'; showSignIn(); }
   });
-  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='coach'?loadCoach():me.role==='customer'?loadCustomer():loadAll()).catch(function(){}); });
+  window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():loadAll()).catch(function(){}); });
 }
 })();
 </script>
