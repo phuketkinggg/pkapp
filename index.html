@@ -462,18 +462,33 @@ function authorizeMove(p){
 }
 function refuseMove(p){ if(guard()) run(save('privates',p.id,withoutMove(p)),'Request refused. The private stays where it was.'); }
 function payLabel(p){ if(p.purchase_id){ var k=byId('purchases',p.purchase_id); return 'Pack'+(k?': '+k.package_name:''); } return p.source_id?nameOf('sources',p.source_id):'Other'; }
+function pWho(p){
+  var c=byId('customers',p.customer_id)||{}, g=String(p.guest_name||'').trim();
+  if(c.is_agency) return (g||'Guest')+' ('+(c.name||'Agency')+')';
+  return g?g+' ('+(c.name||'')+')':(c.name||'Removed');
+}
+function lastPrivatePrice(sourceId,exceptId){
+  var hit=null; S.privates.forEach(function(x){ if(x.source_id===sourceId&&x.id!==exceptId&&x.status!=='cancelled'&&!x.purchase_id&&(!hit||x.date>=hit.date)) hit=x; });
+  return hit?hit.price_thb:null;
+}
 function editPrivate(p){ p=p||{};
-  var cs=sortBy(S.customers,'name'), ch=coaches(), src=sortBy(S.sources,'name');
+  var ag=sortBy(S.customers.filter(function(c){ return c.is_agency; }),'name'), cs=ag.concat(sortBy(S.customers.filter(function(c){ return !c.is_agency; }),'name')), ch=coaches(), src=sortBy(S.sources,'name');
   if(!cs.length){ toast('Add a customer first.'); return; }
   if(!ch.length){ toast('Add a coach first, in Staff.'); return; }
-  var first=src[0], cid0=p.customer_id||cs[0].id;
+  var first=src.filter(function(x){ return /^direct$/i.test(x.name); })[0]||src[0], cid0=p.customer_id||(cs.filter(function(c){ return !c.is_agency; })[0]||cs[0]).id;
   function groupOf(cid){ var c=byId('customers',cid); return (c&&c.price_group)||'standard'; }
   function reprice(set,get){
     var pack=byId('purchases',get('purchase_id')); if(pack){ set('price_thb',perSession(pack)); return; }
-    var sr=byId('sources',get('source_id')); if(sr) set('price_thb',srcPrice(sr,groupOf(get('customer_id'))));
+    var sr=byId('sources',get('source_id')); if(!sr) return;
+    var pr=srcPrice(sr,groupOf(get('customer_id'))); if(pr==null) pr=lastPrivatePrice(sr.id,p.id);
+    set('price_thb',pr);
   }
+  function agencySource(cid){ var c=byId('customers',cid); if(!c||!c.is_agency) return null; return S.sources.filter(function(x){ return x.name.toLowerCase()===String(c.name).toLowerCase(); })[0]||null; }
   openForm({title:p.id?'Edit private':'Book a private',values:p,fields:[
-    {key:'customer_id',label:'Customer',type:'select',options:opts(cs),def:cs[0].id,onChange:function(v,set,get,setOpts){ setOpts('purchase_id',packOpts(v,p)); reprice(set,get); }},
+    {key:'customer_id',label:'Customer',type:'select',options:cs.map(function(c){ return [c.id,c.is_agency?c.name+' guest (agency)':c.name]; }),def:(cs.filter(function(c){ return !c.is_agency; })[0]||cs[0]).id,
+      hint:'For a one time agency booking, pick the agency and type the guest name below.',
+      onChange:function(v,set,get,setOpts){ setOpts('purchase_id',packOpts(v,p)); var a=agencySource(v); if(a) set('source_id',a.id); reprice(set,get); }},
+    {key:'guest_name',label:'Guest name',hint:'Optional. The person training, if you know it. Coaches see it.'},
     {key:'coach_id',label:'Coach',type:'select',options:opts(ch),def:ch[0].id},
     {key:'date',label:'Date',type:'date',def:ymd(new Date()),required:true},
     {key:'time',label:'Start time',type:'time',required:true},
@@ -491,6 +506,7 @@ function editPrivate(p){ p=p||{};
         if(v.status!=='cancelled'&&pack.expires_on&&v.date>pack.expires_on) return 'That pack expired on '+fmtDate(pack.expires_on)+'. Book a date before then.'; }
       var coach=byId('staff',v.coach_id), body=Object.assign({},p,v);
       if(v.purchase_id) body.paid=true;
+      body.guest_name=v.guest_name||null;
       if(p.id&&(p.date!==v.date||p.time!==v.time)) delete body.reschedule;
       if(body.coach_pct==null||p.coach_id!==v.coach_id) body.coach_pct=coach&&coach.commission_pct!=null?coach.commission_pct:50;
       return save('privates',p.id,body); },
@@ -727,7 +743,7 @@ function vToday(){
   var moves=sortBy(S.privates.filter(function(p){return p.reschedule&&p.status!=='cancelled';}),'date','time');
   var orders=sortBy(S.purchases.filter(unpaidOrder),'purchased_on');
   var q=ui.q.trim().toLowerCase(), hits=[];
-  if(q) hits=sortBy(S.customers.filter(function(c){ return [c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
+  if(q) hits=sortBy(S.customers.filter(function(c){ return !c.is_agency&&[c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
   var search=h('input',{id:'q',class:'search',type:'search',placeholder:'Type a name, email or phone',value:ui.q,'aria-label':'Find a customer to check in',oninput:function(ev){ ui.q=ev.target.value; schedule(); }});
   var targets=todays.map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
     .concat(FACILITIES.map(function(f){ return {key:'f:'+f,kind:'facility',name:f,label:f}; }));
@@ -767,7 +783,7 @@ function vToday(){
       {label:'',cell:function(p){return btn('Take payment',function(){ takePayment(p); },'primary small');}}],orders,'')):null,
     waiting.length?section('Privates waiting for approval',null,table([
       {label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
-      {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
+      {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Paid with',cell:payLabel},
       {label:'Note',cell:function(p){return p.notes||'';}},
@@ -775,7 +791,7 @@ function vToday(){
     moves.length?section('Requests to move a private',null,table([
       {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
       {label:'Wants',cell:function(p){return h('b',null,fmtDate(p.reschedule.date)+' '+p.reschedule.time);}},
-      {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
+      {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Asked by',cell:function(p){ var r=p.reschedule; return [r.by==='coach'?'Coach':'Customer',' ',r.by==='coach'?null:(r.needs_coach?(r.coach_agreed?chip('Coach agreed','ok'):chip('Late, waiting for coach','warn')):chip('In time','ok')),r.note?' '+r.note:null]; }},
       {label:'',cell:function(p){ return h('div',{class:'row'},moveReady(p.reschedule)?btn('Authorize',function(){ authorizeMove(p); },'primary small'):null,btn('Refuse',function(){ refuseMove(p); },'small')); }}],moves,'')):null,
@@ -787,7 +803,7 @@ function vToday(){
       {label:'',cell:function(e){return btn('Undo',function(){ undoCheckIn(e); },'small');}}],entries.slice().reverse(),'Nobody has checked in yet today. Search for a customer above to check in the first one.')),
     section('Privates today',btn('Book a private',function(){ editPrivate(); },'small'),table([
       {label:'Time',cell:function(p){return p.time||'';}},
-      {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
+      {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Status',cell:function(p){return chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null);}},
       {label:'',cell:function(p){return p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):'';}}],pToday,'No privates booked for today.')),
@@ -832,7 +848,7 @@ function vCustomers(){
     pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
     h('div',{class:'row'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }})),
     table([
-      {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),exChip(x)];}},
+      {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),exChip(x),x.is_agency?[' ',chip('Agency')]:null];}},
       {label:'Level',cell:function(x){return chip(TIERS[x.tier]||'Train');}},
       {label:'Pricing',cell:function(x){ var g=x.price_group||'standard'; return g==='standard'?'Standard':chip(GROUPS[g],'warn'); }},
       {label:'Contact',cell:function(x){return x.email||x.phone||'';}},
@@ -881,7 +897,7 @@ function vPrivates(){
     h('div',{class:'row'},filter),
     table([
       {label:'When',cell:function(p){return [linkBtn(fmtDate(p.date)+' '+(p.time||''),function(){ editPrivate(p); }),exChip(p)];}},
-      {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
+      {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Paid with',cell:payLabel},
       {label:'You receive',num:true,cell:function(p){return thb(p.price_thb);}},
@@ -928,7 +944,7 @@ function vCommission(){
     done.length?section('Each private',null,table([
       {label:'Date',cell:function(p){return fmtDate(p.date);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
-      {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
+      {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Received',num:true,cell:function(p){return thb(p.price_thb);}},
       {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],sortBy(done,'date','time'),'')):null,
@@ -963,18 +979,18 @@ function vCoach(){
   function doneBtn(p){ return p.status==='confirmed'?h('div',{class:'row'},btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'),moveBtn(p)):chip('Done','ok'); }
   var asks=mine.filter(function(p){ var r=p.reschedule; return r&&r.by==='customer'&&r.needs_coach&&!r.coach_agreed; });
   var todayRows=classes.map(function(c){return {time:c.time||'',what:c.title,who:'Group class',act:''};})
-    .concat(todayP.map(function(p){return {time:p.time||'',what:'Private',who:nameOf('customers',p.customer_id),act:doneBtn(p)};}));
+    .concat(todayP.map(function(p){return {time:p.time||'',what:'Private',who:pWho(p),act:doneBtn(p)};}));
   todayRows.sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});
   return [pageHead('Coach view',head,pick),
     h('div',{class:'stats'},h('span',null,h('b',null,doneM.length),'privates done this month'),h('span',null,h('b',null,thb(earned)||'0 THB'),'earned from privates this month')),
     section('Today',null,table([{label:'Time',cell:function(r){return r.time;}},{label:'Session',cell:function(r){return r.what;}},{label:'With',cell:function(r){return r.who;}},{label:'',cell:function(r){return r.act;}}],todayRows,'Nothing booked for '+me.name+' today.')),
     asks.length?section('Customers asking to move at short notice',null,table([
       {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Wants',cell:function(p){return fmtDate(p.reschedule.date)+' '+p.reschedule.time;}},
-      {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
+      {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'',cell:function(p){ return h('div',{class:'row'},btn('I agree',function(){ if(guard()) run(save('privates',p.id,Object.assign({},p,{reschedule:Object.assign({},p.reschedule,{coach_agreed:true})})),'Sent to a manager to authorize.'); },'primary small'),btn('I do not agree',function(){ refuseMove(p); },'small')); }}],asks,'')):null,
-    late.length?section('Earlier privates not marked done',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},{label:'',cell:doneBtn}],late,'')):null,
-    section('Coming up',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},{label:'Notes',cell:function(p){return p.notes||'';}},{label:'',cell:moveBtn}],upcoming,'No privates coming up.')),
-    section('Privates done this month',null,table([{label:'Date',cell:function(p){return fmtDate(p.date);}},{label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},{label:'Your share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],doneM,'None marked done yet this month.',['Total','',thb(earned)])),
+    late.length?section('Earlier privates not marked done',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'',cell:doneBtn}],late,'')):null,
+    section('Coming up',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Notes',cell:function(p){return p.notes||'';}},{label:'',cell:moveBtn}],upcoming,'No privates coming up.')),
+    section('Privates done this month',null,table([{label:'Date',cell:function(p){return fmtDate(p.date);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Your share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],doneM,'None marked done yet this month.',['Total','',thb(earned)])),
     section('Holidays',btn('Request holiday',function(){
       openForm({title:'Request holiday',saveLabel:'Send request',fields:[{key:'from',label:'First day off',type:'date',required:true},{key:'to',label:'Last day off',type:'date',required:true},{key:'note',label:'Note'}],
         onSave:function(v){ if(v.to<v.from) return 'The last day is before the first day.'; return save('holidays',null,Object.assign({staff_id:me.id,status:'requested'},v)); }});
@@ -1057,7 +1073,7 @@ var MAP={
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
-  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
+  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on']},
