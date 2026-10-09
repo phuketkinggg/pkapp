@@ -1338,42 +1338,81 @@ function makeDb(){
   };
 }
 
-/* ---------- coach app ---------- */
+/* ---------- coach app (English or Thai) ---------- */
 var CO=null;
+var CT={
+  en:{work:'My work',loading:'Loading your work.',doneMonth:'privates done this month',earned:'earned this month',lastMonth:'last month',
+    today:'Today',nothingToday:'Nothing booked for you today.',group:'Group class',privWith:function(n){ return 'Private with '+n; },
+    asks:'Customers asking to move at short notice',wants:'Wants',agree:'I agree',disagree:'I do not agree',sentMgr:'Sent to a manager to authorize.',declined:'Declined. The private stays as booked.',
+    late:'Earlier privates not marked done',coming:'Coming up',noComing:'No privates coming up.',doneTitle:'Privates done this month',noneDone:'None marked done yet this month.',total:'Total',
+    myClasses:'My group classes',noClasses:'You are not down for any group classes yet.',holidays:'Holidays',reqHoliday:'Request holiday',noHolidays:'No holidays requested.',
+    approved:'Approved',waitMgr:'Waiting for a manager',to:' to ',markDone:'Mark done',done:'Done',markedDone:'Marked done.',
+    askMove:'Ask to move',custAsked:'Customer asked to move, see below',moveWaiting:'Move asked, waiting for a manager',
+    mvTitle:'Ask to move this private',mvSave:'Send to a manager',mvDate:'New date',mvTime:'New time',mvReason:'Reason',mvHint:'A manager sees this and decides. The private stays where it is until then.',
+    mvPast:'That date has already passed.',mvSame:'That is the time it is already booked for.',sent:'Sent.',
+    hoTitle:'Request holiday',hoSave:'Send request',hoFrom:'First day off',hoTo:'Last day off',hoNote:'Note',hoOrder:'The last day is before the first day.',hoSent:'Request sent.',
+    cancel:'Cancel',need:'Please fill this in.',other:'ภาษาไทย',days:DAYS},
+  th:{work:'งานของฉัน',loading:'กำลังโหลด',doneMonth:'คลาสส่วนตัวที่สอนแล้วเดือนนี้',earned:'รายได้เดือนนี้',lastMonth:'เดือนที่แล้ว',
+    today:'วันนี้',nothingToday:'วันนี้ไม่มีคลาส',group:'คลาสกลุ่ม',privWith:function(n){ return 'คลาสส่วนตัวกับ '+n; },
+    asks:'ลูกค้าขอเลื่อนคลาสกะทันหัน',wants:'ขอเลื่อนเป็น',agree:'ตกลง',disagree:'ไม่ตกลง',sentMgr:'ส่งให้ผู้จัดการอนุมัติแล้ว',declined:'ปฏิเสธแล้ว คลาสยังอยู่ตามเดิม',
+    late:'คลาสที่ผ่านมา ยังไม่ได้กดว่าสอนแล้ว',coming:'คลาสที่จะมาถึง',noComing:'ยังไม่มีคลาสส่วนตัว',doneTitle:'คลาสส่วนตัวที่สอนแล้วเดือนนี้',noneDone:'เดือนนี้ยังไม่มีคลาสที่สอนแล้ว',total:'รวม',
+    myClasses:'คลาสกลุ่มของฉัน',noClasses:'ยังไม่มีคลาสกลุ่ม',holidays:'วันหยุด',reqHoliday:'ขอวันหยุด',noHolidays:'ยังไม่ได้ขอวันหยุด',
+    approved:'อนุมัติแล้ว',waitMgr:'รอผู้จัดการอนุมัติ',to:' ถึง ',markDone:'สอนแล้ว',done:'สอนแล้ว',markedDone:'บันทึกว่าสอนแล้ว',
+    askMove:'ขอเลื่อน',custAsked:'ลูกค้าขอเลื่อน ดูด้านล่าง',moveWaiting:'ขอเลื่อนแล้ว รอผู้จัดการ',
+    mvTitle:'ขอเลื่อนคลาสส่วนตัว',mvSave:'ส่งให้ผู้จัดการ',mvDate:'วันใหม่',mvTime:'เวลาใหม่',mvReason:'เหตุผล',mvHint:'ผู้จัดการจะเห็นและตัดสินใจ คลาสยังอยู่ที่เดิมจนกว่าจะอนุมัติ',
+    mvPast:'วันนี้ผ่านไปแล้ว',mvSame:'เป็นเวลาเดิมที่จองไว้แล้ว',sent:'ส่งแล้ว',
+    hoTitle:'ขอวันหยุด',hoSave:'ส่งคำขอ',hoFrom:'วันแรกที่หยุด',hoTo:'วันสุดท้ายที่หยุด',hoNote:'หมายเหตุ',hoOrder:'วันสุดท้ายอยู่ก่อนวันแรก',hoSent:'ส่งคำขอแล้ว',
+    cancel:'ยกเลิก',need:'กรุณากรอกข้อมูล',other:'English',days:['วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสบดี','วันศุกร์','วันเสาร์','วันอาทิตย์']}
+};
+function coLang(){ return pref('pk_lang_coach')==='th'&&me&&me.role==='coach'?'th':'en'; }
+function C(k){ return CT[coLang()][k]; }
+function coDate(d){ return parseYmd(d).toLocaleDateString(coLang()==='th'?'th-TH':'en-GB',{day:'numeric',month:'short'}); }
+function coErr(e){
+  var m=(e&&e.message)||'';
+  if(coLang()!=='th') return 'That did not work. '+m;
+  if(/cannot be marked done/.test(m)) return 'บันทึกไม่ได้ อาจเป็นคลาสในอนาคต สอนแล้ว หรือไม่ใช่คลาสของคุณ';
+  if(/cannot be moved/.test(m)) return 'เลื่อนไม่ได้ อาจมีคำขอรออยู่แล้ว หรือไม่ใช่คลาสของคุณ';
+  if(/no customer request/i.test(m)) return 'ไม่มีคำขอจากลูกค้าแล้ว';
+  if(/last day off/.test(m)) return 'วันสุดท้ายต้องไม่อยู่ก่อนวันแรก';
+  return 'ทำไม่สำเร็จ '+m;
+}
+function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=[['mine',C('work')]]; schedule(); }
 function loadCoach(){ lastLoad=Date.now(); return sb.rpc('coach_home').then(function(res){ CO=must(res); schedule(); }); }
-function coachDo(fn,args,okMsg){ run(sb.rpc(fn,args).then(must).then(loadCoach),okMsg); }
+function coachDo(fn,args,okMsg){ sb.rpc(fn,args).then(must).then(loadCoach).then(function(){ if(okMsg) toast(okMsg); },function(e){ toast(coErr(e)); }); }
+function coForm(spec){ spec.cancelLabel=C('cancel'); spec.needMsg=C('need'); var save=spec.onSave;
+  spec.onSave=function(v){ var r=save(v); return r&&r.then?r.catch(function(e){ throw {plain:true,message:coErr(e)}; }):r; }; openForm(spec); }
 function coachAskMove(p){
-  openForm({title:'Ask to move this private',saveLabel:'Send to a manager',values:{date:p.date,time:p.time},fields:[
-    {key:'date',label:'New date',type:'date',required:true},
-    {key:'time',label:'New time',type:'time',required:true},
-    {key:'note',label:'Reason',hint:'A manager sees this and decides. The private stays where it is until then.'}],
+  coForm({title:C('mvTitle'),saveLabel:C('mvSave'),doneMsg:C('sent'),values:{date:p.date,time:p.time},fields:[
+    {key:'date',label:C('mvDate'),type:'date',required:true},
+    {key:'time',label:C('mvTime'),type:'time',required:true},
+    {key:'note',label:C('mvReason'),hint:C('mvHint')}],
     onSave:function(v){
-      if(v.date<CO.today) return 'That date has already passed.';
-      if(v.date===p.date&&v.time===p.time) return 'That is the time it is already booked for.';
+      if(v.date<CO.today) return C('mvPast');
+      if(v.date===p.date&&v.time===p.time) return C('mvSame');
       return sb.rpc('coach_ask_move',{p_private:p.id,p_date:v.date,p_time:v.time,p_note:v.note||null}).then(must).then(loadCoach); }});
 }
 function coachHoliday(){
-  openForm({title:'Request holiday',saveLabel:'Send request',fields:[
-    {key:'from',label:'First day off',type:'date',required:true},{key:'to',label:'Last day off',type:'date',required:true},{key:'note',label:'Note'}],
+  coForm({title:C('hoTitle'),saveLabel:C('hoSave'),doneMsg:C('hoSent'),fields:[
+    {key:'from',label:C('hoFrom'),type:'date',required:true},{key:'to',label:C('hoTo'),type:'date',required:true},{key:'note',label:C('hoNote')}],
     onSave:function(v){
-      if(v.to<v.from) return 'The last day is before the first day.';
+      if(v.to<v.from) return C('hoOrder');
       return sb.rpc('coach_request_holiday',{p_from:v.from,p_to:v.to,p_note:v.note||null}).then(must).then(loadCoach); }});
 }
 function vMine(){
-  if(!CO) return [h('div',{class:'panel empty'},'Loading your work.')];
-  var day=CO.today, wd=(parseYmd(day).getDay()+6)%7, month=day.slice(0,7), prev=addDays(month+'-01',-1).slice(0,7), all=CO.privates;
-  function when(p){ return fmtDate(p.date)+' '+(p.time||''); }
+  if(!CO) return [h('div',{class:'panel empty'},C('loading'))];
+  var day=CO.today, wd=(parseYmd(day).getDay()+6)%7, month=day.slice(0,7), prev=addDays(month+'-01',-1).slice(0,7), all=CO.privates, th=coLang()==='th';
+  function when(p){ return coDate(p.date)+' '+(p.time||''); }
   function sum(list){ return list.reduce(function(t,p){ return t+Number(p.share_thb||0); },0); }
   function needsMe(p){ var r=p.reschedule; return !!(r&&r.by==='customer'&&r.needs_coach&&!r.coach_agreed); }
   function moveBtn(p){
     if(p.status!=='confirmed') return null;
-    if(needsMe(p)) return chip('Customer asked to move, see below','warn');
-    if(p.reschedule) return chip('Move asked, waiting for a manager','warn');
-    return btn('Ask to move',function(){ coachAskMove(p); },'small');
+    if(needsMe(p)) return chip(C('custAsked'),'warn');
+    if(p.reschedule) return chip(C('moveWaiting'),'warn');
+    return btn(C('askMove'),function(){ coachAskMove(p); },'small');
   }
   function doneBtn(p){
-    if(p.status==='done') return chip('Done','ok');
-    return h('div',{class:'row'},btn('Mark done',function(){ coachDo('coach_mark_done',{p_private:p.id},'Marked done.'); },'primary small'),moveBtn(p));
+    if(p.status==='done') return chip(C('done'),'ok');
+    return h('div',{class:'row'},btn(C('markDone'),function(){ coachDo('coach_mark_done',{p_private:p.id},C('markedDone')); },'primary small'),moveBtn(p));
   }
   var classes=CO.classes.filter(function(c){ return Number(c.day)===wd; });
   var todayP=all.filter(function(p){ return p.date===day; });
@@ -1383,26 +1422,26 @@ function vMine(){
   var doneM=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===month; });
   var doneP=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===prev; });
   function card(p,act,right){ return {when:when(p),title:p.customer,note:p.notes,right:right,act:act}; }
-  var todayItems=classes.map(function(c){ return {t:c.time||'',when:c.time||'',title:c.title,note:'Group class'}; })
-    .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:'Private with '+p.customer,note:p.notes,act:doneBtn(p)}; }));
+  var todayItems=classes.map(function(c){ return {t:c.time||'',when:c.time||'',title:c.title,note:C('group')}; })
+    .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:C('privWith')(p.customer),note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
-  return [pageHead('My work',DAYS[wd]+' '+fmtDate(day)),
+  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),
     h('div',{class:'stats'},
-      h('span',null,h('b',null,doneM.length),'privates done this month'),
-      h('span',null,h('b',null,thb(sum(doneM))||'0 THB'),'earned this month'),
-      h('span',null,h('b',null,thb(sum(doneP))||'0 THB'),'last month')),
-    section('Today',null,cards(todayItems,'Nothing booked for you today.')),
-    asks.length?section('Customers asking to move at short notice',null,cards(asks.map(function(p){
-      return {when:when(p),title:p.customer,note:'Wants '+fmtDate(p.reschedule.date)+' '+(p.reschedule.time||'')+(p.reschedule.note?'. '+p.reschedule.note:''),act:h('div',{class:'row'},
-        btn('I agree',function(){ coachDo('coach_answer_move',{p_private:p.id,p_agree:true},'Sent to a manager to authorize.'); },'primary small'),
-        btn('I do not agree',function(){ coachDo('coach_answer_move',{p_private:p.id,p_agree:false},'Declined. The private stays as booked.'); },'small'))}; }),'')):null,
-    late.length?section('Earlier privates not marked done',null,cards(late.map(function(p){ return card(p,doneBtn(p)); }),'')):null,
-    section('Coming up',null,cards(upcoming.map(function(p){ return card(p,moveBtn(p)); }),'No privates coming up.')),
-    section('Privates done this month',null,cards(doneM.map(function(p){ return {when:fmtDate(p.date),title:p.customer,right:thb(p.share_thb)}; })
-      .concat(doneM.length?[{when:'Total',right:thb(sum(doneM))}]:[]),'None marked done yet this month.')),
-    section('My group classes',null,cards(CO.classes.map(function(c){ return {when:DAYS[Number(c.day)]+' '+c.time,title:c.title}; }),'You are not down for any group classes yet.')),
-    section('Holidays',btn('Request holiday',coachHoliday,'small'),cards(CO.holidays.map(function(x){
-      return {when:fmtDate(x.from)+(x.to!==x.from?' to '+fmtDate(x.to):''),note:x.note,right:chip(x.status==='approved'?'Approved':'Waiting for a manager',x.status==='approved'?'ok':'warn')}; }),'No holidays requested.'))];
+      h('span',null,h('b',null,doneM.length),C('doneMonth')),
+      h('span',null,h('b',null,thb(sum(doneM))||'0 THB'),C('earned')),
+      h('span',null,h('b',null,thb(sum(doneP))||'0 THB'),C('lastMonth'))),
+    section(C('today'),null,cards(todayItems,C('nothingToday'))),
+    asks.length?section(C('asks'),null,cards(asks.map(function(p){
+      return {when:when(p),title:p.customer,note:C('wants')+' '+coDate(p.reschedule.date)+' '+(p.reschedule.time||'')+(p.reschedule.note?'. '+p.reschedule.note:''),act:h('div',{class:'row'},
+        btn(C('agree'),function(){ coachDo('coach_answer_move',{p_private:p.id,p_agree:true},C('sentMgr')); },'primary small'),
+        btn(C('disagree'),function(){ coachDo('coach_answer_move',{p_private:p.id,p_agree:false},C('declined')); },'small'))}; }),'')):null,
+    late.length?section(C('late'),null,cards(late.map(function(p){ return card(p,doneBtn(p)); }),'')):null,
+    section(C('coming'),null,cards(upcoming.map(function(p){ return card(p,moveBtn(p)); }),C('noComing'))),
+    section(C('doneTitle'),null,cards(doneM.map(function(p){ return {when:coDate(p.date),title:p.customer,right:thb(p.share_thb)}; })
+      .concat(doneM.length?[{when:C('total'),right:thb(sum(doneM))}]:[]),C('noneDone'))),
+    section(C('myClasses'),null,cards(CO.classes.map(function(c){ return {when:C('days')[Number(c.day)]+' '+c.time,title:c.title}; }),C('noClasses'))),
+    section(C('holidays'),btn(C('reqHoliday'),coachHoliday,'small'),cards(CO.holidays.map(function(x){
+      return {when:coDate(x.from)+(x.to!==x.from?C('to')+coDate(x.to):''),note:x.note,right:chip(x.status==='approved'?C('approved'):C('waitMgr'),x.status==='approved'?'ok':'warn')}; }),C('noHolidays')))];
 }
 function cards(items,emptyMsg){
   if(!items.length) return h('div',{class:'panel empty'},emptyMsg);
@@ -1847,7 +1886,7 @@ function enter(user){
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
     if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab='hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
-    if(row.role==='coach'){ me=row; db=makeDb(); TABS=[['mine','My work']]; ui.tab='mine'; return loadCoach().then(function(){ allReady=true; schedule(); }); }
+    if(row.role==='coach'){ me=row; db=makeDb(); ui.tab='mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
     TABS=staffTabs(row);
     if(!TABS.some(function(t){return t[0]===ui.tab;})) ui.tab=TABS[0][0];
