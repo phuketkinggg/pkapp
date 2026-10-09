@@ -195,6 +195,8 @@ body.kiosk #view{max-width:1100px;margin:0 auto}
 .cal .bk.in{outline:2px solid var(--ink);outline-offset:-2px}
 .cal .bk.out{opacity:.45}
 .src-website{background:#B88A44}.src-airbnb{background:#D9485F}.src-booking{background:#2F5DA8}.src-agoda{background:#7A4FB0}.src-direct{background:#2E8B57}.src-other{background:#5A605B}
+body.lang-my #view{line-height:1.75}
+body.lang-my .btn{min-height:44px}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted);align-items:center}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:5px}
 .seg{display:inline-flex;gap:4px;padding:4px;background:var(--sunken);border-radius:10px}
@@ -357,11 +359,11 @@ function openForm(spec){
     delBtn.disabled=true; spec.onDelete().then(function(){ $dlg.close(); toast('Deleted.'); },function(e){ showErr(errText(e)); delBtn.disabled=false; });
   }},'Delete'):h('span');
   var form=h('form',{novalidate:true},h('h2',null,spec.title),spec.note?h('p',{class:'sub'},spec.note):null,rows,err,
-    h('div',{class:'factions'},delBtn,h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),saveBtn)));
+    h('div',{class:'factions'},delBtn,h('div',{class:'row'},btn(spec.cancelLabel||'Cancel',function(){ $dlg.close(); }),saveBtn)));
   form.addEventListener('submit',function(ev){
     ev.preventDefault(); var out={};
     for(var i=0;i<spec.fields.length;i++){ var f=spec.fields[i], v=read(f);
-      if(f.required&&(v===''||v==null||(Array.isArray(v)&&!v.length))){ showErr(f.label+' is needed.'); inputs[f.key].focus(); return; }
+      if(f.required&&(v===''||v==null||(Array.isArray(v)&&!v.length))){ showErr(spec.needMsg||(f.label+' is needed.')); inputs[f.key].focus(); return; }
       out[f.key]=v; }
     var res; try{ res=spec.onSave(out); }catch(e){ showErr(errText(e)); return; }
     if(typeof res==='string'){ showErr(res); return; }
@@ -849,45 +851,72 @@ function vStays(){
 
 /* ---------- housekeeping: clean rooms, report problems, record mini bar use ---------- */
 var HK=null;
+var HKT={
+  en:{rooms:'Rooms',loading:'Loading rooms.',toClean:function(n){ return n+' to clean'; },allClean:'All clean',
+    nowArriving:'Clean now, guest arriving',full:'Needs full clean',leavingChip:'Guest leaving today',daily:'Daily clean',cleanedToday:'Cleaned today',clean:'Clean',
+    arriving:'Guest arriving today',leaving:'Guest leaving today',staying:'Guest staying',empty:'Empty',
+    lastCleaned:'Last cleaned',never:'Not cleaned in the app yet',problemIs:'Problem: ',
+    cleaned:'Cleaned',cleanedAgain:'Cleaned again',minibar:'Mini bar',problem:'Problem',markedClean:function(r){ return r+' marked clean.'; },
+    mbTitle:function(r){ return 'Mini bar, '+r; },mbNote:'How many of each was used? It goes on the guest\'s room bill.',mbSave:'Add to bill',mbDone:'Added to the room bill.',
+    mbNone:'Enter how many of at least one item.',mbEmpty:'No mini bar items yet. A manager adds them in Settings.',
+    isTitle:function(r){ return 'Problem in '+r; },isNote:'Something broken or not working. The manager sees it straight away.',isLabel:'What is wrong',isSave:'Report',isDone:'Reported.',
+    cancel:'Cancel',need:'Please fill this in.',noGuest:'Nobody is staying in this room right now, so there is no bill to add it to. Tell the front desk.',other:'Burmese'},
+  my:{rooms:'အခန်းများ',loading:'အခန်းများ ဖွင့်နေသည်။',toClean:function(n){ return 'သန့်ရှင်းရန် '+n+' ခန်း'; },allClean:'အခန်းအားလုံး သန့်ရှင်းပြီး',
+    nowArriving:'ဧည့်သည်ရောက်မည်၊ ယခု သန့်ရှင်းပါ',full:'အပြည့်အစုံ သန့်ရှင်းရန်',leavingChip:'ဧည့်သည် ယနေ့ ထွက်မည်',daily:'နေ့စဉ် သန့်ရှင်းရေး',cleanedToday:'ယနေ့ သန့်ရှင်းပြီး',clean:'သန့်ရှင်းသည်',
+    arriving:'ဧည့်သည် ယနေ့ ရောက်မည်',leaving:'ဧည့်သည် ယနေ့ ထွက်မည်',staying:'ဧည့်သည် တည်းခိုနေသည်',empty:'အခန်းလွတ်',
+    lastCleaned:'နောက်ဆုံး သန့်ရှင်းချိန်',never:'သန့်ရှင်းကြောင်း မမှတ်ရသေးပါ',problemIs:'ပြဿနာ - ',
+    cleaned:'သန့်ရှင်းပြီး',cleanedAgain:'ထပ် သန့်ရှင်းပြီး',minibar:'မီနီဘား',problem:'ပြဿနာ',markedClean:function(r){ return r+' သန့်ရှင်းပြီးဟု မှတ်ပြီးပါပြီ။'; },
+    mbTitle:function(r){ return 'မီနီဘား - '+r; },mbNote:'ပစ္စည်းတစ်ခုစီ ဘယ်နှခု သုံးသလဲ။ ဧည့်သည်၏ အခန်းဘေလ်ထဲ ထည့်ပါမည်။',mbSave:'ဘေလ်ထဲ ထည့်ရန်',mbDone:'အခန်းဘေလ်ထဲ ထည့်ပြီးပါပြီ။',
+    mbNone:'အနည်းဆုံး ပစ္စည်းတစ်ခု၏ အရေအတွက် ထည့်ပါ။',mbEmpty:'မီနီဘား ပစ္စည်း မရှိသေးပါ။ မန်နေဂျာကို ပြောပါ။',
+    isTitle:function(r){ return r+' တွင် ပြဿနာ'; },isNote:'ပျက်နေသော သို့မဟုတ် အလုပ်မလုပ်သော အရာ။ မန်နေဂျာ ချက်ချင်း မြင်ရပါမည်။',isLabel:'ဘာဖြစ်နေသလဲ',isSave:'ပို့ရန်',isDone:'ပို့ပြီးပါပြီ။',
+    cancel:'မလုပ်တော့ပါ',need:'ဖြည့်ပေးပါ။',noGuest:'ယခု ဤအခန်းတွင် ဧည့်သည် မရှိပါ။ ရှေ့ကောင်တာကို ပြောပါ။',other:'English'}
+};
+function hkLang(){ return pref('pk_lang')==='my'&&me&&me.role==='housekeeping'?'my':'en'; }
+function T(k){ return HKT[hkLang()][k]; }
+function hkDate(d){ return parseYmd(d).toLocaleDateString(hkLang()==='my'?'my-MM':'en-GB',{day:'numeric',month:'short'}); }
+function hkErr(e){ var m=(e&&e.message)||''; if(hkLang()==='my'&&/Nobody is staying/.test(m)) m=T('noGuest'); return m; }
+function setHkLang(l){ pref('pk_lang',l==='my'?'my':null); document.body.classList.toggle('lang-my',l==='my'); document.documentElement.lang=l==='my'?'my':'en'; TABS=[['hk',T('rooms')]]; schedule(); }
 function loadHK(){ lastLoad=Date.now(); return sb.rpc('housekeeping_home').then(function(res){ HK=must(res); schedule(); }); }
 function hkDo(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return (me&&me.role==='housekeeping'?loadHK():reloadHKDesk()).then(function(){ return d; }); }); }
 function hkState(r){
-  if(r.needs_full) return {rank:r.arriving?0:1,chip:chip(r.arriving?'Clean now, guest arriving':'Needs full clean','bad')};
-  if(r.leaving&&!r.cleaned_today) return {rank:3,chip:chip('Guest leaving today','warn')};
-  if(r.occupied&&!r.cleaned_today) return {rank:2,chip:chip('Daily clean','warn')};
-  if(r.cleaned_today) return {rank:5,chip:chip('Cleaned today','ok')};
-  return {rank:4,chip:chip('Clean','ok')};
+  if(r.needs_full) return {rank:r.arriving?0:1,chip:chip(T(r.arriving?'nowArriving':'full'),'bad')};
+  if(r.leaving&&!r.cleaned_today) return {rank:3,chip:chip(T('leavingChip'),'warn')};
+  if(r.occupied&&!r.cleaned_today) return {rank:2,chip:chip(T('daily'),'warn')};
+  if(r.cleaned_today) return {rank:5,chip:chip(T('cleanedToday'),'ok')};
+  return {rank:4,chip:chip(T('clean'),'ok')};
 }
 function hkMinibar(r){
-  if(!HK.items.length){ toast('No mini bar items yet. A manager adds them in Settings.'); return; }
-  openForm({title:'Mini bar, '+r.name,note:'How many of each was used? It goes on the guest\'s room bill.',saveLabel:'Add to bill',doneMsg:'Added to the room bill.',
+  if(!HK.items.length){ toast(T('mbEmpty')); return; }
+  openForm({title:T('mbTitle')(r.name),note:T('mbNote'),saveLabel:T('mbSave'),doneMsg:T('mbDone'),cancelLabel:T('cancel'),needMsg:T('need'),
     fields:HK.items.map(function(m){ return {key:'q_'+m.id,label:m.name+' ('+thb(m.price)+')',type:'number',def:0}; }),
     onSave:function(v){
       var items=HK.items.map(function(m){ return {id:m.id,qty:Number(v['q_'+m.id])||0}; }).filter(function(x){ return x.qty>0; });
-      if(!items.length) return 'Enter how many of at least one item.';
-      return hkDo('hk_minibar',{p_room:r.id,p_items:items});
+      if(!items.length) return T('mbNone');
+      return hkDo('hk_minibar',{p_room:r.id,p_items:items}).catch(function(e){ throw {plain:true,message:hkErr(e)}; });
     }});
 }
 function hkIssue(r){
-  openForm({title:'Problem in '+r.name,note:'Something broken or not working. The manager sees it straight away.',saveLabel:'Report',doneMsg:'Reported.',fields:[
-    {key:'text',label:'What is wrong',type:'textarea',required:true}],
+  openForm({title:T('isTitle')(r.name),note:T('isNote'),saveLabel:T('isSave'),doneMsg:T('isDone'),cancelLabel:T('cancel'),needMsg:T('need'),fields:[
+    {key:'text',label:T('isLabel'),type:'textarea',required:true}],
     onSave:function(v){ return hkDo('hk_report_issue',{p_room:r.id,p_text:v.text}); }});
 }
 function hkCard(r,staffView){
   var st=hkState(r), bits=[];
-  bits.push(r.arriving?'Guest arriving today':r.leaving?'Guest leaving today':r.occupied?'Guest staying':'Empty');
-  bits.push(r.last_cleaned?'Last cleaned '+fmtDate(r.last_cleaned.slice(0,10))+' '+r.last_cleaned.slice(11):'Not cleaned in the app yet');
+  bits.push(T(r.arriving?'arriving':r.leaving?'leaving':r.occupied?'staying':'empty'));
+  bits.push(r.last_cleaned?T('lastCleaned')+' '+hkDate(r.last_cleaned.slice(0,10))+' '+r.last_cleaned.slice(11):T('never'));
   var again=r.cleaned_today&&!r.needs_full;
-  var acts=[btn(again?'Cleaned again':'Cleaned',function(){ run(hkDo('hk_cleaned',{p_room:r.id}),r.name+' marked clean.'); },again?'small':'primary small')];
-  if(!staffView&&r.guest_in) acts.push(btn('Mini bar',function(){ hkMinibar(r); },'small'));
-  if(!staffView) acts.push(btn('Problem',function(){ hkIssue(r); },'small'));
-  return {when:r.name,right:st.chip,note:bits.join('. ')+(r.issues.length?'. Problem: '+r.issues.map(function(i){ return i.text; }).join('; '):''),act:acts};
+  var acts=[btn(T(again?'cleanedAgain':'cleaned'),function(){ run(hkDo('hk_cleaned',{p_room:r.id}),T('markedClean')(r.name)); },again?'small':'primary small')];
+  if(!staffView&&r.guest_in) acts.push(btn(T('minibar'),function(){ hkMinibar(r); },'small'));
+  if(!staffView) acts.push(btn(T('problem'),function(){ hkIssue(r); },'small'));
+  var sep=hkLang()==='my'?'။ ':'. ';
+  return {when:r.name,right:st.chip,note:bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),act:acts};
 }
 function vHK(){
-  if(!HK) return [h('div',{class:'panel empty'},'Loading rooms.')];
+  if(!HK) return [h('div',{class:'panel empty'},T('loading'))];
   var rooms=HK.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
-  var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length;
-  return [pageHead('Rooms',DAYS[(parseYmd(HK.today).getDay()+6)%7]+' '+fmtDate(HK.today)+'. '+(todo?todo+' to clean':'All clean')),
+  var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length, my=hkLang()==='my';
+  var day=parseYmd(HK.today).toLocaleDateString(my?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'});
+  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),
     cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
 }
 /* the desk and managers see the same picture on the Stays page, and close problems there */
@@ -1728,7 +1757,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -1817,7 +1846,7 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
-    if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); TABS=[['hk','Rooms']]; ui.tab='hk'; return loadHK().then(function(){ allReady=true; schedule(); }); }
+    if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab='hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
     if(row.role==='coach'){ me=row; db=makeDb(); TABS=[['mine','My work']]; ui.tab='mine'; return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
     TABS=staffTabs(row);
