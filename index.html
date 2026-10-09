@@ -513,6 +513,66 @@ function editHoliday(hd){ hd=hd||{};
     onDelete:hd.id?function(){ return db.doc('holidays/'+hd.id).delete(); }:null});
 }
 
+/* ---------- walk-ins, tourists and agency guests: one form, sold and checked in ---------- */
+function lastSourcePrice(sourceId,packageId){
+  var hit=null; S.purchases.forEach(function(p){ if(p.source_id===sourceId&&p.package_id===packageId&&!p.cancelled&&(!hit||p.purchased_on>=hit.purchased_on)) hit=p; });
+  return hit?hit.price_thb:null;
+}
+function walkIn(name,target){
+  if(!guard()) return;
+  var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
+  var pk=sortBy(S.packages.filter(function(k){ return k.active!==false&&(k.audience||'all')==='all'&&k.price_thb!=null&&!(k.covers&&k.covers.indexOf('Privates')>=0); }),'name');
+  if(!pk.length){ toast('Add a package first, in Packages.'); return; }
+  var short=pk.filter(function(k){ return (k.class_limit===1)||(k.duration_days!=null&&k.duration_days<=7); });
+  var ordered=short.concat(pk.filter(function(k){ return short.indexOf(k)<0; }));
+  var first=ordered.filter(function(k){ return /1 session/i.test(k.name); })[0]||ordered[0];
+  var src=sortBy(S.sources,'name'), direct=src.filter(function(x){ return /^direct$/i.test(x.name); })[0];
+  var targets=sortBy(S.classes.filter(function(c){ return Number(c.day)===wd; }),'time').map(function(c){ return ['c:'+c.id,(c.time?c.time+' ':'')+c.title]; })
+    .concat(FACILITIES.map(function(f){ return ['f:'+f,f]; }));
+  targets.push(['','Do not check in yet']);
+  var tdef=target?(target.kind==='class'?'c:'+target.id:'f:'+target.name):(targets[0]?targets[0][0]:'');
+  function priceFor2(get){
+    var k=byId('packages',get('package_id')), sId=get('source_id'), s=byId('sources',sId); if(!k) return null;
+    if(!s||/^direct$/i.test(s.name)) return k.price_thb;
+    var last=lastSourcePrice(sId,k.id); return last!=null?last:null;
+  }
+  function payFor(sId){ var s=byId('sources',sId); return s&&!/^direct$/i.test(s.name)?'agent':'cash'; }
+  openForm({title:'Walk-in or agency guest',saveLabel:'Sell and check in',doneMsg:'Sold and checked in.',
+    note:'For tourists and one time visitors. Makes the customer, records the sale and checks them in, all at once.',
+    values:{name:name||''},fields:[
+    {key:'name',label:'Name',required:true},
+    {key:'contact',label:'Email or phone',hint:'Optional. Add an email if they might come back or want the app.'},
+    {key:'source_id',label:'Where they came from',type:'select',options:opts(src,'Walk-in, no source'),def:direct?direct.id:'',
+      onChange:function(v,set,get){ set('price_thb',priceFor2(get)); set('method',payFor(v)); }},
+    {key:'package_id',label:'Package',type:'select',options:ordered.map(function(k){ return [k.id,k.name+' ('+thb(k.price_thb)+')']; }),def:first.id,
+      onChange:function(v,set,get){ set('price_thb',priceFor2(get)); }},
+    {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first.price_thb,
+      hint:'For an agency, what they pay you after their cut. The app remembers it for next time.'},
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS},
+    {key:'target',label:'Check in for',type:'select',options:targets,def:tdef}],
+    onSave:function(v){
+      var k=byId('packages',v.package_id); if(!k) return 'Choose a package.';
+      var c=String(v.contact||'').trim(), isMail=c.indexOf('@')>0;
+      var row={name:v.name,email:isMail?c.toLowerCase():null,phone:!isMail&&c?c:null,tier:'train',price_group:'standard',notes:(byId('sources',v.source_id)||{name:'Walk-in'}).name+' guest, '+fmtDate(day)};
+      var cid=null, pid=null;
+      return sb.from('customers').insert(row).select('id').single().then(must).then(function(d){
+        cid=d.id;
+        var p={customer_id:cid,package_id:k.id,package_name:k.name,price_thb:v.price_thb,price_group:'standard',paid:true,method:v.method,source_id:v.source_id||null,purchased_on:day,
+          covers:k.covers||null,times:k.times||null,class_limit:k.class_limit||null,classes_left:k.class_limit||null,per_week_limit:k.per_week_limit||null,duration_days:k.duration_days||null,
+          start_by:k.start_within_days?addDays(day,k.start_within_days):null,starts_on:null,expires_on:null};
+        if(k.clock==='purchase') Object.assign(p,startPurchase(p,day));
+        return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must);
+      }).then(function(d){
+        pid=d.id; if(!v.target) return null;
+        var t=v.target.slice(2), cls=v.target.charAt(0)==='c';
+        return sb.rpc('check_in',{p_customer:cid,p_purchase:pid,p_class:cls?t:null,p_facility:cls?null:t}).then(must);
+      }).catch(function(e){
+        if(cid) { Promise.all([reload('customers'),reload('purchases')]); throw {plain:true,message:(pid?'Sold, but not checked in: ':'')+((e&&e.message)||'Try again.')+(pid?' Find them in the search to check in.':'')}; }
+        throw e;
+      }).then(function(){ ui.q=''; return Promise.all([reload('customers'),reload('purchases'),reload('checkin_days')]); });
+    }});
+}
+
 /* ---------- check in ---------- */
 function usedThisWeek(p,day){ var a=weekStart(day), b=addDays(a,6), n=0;
   S.checkin_days.forEach(function(d){ if(d.id>=a&&d.id<=b) (d.entries||[]).forEach(function(e){ if(e.purchase_id===p.id&&e.counted!==false) n++; }); }); return n; }
@@ -585,8 +645,8 @@ function vToday(){
   return [
     pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
     h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
-    section('Check someone in',null,h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
-      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small')):hitRows)),
+    section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
+      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
     orders.length?section('App orders waiting for payment',null,table([
       {label:'Customer',cell:function(p){return linkBtn(nameOf('customers',p.customer_id),function(){ openCustomer(p.customer_id); });}},
       {label:'Package',cell:function(p){return p.package_name;}},
@@ -744,7 +804,7 @@ function vCommission(){
   var by={}; done.forEach(function(p){ var r=by[p.coach_id]||(by[p.coach_id]={id:p.coach_id,n:0,got:0,share:0}); r.n++; r.got+=Number(p.price_thb)||0; r.share+=coachShare(p.price_thb,p.coach_pct); });
   var rows=Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return b.share-a.share;});
   var T=rows.reduce(function(t,r){ t.n+=r.n; t.got+=r.got; t.share+=r.share; return t; },{n:0,got:0,share:0});
-  return [pageHead('Commission','Privates marked done, by coach.',h('input',{id:'month',type:'month',value:m,'aria-label':'Month',onchange:function(ev){ if(ev.target.value){ ui.month=ev.target.value; schedule(); } }})),
+  return [pageHead('Commission','Privates marked done, by coach, and package sales by source.',h('input',{id:'month',type:'month',value:m,'aria-label':'Month',onchange:function(ev){ if(ev.target.value){ ui.month=ev.target.value; schedule(); } }})),
     pending?h('div',{class:'row'},chip(pending+' confirmed this month, not yet marked done','warn')):null,
     table([
       {label:'Coach',cell:function(r){return nameOf('staff',r.id);}},
@@ -759,7 +819,19 @@ function vCommission(){
       {label:'Customer',cell:function(p){return nameOf('customers',p.customer_id);}},
       {label:'Paid with',cell:payLabel},
       {label:'Received',num:true,cell:function(p){return thb(p.price_thb);}},
-      {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],sortBy(done,'date','time'),'')):null];
+      {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],sortBy(done,'date','time'),'')):null,
+    sourceSales(m)];
+}
+function sourceSales(m){
+  var by={};
+  S.purchases.forEach(function(p){ if(p.cancelled||!p.paid||!p.purchased_on||p.purchased_on.slice(0,7)!==m) return;
+    var k=p.source_id||(p.ordered_in_app?'app':'desk'), r=by[k]||(by[k]={k:k,n:0,got:0}); r.n++; r.got+=Number(p.price_thb)||0; });
+  var rows=Object.keys(by).map(function(k){ return by[k]; }).sort(function(a,b){ return b.got-a.got; });
+  var T=rows.reduce(function(t,r){ t.n+=r.n; t.got+=r.got; return t; },{n:0,got:0});
+  function label(r){ return r.k==='app'?'Ordered in the app':r.k==='desk'?'Front desk, no source':nameOf('sources',r.k); }
+  return section('Package sales by where they came from',null,table([
+    {label:'Source',cell:label},{label:'Sales',num:true,cell:function(r){return r.n;}},{label:'You received',num:true,cell:function(r){return thb(r.got);}}],
+    rows,'No paid package sales in this month yet.',['Total',T.n,thb(T.got)]));
 }
 function vCoach(){
   var ch=coaches(), head='What each coach sees when they sign in. No prices, only their share.';
@@ -863,7 +935,7 @@ var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
-  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled']},
+  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
