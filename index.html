@@ -1333,6 +1333,7 @@ function showSignIn(){
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
   var pw=h('input',{id:'login-pw',type:'password',autocomplete:mode==='up'?'new-password':'current-password'});
   var note=h('p',{class:'sub',role:'status'},linkNote); linkNote='';
+  var keeps=true; try{ localStorage.setItem('pk_t','1'); keeps=localStorage.getItem('pk_t')==='1'; localStorage.removeItem('pk_t'); }catch(e){ keeps=false; }
   var go=h('button',{type:'submit',class:'btn primary'},mode==='up'?'Create account':mode==='link'?'Email me a sign in link':mode==='reset'?'Email me a reset link':'Sign in');
   function say(t){ note.textContent=t; }
   var intro={in:'Sign in with your email and password. You stay signed in on this phone until you sign out.',
@@ -1342,6 +1343,7 @@ function showSignIn(){
   var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,mode==='up'?'Create account':mode==='reset'?'Reset password':'Sign in'),
     mode==='in'||mode==='up'?h('div',{class:'tabs2'},tab('in','Sign in'),tab('up','New here')):null,
     h('p',{class:'sub'},intro),
+    keeps?null:h('p',{class:'kerr',style:'font-size:14px'},'This browser is not saving sign ins, so you will be asked every time. If Safari is in Private mode, switch to a normal tab.'),
     h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),
     mode==='in'||mode==='up'?h('div',{class:'field'},h('label',{for:'login-pw'},'Password'),pw,mode==='up'?h('small',null,'At least 8 characters.'):null):null,
     h('div',null,go),note,
@@ -1368,24 +1370,38 @@ function showSignIn(){
   });
   $view.replaceChildren(form); email.focus();
 }
+var recoveryToken='', recoveryShown=false;
+function jwtEmail(t){ try{ var b=t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'); while(b.length%4) b+='='; return JSON.parse(atob(b)).email||''; }catch(e){ return ''; } }
 function showNewPassword(){
+  if(recoveryShown&&document.getElementById('new-pw')) return;
+  recoveryShown=true;
+  var email=jwtEmail(recoveryToken);
   var pw=h('input',{id:'new-pw',type:'password',autocomplete:'new-password'}), pw2=h('input',{id:'new-pw2',type:'password',autocomplete:'new-password'});
   var note=h('p',{class:'sub',role:'status'}), go=h('button',{type:'submit',class:'btn primary'},'Save password');
   var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,'New password'),
-    h('p',{class:'sub'},'Choose a new password. You use it with your email to sign in.'),
+    h('p',{class:'sub'},'Choose a new password'+(email?' for '+email:'')+'. You use it with your email to sign in.'),
     h('div',{class:'field'},h('label',{for:'new-pw'},'New password'),pw,h('small',null,'At least 8 characters.')),
     h('div',{class:'field'},h('label',{for:'new-pw2'},'Type it again'),pw2),h('div',null,go),note);
   form.addEventListener('submit',function(ev){
-    ev.preventDefault();
-    if(pw.value.length<8){ note.textContent='Use at least 8 characters.'; pw.focus(); return; }
-    if(pw.value!==pw2.value){ note.textContent='The two passwords are different.'; pw2.focus(); return; }
+    ev.preventDefault(); var v=pw.value;
+    if(v.length<8){ note.textContent='Use at least 8 characters.'; pw.focus(); return; }
+    if(v!==pw2.value){ note.textContent='The two passwords are different.'; pw2.focus(); return; }
     go.disabled=true; note.textContent='Saving.';
-    sb.auth.updateUser({password:pw.value}).then(function(res){
-      go.disabled=false;
-      if(res.error){ note.textContent=authText(res.error); lostSession(res.error); return; }
-      recovering=false; toast('Password saved.');
-      sb.auth.getSession().then(function(r){ var u=r.data&&r.data.session&&r.data.session.user; if(u) enter(u); });
-    });
+    /* use the key from the reset link directly, so this works even if the browser does not keep the sign in */
+    var job=recoveryToken
+      ? fetch(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+recoveryToken},body:JSON.stringify({password:v})})
+          .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ if(!r.ok) return {error:{message:d.msg||d.message||d.error_description||('Error '+r.status)}}; return {data:d}; }); })
+      : sb.auth.updateUser({password:v});
+    job.then(function(res){
+      if(res.error){ go.disabled=false; note.textContent=/expired|invalid jwt|401/i.test(res.error.message)?'This reset link has run out. Go back to sign in and tap Forgot password again.':authText(res.error); return; }
+      var em=email||(res.data&&res.data.email)||(res.data&&res.data.user&&res.data.user.email)||'';
+      recovering=false; recoveryToken=''; toast('Password saved.');
+      if(!em){ signMode='in'; showSignIn(); return; }
+      return sb.auth.signInWithPassword({email:em,password:v}).then(function(r){
+        if(r.error){ linkNote='Password saved. Sign in with it now.'; signMode='in'; showSignIn(); return; }
+        if(r.data&&r.data.user) enter(r.data.user);
+      });
+    }).catch(function(){ go.disabled=false; note.textContent='No connection. Try again.'; });
   });
   $view.replaceChildren(form); pw.focus();
 }
@@ -1419,12 +1435,12 @@ if(!window.supabase||!window.supabase.createClient){
       linkNote=code==='otp_expired'?'That email link has expired or was already used. Each link works once. Ask for a new one below.':'That email link did not work. Ask for a new one below.';
       try{ history.replaceState(null,'',location.pathname); }catch(e){}
     }
-    if(hp.get('type')==='recovery') recovering=true;
+    if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
   })();
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange(function(event,session){
-    if(event==='PASSWORD_RECOVERY'){ recovering=true; setTimeout(showNewPassword,0); return; }
-    if(recovering&&session) return;
+    if(event==='PASSWORD_RECOVERY'){ recovering=true; if(session&&session.access_token&&!recoveryToken) recoveryToken=session.access_token; setTimeout(showNewPassword,0); return; }
+    if(recovering){ if(recoveryToken) setTimeout(showNewPassword,0); return; }
     if(session&&session.user){ if(linkNote){ toast(linkNote); linkNote=''; } setTimeout(function(){ enter(session.user); },0); }
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; recovering=false; signMode='in'; showSignIn(); }
   });
