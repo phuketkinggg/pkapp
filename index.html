@@ -713,11 +713,31 @@ function stayCard(st,day){
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
   var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),'Bill '+(thb(total)||'0 THB')+(st.settled?', settled':'')];
   if(meal) bits.push('Meals left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:''));
+  if(st.guests) bits.push(st.guests);
   if(st.source_id) bits.push('Via '+nameOf('sources',st.source_id));
   if(st.notes) bits.push(st.notes);
   return {when:nameOf('rooms',st.room_id),right:status,title:g.name||'Guest',note:bits.join('. '),act:acts};
 }
+var MPSYNC=null;
+function loadMpSync(){ return sb.from('app_settings').select('value').eq('key','motopress_last_sync').maybeSingle().then(function(res){ var d=res.data; try{ MPSYNC=d&&d.value?JSON.parse(d.value):null; }catch(e){ MPSYNC=null; } schedule(); }); }
+function syncNow(){
+  if(!guard()||ui.syncing) return; ui.syncing=true; schedule();
+  sb.functions.invoke('motopress-sync',{body:{mode:'sync'}}).then(function(res){
+    if(res.error) throw res.error;
+    var d=res.data||{}; if(d.error) throw {message:d.error};
+    MPSYNC=d; toast('Synced: '+(d.created||0)+' new, '+(d.updated||0)+' updated'+(d.errors&&d.errors.length?', '+d.errors.length+' need a look':'')+'.');
+    return Promise.all([reload('rooms'),reload('stays'),reload('customers'),reload('sources')]);
+  }).catch(function(e){ toast('Sync did not work. '+((e&&e.message)||'')); }).then(function(){ ui.syncing=false; schedule(); });
+}
+function syncLine(){
+  var when=MPSYNC&&MPSYNC.at?new Date(MPSYNC.at):null, mins=when?Math.round((Date.now()-when)/60000):null;
+  var txt=when?'Website, Booking.com and Airbnb bookings come in from MotoPress every 15 minutes. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'.':'Bookings from MotoPress come in every 15 minutes.';
+  var errs=MPSYNC&&MPSYNC.errors&&MPSYNC.errors.length?MPSYNC.errors:null;
+  return h('div',{class:'row'},h('span',{class:'sub'},txt),btn(ui.syncing?'Syncing.':'Sync now',syncNow,'small'),
+    errs?h('details',null,h('summary',{class:'sub'},errs.length+' booking'+(errs.length===1?'':'s')+' could not come in'),h('ul',{class:'plain'},errs.map(function(e){ return h('li',null,e); }))):null);
+}
 function vStays(){
+  if(MPSYNC===null&&!ui.mpAsked){ ui.mpAsked=true; loadMpSync().catch(function(){}); }
   var day=ymd(new Date()), soon=addDays(day,30);
   var rooms=S.rooms.filter(function(r){ return r.active!==false; });
   var roomSort=function(a,b){ var x=byId('rooms',a.room_id)||{}, y=byId('rooms',b.room_id)||{}; return (x.sort||0)-(y.sort||0); };
@@ -727,6 +747,7 @@ function vStays(){
   var open=sortBy(S.stays.filter(function(st){ return !st.settled&&(st.status==='out'||(st.status!=='cancelled'&&st.check_out<day))&&billTotal(st)>0; }),'check_out');
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   return [pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',btn('Add a stay',function(){ editStay(); },'primary')),
+    syncLine(),
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
@@ -1076,7 +1097,7 @@ var MAP={
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
-  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on']},
+  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']}
 };
 function must(res){
