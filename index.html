@@ -42,6 +42,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .who{margin:auto 8px 0;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .who b{color:var(--ink)}
 .login{max-width:420px;display:flex;flex-direction:column;gap:14px}
+.tabs2{display:flex;gap:4px;padding:4px;background:var(--sunken);border-radius:10px}
+.tabs2 button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);min-height:40px;border-radius:8px;cursor:pointer}
+.tabs2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
 .login input{width:100%}
 main{flex:1;min-width:0;padding-block:24px;padding-inline:24px}
 #view{max-width:1080px;display:flex;flex-direction:column;gap:24px}
@@ -288,7 +291,7 @@ function openForm(spec){
     if(f.type==='select') el=h('select',{id:id},f.options.map(function(o){return h('option',{value:o[0]},o[1]);}));
     else if(f.type==='textarea') el=h('textarea',{id:id,rows:'3'});
     else if(f.type==='checkbox') el=h('input',{id:id,type:'checkbox'});
-    else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:'off'});
+    else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:f.autocomplete||'off'});
     inputs[f.key]=el;
     set(f.key, vals[f.key]!==undefined&&vals[f.key]!==null ? vals[f.key] : f.def);
     if(f.onChange) el.addEventListener('change',function(){ f.onChange(read(f),set,function(k){ for(var j=0;j<spec.fields.length;j++) if(spec.fields[j].key===k) return read(spec.fields[j]); },setOpts); });
@@ -1189,25 +1192,88 @@ function enterCustomer(){ me={role:'customer'}; db=makeDb(); return loadCustomer
 
 /* ---------- signing in ---------- */
 function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut(); }},'Sign out'); }
+function passwordBtn(){ return h('button',{type:'button',class:'btn small',onclick:setPassword},'Password'); }
+function setPassword(){
+  if(!guard()) return;
+  openForm({title:'Your password',note:'Use it to sign in on any phone or computer with your email and this password. No email link needed.',saveLabel:'Save password',doneMsg:'Password saved.',fields:[
+    {key:'pw',label:'New password',type:'password',autocomplete:'new-password',required:true,hint:'At least 8 characters.'},
+    {key:'pw2',label:'Type it again',type:'password',autocomplete:'new-password',required:true}],
+    onSave:function(v){ if(v.pw.length<8) return 'Use at least 8 characters.'; if(v.pw!==v.pw2) return 'The two passwords are different.';
+      return sb.auth.updateUser({password:v.pw}).then(function(res){ if(res.error) throw {message:authText(res.error)}; }); }});
+}
 function notice(title,text){ $view.replaceChildren(h('div',{class:'panel pad login'},h('h1',null,title),h('p',{class:'sub'},text),h('div',null,signOutBtn()))); }
+function authText(e){
+  var m=(e&&e.message)||'';
+  if(/invalid login credentials/i.test(m)) return 'Email or password is wrong. If you have only ever signed in with an email link, tap Forgot password to set one.';
+  if(/email not confirmed/i.test(m)) return 'Confirm your email first. Open the link we sent when you made your account.';
+  if(/rate limit|too many/i.test(m)) return 'Too many tries. Wait a few minutes and try again.';
+  if(/should be at least|weak/i.test(m)) return 'That password is too short or too easy to guess. Use at least 8 characters.';
+  if(/same as the old|different from the old/i.test(m)) return 'That is already your password.';
+  return m||'Something went wrong. Try again.';
+}
+var signMode='in', recovering=false;
 function showSignIn(){
   me=null; db=null; CO=null; CU=null; cuDone=null; CODE=null; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; renderNav(); $who.replaceChildren();
+  var mode=signMode;
+  function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
+  var pw=h('input',{id:'login-pw',type:'password',autocomplete:mode==='up'?'new-password':'current-password'});
   var note=h('p',{class:'sub',role:'status'});
-  var send=h('button',{type:'submit',class:'btn primary'},'Email me a sign in link');
-  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,'Sign in'),
-    h('p',{class:'sub'},'Enter your email and we will send you a link. Open the link on this phone to sign in. There is no password. New here? Use your email and you are set up as a member.'),
-    h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),h('div',null,send),note);
+  var go=h('button',{type:'submit',class:'btn primary'},mode==='up'?'Create account':mode==='link'?'Email me a sign in link':mode==='reset'?'Email me a reset link':'Sign in');
+  function say(t){ note.textContent=t; }
+  var intro={in:'Sign in with your email and password. You stay signed in on this phone until you sign out.',
+    up:'New here? Make an account with your email and a password. We email you once to confirm it is you.',
+    link:'No password yet? We email you a link that signs you in. Then tap Password at the top to set one.',
+    reset:'Forgot your password? We email you a link to set a new one.'}[mode];
+  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,mode==='up'?'Create account':mode==='reset'?'Reset password':'Sign in'),
+    mode==='in'||mode==='up'?h('div',{class:'tabs2'},tab('in','Sign in'),tab('up','New here')):null,
+    h('p',{class:'sub'},intro),
+    h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),
+    mode==='in'||mode==='up'?h('div',{class:'field'},h('label',{for:'login-pw'},'Password'),pw,mode==='up'?h('small',null,'At least 8 characters.'):null):null,
+    h('div',null,go),note,
+    h('div',{class:'row'},
+      mode!=='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='in'; showSignIn(); }},'Back to sign in'):null,
+      mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='reset'; showSignIn(); }},'Forgot password'):null,
+      mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='link'; showSignIn(); }},'Email me a link instead'):null));
   form.addEventListener('submit',function(ev){
-    ev.preventDefault(); var v=email.value.trim();
-    if(!v){ note.textContent='Enter your email first.'; email.focus(); return; }
-    send.disabled=true; note.textContent='Sending.';
-    sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:location.origin+location.pathname}}).then(function(res){
-      send.disabled=false;
-      note.textContent=res.error?'That did not send. '+res.error.message:'Check your inbox for the sign in link. It can take a minute.';
+    ev.preventDefault(); var v=email.value.trim(), p=pw.value;
+    if(!v){ say('Enter your email first.'); email.focus(); return; }
+    if((mode==='in'||mode==='up')&&!p){ say('Enter your password.'); pw.focus(); return; }
+    if(mode==='up'&&p.length<8){ say('Use at least 8 characters for the password.'); pw.focus(); return; }
+    var back=location.origin+location.pathname, job;
+    go.disabled=true; say(mode==='in'?'Signing in.':'Sending.');
+    if(mode==='in') job=sb.auth.signInWithPassword({email:v,password:p}).then(function(res){ if(res.error) say(authText(res.error)); });
+    else if(mode==='up') job=sb.auth.signUp({email:v,password:p,options:{emailRedirectTo:back}}).then(function(res){
+      if(res.error) return say(authText(res.error));
+      if(res.data&&res.data.session) return;
+      if(res.data&&res.data.user&&res.data.user.identities&&!res.data.user.identities.length) return say('That email already has an account. Sign in, or tap Forgot password to set a password.');
+      say('Check your inbox and open the link to confirm your email. You only do this once. After that you sign in with your password.'); });
+    else if(mode==='reset') job=sb.auth.resetPasswordForEmail(v,{redirectTo:back}).then(function(res){ say(res.error?authText(res.error):'If that email has an account, a reset link is on its way. Open it on this phone.'); });
+    else job=sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:back}}).then(function(res){ say(res.error?'That did not send. '+authText(res.error):'Check your inbox for the sign in link. It can take a minute.'); });
+    job.catch(function(){ say('No connection. Try again.'); }).then(function(){ go.disabled=false; });
+  });
+  $view.replaceChildren(form); email.focus();
+}
+function showNewPassword(){
+  var pw=h('input',{id:'new-pw',type:'password',autocomplete:'new-password'}), pw2=h('input',{id:'new-pw2',type:'password',autocomplete:'new-password'});
+  var note=h('p',{class:'sub',role:'status'}), go=h('button',{type:'submit',class:'btn primary'},'Save password');
+  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,'New password'),
+    h('p',{class:'sub'},'Choose a new password. You use it with your email to sign in.'),
+    h('div',{class:'field'},h('label',{for:'new-pw'},'New password'),pw,h('small',null,'At least 8 characters.')),
+    h('div',{class:'field'},h('label',{for:'new-pw2'},'Type it again'),pw2),h('div',null,go),note);
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault();
+    if(pw.value.length<8){ note.textContent='Use at least 8 characters.'; pw.focus(); return; }
+    if(pw.value!==pw2.value){ note.textContent='The two passwords are different.'; pw2.focus(); return; }
+    go.disabled=true; note.textContent='Saving.';
+    sb.auth.updateUser({password:pw.value}).then(function(res){
+      go.disabled=false;
+      if(res.error){ note.textContent=authText(res.error); return; }
+      recovering=false; toast('Password saved.');
+      sb.auth.getSession().then(function(r){ var u=r.data&&r.data.session&&r.data.session.user; if(u) enter(u); });
     });
   });
-  $view.replaceChildren(form);
+  $view.replaceChildren(form); pw.focus();
 }
 function enter(user){
   if(currentUser===user.id&&me) return;
@@ -1215,7 +1281,7 @@ function enter(user){
   $view.replaceChildren(h('div',{class:'panel empty'},'Signing you in.'));
   sb.from('staff').select('*').eq('user_id',user.id).maybeSingle().then(function(res){
     var row=must(res);
-    $who.replaceChildren(h('span',null,h('b',null,row&&row.active!==false?row.name:user.email),row&&row.active!==false?' '+(ROLES[row.role]||''):''),signOutBtn());
+    $who.replaceChildren(h('span',null,h('b',null,row&&row.active!==false?row.name:user.email),row&&row.active!==false?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},passwordBtn(),signOutBtn()));
     var staff=!!(row&&row.active!==false);
     document.getElementById('mode').textContent=!staff?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff) return enterCustomer();
@@ -1231,10 +1297,12 @@ var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
 if(!window.supabase||!window.supabase.createClient){
   noDb('The app could not load fully. Check your connection and reload the page.');
 } else {
-  sb=window.supabase.createClient(SB_URL,SB_KEY);
+  sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange(function(event,session){
+    if(event==='PASSWORD_RECOVERY'){ recovering=true; setTimeout(showNewPassword,0); return; }
+    if(recovering&&session) return;
     if(session&&session.user) setTimeout(function(){ enter(session.user); },0);
-    else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; showSignIn(); }
+    else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; recovering=false; signMode='in'; showSignIn(); }
   });
   window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='coach'?loadCoach():me.role==='customer'?loadCustomer():loadAll()).catch(function(){}); });
 }
