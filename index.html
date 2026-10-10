@@ -82,6 +82,14 @@ h2{font-size:16px;font-weight:600;margin:0}
 .poster .p1{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.1em;color:var(--gold-ink)}
 .poster .p2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;text-transform:uppercase}
 .poster ol{margin:0;padding-left:20px;text-align:left;font-size:14px;color:var(--muted)}
+.poster .plogo{width:120px;height:120px;border-radius:12px}
+.poster .pth{font-size:18px;font-weight:600;margin-top:-6px}
+.poster .th{display:block;font-size:.92em;opacity:.85}
+.poster .getapp{width:100%;border-top:1px solid var(--line);padding-top:10px;text-align:left;font-size:13px}
+.poster .gah{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;text-align:center;margin-bottom:6px}
+.poster .gah .th{display:inline;font-family:inherit}
+.poster .gacols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.poster .ganote{margin-top:8px;text-align:center;color:var(--muted)}
 .qr{width:220px;background:#fff;padding:8px;border-radius:8px}
 .qr svg{display:block;width:100%;height:auto}
 @media print{
@@ -93,7 +101,16 @@ h2{font-size:16px;font-weight:600;margin:0}
   body.print-poster .poster .p1{font-size:16mm;color:#000}
   body.print-poster .poster .p2{font-size:22mm}
   body.print-poster .poster ol{font-size:7mm;color:#000}
-  body.print-poster .qr{width:120mm;padding:0}
+  body.print-poster .qr{width:78mm;padding:0}
+  body.print-poster .poster{padding-top:2mm;gap:4mm}
+  body.print-poster .poster .plogo{width:32mm;height:32mm}
+  body.print-poster .poster .p2{font-size:16mm}
+  body.print-poster .poster .pth{font-size:9mm}
+  body.print-poster .poster ol{font-size:5.5mm}
+  body.print-poster .poster .getapp{font-size:4.6mm;padding-top:5mm;border-color:#000;max-width:170mm}
+  body.print-poster .poster .gah{font-size:9mm}
+  body.print-poster .poster .ganote{color:#000}
+  body.print-poster .poster *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -1227,9 +1244,17 @@ function posterSection(){
       qr?btn('Print poster',printPoster,'primary small'):null,
       CODE?btn(ui.armCode?'Tap again. The old poster stops working':'Make a new code',newCode,'small'+(ui.armCode?' danger':'')):null)),
     !CODE?h('div',{class:'panel empty'},'The check in code could not be loaded. Reload the page.'):
-    h('div',{class:'panel pad poster'},h('div',{class:'p1'},'PHUKET KING'),h('div',{class:'p2'},'Scan to check in'),
+    h('div',{class:'panel pad poster'},h('img',{class:'plogo',src:'icons/icon-512.png',alt:'Phuket King'}),
+      h('div',{class:'p2'},'Scan to check in'),h('div',{class:'pth'},'สแกนเพื่อเช็คอิน'),
       qr||h('p',{class:'sub'},'The QR picture could not be drawn. Reload the page with a connection.'),
-      h('ol',null,h('li',null,'Open your phone camera and point it here'),h('li',null,'Sign in with your email the first time'),h('li',null,'Tap your class'))),
+      h('ol',null,h('li',null,'Open your phone camera and point it here',h('span',{class:'th'},'เปิดกล้องมือถือแล้วส่องที่นี่')),
+        h('li',null,'Sign in with your email and password the first time',h('span',{class:'th'},'ครั้งแรกให้ลงชื่อเข้าใช้ด้วยอีเมลและรหัสผ่าน')),
+        h('li',null,'Tap your class',h('span',{class:'th'},'แตะคลาสของคุณ'))),
+      h('div',{class:'getapp'},h('div',{class:'gah'},'Get the app ',h('span',{class:'th'},'ติดตั้งแอป')),
+        h('div',{class:'gacols'},
+          h('div',null,h('b',null,'iPhone'),h('div',null,'In Safari tap Share, then Add to Home Screen'),h('span',{class:'th'},'ใน Safari แตะ แชร์ แล้วเลือก เพิ่มไปยังหน้าจอโฮม')),
+          h('div',null,h('b',null,'Android'),h('div',null,'In Chrome tap ⋮, then Install app'),h('span',{class:'th'},'ใน Chrome แตะ ⋮ แล้วเลือก ติดตั้งแอป'))),
+        h('div',{class:'ganote'},'Then sign in once inside the app. ',h('span',{class:'th'},'จากนั้นลงชื่อเข้าใช้ในแอปหนึ่งครั้ง')))),
     h('p',{class:'sub noprint'},'Put this at the front desk. Customers scan it, sign in once, and tap their class. The check in shows on Today like any other. Someone with a photo of the code could check in from outside, so if you see that, make a new code and reprint.'));
 }
 function editMinibar(m){ m=m||{};
