@@ -69,7 +69,7 @@ function must<T>(r: { data: T; error: any }): T { if (r.error) throw new Error(r
 
 async function sync() {
   const today = bkkToday(), from = addDays(today, -14);
-  const out = { created: 0, updated: 0, cancelled: 0, removed: 0, skipped_old: 0, rooms_added: 0, errors: [] as string[] };
+  const out = { created: 0, updated: 0, cancelled: 0, removed: 0, skipped_old: 0, rooms_added: 0, relinked: 0, errors: [] as string[] };
   const seen = new Set<string>(); let complete = false;
 
   // rooms: one per MotoPress accommodation, matched by its id
@@ -107,6 +107,19 @@ async function sync() {
     srcRows.push(ins); return ins.id;
   };
 
+  // our own emails (the desk often types the business email on bookings): never use them to match a guest
+  const staffEmails = new Set((must(await admin.from("staff").select("email")) as any[]).map((r) => String(r.email ?? "").trim().toLowerCase()).filter(Boolean));
+  const ownEmail = (e: string | null) => !!e && (staffEmails.has(e) || /@(phuketking\.com|pangeaglobalwellness\.com)$/.test(e) || /\.pangeaglobalwellness\.com$/.test(e));
+  const guestName = (c: any, ra: any, b: any) => [c.first_name, c.last_name].map((x: unknown) => String(x ?? "").trim()).filter(Boolean).join(" ")
+    || String(ra.guest_name ?? "").trim() || `${sourceName(b)} guest`;
+  const newGuest = async (name: string, email: string | null, c: any, b: any) =>
+    (must(await admin.from("customers").insert({ name: name.slice(0, 80), email, phone: String(c.phone ?? "").trim() || null, tier: "train", price_group: "standard", notes: `From a ${sourceName(b)} booking` }).select("id").single()) as any).id as string;
+  const custCache = new Map<string, any>();
+  const custOf = async (id: string) => {
+    if (!custCache.has(id)) custCache.set(id, must(await admin.from("customers").select("id,name,email").eq("id", id).maybeSingle()));
+    return custCache.get(id);
+  };
+
   // bookings, newest first, until we are well past anything still relevant
   for (let page = 1; page <= 40; page++) {
     const list: any[] = await mp(`bookings?per_page=100&page=${page}&orderby=date&order=desc`);
@@ -117,7 +130,8 @@ async function sync() {
       const cancelled = ["cancelled", "abandoned"].includes(String(b.status));
       const src = await srcId(sourceName(b));
       const c = b.customer ?? {};
-      const email = String(c.email ?? "").trim().toLowerCase() || null;
+      const rawEmail = String(c.email ?? "").trim().toLowerCase() || null;
+      const email = ownEmail(rawEmail) ? null : rawEmail;
       const ras: any[] = Array.isArray(b.reserved_accommodations) && b.reserved_accommodations.length ? b.reserved_accommodations : [{}];
       for (let i = 0; i < ras.length; i++) {
         const ra = ras[i], ext = `mphb:${b.id}:${i}`;
@@ -133,6 +147,14 @@ async function sync() {
             if (cancelled && existing.status === "booked") { patch.status = "cancelled"; out.cancelled++; }
             if (!cancelled && existing.status === "cancelled") patch.status = "booked";
             if (existing.status === "in" || existing.status === "out") { delete patch.check_in; delete patch.room_id; }
+            // stays matched to a guest only through our own email get their own guest, by the name on the booking
+            if (existing.customer_id) {
+              const cur = await custOf(existing.customer_id);
+              const nm = guestName(c, ra, b);
+              if (cur && ownEmail(String(cur.email ?? "").toLowerCase()) && cur.name.toLowerCase() !== nm.toLowerCase()) {
+                patch.customer_id = await newGuest(nm, email, c, b); out.relinked++;
+              }
+            }
             must(await admin.from("stays").update(patch).eq("id", existing.id).select("id"));
             out.updated++; continue;
           }
@@ -155,12 +177,7 @@ async function sync() {
             const hit = must(await admin.from("customers").select("id").eq("is_agency", false).ilike("email", email).order("created_at").limit(1)) as any[];
             if (hit.length) cid = hit[0].id;
           }
-          if (!cid) {
-            const name = [c.first_name, c.last_name].map((x: unknown) => String(x ?? "").trim()).filter(Boolean).join(" ")
-              || String(ra.guest_name ?? "").trim() || `${sourceName(b)} guest`;
-            const ins = must(await admin.from("customers").insert({ name: name.slice(0, 80), email, phone: String(c.phone ?? "").trim() || null, tier: "train", price_group: "standard", notes: `From a ${sourceName(b)} booking` }).select("id").single()) as any;
-            cid = ins.id;
-          }
+          if (!cid) cid = await newGuest(guestName(c, ra, b), email, c, b);
           const past = b.check_out_date < today;
           must(await admin.from("stays").insert({ ...base, customer_id: cid, external_id: ext, status: past ? "out" : "booked", settled: past,
             notes: b.imported && b.ical_summary ? String(b.ical_summary).slice(0, 200) : (b.note ? String(b.note).slice(0, 300) : null) }).select("id"));
