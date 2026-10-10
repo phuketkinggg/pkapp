@@ -126,6 +126,11 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fset{border:1px solid var(--line);border-radius:10px;padding:6px 10px 10px}
 .fset legend{font-weight:600;font-size:14px;padding:0 4px}
+.fightpromo{border-left:4px solid var(--gold)}
+.fpname{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.02em}
+.fptix{font-weight:600;color:var(--gold-ink);margin-top:4px}
+.fptix .th{display:block;font-weight:400;font-size:13px}
+.fshow{display:flex;align-items:flex-end;padding-bottom:8px}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -1187,12 +1192,14 @@ var FTX={
       date:'Fight date',time:'Time',venue:'Venue or event',fighter:'Fighter',fname:'Fighter name',fnameHint:'Only if the fighter is not in the list.',other:'Not in the list, type the name below',
       weight:'Weight',weightHint:'For example: 67 kg',opp:'Opponent',corners:'Corner',method:'How (KO, points...)',notes:'Notes',cancel:'Cancel',save:'Save',cancelled:'Fight cancelled',
       win:'Win',loss:'Loss',draw:'Draw',nc:'No contest',noRes:'No result yet',vs:'vs',cornerBy:'Corner',needFighter:'Choose the fighter or type their name.',needDate:'Choose the fight date.',
-      sub:'Every fight with date, place, weight and who is in the corner.',mine:'You are in the corner',showCancelled:'Show cancelled'},
+      sub:'Every fight with date, place, weight and who is in the corner. Fights marked for the member app show on members\' Home with "Buy tickets at reception".',mine:'You are in the corner',showCancelled:'Show cancelled',
+      tix:'Ticket price (THB)',show:'Show in the member app',inApp:'In member app'},
   th:{tab:'ไฟท์',add:'เพิ่มไฟท์',edit:'แก้ไข',result:'ผลการชก',upcoming:'ไฟท์ที่จะมาถึง',past:'ไฟท์ที่ผ่านมา',none:'ยังไม่มีไฟท์',nonePast:'ยังไม่มีบันทึก',
       date:'วันที่ชก',time:'เวลา',venue:'สนาม หรือ รายการ',fighter:'นักมวย',fname:'ชื่อนักมวย',fnameHint:'ถ้าไม่มีในรายชื่อ',other:'ไม่มีในรายชื่อ พิมพ์ชื่อด้านล่าง',
       weight:'น้ำหนัก',weightHint:'เช่น 67 กก.',opp:'คู่ชก',corners:'พี่เลี้ยงมุม',method:'ชนะ/แพ้ด้วย (KO, คะแนน...)',notes:'หมายเหตุ',cancel:'ยกเลิก',save:'บันทึก',cancelled:'ยกเลิกไฟท์',
       win:'ชนะ',loss:'แพ้',draw:'เสมอ',nc:'ไม่มีผล',noRes:'ยังไม่มีผล',vs:'พบ',cornerBy:'มุม',needFighter:'เลือกนักมวย หรือ พิมพ์ชื่อ',needDate:'เลือกวันที่ชก',
-      sub:'ไฟท์ทั้งหมด วันที่ สนาม น้ำหนัก และใครเข้ามุม',mine:'คุณเข้ามุม',showCancelled:'แสดงไฟท์ที่ยกเลิก'}};
+      sub:'ไฟท์ทั้งหมด วันที่ สนาม น้ำหนัก และใครเข้ามุม',mine:'คุณเข้ามุม',showCancelled:'แสดงไฟท์ที่ยกเลิก',
+      tix:'ราคาตั๋ว (บาท)',show:'แสดงในแอปสมาชิก',inApp:'แสดงในแอปสมาชิก'}};
 function F(k){ var l=me&&me.role==='coach'?coLang():'en'; return (FTX[l]||FTX.en)[k]||FTX.en[k]; }
 function loadFights(){ ui.fightsBusy=true; return sb.rpc('fights_list').then(must).then(function(d){ ui.fightsBusy=false; ui.fightsErr=null; FIGHTS=d&&d.fights?d:{fights:[],staff:[],customers:[]}; schedule(); },function(e){ ui.fightsBusy=false; ui.fightsErr=errText(e); schedule(); }); }
 function fightResult(f){
@@ -1205,6 +1212,8 @@ function fightCard(f,today){
   var bits=[];
   if(f.weight) bits.push(f.weight);
   if(f.venue) bits.push(f.venue);
+  if(f.ticket_thb) bits.push(thb(f.ticket_thb));
+  if(f.show_in_app!==false&&!f.cancelled&&!f.result&&f.date>=today) bits.push(F('inApp'));
   bits.push(F('cornerBy')+': '+((f.corners||[]).join(', ')||'-'));
   if(f.notes) bits.push(f.notes);
   var acts=[btn(F('edit'),function(){ editFight(f); },'small')];
@@ -1241,13 +1250,15 @@ function editFight(f,focusResult){
   result.value=f.result||'';
   var method=inp('fx-method','text',f.method||''), notes=h('textarea',{id:'fx-notes',rows:'2'}); notes.value=f.notes||'';
   var canc=h('input',{type:'checkbox',id:'fx-cancelled'}); canc.checked=!!f.cancelled;
+  var tix=inp('fx-tix','text',f.ticket_thb==null?'':f.ticket_thb,'1500');
+  var showit=h('input',{type:'checkbox',id:'fx-show'}); showit.checked=f.show_in_app!==false;
   function close(){ $dlg.close(); }
   function save(){
     if(!date.value){ err.textContent=F('needDate'); err.hidden=false; return; }
     if(!fighter.value&&!fname.value.trim()){ err.textContent=F('needFighter'); err.hidden=false; return; }
     var p={id:f.id||null,date:date.value,time:time.value,venue:venue.value,fighter_customer_id:fighter.value||null,fighter_name:fname.value,weight:weight.value,opponent:opp.value,
       corner_ids:boxes.map(function(l){ return l.querySelector('input'); }).filter(function(i){ return i.checked; }).map(function(i){ return i.value; }),
-      result:result.value||null,method:method.value,notes:notes.value,cancelled:f.id?canc.checked:false};
+      result:result.value||null,method:method.value,notes:notes.value,cancelled:f.id?canc.checked:false,ticket_thb:tix.value,show_in_app:showit.checked};
     sb.rpc('fight_save',{p:p}).then(must).then(function(){ close(); toast(F('save')+'.'); return loadFights(); }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
   }
   var box=h('div',{class:'billbox fightform'},h('h2',null,f.id?F('edit'):F('add')),
@@ -1258,6 +1269,7 @@ function editFight(f,focusResult){
     h('div',null,lab('fx-fname',F('fname'),F('fnameHint')),fname),
     h('div',{class:'fgrid'},h('div',null,lab('fx-weight',F('weight')),weight),h('div',null,lab('fx-opp',F('opp')),opp)),
     h('fieldset',{class:'fset'},h('legend',null,F('corners')),h('div',{class:'chkgrid'},boxes.length?boxes:h('span',{class:'sub'},'-'))),
+    h('div',{class:'fgrid'},h('div',null,lab('fx-tix',F('tix')),tix),h('div',{class:'fshow'},h('label',{class:'chk'},showit,' '+F('show')))),
     h('div',{class:'fgrid'},h('div',null,lab('fx-result',F('result')),result),h('div',null,lab('fx-method',F('method')),method)),
     h('div',null,lab('fx-notes',F('notes')),notes),
     f.id?h('label',{class:'chk'},canc,' '+F('cancelled')):null,
@@ -1885,7 +1897,7 @@ function scanCheckIn(){
       e&&e.message==='load'?'Could not load the scanner. Check your connection and try again.':'Could not open the camera. Use your normal camera app to scan the poster.';
   });
 }
-function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay')]).then(function(r){ CU=must(r[0]); if(CU) CU.stay=r[1]&&!r[1].error?r[1].data:null; schedule(); }); }
+function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public')]).then(function(r){ CU=must(r[0]); if(CU){ CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; } schedule(); }); }
 function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
 function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
 function cuWd(){ return (parseYmd(CU.today).getDay()+6)%7; }
@@ -1979,6 +1991,12 @@ function vCHome(){
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
     section('My packages',btn('Buy a package',function(){ go('c_buy'); },'small'),cards(live.map(pkgCard),'No active package yet. Order one here and pay at the front desk.')),
     nextP?section('Next private',btn('All privates',function(){ go('c_pt'); },'small'),cards([ptCard(nextP,true)],'')):null,
+    CU.fights&&CU.fights.length?section('Phuket King fighters in action',null,h('div',{class:'panel cards'},CU.fights.map(function(f){
+      return h('div',{class:'card fightpromo'},
+        h('div',{class:'ctop'},h('span',{class:'cwhen'},fmtDate(f.date)+(f.time?' at '+f.time:'')),f.ticket_thb?h('span',{class:'cright'},chip('Tickets '+thb(f.ticket_thb),'ok')):null),
+        h('div',{class:'fpname'},f.fighter+(f.opponent?' vs '+f.opponent:'')),
+        h('div',{class:'cnote'},[f.weight,f.venue,f.corners&&f.corners.length?'Corner: '+f.corners.join(', '):null].filter(Boolean).join('. ')),
+        h('div',{class:'fptix'},'Come and support! Buy tickets at reception.',h('span',{class:'th'},'ซื้อตั๋วได้ที่เคาน์เตอร์ต้อนรับ'))); }))):null,
     section('Today at the gym',btn('Full timetable',function(){ go('c_classes'); },'small'),cards(todayC.map(function(c){
       return {when:c.time||'',title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:mine.some(function(e){ return e.class_id===c.id; })?chip('Checked in','ok'):null}; }),'No group classes today.')),
     past.length?section('Finished packages',null,cards(past.map(pkgCard),'')):null,
