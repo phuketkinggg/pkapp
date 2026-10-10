@@ -82,6 +82,13 @@ h2{font-size:16px;font-weight:600;margin:0}
 .poster .p1{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.1em;color:var(--gold-ink)}
 .poster .p2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;text-transform:uppercase}
 .poster ol{margin:0;padding-left:20px;text-align:left;font-size:14px;color:var(--muted)}
+.scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
+.scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
+.scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
+.scanview video{width:100%;height:100%;object-fit:cover;display:block}
+.scanframe{position:absolute;inset:18%;border:3px solid var(--gold);border-radius:12px;box-shadow:0 0 0 999px rgba(0,0,0,.25)}
+.scanmsg{margin:0;font-size:15px}
+.scanbox .btn{background:#fff;color:#000}
 .poster .plogo{width:120px;height:120px;border-radius:12px}
 .poster .pth{font-size:18px;font-weight:600;margin-top:-6px}
 .poster .th{display:block;font-size:.92em;opacity:.85}
@@ -1254,7 +1261,7 @@ function posterSection(){
         h('div',{class:'gacols'},
           h('div',null,h('b',null,'iPhone'),h('div',null,'In Safari tap Share, then Add to Home Screen'),h('span',{class:'th'},'ใน Safari แตะ แชร์ แล้วเลือก เพิ่มไปยังหน้าจอโฮม')),
           h('div',null,h('b',null,'Android'),h('div',null,'In Chrome tap ⋮, then Install app'),h('span',{class:'th'},'ใน Chrome แตะ ⋮ แล้วเลือก ติดตั้งแอป'))),
-        h('div',{class:'ganote'},'Then sign in once inside the app. ',h('span',{class:'th'},'จากนั้นลงชื่อเข้าใช้ในแอปหนึ่งครั้ง')))),
+        h('div',{class:'ganote'},'Sign in once inside the app. Next time, open the app and tap Scan to check in.',h('span',{class:'th'},'ลงชื่อเข้าใช้ในแอปหนึ่งครั้ง ครั้งต่อไปเปิดแอปแล้วแตะ สแกนเพื่อเช็คอิน')))),
     h('p',{class:'sub noprint'},'Put this at the front desk. Customers scan it, sign in once, and tap their class. The check in shows on Today like any other. Someone with a photo of the code could check in from outside, so if you see that, make a new code and reprint.'));
 }
 function editMinibar(m){ m=m||{};
@@ -1521,6 +1528,58 @@ var CTABS=[['c_home','Home'],['c_classes','Timetable'],['c_buy','Packages'],['c_
 })();
 function liveCode(){ return cuCode&&Date.now()-cuAt<20*60000?cuCode:null; }
 function forgetCode(){ cuCode=null; try{ localStorage.removeItem('pk_code'); }catch(e){} }
+function setCode(c){ cuCode=c; cuAt=Date.now(); cuDone=null; try{ localStorage.setItem('pk_code',JSON.stringify({c:c,t:cuAt})); }catch(e){} }
+/* in-app scanner: an installed app on iPhone cannot be opened by the camera, so members scan the poster from inside the app */
+var JSQR_URL='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+function loadJsQR(){
+  if(window.jsQR) return Promise.resolve();
+  return new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=JSQR_URL; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); });
+}
+function codeFromText(t){
+  try{ var u=new URL(String(t)); var c=u.searchParams.get('c'); return c&&/^[a-zA-Z0-9]{6,64}$/.test(c)?c:null; }catch(e){ return null; }
+}
+function scanCheckIn(){
+  var stream=null, timer=null, done=false, detector=null;
+  var video=h('video',{playsinline:'',muted:'',autoplay:''}); video.muted=true; video.setAttribute('playsinline','');
+  var msg=h('p',{class:'scanmsg'},'Point your camera at the QR code at the front desk.');
+  var box=h('div',{class:'scanbox'},h('div',{class:'scanview'},video,h('div',{class:'scanframe'})),msg,
+    btn('Cancel',function(){ stop(); },'small'));
+  var wrap=h('div',{class:'scanwrap'},box); document.body.appendChild(wrap);
+  var canvas=document.createElement('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
+  function stop(){ done=true; clearTimeout(timer); if(stream) stream.getTracks().forEach(function(t){ t.stop(); }); if(wrap.parentNode) wrap.parentNode.removeChild(wrap); }
+  function found(text){
+    var c=codeFromText(text);
+    if(!c){ msg.textContent='That is not the Phuket King check in code. Try the poster at the front desk.'; return false; }
+    stop(); setCode(c); go('c_home'); toast('Code scanned. Tap your class.'); return true;
+  }
+  function tick(){
+    if(done) return;
+    if(video.readyState>=2&&video.videoWidth){
+      if(detector){
+        detector.detect(video).then(function(r){ if(!done&&!(r&&r.length&&found(r[0].rawValue))) timer=setTimeout(tick,250); },function(){ detector=null; timer=setTimeout(tick,250); });
+        return;
+      }
+      if(window.jsQR){
+        var w=Math.min(640,video.videoWidth), hh=Math.round(video.videoHeight*w/video.videoWidth);
+        canvas.width=w; canvas.height=hh; ctx.drawImage(video,0,0,w,hh);
+        var q=window.jsQR(ctx.getImageData(0,0,w,hh).data,w,hh,{inversionAttempts:'dontInvert'});
+        if(q&&q.data&&found(q.data)) return;
+      } else if(!detector) { loadJsQR().catch(function(){}); }
+    }
+    timer=setTimeout(tick,200);
+  }
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ msg.textContent='This phone cannot open the camera here. Use your normal camera app to scan the poster.'; return; }
+  try{ if('BarcodeDetector' in window) detector=new window.BarcodeDetector({formats:['qr_code']}); }catch(e){ detector=null; }
+  (detector?Promise.resolve():loadJsQR()).then(function(){
+    return navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+  }).then(function(st){
+    if(done){ st.getTracks().forEach(function(t){ t.stop(); }); return; }
+    stream=st; video.srcObject=st; var pl=video.play(); if(pl&&pl.catch) pl.catch(function(){}); tick();
+  }).catch(function(e){
+    msg.textContent=e&&e.name==='NotAllowedError'?'Camera blocked. Allow the camera for this app in your phone settings, then try again.':
+      e&&e.message==='load'?'Could not load the scanner. Check your connection and try again.':'Could not open the camera. Use your normal camera app to scan the poster.';
+  });
+}
 function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay')]).then(function(r){ CU=must(r[0]); if(CU) CU.stay=r[1]&&!r[1].error?r[1].data:null; schedule(); }); }
 function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
 function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
@@ -1563,7 +1622,8 @@ function cuCheckInCard(){
     h('div',{class:'cnote'},CU.me.name+'. '+fmtDate(CU.today)+' at '+cuDone.time+'. '+cuDone.package+'.'),
     h('div',{class:'row'},btn('Check in for something else',function(){ cuDone=null; schedule(); },'small')));
   if(!liveCode()) return h('div',{class:'panel pad narrow'},h('b',null,'To check in'),
-    h('p',{class:'sub'},'Scan the QR code at the front desk with your phone camera. It opens this app and you tap your class.'));
+    h('p',{class:'sub'},'At the gym, tap Scan and point your camera at the QR code at the front desk. Then tap your class.'),
+    h('div',{class:'row'},btn('Scan to check in',scanCheckIn,'primary')));
   var ts=cuTargets(), any=cuClassPacks().some(function(p){ return cuState(p).ok; });
   if(!any&&CU.purchases.some(function(p){ return !cuUsable(p); })) return h('div',{class:'panel pad narrow'},h('b',null,'Almost there'),
     h('p',{class:'sub'},'Your order is waiting for payment. Pay at the front desk, then tap Home again to check in.'));
