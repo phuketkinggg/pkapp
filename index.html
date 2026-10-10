@@ -82,6 +82,34 @@ h2{font-size:16px;font-weight:600;margin:0}
 .poster .p1{font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.1em;color:var(--gold-ink)}
 .poster .p2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;text-transform:uppercase}
 .poster ol{margin:0;padding-left:20px;text-align:left;font-size:14px;color:var(--muted)}
+.chatlist{padding:0;overflow:hidden}
+.chatitem{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 14px;cursor:pointer;color:inherit;font:inherit}
+.chatitem:last-child{border-bottom:0}
+.chatitem:hover{background:var(--sunken)}
+.chatitem.unread b{color:var(--gold-ink)}
+.chatrow{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.chatprev{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.chatbadge,.navbadge{background:var(--gold);color:#fff;border-radius:999px;font-size:12px;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
+.navbadge{margin-left:6px;font-size:11px;padding:0 6px}
+body.chatting{overflow:hidden}
+.chatwrap{position:fixed;inset:0;z-index:900;background:var(--bg);display:flex;justify-content:center}
+.chatbox{width:100%;max-width:720px;display:flex;flex-direction:column;height:100%;height:100dvh}
+.chathead{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--surface)}
+.chattitle{flex:1;min-width:0;display:flex;flex-direction:column}
+.chattitle b,.chattitle .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chatmsgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+.msg{max-width:80%;align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:8px 11px}
+.msg.mine{align-self:flex-end;background:var(--ink);color:var(--btn-fg);border-color:var(--ink);border-radius:14px 14px 4px 14px}
+.msg.team{border-color:var(--gold)}
+.msgwho{font-size:12px;font-weight:600;color:var(--gold-ink);margin-bottom:2px}
+.msgbody{white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+.msgtime{font-size:11px;opacity:.6;margin-top:3px;text-align:right}
+.chatnote{text-align:center;margin:0;padding:4px}
+.chatempty{text-align:center;margin:auto}
+.chatcompose{display:flex;gap:8px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface);align-items:flex-end}
+.chatinput{flex:1;resize:none;min-height:42px;max-height:140px;font:inherit;font-size:16px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:inherit}
+.chkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;max-height:44vh;overflow:auto;padding:4px 0}
+.chk{display:flex;align-items:center;gap:6px;font-size:15px}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -992,6 +1020,150 @@ function hkDeskSections(){
     section('Housekeeping today',btn('Refresh',function(){ reloadHKDesk(); },'small'),cards(dirty.map(function(r){ return hkCard(r,true); }),'All rooms are clean.'))];
 }
 
+/* ---------- messages: customers, coaches, desk and staff groups. Managers can read every chat. ---------- */
+var CHAT={list:null,unread:0,contacts:null,open:null,timer:0,poll:0,busy:false};
+var CHT={
+  th:{tab:'ข้อความ',newMsg:'ข้อความใหม่',staff:'ส่งถึงพนักงาน',cust:'ส่งถึงลูกค้า',send:'ส่ง',back:'กลับ',type:'พิมพ์ข้อความ',none:'ยังไม่มีข้อความ',empty:'ยังไม่มีข้อความในแชทนี้',who:'ถึงใคร'},
+  my:{tab:'မက်ဆေ့ချ်',newMsg:'မက်ဆေ့ချ်အသစ်',staff:'ဝန်ထမ်းထံ',cust:'ဧည့်သည်ထံ',send:'ပို့ရန်',back:'နောက်သို့',type:'စာရိုက်ပါ',none:'မက်ဆေ့ချ် မရှိသေးပါ',empty:'ဤချက်တွင် စာမရှိသေးပါ',who:'မည်သူ့ထံ'},
+  en:{tab:'Messages',newMsg:'New message',staff:'Message staff',cust:'Message a customer',send:'Send',back:'Back',type:'Type a message',none:'No messages yet.',empty:'No messages in this chat yet. Say hello.',who:'Who to'}};
+function M(k){ var l=me&&me.role==='coach'?coLang():me&&me.role==='housekeeping'?hkLang():'en'; return (CHT[l]||CHT.en)[k]||CHT.en[k]; }
+function chatOn(){ return !!(me&&allReady&&!document.body.classList.contains('kiosk')); }
+function chatRefresh(){
+  if(!chatOn()||CHAT.busy) return Promise.resolve();
+  CHAT.busy=true;
+  return sb.rpc('chat_list').then(function(res){
+    var l=res.error?null:res.data; CHAT.busy=false; if(!Array.isArray(l)) return;
+    var n=l.reduce(function(t,c){ return t+(c.in_chat?Number(c.unread)||0:0); },0);
+    var changed=JSON.stringify(l)!==JSON.stringify(CHAT.list)||n!==CHAT.unread;
+    CHAT.list=l; CHAT.unread=n; if(changed&&!document.querySelector('dialog[open]')) schedule();
+  },function(){ CHAT.busy=false; });
+}
+/* the unread count on the tab is checked every 30 seconds, and the list every 10 seconds while it is on screen */
+setInterval(function(){ if(chatOn()&&!CHAT.open&&(ui.tab==='chat'||Date.now()-(CHAT.at||0)>30000)){ CHAT.at=Date.now(); chatRefresh(); } },10000);
+function chatTime(at){
+  var d=new Date(at), now=new Date();
+  return d.toDateString()===now.toDateString()?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function chatItem(c){
+  return h('button',{type:'button',class:'chatitem'+(c.unread>0&&c.in_chat?' unread':''),onclick:function(){ openChat(c); }},
+    h('div',{class:'chatrow'},h('b',null,c.title),h('span',{class:'sub'},c.last?chatTime(c.last.at):'')),
+    h('div',{class:'chatrow'},h('span',{class:'sub chatprev'},c.last?(c.last.who+': '+c.last.body):M('empty')),
+      c.unread>0&&c.in_chat?h('span',{class:'chatbadge'},String(c.unread)):null));
+}
+function vChat(){
+  if(!CHAT.list){ chatRefresh(); return [pageHead(M('tab'),''),h('div',{class:'panel empty'},'Loading.')]; }
+  var mine=CHAT.list.filter(function(c){ return c.in_chat; }), others=CHAT.list.filter(function(c){ return !c.in_chat; });
+  var cust=me.role==='customer', mgr=me.role==='manager', acts=[];
+  if(cust){
+    acts.push(btn('Message the front desk',function(){ chatStart({p_desk:true},'Phuket King front desk'); },'primary small'));
+    acts.push(btn('Message my coach',function(){ chatPick('coach'); },'small'));
+  } else {
+    acts.push(btn(M('staff'),function(){ chatPick('staff'); },'small'));
+    acts.push(btn(M('cust'),function(){ chatPick('customer'); },'small'));
+    if(mgr) acts.push(btn('New group',function(){ chatGroup(); },'primary small'));
+  }
+  return [pageHead(M('tab'),cust?'Talk to the front desk or your private coach. The Phuket King team can see these chats.':mgr?'Your chats first. As a manager you can also read every other chat below.':''),
+    h('div',{class:'row'},acts),
+    mine.length?h('div',{class:'panel chatlist'},mine.map(chatItem)):h('div',{class:'panel empty'},M('none')),
+    mgr&&others.length?section('Other chats you can read',null,h('div',{class:'panel chatlist'},others.map(chatItem))):null];
+}
+function chatContacts(){ return CHAT.contacts?Promise.resolve(CHAT.contacts):sb.rpc('chat_contacts').then(must).then(function(d){ CHAT.contacts=d; return d; }); }
+function chatStart(args,title){
+  return sb.rpc('chat_start',args).then(must).then(function(id){ return chatRefresh().then(function(){
+    var c=(CHAT.list||[]).filter(function(x){ return x.id===id; })[0]||{id:id,title:title||'Chat',kind:'',members:[]}; openChat(c); }); })
+    .catch(function(e){ toast(errText(e)); });
+}
+function chatPick(kind){
+  chatContacts().then(function(d){
+    var list=kind==='coach'?d.coaches:kind==='staff'?d.staff:d.customers;
+    if(!list||!list.length){ toast(kind==='coach'?'You can message a coach once you have a private with them.':kind==='customer'?'No customers to message yet.':'No other staff yet.'); return; }
+    var roleName=function(r){ return ROLES[r]?' ('+ROLES[r]+')':''; };
+    openForm({title:kind==='staff'?M('staff'):kind==='coach'?'Message my coach':M('cust'),saveLabel:M('newMsg'),doneMsg:'Opening the chat.',
+      fields:[{key:'who',label:M('who'),type:'select',required:true,def:list[0].id,options:list.map(function(x){ return [x.id,x.name+(x.role?roleName(x.role):'')]; })}],
+      onSave:function(v){
+        var x=list.filter(function(y){ return y.id===v.who; })[0]||{};
+        setTimeout(function(){ chatStart(kind==='customer'?{p_customer:v.who}:{p_staff:v.who},x.name); },80);
+        return true;
+      }});
+  }).catch(function(e){ toast(errText(e)); });
+}
+function chatGroup(c){
+  c=c||{}; var have={}; (c.members||[]).forEach(function(m){ if(m.staff_id) have[m.staff_id]=true; });
+  chatContacts().then(function(d){
+    var title=h('input',{id:'grp-title',type:'text',value:c.title_raw||c.title||'',placeholder:'For example: Coaching team'});
+    var boxes=d.staff.map(function(s){ var cb=h('input',{type:'checkbox',value:s.id}); cb.checked=!!have[s.id];
+      return h('label',{class:'chk'},cb,' '+s.name+(ROLES[s.role]?' ('+ROLES[s.role]+')':'')); });
+    var err=h('p',{class:'ferr',role:'alert',hidden:true});
+    function close(){ $dlg.close(); }
+    function quick(roles){ boxes.forEach(function(l,i){ l.querySelector('input').checked=roles.indexOf(d.staff[i].role)>=0; }); }
+    function save(){
+      var ids=boxes.map(function(l){ return l.querySelector('input'); }).filter(function(i){ return i.checked; }).map(function(i){ return i.value; });
+      if(!title.value.trim()){ err.textContent='Give the group a name.'; err.hidden=false; return; }
+      sb.rpc('chat_group_save',{p_chat:c.id||null,p_title:title.value.trim(),p_staff:ids,p_customers:[]}).then(must).then(function(id){
+        close(); toast(c.id?'Group saved.':'Group made.'); chatRefresh().then(function(){ if(!c.id){ var g=(CHAT.list||[]).filter(function(x){ return x.id===id; })[0]; if(g) openChat(g); } });
+      }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
+    }
+    $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,c.id?'Edit group':'New group chat'),
+      h('label',{for:'grp-title'},'Group name'),title,
+      h('div',{class:'row'},h('span',{class:'sub'},'Quick pick:'),btn('Coaches',function(){ quick(['coach']); },'small'),btn('Resort and desk',function(){ quick(['resort','front_desk','housekeeping']); },'small'),btn('Everyone',function(){ quick(['coach','resort','front_desk','housekeeping','manager']); },'small')),
+      h('div',{class:'chkgrid'},boxes),
+      h('p',{class:'sub'},'You are always in groups you make.'),err,
+      h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',close),btn(c.id?'Save':'Make group',save,'primary')))));
+    if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  }).catch(function(e){ toast(errText(e)); });
+}
+function openChat(c){
+  closeChat();
+  var last=null, msgs=h('div',{class:'chatmsgs',role:'log','aria-live':'polite'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var input=h('textarea',{class:'chatinput',rows:'1',placeholder:M('type'),'aria-label':M('type'),maxlength:'2000'});
+  var sendBtn=btn(M('send'),send,'primary');
+  var mgr=me.role==='manager';
+  var head=h('div',{class:'chathead'},btn(M('back'),closeChat,'small'),
+    h('div',{class:'chattitle'},h('b',null,c.title||'Chat'),
+      c.kind==='group'?h('span',{class:'sub'},(c.members||[]).map(function(m){ return m.name; }).join(', ')):
+      !c.in_chat&&mgr?h('span',{class:'sub'},'You are reading this as a manager.'):null),
+    mgr&&c.kind==='group'?btn('Edit',function(){ chatGroup(c); },'small'):h('span'));
+  var wrap=h('div',{class:'chatwrap'},h('div',{class:'chatbox'},head,msgs,
+    me.role==='customer'?h('p',{class:'sub chatnote'},'The Phuket King team can see this chat.'):null,
+    err,h('div',{class:'chatcompose'},input,sendBtn)));
+  document.body.appendChild(wrap); document.body.classList.add('chatting');
+  CHAT.open={id:c.id,wrap:wrap};
+  function add(list){
+    if(!list||!list.length){ if(!msgs.childNodes.length) msgs.appendChild(h('p',{class:'sub chatempty'},M('empty'))); return; }
+    var e=msgs.querySelector('.chatempty'); if(e) e.remove();
+    var atEnd=msgs.scrollHeight-msgs.scrollTop-msgs.clientHeight<80;
+    list.forEach(function(m){
+      if(msgs.querySelector('[data-id="'+m.id+'"]')) return;
+      msgs.appendChild(h('div',{class:'msg'+(m.mine?' mine':'')+(m.staff&&!m.mine?' team':''),'data-id':m.id},
+        m.mine?null:h('div',{class:'msgwho'},m.who),h('div',{class:'msgbody'},m.body),h('div',{class:'msgtime'},chatTime(m.at))));
+      last=m.at;
+    });
+    if(atEnd||list.some(function(m){ return m.mine; })) msgs.scrollTop=msgs.scrollHeight;
+  }
+  function load(){
+    return sb.rpc('chat_messages',{p_chat:c.id,p_after:last}).then(function(res){
+      if(res.error){ err.textContent=errText(res.error); err.hidden=false; return; }
+      err.hidden=true; add(res.data);
+    },function(){});
+  }
+  function send(){
+    var b=input.value.trim(); if(!b) return;
+    sendBtn.disabled=true;
+    sb.rpc('chat_send',{p_chat:c.id,p_body:b}).then(must).then(function(){ input.value=''; input.style.height=''; return load(); })
+      .catch(function(e){ err.textContent=errText(e); err.hidden=false; }).then(function(){ sendBtn.disabled=false; input.focus(); });
+  }
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey&&!('ontouchstart' in window)){ e.preventDefault(); send(); } });
+  input.addEventListener('input',function(){ input.style.height=''; input.style.height=Math.min(140,input.scrollHeight)+'px'; });
+  load().then(function(){ msgs.scrollTop=msgs.scrollHeight; });
+  CHAT.poll=setInterval(function(){ if(document.visibilityState!=='hidden') load(); },4000);
+  setTimeout(function(){ input.focus(); },50);
+}
+function closeChat(){
+  if(!CHAT.open) return;
+  clearInterval(CHAT.poll); if(CHAT.open.wrap.parentNode) CHAT.open.wrap.parentNode.removeChild(CHAT.open.wrap);
+  document.body.classList.remove('chatting'); CHAT.open=null; chatRefresh();
+}
+
 /* ---------- views ---------- */
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
@@ -1349,10 +1521,11 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={chat:vChat,hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
-  $nav.replaceChildren.apply($nav,TABS.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1]); }));
+  var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
+  $nav.replaceChildren.apply($nav,tabs.map(function(t){ return h('button',{type:'button','aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
 }
 var raf=0;
@@ -1913,7 +2086,7 @@ function staffTabs(row){ var keep=row.role==='resort'?['stays','customers']:['to
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -1942,7 +2115,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
