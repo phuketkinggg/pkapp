@@ -144,6 +144,9 @@ async function sync() {
       const rawEmail = String(c.email ?? "").trim().toLowerCase() || null;
       const email = ownEmail(rawEmail) ? null : rawEmail;
       const ras: any[] = Array.isArray(b.reserved_accommodations) && b.reserved_accommodations.length ? b.reserved_accommodations : [{}];
+      // the MotoPress price and what was paid online; a booking with several rooms carries it on its first room
+      const mpTotal = Number(b.total_price);
+      const mpPaid = (Array.isArray(b.payments) ? b.payments : []).reduce((t: number, p: any) => t + (/complet/i.test(String(p?.status ?? "")) ? (Number(p?.amount ?? p?.total ?? 0) || 0) : 0), 0);
       for (let i = 0; i < ras.length; i++) {
         const ra = ras[i], ext = `mphb:${b.id}:${i}`;
         seen.add(ext);
@@ -151,8 +154,11 @@ async function sync() {
           const room = roomByExt.get(String(ra.accommodation ?? ""));
           if (!room) { out.errors.push(`Booking ${b.id}: room ${ra.accommodation ?? "?"} not found`); continue; }
           const guests = [ra.adults ? `${ra.adults} adult${ra.adults > 1 ? "s" : ""}` : "", ra.children ? `${ra.children} child${ra.children > 1 ? "ren" : ""}` : ""].filter(Boolean).join(", ") || null;
-          const existing = must(await admin.from("stays").select("id,status,customer_id,room_locked").eq("external_id", ext).maybeSingle()) as any;
-          const base: Record<string, unknown> = { room_id: room, check_in: b.check_in_date, check_out: b.check_out_date, source_id: src, guests };
+          const existing = must(await admin.from("stays").select("id,status,customer_id,room_locked,room_price_manual").eq("external_id", ext).maybeSingle()) as any;
+          const base: Record<string, unknown> = { room_id: room, check_in: b.check_in_date, check_out: b.check_out_date, source_id: src, guests,
+            mp_price: Number.isFinite(mpTotal) && i === 0 ? mpTotal : null };
+          // prices typed in the app win; otherwise the room price follows MotoPress
+          if (!existing?.room_price_manual && i === 0 && Number.isFinite(mpTotal) && mpTotal > 0) { base.room_price_thb = Math.round(mpTotal); base.room_paid_thb = Math.round(mpPaid); }
           if (existing) {
             const patch: Record<string, unknown> = { ...base };
             if (cancelled && existing.status === "booked") { patch.status = "cancelled"; out.cancelled++; }
@@ -217,7 +223,7 @@ async function sync() {
 
 // move a stay to another room, and the booking in MotoPress with it
 async function move(stayId: string, roomId: string) {
-  const st = must(await admin.from("stays").select("id,external_id,room_id,check_in,check_out,status").eq("id", stayId).maybeSingle()) as any;
+  const st = must(await admin.from("stays").select("id,external_id,room_id,check_in,check_out,status,room_price_manual,room_price_thb").eq("id", stayId).maybeSingle()) as any;
   if (!st) return { error: "That stay was not found." };
   const room = must(await admin.from("rooms").select("id,name,external_id").eq("id", roomId).maybeSingle()) as any;
   if (!room) return { error: "That room was not found." };
@@ -247,11 +253,14 @@ async function move(stayId: string, roomId: string) {
   const after = await mp(`bookings/${bid}`, { reserved_accommodations: items });
   const now = (after?.reserved_accommodations ?? [])[idx];
   if (!now || String(now.accommodation) !== String(room.external_id)) return { error: "MotoPress did not take the change. Nothing was moved." };
-  must(await admin.from("stays").update({ room_id: room.id, room_locked: false }).eq("id", st.id).select("id"));
-  // every room is its own room type in MotoPress, so the price can change: say so, and leave it to the desk
+  // every room is its own room type in MotoPress, so the price can change: the app keeps the price the guest agreed
   const was = total(b), now2 = total(after);
   const priceChanged = was !== null && now2 !== null && Number(was) !== Number(now2);
-  return { ok: true, where: "motopress", booking: Number(bid), price_before: was, price_after: now2, price_changed: priceChanged, currency: b.currency ?? null };
+  const patch: Record<string, unknown> = { room_id: room.id, room_locked: false };
+  let kept: number | null = st.room_price_manual ? st.room_price_thb : null;
+  if (priceChanged && !st.room_price_manual && idx === 0 && Number(was) > 0) { patch.room_price_thb = Math.round(Number(was)); patch.room_price_manual = true; kept = Math.round(Number(was)); }
+  must(await admin.from("stays").update(patch).eq("id", st.id).select("id"));
+  return { ok: true, where: "motopress", booking: Number(bid), price_before: was, price_after: now2, price_changed: priceChanged, kept_price: kept, currency: b.currency ?? null };
 }
 
 Deno.serve(async (req) => {

@@ -692,7 +692,10 @@ function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.
 /* ---------- resort: stays, room bills and meal plans ---------- */
 function stayOn(st,day){ return (st.status==='booked'||st.status==='in')&&st.check_in<=day&&day<=st.check_out; }
 function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.stay_id===st.id; }),'day','created_at'); }
-function billTotal(st){ return chargesOf(st).reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0); }
+function extrasTotal(st){ return chargesOf(st).reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0); }
+function roomDue(st){ return (Number(st.room_price_thb)||0)-(Number(st.room_paid_thb)||0); }
+/* what the guest still owes: the room (price minus what was already paid) plus everything added to the bill */
+function billTotal(st){ return extrasTotal(st)+roomDue(st); }
 function nights(st){ return Math.round((parseYmd(st.check_out)-parseYmd(st.check_in))/86400000); }
 function mealPlanOf(cid,day){ return S.purchases.filter(function(p){ return p.customer_id===cid&&isMealOnly(p)&&!p.cancelled&&!unpaidOrder(p)&&stateOf(p,day).ok; })[0]||null; }
 function editStay(st){
@@ -708,13 +711,23 @@ function editStay(st){
     {key:'check_in',label:'Arrives',type:'date',required:true,def:day},
     {key:'check_out',label:'Leaves',type:'date',required:true,def:addDays(day,1)},
     {key:'source_id',label:'Booked through',type:'select',options:opts(sortBy(S.sources,'name'),'Direct or walk-in'),def:''},
+    {key:'room_price_thb',label:'Room price for the whole stay (THB)',type:'number',
+      hint:st.mp_price!=null&&Number(st.mp_price)!==Number(st.room_price_thb)?'MotoPress shows '+thb(Math.round(Number(st.mp_price)))+'. The price here is the one on the bill.':
+        /^mphb:/.test(String(st.external_id||''))?'Filled in from MotoPress. Type a different price and the app keeps yours.':'The price the guest agreed. Leave empty if the room is free or paid elsewhere.'},
+    {key:'room_paid_thb',label:'Room money already paid (THB)',type:'number',def:0,hint:'Deposit or online payment. Leave 0 if they pay at the desk.'},
     {key:'notes',label:'Notes',type:'textarea'}];
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
   openForm({title:st.id?'Edit stay':'Add a stay',values:st,fields:fields,
     onSave:function(v){
       if(v.check_out<=v.check_in) return 'The leaving date must be after the arrival date.';
       if(!v.customer_id&&!v.new_name) return 'Choose a guest or type a new guest name.';
-      var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null});
+      var price=v.room_price_thb===''||v.room_price_thb==null?null:Math.round(Number(v.room_price_thb)), paid=Math.round(Number(v.room_paid_thb)||0);
+      if(price!=null&&(isNaN(price)||price<0)) return 'The room price must be a number.';
+      var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null,room_price_thb:price,room_paid_thb:paid});
+      /* a price typed here wins over MotoPress from now on; emptying it hands the price back to MotoPress */
+      delete body.room_price_manual; var priceTouched=false;
+      if(price!==(st.room_price_thb==null?null:Number(st.room_price_thb))||paid!==(Number(st.room_paid_thb)||0)){ body.room_price_manual=price!=null; priceTouched=true; }
+      if(price==null&&/^mphb:/.test(String(st.external_id||''))) body.room_price_manual=false;
       if(st.id) body.status=v.status; else body.status='booked';
       var first=v.customer_id?Promise.resolve(v.customer_id):sb.from('customers').insert({name:v.new_name,email:v.new_email?v.new_email.toLowerCase():null,tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); });
       /* a MotoPress booking moving room: MotoPress is changed first, so the website shows the right rooms as free */
@@ -724,11 +737,11 @@ function editStay(st){
       var mv=!moved?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'move',stay_id:st.id,room_id:v.room_id}}).then(function(res){
         if(res.error) throw {message:'Could not reach MotoPress. Nothing was moved.'};
         var d=res.data||{}; if(d.error) throw {message:d.error};
-        note=d.where==='app_only'?'Room changed here only. This is a '+(d.source||'booking site')+' booking, so MotoPress still shows the old room as taken and the new room as free. Block the new room for these dates in MotoPress so it is not sold twice.':
-          d.price_changed?'Room changed here and in MotoPress. MotoPress changed the booking price from '+d.price_before+' to '+d.price_after+' '+(d.currency||'')+'. Check booking #'+d.booking+' in WordPress and set the price back if needed.':'Room changed here and in MotoPress. Price unchanged.';
+        note=d.where==='app_only'?'Room changed here only. This booking came from '+(d.source||'a booking site')+', so MotoPress still shows the old room as taken and the new room as free. Block the new room for these dates in MotoPress so it is not sold twice.':
+          d.price_changed?'Room changed here and in MotoPress. MotoPress now shows '+d.price_after+' '+(d.currency||'')+' instead of '+d.price_before+'. The bill here keeps '+thb(d.kept_price!=null?d.kept_price:d.price_before)+'.':'Room changed here and in MotoPress. Price unchanged.';
       });
       return mv.then(function(){ return first; }).then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email;
-        if(moved) delete body.room_id;
+        if(moved){ delete body.room_id; if(!priceTouched){ delete body.room_price_thb; delete body.room_paid_thb; delete body.room_price_manual; } }
         return save('stays',st.id,body); }).then(function(r){ if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
 }
@@ -748,7 +761,10 @@ function mealServed(st,p){
 }
 function openBill(st,msg,thenOut){
   if(!guard()) return;
-  var lines=chargesOf(st), total=billTotal(st), mgr=me&&me.role==='manager';
+  var lines=chargesOf(st), total=billTotal(st), mgr=me&&me.role==='manager', n=nights(st);
+  var roomRows=[];
+  if(st.room_price_thb!=null) roomRows.push(h('tr',null,h('td',null,fmtDate(st.check_in)),h('td',null,'Room, '+n+' night'+(n===1?'':'s')),h('td',{class:'num'},thb(st.room_price_thb)||'0 THB'),h('td')));
+  if(Number(st.room_paid_thb)>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Room already paid'),h('td',{class:'num'},'-'+thb(st.room_paid_thb)),h('td')));
   var method=h('select',{id:'bill-method'},[['card','Card'],['cash','Cash'],['transfer','Bank transfer or PromptPay']].map(function(o){ return h('option',{value:o[0]},o[1]); }));
   var err=h('p',{class:'ferr',role:'alert',hidden:true});
   function close(){ $dlg.close(); }
@@ -759,10 +775,10 @@ function openBill(st,msg,thenOut){
   var box=h('div',{class:'billbox'},h('h2',null,'Room bill'),
     h('p',{class:'sub'},nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)),
     msg?h('p',{class:'kerr',style:'font-size:14px'},msg):null,
-    lines.length?h('div',{class:'panel scroll'},h('table',null,h('tbody',null,lines.map(function(c){
+    lines.length||roomRows.length?h('div',{class:'panel scroll'},h('table',null,h('tbody',null,roomRows,lines.map(function(c){
       return h('tr',null,h('td',null,fmtDate(c.day)),h('td',null,c.description),h('td',{class:'num'},thb(c.amount_thb)),
         mgr&&!st.settled&&!c.purchase_id?h('td',null,h('button',{type:'button',class:'link',onclick:function(){ db.doc('charges/'+c.id).delete().then(function(){ close(); openBill(byId('stays',st.id),msg,thenOut); },function(e){ err.textContent=errText(e); err.hidden=false; }); }},'Remove')):h('td'));
-    })),h('tfoot',null,h('tr',null,h('td',null,'Total'),h('td'),h('td',{class:'num'},thb(total)||'0 THB'),h('td'))))):h('div',{class:'panel empty'},'Nothing on this bill yet.'),
+    })),h('tfoot',null,h('tr',null,h('td',null,st.settled?'Total':'To pay'),h('td'),h('td',{class:'num'},total<0?'-'+thb(-total):(thb(total)||'0 THB')),h('td'))))):h('div',{class:'panel empty'},'Nothing on this bill yet. Edit the stay to add the room price.'),
     st.settled?h('p',{class:'sub'},'Settled by '+(st.settled_method||'')+' on '+fmtDate(st.settled_on)+'.'):null,
     err,
     h('div',{class:'factions'},
@@ -787,7 +803,7 @@ function stayCard(st,day){
   acts.push(btn('Bill',function(){ openBill(st); },'small'));
   if(st.status==='in') acts.push(btn('Check out',function(){ checkOutStay(st); },'small'));
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
-  var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),'Bill '+(thb(total)||'0 THB')+(st.settled?', settled':'')];
+  var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),(st.room_price_thb!=null?'Room '+thb(st.room_price_thb)+(Number(st.room_paid_thb)>0?', '+thb(st.room_paid_thb)+' paid':'')+'. ':'No room price. ')+(st.settled?'Settled':'To pay '+(thb(Math.max(0,total))||'0 THB'))];
   if(meal) bits.push('Meals left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:''));
   if(st.guests) bits.push(st.guests);
   if(st.source_id) bits.push('Via '+nameOf('sources',st.source_id));
@@ -1364,7 +1380,7 @@ var MAP={
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
-  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests']},
+  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
   minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
 };
