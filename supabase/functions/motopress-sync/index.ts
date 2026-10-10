@@ -14,6 +14,15 @@ const cors = {
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
+// who is calling: the scheduled job (token) or a signed-in desk or manager
+async function caller(req: Request): Promise<"job" | "staff" | null> {
+  const token = req.headers.get("x-sync-token");
+  if (token) {
+    const { data } = await admin.rpc("sync_token_ok", { p_token: token });
+    return data === true ? "job" : null;
+  }
+  return (await allowed(req)) ? "staff" : null;
+}
 async function allowed(req: Request): Promise<boolean> {
   const token = req.headers.get("x-sync-token");
   if (token) {
@@ -29,13 +38,15 @@ async function allowed(req: Request): Promise<boolean> {
 }
 
 let useQuery = false;
-async function mp(path: string): Promise<any> {
+async function mp(path: string, send?: unknown): Promise<any> {
   const url = new URL(`${SITE}/wp-json/mphb/v1/${path}`);
   const headers: Record<string, string> = { Accept: "application/json" };
   if (useQuery) { url.searchParams.set("consumer_key", KEY); url.searchParams.set("consumer_secret", SECRET); }
   else headers.Authorization = "Basic " + btoa(`${KEY}:${SECRET}`);
-  let r = await fetch(url, { headers });
-  if ((r.status === 401 || r.status === 403) && !useQuery) { useQuery = true; return mp(path); }
+  const init: RequestInit = { headers };
+  if (send !== undefined) { init.method = "POST"; headers["Content-Type"] = "application/json"; init.body = JSON.stringify(send); }
+  let r = await fetch(url, init);
+  if ((r.status === 401 || r.status === 403) && !useQuery) { useQuery = true; return mp(path, send); }
   const text = await r.text();
   if (!r.ok) throw new Error(`MotoPress said ${r.status} for ${path.split("?")[0]}: ${text.slice(0, 200)}`);
   try { return JSON.parse(text); } catch { throw new Error(`MotoPress did not send data for ${path.split("?")[0]}`); }
@@ -140,13 +151,14 @@ async function sync() {
           const room = roomByExt.get(String(ra.accommodation ?? ""));
           if (!room) { out.errors.push(`Booking ${b.id}: room ${ra.accommodation ?? "?"} not found`); continue; }
           const guests = [ra.adults ? `${ra.adults} adult${ra.adults > 1 ? "s" : ""}` : "", ra.children ? `${ra.children} child${ra.children > 1 ? "ren" : ""}` : ""].filter(Boolean).join(", ") || null;
-          const existing = must(await admin.from("stays").select("id,status,customer_id").eq("external_id", ext).maybeSingle()) as any;
+          const existing = must(await admin.from("stays").select("id,status,customer_id,room_locked").eq("external_id", ext).maybeSingle()) as any;
           const base: Record<string, unknown> = { room_id: room, check_in: b.check_in_date, check_out: b.check_out_date, source_id: src, guests };
           if (existing) {
             const patch: Record<string, unknown> = { ...base };
             if (cancelled && existing.status === "booked") { patch.status = "cancelled"; out.cancelled++; }
             if (!cancelled && existing.status === "cancelled") patch.status = "booked";
             if (existing.status === "in" || existing.status === "out") { delete patch.check_in; delete patch.room_id; }
+            if (existing.room_locked) delete patch.room_id;
             // stays matched to a guest only through our own email get their own guest, by the name on the booking
             if (existing.customer_id) {
               const cur = await custOf(existing.customer_id);
@@ -203,12 +215,56 @@ async function sync() {
   return summary;
 }
 
+// move a stay to another room, and the booking in MotoPress with it
+async function move(stayId: string, roomId: string) {
+  const st = must(await admin.from("stays").select("id,external_id,room_id,check_in,check_out,status").eq("id", stayId).maybeSingle()) as any;
+  if (!st) return { error: "That stay was not found." };
+  const room = must(await admin.from("rooms").select("id,name,external_id").eq("id", roomId).maybeSingle()) as any;
+  if (!room) return { error: "That room was not found." };
+  if (st.room_id === room.id) return { ok: true, unchanged: true };
+  const clash = must(await admin.from("stays").select("id").eq("room_id", room.id).neq("status", "cancelled").neq("id", st.id)
+    .lt("check_in", st.check_out).gt("check_out", st.check_in).limit(1)) as any[];
+  if (clash.length) return { error: `${room.name} is already booked for some of those nights.` };
+  const m = /^mphb:(\d+):(\d+)$/.exec(String(st.external_id ?? ""));
+  if (!m) {  // added in the app, nothing to tell MotoPress
+    must(await admin.from("stays").update({ room_id: room.id }).eq("id", st.id).select("id"));
+    return { ok: true, where: "app" };
+  }
+  const [, bid, idxS] = m, idx = Number(idxS);
+  const b = await mp(`bookings/${bid}`);
+  if (b.imported) {  // a calendar booking (Airbnb, Booking.com...): MotoPress cannot move it, so the app keeps the new room
+    must(await admin.from("stays").update({ room_id: room.id, room_locked: true }).eq("id", st.id).select("id"));
+    return { ok: true, where: "app_only", source: sourceName(b) };
+  }
+  if (!room.external_id) return { error: `${room.name} is not a MotoPress room, so the website booking cannot move there.` };
+  const ras: any[] = Array.isArray(b.reserved_accommodations) ? b.reserved_accommodations : [];
+  if (!ras[idx]) return { error: "Could not find that room in the MotoPress booking." };
+  const total = (x: any) => x?.total_price ?? x?.total ?? null;
+  const items = ras.map((r: any, i: number) => ({
+    accommodation: i === idx ? Number(room.external_id) : Number(r.accommodation), adults: r.adults ?? 1, children: r.children ?? 0,
+    guest_name: r.guest_name ?? "", services: (r.services ?? []).map((v: any) => ({ id: v.id, adults: v.adults ?? 1, quantity: v.quantity ?? 1 })),
+  }));
+  const after = await mp(`bookings/${bid}`, { reserved_accommodations: items });
+  const now = (after?.reserved_accommodations ?? [])[idx];
+  if (!now || String(now.accommodation) !== String(room.external_id)) return { error: "MotoPress did not take the change. Nothing was moved." };
+  must(await admin.from("stays").update({ room_id: room.id, room_locked: false }).eq("id", st.id).select("id"));
+  // every room is its own room type in MotoPress, so the price can change: say so, and leave it to the desk
+  const was = total(b), now2 = total(after);
+  const priceChanged = was !== null && now2 !== null && Number(was) !== Number(now2);
+  return { ok: true, where: "motopress", booking: Number(bid), price_before: was, price_after: now2, price_changed: priceChanged, currency: b.currency ?? null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (!(await allowed(req))) return json({ error: "Not allowed." }, 401);
+  const who = await caller(req);
+  if (!who) return json({ error: "Not allowed." }, 401);
   if (!SITE || !KEY || !SECRET) return json({ error: "The MotoPress secrets are missing in Supabase." }, 400);
   const body = await req.json().catch(() => ({}));
   try {
+    if (body.mode === "move") {
+      if (who !== "staff") return json({ error: "Not allowed." }, 401);
+      return json(await move(String(body.stay_id ?? ""), String(body.room_id ?? "")).catch((e) => ({ error: `Nothing was moved. ${(e as Error).message}` })));
+    }
     if (body.mode === "inspect") {
       const bookings = await mp("bookings?per_page=5&orderby=date&order=desc");
       const accs = await mp("accommodations?per_page=100");

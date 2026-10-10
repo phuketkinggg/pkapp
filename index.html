@@ -339,7 +339,7 @@ function timeNow(){ var d=new Date(); return String(d.getHours()).padStart(2,'0'
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function errText(e){ if(e&&e.plain) return e.message; return e&&e.code==='quota_exceeded' ? 'The test database is full. Delete some old records first.' : 'That did not save. '+((e&&e.message)||'Try again.'); }
 var toastTimer=0;
-function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){$toast.hidden=true;},3200); }
+function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){$toast.hidden=true;},Math.max(3200,String(msg).length*70)); }
 function chip(text,kind){ return h('span',{class:'chip'+(kind?' '+kind:'')},text); }
 function exChip(d){ return d&&d.example?[' ',chip('Example')]:null; }
 function btn(label,onclick,cls){ return h('button',{type:'button',class:'btn'+(cls?' '+cls:''),onclick:onclick},label); }
@@ -717,7 +717,19 @@ function editStay(st){
       var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null});
       if(st.id) body.status=v.status; else body.status='booked';
       var first=v.customer_id?Promise.resolve(v.customer_id):sb.from('customers').insert({name:v.new_name,email:v.new_email?v.new_email.toLowerCase():null,tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); });
-      return first.then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email; return save('stays',st.id,body); });
+      /* a MotoPress booking moving room: MotoPress is changed first, so the website shows the right rooms as free */
+      var synced=st.id&&/^mphb:/.test(String(st.external_id||''));
+      if(synced&&(v.check_in!==st.check_in||v.check_out!==st.check_out)) return 'This booking comes from MotoPress. Change its dates in MotoPress (WordPress, Bookings), and they update here within 15 minutes.';
+      var moved=synced&&v.room_id!==st.room_id, note=null;
+      var mv=!moved?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'move',stay_id:st.id,room_id:v.room_id}}).then(function(res){
+        if(res.error) throw {message:'Could not reach MotoPress. Nothing was moved.'};
+        var d=res.data||{}; if(d.error) throw {message:d.error};
+        note=d.where==='app_only'?'Room changed here only. This is a '+(d.source||'booking site')+' booking, so MotoPress still shows the old room as taken and the new room as free. Block the new room for these dates in MotoPress so it is not sold twice.':
+          d.price_changed?'Room changed here and in MotoPress. MotoPress changed the booking price from '+d.price_before+' to '+d.price_after+' '+(d.currency||'')+'. Check booking #'+d.booking+' in WordPress and set the price back if needed.':'Room changed here and in MotoPress. Price unchanged.';
+      });
+      return mv.then(function(){ return first; }).then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email;
+        if(moved) delete body.room_id;
+        return save('stays',st.id,body); }).then(function(r){ if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
 }
 function setStay(st,patch,msg){ if(guard()) run(db.doc('stays/'+st.id).update(patch),msg); }
