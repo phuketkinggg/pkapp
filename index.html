@@ -118,6 +118,14 @@ body.chatting{overflow:hidden}
 .installx{background:none;border:0;color:inherit;font-size:22px;line-height:1;padding:4px 6px;cursor:pointer;opacity:.7;flex:none}
 body.has-install main{padding-bottom:96px}
 body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{display:none}
+.fightform{display:flex;flex-direction:column;gap:10px;max-width:560px}
+.fightform label{display:block;font-weight:600;font-size:14px;margin-bottom:3px}
+.fightform label.chk{font-weight:400;display:flex}
+.fightform input[type=text],.fightform input[type=date],.fightform select,.fightform textarea{width:100%;box-sizing:border-box}
+.fightform .sub{display:block;margin:-2px 0 4px;font-size:12px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fset{border:1px solid var(--line);border-radius:10px;padding:6px 10px 10px}
+.fset legend{font-weight:600;font-size:14px;padding:0 4px}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -347,7 +355,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['staff','Staff'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -1172,6 +1180,94 @@ function closeChat(){
   document.body.classList.remove('chatting'); CHAT.open=null; chatRefresh();
 }
 
+/* ---------- fights: for coaches, the front desk and managers ---------- */
+var FIGHTS=null;
+var FTX={
+  en:{tab:'Fights',add:'Add fight',edit:'Edit',result:'Result',upcoming:'Coming up',past:'Past fights',none:'No fights coming up.',nonePast:'No fights recorded yet.',
+      date:'Fight date',time:'Time',venue:'Venue or event',fighter:'Fighter',fname:'Fighter name',fnameHint:'Only if the fighter is not in the list.',other:'Not in the list, type the name below',
+      weight:'Weight',weightHint:'For example: 67 kg',opp:'Opponent',corners:'Corner',method:'How (KO, points...)',notes:'Notes',cancel:'Cancel',save:'Save',cancelled:'Fight cancelled',
+      win:'Win',loss:'Loss',draw:'Draw',nc:'No contest',noRes:'No result yet',vs:'vs',cornerBy:'Corner',needFighter:'Choose the fighter or type their name.',needDate:'Choose the fight date.',
+      sub:'Every fight with date, place, weight and who is in the corner.',mine:'You are in the corner',showCancelled:'Show cancelled'},
+  th:{tab:'ไฟท์',add:'เพิ่มไฟท์',edit:'แก้ไข',result:'ผลการชก',upcoming:'ไฟท์ที่จะมาถึง',past:'ไฟท์ที่ผ่านมา',none:'ยังไม่มีไฟท์',nonePast:'ยังไม่มีบันทึก',
+      date:'วันที่ชก',time:'เวลา',venue:'สนาม หรือ รายการ',fighter:'นักมวย',fname:'ชื่อนักมวย',fnameHint:'ถ้าไม่มีในรายชื่อ',other:'ไม่มีในรายชื่อ พิมพ์ชื่อด้านล่าง',
+      weight:'น้ำหนัก',weightHint:'เช่น 67 กก.',opp:'คู่ชก',corners:'พี่เลี้ยงมุม',method:'ชนะ/แพ้ด้วย (KO, คะแนน...)',notes:'หมายเหตุ',cancel:'ยกเลิก',save:'บันทึก',cancelled:'ยกเลิกไฟท์',
+      win:'ชนะ',loss:'แพ้',draw:'เสมอ',nc:'ไม่มีผล',noRes:'ยังไม่มีผล',vs:'พบ',cornerBy:'มุม',needFighter:'เลือกนักมวย หรือ พิมพ์ชื่อ',needDate:'เลือกวันที่ชก',
+      sub:'ไฟท์ทั้งหมด วันที่ สนาม น้ำหนัก และใครเข้ามุม',mine:'คุณเข้ามุม',showCancelled:'แสดงไฟท์ที่ยกเลิก'}};
+function F(k){ var l=me&&me.role==='coach'?coLang():'en'; return (FTX[l]||FTX.en)[k]||FTX.en[k]; }
+function loadFights(){ ui.fightsBusy=true; return sb.rpc('fights_list').then(must).then(function(d){ ui.fightsBusy=false; ui.fightsErr=null; FIGHTS=d&&d.fights?d:{fights:[],staff:[],customers:[]}; schedule(); },function(e){ ui.fightsBusy=false; ui.fightsErr=errText(e); schedule(); }); }
+function fightResult(f){
+  if(f.cancelled) return chip(F('cancelled'));
+  var m={win:['win','ok'],loss:['loss','bad'],draw:['draw','warn'],'no contest':['nc','warn']}[f.result];
+  return m?chip(F(m[0])+(f.method?', '+f.method:''),m[1]):null;
+}
+function fightCard(f,today){
+  var mine=FIGHTS.me&&(f.corner_ids||[]).indexOf(FIGHTS.me)>=0;
+  var bits=[];
+  if(f.weight) bits.push(f.weight);
+  if(f.venue) bits.push(f.venue);
+  bits.push(F('cornerBy')+': '+((f.corners||[]).join(', ')||'-'));
+  if(f.notes) bits.push(f.notes);
+  var acts=[btn(F('edit'),function(){ editFight(f); },'small')];
+  if(f.date<=today&&!f.result&&!f.cancelled) acts.unshift(btn(F('result'),function(){ editFight(f,true); },'primary small'));
+  return {when:fmtDate(f.date)+(f.time?' '+f.time:''),right:fightResult(f)||(mine?chip(F('mine'),'ok'):null),
+    title:h('b',null,f.fighter+(f.opponent?' '+F('vs')+' '+f.opponent:'')),note:bits.join('. '),act:acts};
+}
+function vFights(){
+  if(!FIGHTS){
+    if(ui.fightsErr) return [pageHead(F('tab'),''),h('div',{class:'panel empty'},ui.fightsErr,' ',btn('Try again',function(){ ui.fightsErr=null; loadFights(); },'small'))];
+    if(!ui.fightsBusy) loadFights();
+    return [pageHead(F('tab'),''),h('div',{class:'panel empty'},'Loading.')]; }
+  var today=ymd(new Date()), all=FIGHTS.fights||[];
+  var live=all.filter(function(f){ return ui.showCancelledFights||!f.cancelled; });
+  var up=live.filter(function(f){ return f.date>=today&&!f.result; });
+  var past=live.filter(function(f){ return f.date<today||f.result; }).reverse().slice(0,40);
+  return [pageHead(F('tab'),F('sub'),btn(F('add'),function(){ editFight(); },'primary')),
+    section(F('upcoming'),null,cards(up.map(function(f){ return fightCard(f,today); }),F('none'))),
+    section(F('past'),h('label',{class:'row sub'},h('input',{type:'checkbox',checked:ui.showCancelledFights?'':null,onchange:function(e){ ui.showCancelledFights=e.target.checked; schedule(); }}),' '+F('showCancelled')),
+      cards(past.map(function(f){ return fightCard(f,today); }),F('nonePast')))];
+}
+function editFight(f,focusResult){
+  f=f||{}; var lists=FIGHTS||{staff:[],customers:[]}, err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function inp(id,type,val,ph){ var i=h('input',{id:id,type:type||'text',placeholder:ph||null}); i.value=val==null?'':val; return i; }
+  function lab(id,t,hint){ return [h('label',{for:id},t),hint?h('span',{class:'sub'},hint):null]; }
+  var date=inp('fx-date','date',f.date||''), time=inp('fx-time','text',f.time||'','20:00'), venue=inp('fx-venue','text',f.venue||'','Bangla Stadium, Patong');
+  var fighter=h('select',{id:'fx-fighter'},[h('option',{value:''},F('other'))].concat(lists.customers.map(function(c){ return h('option',{value:c.id},c.name); })));
+  fighter.value=f.fighter_customer_id||'';
+  var fname=inp('fx-fname','text',f.fighter_customer_id?'':(f.fighter_name||''));
+  var weight=inp('fx-weight','text',f.weight||'',F('weightHint')), opp=inp('fx-opp','text',f.opponent||'');
+  var have={}; (f.corner_ids||[]).forEach(function(id){ have[id]=true; });
+  var boxes=lists.staff.map(function(s){ var cb=h('input',{type:'checkbox',value:s.id}); cb.checked=!!have[s.id]; return h('label',{class:'chk'},cb,' '+s.name); });
+  var result=h('select',{id:'fx-result'},[['',F('noRes')],['win',F('win')],['loss',F('loss')],['draw',F('draw')],['no contest',F('nc')]].map(function(o){ return h('option',{value:o[0]},o[1]); }));
+  result.value=f.result||'';
+  var method=inp('fx-method','text',f.method||''), notes=h('textarea',{id:'fx-notes',rows:'2'}); notes.value=f.notes||'';
+  var canc=h('input',{type:'checkbox',id:'fx-cancelled'}); canc.checked=!!f.cancelled;
+  function close(){ $dlg.close(); }
+  function save(){
+    if(!date.value){ err.textContent=F('needDate'); err.hidden=false; return; }
+    if(!fighter.value&&!fname.value.trim()){ err.textContent=F('needFighter'); err.hidden=false; return; }
+    var p={id:f.id||null,date:date.value,time:time.value,venue:venue.value,fighter_customer_id:fighter.value||null,fighter_name:fname.value,weight:weight.value,opponent:opp.value,
+      corner_ids:boxes.map(function(l){ return l.querySelector('input'); }).filter(function(i){ return i.checked; }).map(function(i){ return i.value; }),
+      result:result.value||null,method:method.value,notes:notes.value,cancelled:f.id?canc.checked:false};
+    sb.rpc('fight_save',{p:p}).then(must).then(function(){ close(); toast(F('save')+'.'); return loadFights(); }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
+  }
+  var box=h('div',{class:'billbox fightform'},h('h2',null,f.id?F('edit'):F('add')),
+    h('div',{class:'fgrid'},
+      h('div',null,lab('fx-date',F('date')),date),h('div',null,lab('fx-time',F('time')),time)),
+    h('div',null,lab('fx-venue',F('venue')),venue),
+    h('div',null,lab('fx-fighter',F('fighter')),fighter),
+    h('div',null,lab('fx-fname',F('fname'),F('fnameHint')),fname),
+    h('div',{class:'fgrid'},h('div',null,lab('fx-weight',F('weight')),weight),h('div',null,lab('fx-opp',F('opp')),opp)),
+    h('fieldset',{class:'fset'},h('legend',null,F('corners')),h('div',{class:'chkgrid'},boxes.length?boxes:h('span',{class:'sub'},'-'))),
+    h('div',{class:'fgrid'},h('div',null,lab('fx-result',F('result')),result),h('div',null,lab('fx-method',F('method')),method)),
+    h('div',null,lab('fx-notes',F('notes')),notes),
+    f.id?h('label',{class:'chk'},canc,' '+F('cancelled')):null,
+    err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(F('cancel'),close),btn(F('save'),save,'primary'))));
+  $dlg.replaceChildren(box);
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  setTimeout(function(){ (focusResult?result:date).focus(); },30);
+}
+
 /* ---------- views ---------- */
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
@@ -1529,7 +1625,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={chat:vChat,hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={chat:vChat,fights:vFights,hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -1650,7 +1746,7 @@ function coErr(e){
   if(/last day off/.test(m)) return 'วันสุดท้ายต้องไม่อยู่ก่อนวันแรก';
   return 'ทำไม่สำเร็จ '+m;
 }
-function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=[['mine',C('work')]]; schedule(); }
+function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=[['mine',C('work')],['fights',F('tab')]]; schedule(); }
 function loadCoach(){ lastLoad=Date.now(); return sb.rpc('coach_home').then(function(res){ CO=must(res); schedule(); }); }
 function coachDo(fn,args,okMsg){ sb.rpc(fn,args).then(must).then(loadCoach).then(function(){ if(okMsg) toast(okMsg); },function(e){ toast(coErr(e)); }); }
 function coForm(spec){ spec.cancelLabel=C('cancel'); spec.needMsg=C('need'); var save=spec.onSave;
@@ -2090,11 +2186,11 @@ function vKiosk(){
     list.length?h('div',{class:'kgrid'},list.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ ui.kc=o.c.id; ui.kq=''; ui.kerr=''; kIdle(30000); schedule(); }},o.label); }))
       :h('div',{class:'panel empty'},q?'No member with an active package matches that name.':'No members with an active package yet.'),foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','customers']:['today','stays','customers','timetable','privates']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }); }
+function staffTabs(row){ var keep=row.role==='resort'?['stays','customers']:['today','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -2123,7 +2219,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
