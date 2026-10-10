@@ -110,6 +110,14 @@ body.chatting{overflow:hidden}
 .chatinput{flex:1;resize:none;min-height:42px;max-height:140px;font:inherit;font-size:16px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:inherit}
 .chkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;max-height:44vh;overflow:auto;padding:4px 0}
 .chk{display:flex;align-items:center;gap:6px;font-size:15px}
+.installbar{position:fixed;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));z-index:800;display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--btn-fg);border-radius:14px;padding:10px 10px 10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:560px;margin:0 auto}
+.installicon{width:40px;height:40px;border-radius:9px;flex:none}
+.installtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.3}
+.installtxt span{opacity:.8;font-size:12px}
+.installbar .btn.primary{background:var(--gold);border-color:var(--gold);color:#fff;flex:none}
+.installx{background:none;border:0;color:inherit;font-size:22px;line-height:1;padding:4px 6px;cursor:pointer;opacity:.7;flex:none}
+body.has-install main{padding-bottom:96px}
+body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{display:none}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -2238,6 +2246,36 @@ if(!window.supabase||!window.supabase.createClient){
 })();
 </script>
 <script>
+/* ---------- install banner: shown in the browser until the app is on the home screen ---------- */
+(function(){
+  var ua=navigator.userAgent||'', ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), android=/Android/i.test(ua);
+  var inApp=/FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|MicroMessenger|TikTok/i.test(ua);
+  var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+  var deferred=null, bar=null;
+  function hidden(){ try{ var t=Number(localStorage.getItem('pk_install_hide')||0); return t&&Date.now()<t; }catch(e){ return false; } }
+  function hideFor(days){ try{ localStorage.setItem('pk_install_hide',String(Date.now()+days*86400000)); }catch(e){} if(bar){ bar.remove(); bar=null; } document.body.classList.remove('has-install'); }
+  function el(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+  function show(){
+    if(standalone||hidden()||bar||document.body.classList.contains('kiosk')) return;
+    var en, th, action=null;
+    if(inApp){ en='To install the app, open this page in '+(ios?'Safari':'Chrome')+': tap the menu (⋯ or ⋮) and choose "Open in browser".'; th='เพื่อติดตั้งแอป ให้เปิดหน้านี้ใน '+(ios?'Safari':'Chrome')+' แตะเมนู แล้วเลือก เปิดในเบราว์เซอร์'; }
+    else if(deferred){ en='Install the Phuket King app on your phone.'; th='ติดตั้งแอป Phuket King บนมือถือ';
+      action=el('button','btn primary small','Install'); action.type='button';
+      action.onclick=function(){ var d=deferred; deferred=null; d.prompt(); (d.userChoice||Promise.resolve({})).then(function(r){ if(r&&r.outcome==='accepted') hideFor(3650); }); }; }
+    else if(ios){ en='Install the app: tap Share, then "Add to Home Screen".'; th='ติดตั้งแอป: แตะ แชร์ แล้วเลือก เพิ่มไปยังหน้าจอโฮม'; }
+    else if(android){ en='Install the app: tap ⋮, then "Install app" or "Add to Home screen".'; th='ติดตั้งแอป: แตะ ⋮ แล้วเลือก ติดตั้งแอป'; }
+    else return;   // computers: only when the browser offers an install button
+    bar=el('div','installbar'); bar.setAttribute('role','region'); bar.setAttribute('aria-label','Install the app');
+    var img=el('img','installicon'); img.src='icons/icon-192.png'; img.alt='';
+    var txt=el('div','installtxt'); txt.appendChild(el('b',null,en)); txt.appendChild(el('span',null,th));
+    var close=el('button','installx','×'); close.type='button'; close.setAttribute('aria-label','Not now'); close.onclick=function(){ hideFor(7); };
+    bar.appendChild(img); bar.appendChild(txt); if(action) bar.appendChild(action); bar.appendChild(close);
+    document.body.appendChild(bar); document.body.classList.add('has-install');
+  }
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; if(bar){ bar.remove(); bar=null; } show(); });
+  window.addEventListener('appinstalled',function(){ hideFor(3650); });
+  window.addEventListener('load',function(){ setTimeout(show,1500); });
+})();
 if('serviceWorker' in navigator && location.protocol==='https:') window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
 </script>
 </body>
