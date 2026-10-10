@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Phuket King</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#101311">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Phuket King">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -1942,6 +1950,9 @@ if(!window.supabase||!window.supabase.createClient){
   window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); });
 }
 })();
+</script>
+<script>
+if('serviceWorker' in navigator && location.protocol==='https:') window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
 </script>
 </body>
 </html>
