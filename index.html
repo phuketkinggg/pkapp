@@ -152,6 +152,9 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .cartline{display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:6px}
 .cartline .link{grid-column:1/-1;justify-self:start;font-size:12px}
 .cl-qty{display:flex;align-items:center;gap:6px}
+.tillbtn.low{border-color:var(--bad,#c0392b)}
+.tillbtn.low small{color:var(--bad,#c0392b);font-weight:700}
+.btn.warnbtn{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}
 .qtybtn{min-width:44px;font-weight:700;text-decoration:underline dotted}
 .cl-amt{text-align:right;font-variant-numeric:tabular-nums}
 .carttot div{display:flex;justify-content:space-between}
@@ -1414,6 +1417,15 @@ function shopRefresh(){ return Promise.all([sb.rpc('shop_sales',{p_from:null,p_t
   if(!r[1].error&&JSON.stringify(r[1].data)!==JSON.stringify(APPROVALS)){ APPROVALS=r[1].data||[]; changed=true; }
   if(changed&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
 setInterval(function(){ if(me&&allReady&&ui.tab==='shop'&&SHOP&&document.visibilityState!=='hidden') shopRefresh(); },8000);
+function shopLoc(){ if(ui.shopLoc===undefined){ try{ ui.shopLoc=localStorage.getItem('pk_shop_loc')||null; }catch(e){ ui.shopLoc=null; } }
+  var L=SHOP&&SHOP.locations||[]; if(ui.shopLoc&&!L.some(function(l){ return l.id===ui.shopLoc; })) ui.shopLoc=null; if(!ui.shopLoc&&L.length===1) ui.shopLoc=L[0].id; return ui.shopLoc; }
+function setShopLoc(id){ ui.shopLoc=id; try{ localStorage.setItem('pk_shop_loc',id); }catch(e){} ui.shopCat=''; ui.shopQ=''; schedule(); }
+function locName(id){ var l=(SHOP&&SHOP.locations||[]).filter(function(x){ return x.id===id; })[0]; return l?l.name:''; }
+function curShift(){ var loc=shopLoc(); return (SHOP&&SHOP.shifts||[]).filter(function(x){ return x.location_id===loc; })[0]||null; }
+function soldAt(p,loc){ return !p.locations||!p.locations.length||p.locations.indexOf(loc)>=0; }
+function stockAt(p,loc){ return p.track_stock?Number((p.stock||{})[loc]||0):null; }
+function isLow(p,loc){ var q=stockAt(p,loc); return q!=null&&(q<=0||(p.low_stock!=null&&q<=p.low_stock)); }
+function lowList(loc){ return (SHOP&&SHOP.products||[]).filter(function(p){ return p.active&&p.track_stock&&soldAt(p,loc)&&isLow(p,loc); }); }
 function cart(){ return ui.cart||(ui.cart=[]); }
 function cartSub(){ return cart().reduce(function(t,l){ return t+l.price*l.qty; },0); }
 function cartDisc(){ return ui.cartDisc&&ui.cartDisc.amount||0; }
@@ -1437,7 +1449,7 @@ function groupProducts(list){
 }
 function priceRange(items){ var ps=items.filter(function(p){ return !p.open_price; }).map(function(p){ return p.price; }); if(!ps.length) return 'Type price'; var a=Math.min.apply(null,ps), b=Math.max.apply(null,ps); return a===b?thb(a):thb(a)+' to '+thb(b); }
 function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
-function prodByCat(cat){ return (SHOP.products||[]).filter(function(p){ return p.active&&(!cat||p.category_id===cat); }); }
+function prodByCat(cat){ var loc=shopLoc(); return (SHOP.products||[]).filter(function(p){ return p.active&&soldAt(p,loc)&&(!cat||p.category_id===cat); }); }
 function shopDlg(box){ $dlg.replaceChildren(box); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
 function field(id,label,input,hint){ return h('div',{class:'ff'},h('label',{for:id},label),hint?h('span',{class:'sub'},hint):null,input); }
 
@@ -1495,7 +1507,7 @@ function payDlg(method,waitingOrder){
     extra.push(field('pay-stay','Room',stay));
   }
   function go(){
-    var p={method:method,discount:waitingOrder?0:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null};
+    var p={location_id:shopLoc(),method:method,discount:waitingOrder?0:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null};
     if(waitingOrder) p.order_id=waitingOrder.id; else p.items=cart().map(function(l){ return {product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; });
     if(given&&given.value) p.cash_given=Number(given.value);
     if(stay) p.stay_id=stay.value;
@@ -1504,8 +1516,8 @@ function payDlg(method,waitingOrder){
       var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
       var disc=waitingOrder?0:cartDisc(); if(!waitingOrder) clearCart();
       $dlg.close(); toast('Sale #'+r.number+' done.'+(r.change?' Change '+thb(r.change)+'.':''));
-      receiptDlg({number:r.number,at:new Date().toISOString(),items:lines,subtotal:total+disc,discount:disc,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
-      shopRefresh();
+      receiptDlg({loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:total+disc,discount:disc,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
+      shopRefresh(); loadShop();
     }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; });
   }
   shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),h('p',{class:'paytotal'},'Total '+thb(total)),extra,err,
@@ -1515,7 +1527,7 @@ function payDlg(method,waitingOrder){
 function receiptNode(o){
   var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
   return h('div',{id:'receipt',class:'receipt'},
-    h('div',{class:'rc-head'},h('b',null,'PHUKET KING'),h('span',null,'Muay Thai and Pangea Cafe, Kathu, Phuket')),
+    h('div',{class:'rc-head'},h('b',null,/cafe/i.test(o.loc||'')?'PANGEA CAFE':'PHUKET KING'),h('span',null,(o.loc||'Muay Thai and Pangea Cafe')+', Kathu, Phuket')),
     h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
     h('table',null,h('tbody',null,(o.items||[]).map(function(l){ return h('tr',null,h('td',null,l.qty+' x '+l.name+(l.note?' ('+l.note+')':'')),h('td',{class:'num'},l.price!=null?thb(l.price*l.qty):'')); }))),
     h('div',{class:'rc-tot'},
@@ -1547,19 +1559,27 @@ function refundDlg(o){
     },'primary')))));
 }
 function shiftDlg(){
-  var s=SHOP.shift, cash=h('input',{id:'sh-cash',type:'number',inputmode:'numeric'}), note=h('input',{id:'sh-note',type:'text'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var s=curShift(), loc=shopLoc(), cash=h('input',{id:'sh-cash',type:'number',inputmode:'numeric'}), note=h('input',{id:'sh-note',type:'text'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
   function go(){
     var v=Math.round(Number(cash.value)||0);
-    (s?sb.rpc('shop_shift_close',{p_counted:v,p_note:note.value}):sb.rpc('shop_shift_open',{p_cash:v})).then(must).then(function(r){
+    if(cash.value===''){ err.textContent=s?'Count the cash in the till and type it.':'Type the cash in the till. Type 0 if it is empty.'; err.hidden=false; return; }
+    (s?sb.rpc('shop_shift_end',{p_location:loc,p_counted:v,p_note:note.value}):sb.rpc('shop_shift_start',{p_location:loc,p_cash:v})).then(must).then(function(r){
       $dlg.close();
-      if(s){ var d=r.difference; toast('Shift closed. Expected '+thb(r.expected)+', counted '+thb(r.counted)+(d?', '+(d>0?'over ':'short ')+thb(Math.abs(d)):', exact')+'.'); }
-      else toast('Shift open.');
+      if(s){ var d=r.difference; shopDlg(h('div',{class:'billbox'},h('h2',null,'Shift closed, '+locName(loc)),
+        h('table',null,h('tbody',null,
+          h('tr',null,h('td',null,'Cash at the start'),h('td',{class:'num'},thb(r.opening)||'0 THB')),
+          Object.keys(r.sales||{}).map(function(k){ return h('tr',null,h('td',null,payName(k)+' sales'),h('td',{class:'num'},thb(r.sales[k]))); }),
+          h('tr',null,h('td',null,'Cash expected in the till'),h('td',{class:'num'},thb(r.expected)||'0 THB')),
+          h('tr',null,h('td',null,'Cash counted'),h('td',{class:'num'},thb(r.counted)||'0 THB')),
+          h('tr',null,h('td',null,h('b',null,d?(d>0?'Over':'Short'):'Exact')),h('td',{class:'num'},h('b',null,d?thb(Math.abs(d)):''))))),
+        h('div',{class:'factions'},h('span'),btn('Done',function(){ $dlg.close(); },'primary')))); }
+      else toast('Shift open at '+locName(loc)+'.');
       loadShop();
     }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
   }
-  shopDlg(h('div',{class:'billbox'},h('h2',null,s?'Close shift':'Open shift'),
-    h('p',{class:'sub'},s?'Count the cash in the drawer. The app compares it with what it expects.':'Count the cash in the drawer before you start.'),
-    field('sh-cash',s?'Cash counted (THB)':'Cash in the drawer (THB)',cash),s?field('sh-note','Note',note):null,err,
+  shopDlg(h('div',{class:'billbox'},h('h2',null,(s?'Close shift, ':'Open shift, ')+locName(loc)),
+    h('p',{class:'sub'},s?'Opened by '+(s.by||'someone')+' with '+(thb(s.opening_cash)||'0 THB')+'. Count all the cash in the till. The app compares it with what it should be.':'You are in charge of this till until you close the shift. Every sale is saved under your name. Count the change in the till first.'),
+    field('sh-cash',s?'Cash counted now (THB)':'Change in the till now (THB)',cash),s?field('sh-note','Note',note):null,err,
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(s?'Close shift':'Open shift',go,'primary')))));
   setTimeout(function(){ cash.focus(); },30);
 }
@@ -1574,11 +1594,15 @@ function pinDlg(){
 }
 function editProduct(p){
   p=p||{}; var cats=SHOP.categories||[];
-  openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku,open_price:!!p.open_price,grp:p.grp},fields:[
+  openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku,open_price:!!p.open_price,grp:p.grp,
+    locations:p.locations&&p.locations.length?p.locations:(SHOP.locations||[]).map(function(l){ return l.id; }),track_stock:!!p.track_stock,low_stock:p.low_stock},fields:[
     {key:'name',label:'Name',required:true},
     {key:'category_id',label:'Category',type:'select',options:[['','No category']].concat(cats.map(function(c){ return [c.id,c.name]; }))},
     {key:'price',label:'Price (THB)',type:'number',required:true},
     {key:'cost',label:'Cost to us (THB)',type:'number',hint:'Optional. Only managers see it.'},
+    {key:'locations',label:'Sold at',type:'checks',required:true,options:(SHOP.locations||[]).map(function(l){ return [l.id,l.name]; })},
+    {key:'track_stock',label:'Count stock for this product',type:'checkbox'},
+    {key:'low_stock',label:'Warn when stock is at or below',type:'number',hint:'For example 5. Leave empty to warn only at 0.'},
     {key:'kitchen',label:'Goes to the kitchen screen',type:'checkbox'},
     {key:'in_app',label:'Guests and members can order it in the app',type:'checkbox'},
     {key:'active',label:'On sale',type:'checkbox'},
@@ -1598,7 +1622,7 @@ function editCategory(c){
 function vProducts(){
   var cats=SHOP.categories||[], prods=SHOP.products||[];
   function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:'No category'; }
-  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
+  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
     section('Categories',null,cats.length?h('div',{class:'row wrap'},cats.map(function(c){ return btn(c.name+(c.active?'':' (hidden)'),function(){ editCategory(c); },'small'); })):h('div',{class:'panel empty'},'No categories yet.')),
     section('All products',null,table([
       {label:'Product',cell:function(p){ return linkBtn(p.name,function(){ editProduct(p); }); }},
@@ -1606,20 +1630,67 @@ function vProducts(){
       {label:'Category',cell:function(p){ return cname(p.category_id); }},
       {label:'Price',num:true,cell:function(p){ return p.open_price?'Typed in':thb(p.price); }},
       {label:'Cost',num:true,cell:function(p){ return p.cost!=null?thb(p.cost):''; }},
+      {label:'Sold at',cell:function(p){ return p.locations&&p.locations.length?p.locations.map(locName).join(', '):'Everywhere'; }},
+      {label:'Stock',cell:function(p){ return p.track_stock?(SHOP.locations||[]).filter(function(l){ return soldAt(p,l.id); }).map(function(l){ var q=stockAt(p,l.id); return chip(((SHOP.locations||[]).length>1?l.name.split(' ').pop()+' ':'')+q,isLow(p,l.id)?'bad':''); }):''; }},
       {label:'',cell:function(p){ return h('span',{class:'row'},p.kitchen?chip('Kitchen'):null,p.in_app?chip('In app','ok'):null,p.active?null:chip('Off sale','warn')); }}],
       prods.slice().sort(function(a,b){ return cname(a.category_id).localeCompare(cname(b.category_id))||(a.sort||0)-(b.sort||0)||a.name.localeCompare(b.name); }),'No products yet. Add them here, or send me the Loyverse export to load them all.'))];
 }
+function stockDlg(p,loc,kind){
+  var names={delivery:['Delivery in','How many came in?'],count:['Stock count','How many are there now?'],waste:['Waste or used','How many to take off? (broken, expired, staff use)']};
+  openForm({title:names[kind][0]+': '+p.name,note:locName(loc)+'. In stock now: '+(stockAt(p,loc)||0)+'.',saveLabel:'Save',doneMsg:'Stock saved.',fields:[
+    {key:'qty',label:names[kind][1],type:'number',required:true},{key:'note',label:'Note',hint:'Optional. For example the supplier.'}],
+    onSave:function(v){ var q=Math.round(v.qty); if(!(q>=0)) return 'Type a number.'; return sb.rpc('shop_stock_set',{p_product:p.id,p_location:loc,p_kind:kind,p_qty:q,p_note:v.note||null}).then(must).then(loadShop); }});
+}
+function stockHistory(p){
+  sb.rpc('shop_stock_history',{p_product:p.id}).then(must).then(function(rows){
+    var why={sale:'Sold',refund:'Refund',delivery:'Delivery',count:'Count',waste:'Waste'};
+    shopDlg(h('div',{class:'billbox'},h('h2',null,p.name),table([{label:'When',cell:function(r){ return new Date(r.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
+      {label:'Where',cell:function(r){ return r.location; }},{label:'What',cell:function(r){ return (why[r.reason]||r.reason)+(r.order?' #'+r.order:'')+(r.note?', '+r.note:''); }},
+      {label:'Change',num:true,cell:function(r){ return (r.change>0?'+':'')+r.change; }},{label:'Left',num:true,cell:function(r){ return String(r.after); }},{label:'By',cell:function(r){ return r.by||''; }}],rows,'No stock changes yet.'),
+      h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); },'primary'))));
+  }).catch(function(e){ toast(errText(e)); });
+}
+function vStock(){
+  var L=SHOP.locations||[], loc=ui.stockLoc||shopLoc()||(L[0]&&L[0].id), q=(ui.stockQ||'').toLowerCase();
+  var list=(SHOP.products||[]).filter(function(p){ return p.active&&soldAt(p,loc)&&(!q||p.name.toLowerCase().indexOf(q)>=0); });
+  var tracked=list.filter(function(p){ return p.track_stock; }), low=tracked.filter(function(p){ return isLow(p,loc); }), rest=tracked.filter(function(p){ return !isLow(p,loc); });
+  var untracked=list.filter(function(p){ return !p.track_stock; });
+  function rows(ps){ return table([{label:'Product',cell:function(p){ return linkBtn(p.name,function(){ stockHistory(p); }); }},
+    {label:'In stock',num:true,cell:function(p){ return chip(String(stockAt(p,loc)),isLow(p,loc)?'bad':'ok'); }},
+    {label:'Warn at',num:true,cell:function(p){ return p.low_stock!=null?String(p.low_stock):'0'; }},
+    {label:'',cell:function(p){ return h('div',{class:'row'},btn('Delivery',function(){ stockDlg(p,loc,'delivery'); },'small'),btn('Count',function(){ stockDlg(p,loc,'count'); },'small'),btn('Waste',function(){ stockDlg(p,loc,'waste'); },'small')); }}],ps,''); }
+  return [pageHead('Stock',locName(loc)+'. Sales take stock off by themselves. Refunds put it back.',btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small')),
+    h('div',{class:'row wrap'},L.map(function(l){ return btn(l.name,function(){ ui.stockLoc=l.id; schedule(); },l.id===loc?'primary small':'small'); }),
+      h('input',{type:'search',placeholder:'Search products',value:ui.stockQ||'',oninput:function(e){ ui.stockQ=e.target.value; schedule(); }})),
+    low.length?section('Low on stock ('+low.length+')',null,rows(low)):null,
+    section('Counted products ('+rest.length+')',null,rest.length?rows(rest):h('div',{class:'panel empty'},tracked.length?'All low items are listed above.':'No products are counted here yet. Tap Start counting on a product below, or use Count stock when you edit a product.')),
+    untracked.length?section('Not counted ('+untracked.length+')',null,table([{label:'Product',cell:function(p){ return p.name; }},
+      {label:'',cell:function(p){ return btn('Start counting',function(){ stockDlg(p,loc,'count'); },'small'); }}],untracked.slice(0,q?200:60),'')):null,
+    untracked.length>60&&!q?h('p',{class:'sub'},'Showing 60. Search to find the rest.'):null];
+}
 function vReport(){
   var r=ui.report;
-  if(!r){ var f=ui.repFrom||ymd(new Date()), t=ui.repTo||f; sb.rpc('shop_sales',{p_from:f,p_to:t}).then(must).then(function(d){ ui.report=d; schedule(); }).catch(function(e){ toast(errText(e)); }); }
+  if(!r){ var f=ui.repFrom||ymd(new Date()), t=ui.repTo||f; Promise.all([sb.rpc('shop_sales',{p_from:f,p_to:t}).then(must),sb.rpc('shop_shifts_list',{p_from:f,p_to:t}).then(must)]).then(function(d){ ui.report=d[0]; ui.report.shifts=d[1]||[]; schedule(); }).catch(function(e){ toast(errText(e)); }); }
+  var rl=ui.repLoc||'';
+  if(r&&rl){ r=Object.assign({},r); r.orders=r.orders.filter(function(o){ return o.location_id===rl; }); r.shifts=(r.shifts||[]).filter(function(x){ return x.location_id===rl; }); }
+  if(r){ var bm={}, tp={}; r.orders.forEach(function(o){ if(o.status!=='paid'&&o.status!=='room') return; bm[o.method]=(bm[o.method]||0)+o.total;
+      (o.items||[]).forEach(function(i){ var x=tp[i.name]||(tp[i.name]={name:i.name,qty:0,total:0}); x.qty+=i.qty; x.total+=i.qty*(i.price||0); }); });
+    r.by_method=bm; r.top=Object.keys(tp).map(function(k){ return tp[k]; }).sort(function(a,b){ return b.total-a.total; }).slice(0,15);
+    var bs={}; r.orders.forEach(function(o){ if(o.status!=='paid'&&o.status!=='room') return; var k=o.by||'App'; var x=bs[k]||(bs[k]={name:k,n:0,total:0}); x.n++; x.total+=o.total; }); r.by_staff=Object.keys(bs).map(function(k){ return bs[k]; }).sort(function(a,b){ return b.total-a.total; }); }
+  var locSel=h('select',{onchange:function(e){ ui.repLoc=e.target.value; schedule(); }},[h('option',{value:''},'All shops')].concat((SHOP.locations||[]).map(function(l){ var o=h('option',{value:l.id},l.name); if(l.id===rl) o.selected=true; return o; })));
   var from=h('input',{type:'date',value:ui.repFrom||ymd(new Date()),onchange:function(e){ ui.repFrom=e.target.value; ui.report=null; schedule(); }});
   var to=h('input',{type:'date',value:ui.repTo||ui.repFrom||ymd(new Date()),onchange:function(e){ ui.repTo=e.target.value; ui.report=null; schedule(); }});
   var orders=r?r.orders:[], paid=orders.filter(function(o){ return o.status==='paid'||o.status==='room'; });
   var tot=paid.reduce(function(t,o){ return t+o.total; },0), disc=paid.reduce(function(t,o){ return t+o.discount; },0), ref=orders.filter(function(o){ return o.status==='refunded'; });
   return [pageHead('Sales',r?(fmtDate(r.from)+(r.to!==r.from?' to '+fmtDate(r.to):'')):'Loading.',btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small')),
-    h('div',{class:'row'},h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
+    h('div',{class:'row wrap'},locSel,h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
     !r?null:h('div',{class:'stats'},h('div',null,h('b',null,thb(tot)||'0 THB'),' sales'),h('div',null,h('b',null,String(paid.length)),' sales made'),h('div',null,h('b',null,thb(disc)||'0 THB'),' discounts'),h('div',null,h('b',null,String(ref.length)),' refunds')),
     !r?null:section('By payment',null,table([{label:'How',cell:function(x){ return payName(x[0]); }},{label:'Total',num:true,cell:function(x){ return thb(x[1]); }}],Object.keys(r.by_method||{}).map(function(k){ return [k,r.by_method[k]]; }),'No sales.')),
+    !r?null:section('Shifts',null,table([{label:'Shop',cell:function(x){ return x.location||''; }},{label:'Opened',cell:function(x){ return fmtDate(x.opened_at.slice(0,10))+' '+bkkTime(x.opened_at)+', '+(x.by||''); }},
+      {label:'Closed',cell:function(x){ return x.closed_at?bkkTime(x.closed_at)+', '+(x.closed_by||''):chip('Open','ok'); }},{label:'Start cash',num:true,cell:function(x){ return thb(x.opening)||'0 THB'; }},
+      {label:'Sales',num:true,cell:function(x){ return thb(x.total)||'0 THB'; }},{label:'Cash expected',num:true,cell:function(x){ return x.closed_at?thb(x.expected)||'0 THB':thb(x.opening+x.cash)||'0 THB'; }},
+      {label:'Counted',num:true,cell:function(x){ if(!x.closed_at) return ''; var d=x.counted-x.expected; return h('span',null,thb(x.counted)||'0 THB',' ',d?chip((d>0?'over ':'short ')+thb(Math.abs(d)),'bad'):chip('exact','ok')); }}],r.shifts||[],'No shifts.')),
+    !r||!r.by_staff?null:section('By staff',null,table([{label:'Who',cell:function(x){ return x.name; }},{label:'Sales',num:true,cell:function(x){ return String(x.n); }},{label:'Total',num:true,cell:function(x){ return thb(x.total); }}],r.by_staff,'No sales.')),
     !r||!r.top?null:section('Best sellers',null,table([{label:'Product',cell:function(x){ return x.name; }},{label:'Sold',num:true,cell:function(x){ return String(x.qty); }},{label:'Total',num:true,cell:function(x){ return thb(x.total); }}],r.top,'No sales.')),
     !r?null:section('Discounts and refunds',null,table([{label:'Sale',cell:function(o){ return '#'+o.number+' '+fmtDate(o.at.slice(0,10)); }},{label:'What',cell:function(o){ return o.status==='refunded'?'Refund: '+(o.refund_reason||''):'Discount '+thb(o.discount)+': '+(o.discount_reason||''); }},
       {label:'By',cell:function(o){ return (o.by||'')+(o.approved_by?', approved by '+o.approved_by:''); }}],orders.filter(function(o){ return o.discount>0||o.status==='refunded'; }),'None.'))];
@@ -1632,19 +1703,28 @@ function vShop(){
   }
   if(ui.shopView==='products'&&me.role==='manager') return vProducts();
   if(ui.shopView==='report'&&isBoss()) return vReport();
-  var cats=(SHOP.categories||[]).filter(function(c){ return c.active; }), q=(ui.shopQ||'').toLowerCase();
+  if(ui.shopView==='stock'&&isBoss()) return vStock();
+  var loc=shopLoc(), L=SHOP.locations||[];
+  if(!loc) return [pageHead('Shop','Which shop is this till?'),h('div',{class:'panel pad'},h('p',null,'Choose once on this phone or tablet. You can change it later.'),
+    h('div',{class:'row wrap'},L.map(function(l){ return btn(l.name,function(){ setShopLoc(l.id); },'primary'); })))];
+  var shift=curShift(), lows=isBoss()?lowList(loc):[];
+  var here=prodByCat(null), cats=(SHOP.categories||[]).filter(function(c){ return c.active&&here.some(function(p){ return p.category_id===c.id; }); });
+  var q=(ui.shopQ||'').toLowerCase();
   var prods=prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q; });
   var pend=(APPROVALS||[]).filter(function(a){ return a.status==='pending'; });
-  var waiting=SALES&&SALES.waiting||[];
+  var waiting=(SALES&&SALES.waiting||[]).filter(function(o){ return !o.location_id||o.location_id===loc; });
   var head=h('div',{class:'row wrap'},
-    SHOP.shift?chip('Shift open since '+new Date(SHOP.shift.opened_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' by '+(SHOP.shift.by||''),'ok'):chip('No shift open','warn'),
-    btn(SHOP.shift?'Close shift':'Open shift',shiftDlg,'small'),
+    L.length>1?btn(locName(loc)+' (change)',function(){ ui.shopLoc=null; try{ localStorage.removeItem('pk_shop_loc'); }catch(e){} schedule(); },'small'):null,
+    shift?chip('Shift: '+(shift.by||'')+' since '+new Date(shift.opened_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+', started with '+(thb(shift.opening_cash)||'0 THB'),'ok'):chip('No shift open','warn'),
+    btn(shift?'Close shift':'Open shift',shiftDlg,shift?'small':'primary small'),
+    lows.length?btn(lows.length+' low on stock',function(){ ui.shopView='stock'; ui.stockLoc=loc; schedule(); },'small warnbtn'):null,
+    isBoss()&&!lows.length?btn('Stock',function(){ ui.shopView='stock'; ui.stockLoc=loc; schedule(); },'small'):null,
     isBoss()?btn('Sales report',function(){ ui.shopView='report'; ui.report=null; schedule(); },'small'):null,
     me.role==='manager'?btn('Products',function(){ ui.shopView='products'; schedule(); },'small'):null,
     isBoss()?btn(SHOP.has_pin?'Change my PIN':'Set my approval PIN',pinDlg,SHOP.has_pin?'small':'primary small'):null);
   var search=h('input',{id:'shop-q',type:'search',placeholder:'Search products',value:ui.shopQ||'',oninput:function(e){ ui.shopQ=e.target.value; schedule(); }});
   var grid=h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return Object.assign({},p,{grp:null}); }):prods).map(function(g){
-      if(g.one){ var p=g.one; return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),h('b',null,p.open_price?'Type price':thb(p.price))); }
+      if(g.one){ var p=g.one, sq=stockAt(p,loc); return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':'')+(isLow(p,loc)?' low':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),sq!=null?h('small',null,sq+' left'):null,h('b',null,p.open_price?'Type price':thb(p.price))); }
       return h('button',{type:'button',class:'tillbtn grp'+(g.items[0].kitchen?' k':''),onclick:function(){ pickOption(g.grp,g.items,tillTap); }},h('span',null,g.grp),h('small',null,g.items.length+' options'),h('b',null,priceRange(g.items))); })
     :h('div',{class:'panel empty'},(SHOP.products||[]).length?'Nothing matches.':me.role==='manager'?'No products yet. Tap Products to add them, or send the Loyverse export to load them all.':'No products yet. A manager adds them.'));
   var sub=cartSub(), disc=cartDisc(), tot=sub-disc;
@@ -1660,22 +1740,23 @@ function vShop(){
       disc?h('div',null,h('span',null,'Discount'+(ui.cartDisc.reason?' ('+ui.cartDisc.reason+')':'')),h('span',null,'-'+thb(disc))):null,
       h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(tot)||'0 THB'))),
     h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small')),
-    h('div',{class:'paybtns'},PAYS.map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); })));
-  var today=SALES?SALES.orders:[];
+    shift?h('div',{class:'paybtns'},PAYS.map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); }))
+      :h('div',{class:'panel pad'},h('p',null,'Open a shift before you sell. Count the change in the till first.'),btn('Open shift',shiftDlg,'primary')));
+  var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
   return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
     head,
     pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
       act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
     waiting.length?section('App orders to take payment for',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:thb(o.total),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
-      act:[PAYS.filter(function(m){ return m[0]!=='room'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
+      act:[shift?PAYS.filter(function(m){ return m[0]!=='room'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
     h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
         cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); })):null,grid),cartBox),
     section('Sales today',null,cards(today.slice(0,40).map(function(o){
       var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip('Not paid','warn'):chip(payName(o.method),'ok');
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
-        act:[btn('Receipt',function(){ receiptDlg({number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
+        act:[btn('Receipt',function(){ receiptDlg({loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
           o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null]}; }),'No sales yet today.'))];
 }
 
