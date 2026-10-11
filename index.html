@@ -204,6 +204,8 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .promoitem .promotxt p{font-size:15px}
 .promoitem .promo img{max-height:160px}
 .promoprev img{max-width:100%;max-height:160px;border-radius:10px}
+.pwshow{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px;letter-spacing:.06em}
+.accessmsg{width:100%;box-sizing:border-box;font-size:13px}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -1780,7 +1782,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
         h('div',null,h('small',null,'Phone'),c.phone||'Not given'),h('div',null,h('small',null,'Visits'),visits.length),
@@ -1873,7 +1875,9 @@ function vStaff(){
       {label:'Role',cell:function(s){return ROLES[s.role]||s.role;}},
       {label:'Share of privates',num:true,cell:function(s){return s.role==='coach'?(s.commission_pct==null?50:s.commission_pct)+'%':'';}},
       {label:'Phone',cell:function(s){return s.phone||'';}},
-      {label:'Working now',cell:function(s){return s.active===false?chip('No'):chip('Yes','ok');}}],
+      {label:'Working now',cell:function(s){return s.active===false?chip('No'):chip('Yes','ok');}},
+      {label:'App',cell:function(s){ if(!s.email) return h('span',{class:'sub'},'No email'); if(me&&s.id===me.id) return chip('You','ok');
+        return h('span',{class:'row'},s.user_id?chip('Has login','ok'):null,me&&me.role==='manager'?btn(s.user_id?'New password':'Give access',function(){ giveAccess('staff',s); },'small'):null); }}],
       sortBy(S.staff,'name'),'No staff yet. Add your coaches first so privates can be booked with them.'),
     section('Holidays',btn('Add holiday',function(){ editHoliday(); },'small'),table([
       {label:'Who',cell:function(x){return linkBtn(nameOf('staff',x.staff_id),function(){ editHoliday(x); });}},
@@ -2783,7 +2787,62 @@ function showNewPassword(){
   });
   $view.replaceChildren(form); pw.focus();
 }
+/* managers give a staff member or customer app access: verified login plus a starting password shown once */
+function giveAccess(kind,row){
+  if(!row.email){ toast('Add their email first.'); return; }
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), go;
+  function close(){ $dlg.close(); }
+  function run1(){
+    go.disabled=true; err.hidden=true;
+    sb.functions.invoke('admin-access',{body:{kind:kind,id:row.id}}).then(function(res){
+      var d=res.data||{};
+      if(res.error&&!d.error){ return res.error.context&&res.error.context.json?res.error.context.json().then(function(j){ throw {message:j.error||'That did not work.'}; }):Promise.reject({message:'That did not work. Try again.'}); }
+      if(d.error) throw {message:d.error};
+      return d;
+    }).then(function(d){
+      var link=location.origin+location.pathname;
+      var msg='Phuket King app\n'+link+'\nEmail: '+d.email+'\nStarting password: '+d.password+'\nYou choose your own password when you first sign in.\n\nแอป Phuket King\n'+link+'\nอีเมล: '+d.email+'\nรหัสผ่านเริ่มต้น: '+d.password+'\nเมื่อเข้าสู่ระบบครั้งแรก ให้ตั้งรหัสผ่านของคุณเอง';
+      var ta=h('textarea',{rows:'9',readonly:'',class:'accessmsg'}); ta.value=msg;
+      $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access for '+d.name),
+        h('p',null,'They can sign in now, no email check needed.'),
+        h('div',{class:'kv'},h('div',null,h('span',{class:'sub'},'Email'),h('b',null,d.email)),h('div',null,h('span',{class:'sub'},'Starting password'),h('b',{class:'pwshow'},d.password))),
+        h('p',{class:'sub'},'Shown only now. Give it to them in person or send the message below. When they sign in, the app makes them choose their own password, so this one stops working.'),
+        ta,
+        h('div',{class:'factions'},h('span'),h('div',{class:'row'},
+          btn('Copy message',function(){ ta.select(); try{ navigator.clipboard.writeText(msg).then(function(){ toast('Copied.'); },function(){ document.execCommand('copy'); toast('Copied.'); }); }catch(e){ document.execCommand('copy'); toast('Copied.'); } }),
+          navigator.share?btn('Share',function(){ navigator.share({text:msg}).catch(function(){}); }):null,
+          btn('Done',function(){ close(); reload(kind==='staff'?'staff':'customers'); },'primary')))));
+    }).catch(function(e){ go.disabled=false; err.textContent=errText(e); err.hidden=false; });
+  }
+  go=btn(row.user_id?'Make a new starting password':'Give access',run1,'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access'),
+    h('p',null,row.name+', '+row.email),
+    h('p',{class:'sub'},row.user_id?'They already have a login. This sets a new starting password, and they choose their own when they sign in.':'This makes their login ready straight away, with no email check, and gives you a starting password to hand over.'),
+    err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',close),go))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+/* first sign in with a starting password: choose your own before anything else */
+function showMustChange(user){
+  var pw=h('input',{id:'mc-pw',type:'password',autocomplete:'new-password'}), pw2=h('input',{id:'mc-pw2',type:'password',autocomplete:'new-password'});
+  var note=h('p',{class:'sub',role:'status'}), go=h('button',{type:'submit',class:'btn primary'},'Save my password');
+  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,'Choose your password'),
+    h('p',{class:'sub'},'Welcome'+(user.user_metadata&&user.user_metadata.name?' '+String(user.user_metadata.name).split(' ')[0]:'')+'. You signed in with a starting password. Choose your own now. You use it with '+(user.email||'your email')+' to sign in.'),
+    h('div',{class:'field'},h('label',{for:'mc-pw'},'New password'),pw,h('small',null,'At least 8 characters.')),
+    h('div',{class:'field'},h('label',{for:'mc-pw2'},'Type it again'),pw2),h('div',{class:'row'},go,signOutBtn()),note);
+  form.addEventListener('submit',function(ev){
+    ev.preventDefault(); var v=pw.value;
+    if(v.length<8){ note.textContent='Use at least 8 characters.'; pw.focus(); return; }
+    if(v!==pw2.value){ note.textContent='The two passwords are different.'; pw2.focus(); return; }
+    go.disabled=true; note.textContent='Saving.';
+    sb.auth.updateUser({password:v,data:{must_change_password:false}}).then(function(res){
+      if(res.error){ go.disabled=false; note.textContent=authText(res.error); return; }
+      toast('Password saved.'); currentUser=null; enter(res.data&&res.data.user||user);
+    }).catch(function(){ go.disabled=false; note.textContent='No connection. Try again.'; });
+  });
+  $view.replaceChildren(form); pw.focus();
+}
 function enter(user){
+  if(user&&user.user_metadata&&user.user_metadata.must_change_password){ currentUser=null; return showMustChange(user); }
   if(currentUser===user.id&&me) return;
   currentUser=user.id; authUser=user; currentEmail=user.email||'';
   $view.replaceChildren(h('div',{class:'panel empty'},'Signing you in.'));
