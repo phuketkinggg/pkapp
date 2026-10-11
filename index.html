@@ -531,7 +531,7 @@ function openForm(spec){
     else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:f.autocomplete||'off',readonly:f.readonly?'':null});
     inputs[f.key]=el;
     set(f.key, vals[f.key]!==undefined&&vals[f.key]!==null ? vals[f.key] : f.def);
-    if(f.onChange){ var fire=function(){ f.onChange(read(f),set,getV,setOpts,showRow); }; el.addEventListener('change',fire); if(f.type==='number') el.addEventListener('input',fire); }
+    if(f.onChange){ var fire=function(){ f.onChange(read(f),set,getV,setOpts,showRow); }; el.addEventListener('change',fire); if(f.type==='number'||f.live) el.addEventListener('input',fire); }
     var row=f.type==='checkbox'?h('label',{class:'check',for:id},el,h('span',null,f.label)):h('div',{class:'field'},h('label',{for:id},f.label),el,f.hint?h('small',null,f.hint):null);
     rowEls[f.key]=row; if(f.hide) row.hidden=true; return row;
   });
@@ -1873,7 +1873,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
         h('div',null,h('small',null,'Phone'),c.phone||'Not given'),h('div',null,h('small',null,'Visits'),visits.length),
@@ -2891,6 +2891,29 @@ function showNewPassword(){
   $view.replaceChildren(form); pw.focus();
 }
 /* managers give a staff member or customer app access: verified login plus a starting password shown once */
+function custSummary(c){ var ps=S.purchases.filter(function(p){ return p.customer_id===c.id; }).length, ck=(S.checkin_days||[]).reduce(function(t,d){ return t+d.entries.filter(function(k){ return k.customer_id===c.id; }).length; },0), st=(S.stays||[]).filter(function(x){ return x.customer_id===c.id; }).length;
+  return [c.email||c.phone||'no contact',ps+' package'+(ps===1?'':'s'),ck?ck+' check-in'+(ck===1?'':'s')+' (60 days)':null,st?st+' stay'+(st===1?'':'s'):null,c.user_id?'uses the app':null].filter(Boolean).join(', '); }
+function mergeCustomer(c){
+  var others=sortBy(S.customers.filter(function(x){ return x.id!==c.id; }),'name');
+  function match(q){ q=String(q||'').toLowerCase().trim(); var words=c.name.toLowerCase().split(/\s+/).filter(function(w){ return w.length>2; });
+    var l=q?others.filter(function(x){ return (x.name+' '+(x.email||'')+' '+(x.phone||'')).toLowerCase().indexOf(q)>=0; })
+           :others.filter(function(x){ var n=x.name.toLowerCase(); return words.some(function(w){ return n.indexOf(w)>=0; })||(c.email&&x.email&&x.email.toLowerCase()===c.email.toLowerCase())||(c.phone&&x.phone&&x.phone===c.phone); });
+    return l.slice(0,40).map(function(x){ return [x.id,x.name+' ('+custSummary(x)+')']; }); }
+  var first=match('');
+  openForm({title:'Merge '+c.name+' with another account',saveLabel:'Merge',doneMsg:'Merged.',
+    note:'Everything moves to the one you keep: packages, check-ins, privates, stays, shop orders and chats. Missing email or phone is filled in. The other account is then deleted. This cannot be undone.',
+    fields:[
+      {key:'find',label:'Find the other account',live:true,hint:'Type a name, email or phone. Likely matches are listed first.',onChange:function(v,set,get,setOpts){ var o=match(v); setOpts('other',o.length?o:[['','No match']]); }},
+      {key:'other',label:'The other account',type:'select',options:first.length?first:[['','Type above to search']]},
+      {key:'keep',label:'Keep',type:'select',def:'this',options:[['this','This one: '+c.name+' ('+custSummary(c)+')'],['other','The other one']]}],
+    onSave:function(v){ var o=byId('customers',v.other); if(!o) return 'Pick the other account.';
+      var keep=v.keep==='other'?o:c, drop=v.keep==='other'?c:o;
+      if(keep.user_id&&drop.user_id&&!confirmTwice('both')) return 'Both accounts use the app. Only the login of '+keep.name+' is kept, the other login will stop working. Tap Merge again to go ahead.';
+      return sb.rpc('merge_customers',{p_keep:keep.id,p_drop:drop.id}).then(must).then(function(){
+        return db.doc('customers/'+drop.id).delete().catch(function(){ toast('Merged. The empty account is still listed as "Merged into '+keep.name+'". Delete it from its page.'); });
+      }).then(function(){ ui.customerId=keep.id; return loadAll(); }).then(function(){ schedule(); }); }});
+  var armed={}; function confirmTwice(k){ if(armed[k]) return true; armed[k]=true; return false; }
+}
 function giveAccess(kind,row){
   if(!row.email){ toast('Add their email first.'); return; }
   var err=h('p',{class:'ferr',role:'alert',hidden:true}), go;
