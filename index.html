@@ -143,6 +143,9 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .tillbtn.k{border-left:4px solid var(--gold)}
 .tillbtn span{font-weight:600;line-height:1.2}
 .tillbtn b{color:var(--gold-ink)}
+.tillbtn small{color:var(--muted);font-size:12px}
+.tillbtn.grp{background:var(--sunken)}
+.optgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:60vh;overflow:auto}
 .cartbox{position:sticky;top:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .carthead{display:flex;justify-content:space-between;align-items:center}
 .cartlines{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
@@ -166,7 +169,7 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .rc-meta{text-align:center;font-size:12px}
 .rc-tot div{display:flex;justify-content:space-between}
 .rc-foot{text-align:center;font-size:12px;margin-top:6px}
-.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.kitgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .kcard{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .kcard.new{border-color:var(--bad)}
 .kcard.preparing{border-color:var(--warn)}
@@ -185,6 +188,22 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
   body.print-receipt #receipt{position:absolute;left:0;top:0;width:72mm;max-width:none}
   body.print-receipt dialog{border:0;box-shadow:none;background:#fff}
 }
+.promoboard{display:flex;flex-direction:column;gap:10px;align-items:center}
+.promo{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.promo img{width:100%;max-height:46vh;object-fit:cover;display:block}
+.promotxt{padding:16px 20px}
+.promotxt h2{margin:0 0 6px;font-size:30px}
+.promotxt p{margin:0;font-size:19px;white-space:pre-wrap}
+.dots{display:flex;gap:8px}
+.dots span{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dots span.on{background:var(--gold)}
+.promolist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.promoitem{display:flex;flex-direction:column;gap:8px}
+.promoitem.off{opacity:.55}
+.promoitem .promotxt h2{font-size:20px}
+.promoitem .promotxt p{font-size:15px}
+.promoitem .promo img{max-height:160px}
+.promoprev img{max-width:100%;max-height:160px;border-radius:10px}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -1350,7 +1369,25 @@ setInterval(function(){ if(me&&allReady&&ui.tab==='shop'&&SHOP&&document.visibil
 function cart(){ return ui.cart||(ui.cart=[]); }
 function cartSub(){ return cart().reduce(function(t,l){ return t+l.price*l.qty; },0); }
 function cartDisc(){ return ui.cartDisc&&ui.cartDisc.amount||0; }
-function addToCart(p){ var l=cart().filter(function(x){ return x.id===p.id&&!x.note; })[0]; if(l) l.qty++; else cart().push({id:p.id,name:p.name,price:p.price,qty:1,note:''}); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }
+function addToCart(p,price){ var pr=price!=null?price:p.price; var l=cart().filter(function(x){ return x.id===p.id&&!x.note&&x.price===pr; })[0]; if(l) l.qty++; else cart().push({id:p.id,name:p.name,price:pr,qty:1,note:'',open:!!p.open_price}); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }
+/* open price products ask for the price; grouped products (sizes, flavours) ask which one */
+function tillTap(p){
+  if(!p.open_price){ addToCart(p); return; }
+  openForm({title:p.name,saveLabel:'Add',doneMsg:'Added.',fields:[{key:'price',label:'Price (THB)',type:'number',required:true}],
+    onSave:function(v){ var n=Math.round(Number(v.price)); if(!(n>=0)) return 'Type the price.'; addToCart(p,n); return true; }});
+}
+function optLabel(p){ return p.grp&&p.name.indexOf(p.grp+', ')===0?p.name.slice(p.grp.length+2):p.name; }
+function pickOption(grp,list,onPick){
+  shopDlg(h('div',{class:'billbox'},h('h2',null,grp),h('div',{class:'optgrid'},list.map(function(p){
+    return h('button',{type:'button',class:'tillbtn',onclick:function(){ $dlg.close(); onPick(p); }},h('span',null,optLabel(p)),h('b',null,p.open_price?'Type price':thb(p.price))); })),
+    h('div',{class:'factions'},h('span'),btn('Cancel',function(){ $dlg.close(); }))));
+}
+function groupProducts(list){
+  var out=[], seen={};
+  list.forEach(function(p){ if(!p.grp){ out.push({one:p}); return; } if(seen[p.grp]){ seen[p.grp].items.push(p); return; } seen[p.grp]={grp:p.grp,items:[p]}; out.push(seen[p.grp]); });
+  return out.map(function(g){ return g.one?g:(g.items.length===1?{one:g.items[0]}:g); });
+}
+function priceRange(items){ var ps=items.filter(function(p){ return !p.open_price; }).map(function(p){ return p.price; }); if(!ps.length) return 'Type price'; var a=Math.min.apply(null,ps), b=Math.max.apply(null,ps); return a===b?thb(a):thb(a)+' to '+thb(b); }
 function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
 function prodByCat(cat){ return (SHOP.products||[]).filter(function(p){ return p.active&&(!cat||p.category_id===cat); }); }
 function shopDlg(box){ $dlg.replaceChildren(box); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
@@ -1411,7 +1448,7 @@ function payDlg(method,waitingOrder){
   }
   function go(){
     var p={method:method,discount:waitingOrder?0:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null};
-    if(waitingOrder) p.order_id=waitingOrder.id; else p.items=cart().map(function(l){ return {product_id:l.id,qty:l.qty,note:l.note||null}; });
+    if(waitingOrder) p.order_id=waitingOrder.id; else p.items=cart().map(function(l){ return {product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; });
     if(given&&given.value) p.cash_given=Number(given.value);
     if(stay) p.stay_id=stay.value;
     var b=this; if(b) b.disabled=true;
@@ -1489,7 +1526,7 @@ function pinDlg(){
 }
 function editProduct(p){
   p=p||{}; var cats=SHOP.categories||[];
-  openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku},fields:[
+  openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku,open_price:!!p.open_price,grp:p.grp},fields:[
     {key:'name',label:'Name',required:true},
     {key:'category_id',label:'Category',type:'select',options:[['','No category']].concat(cats.map(function(c){ return [c.id,c.name]; }))},
     {key:'price',label:'Price (THB)',type:'number',required:true},
@@ -1497,6 +1534,8 @@ function editProduct(p){
     {key:'kitchen',label:'Goes to the kitchen screen',type:'checkbox'},
     {key:'in_app',label:'Guests and members can order it in the app',type:'checkbox'},
     {key:'active',label:'On sale',type:'checkbox'},
+    {key:'open_price',label:'Price typed in at the till each time',type:'checkbox'},
+    {key:'grp',label:'Group',hint:'Products with the same group share one button on the till, for sizes and flavours. For example: Training shirt.'},
     {key:'sort',label:'Order on the till',type:'number'},
     {key:'description',label:'Description for the app menu',type:'textarea'},
     {key:'sku',label:'Code or barcode',hint:'Optional.'}],
@@ -1515,8 +1554,9 @@ function vProducts(){
     section('Categories',null,cats.length?h('div',{class:'row wrap'},cats.map(function(c){ return btn(c.name+(c.active?'':' (hidden)'),function(){ editCategory(c); },'small'); })):h('div',{class:'panel empty'},'No categories yet.')),
     section('All products',null,table([
       {label:'Product',cell:function(p){ return linkBtn(p.name,function(){ editProduct(p); }); }},
+      {label:'Group',cell:function(p){ return p.grp||''; }},
       {label:'Category',cell:function(p){ return cname(p.category_id); }},
-      {label:'Price',num:true,cell:function(p){ return thb(p.price); }},
+      {label:'Price',num:true,cell:function(p){ return p.open_price?'Typed in':thb(p.price); }},
       {label:'Cost',num:true,cell:function(p){ return p.cost!=null?thb(p.cost):''; }},
       {label:'',cell:function(p){ return h('span',{class:'row'},p.kitchen?chip('Kitchen'):null,p.in_app?chip('In app','ok'):null,p.active?null:chip('Off sale','warn')); }}],
       prods.slice().sort(function(a,b){ return cname(a.category_id).localeCompare(cname(b.category_id))||(a.sort||0)-(b.sort||0)||a.name.localeCompare(b.name); }),'No products yet. Add them here, or send me the Loyverse export to load them all.'))];
@@ -1555,7 +1595,9 @@ function vShop(){
     me.role==='manager'?btn('Products',function(){ ui.shopView='products'; schedule(); },'small'):null,
     isBoss()?btn(SHOP.has_pin?'Change my PIN':'Set my approval PIN',pinDlg,SHOP.has_pin?'small':'primary small'):null);
   var search=h('input',{id:'shop-q',type:'search',placeholder:'Search products',value:ui.shopQ||'',oninput:function(e){ ui.shopQ=e.target.value; schedule(); }});
-  var grid=h('div',{class:'tillgrid'},prods.length?prods.map(function(p){ return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':''),onclick:function(){ addToCart(p); }},h('span',null,p.name),h('b',null,thb(p.price))); })
+  var grid=h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return Object.assign({},p,{grp:null}); }):prods).map(function(g){
+      if(g.one){ var p=g.one; return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),h('b',null,p.open_price?'Type price':thb(p.price))); }
+      return h('button',{type:'button',class:'tillbtn grp'+(g.items[0].kitchen?' k':''),onclick:function(){ pickOption(g.grp,g.items,tillTap); }},h('span',null,g.grp),h('small',null,g.items.length+' options'),h('b',null,priceRange(g.items))); })
     :h('div',{class:'panel empty'},(SHOP.products||[]).length?'Nothing matches.':me.role==='manager'?'No products yet. Tap Products to add them, or send the Loyverse export to load them all.':'No products yet. A manager adds them.'));
   var sub=cartSub(), disc=cartDisc(), tot=sub-disc;
   var cartBox=h('div',{class:'cartbox panel'},h('div',{class:'carthead'},h('b',null,'Sale'),cart().length?btn('Clear',clearCart,'small'):null),
@@ -1601,7 +1643,7 @@ function vKitchen(){
   var next={new:['preparing','Start'],preparing:['ready','Ready'],ready:['done','Served']};
   function mins(at){ var m=Math.round((Date.now()-new Date(at))/60000); return m<1?'just now':m+' min ago'; }
   return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),
-    h('div',{class:'kgrid'},KITCHEN.map(function(o){
+    h('div',{class:'kitgrid'},KITCHEN.map(function(o){
       var n=next[o.status];
       return h('div',{class:'kcard '+o.status},
         h('div',{class:'ktop'},h('b',null,'#'+o.number),h('span',null,mins(o.at))),
@@ -1623,7 +1665,11 @@ function vCFood(){
   var kst={new:['Order received','warn'],preparing:['Being made','warn'],ready:['Ready','ok'],done:['Done','ok']};
   var mine=(MYORDERS||[]).filter(function(o){ return o.kitchen_status&&o.kitchen_status!=='done'||o.status==='waiting'; });
   function group(c){ var list=prods.filter(function(p){ return c?p.category_id===c.id:!cats.some(function(x){ return x.id===p.category_id; }); }); if(!list.length) return null;
-    return section(c?c.name:'More',null,h('div',{class:'panel cards'},list.map(function(p){ var inCart=cart().filter(function(l){ return l.id===p.id; })[0];
+    return section(c?c.name:'More',null,h('div',{class:'panel cards'},groupProducts(list).map(function(g){
+      if(!g.one) return h('div',{class:'card menuitem'},h('div',{class:'ctop'},h('span',{class:'cwhen'},g.grp),h('span',{class:'cright'},priceRange(g.items))),
+        h('div',{class:'row wrap'},g.items.map(function(p){ var n=cart().filter(function(l){ return l.id===p.id; }).reduce(function(t,l){ return t+l.qty; },0);
+          return btn(optLabel(p)+(n?' ('+n+')':''),function(){ addToCart(p); },n?'primary small':'small'); })));
+      var p=g.one; var inCart=cart().filter(function(l){ return l.id===p.id; })[0];
       return h('div',{class:'card menuitem'},h('div',{class:'ctop'},h('span',{class:'cwhen'},p.name),h('span',{class:'cright'},thb(p.price))),
         p.description?h('div',{class:'cnote'},p.description):null,
         h('div',{class:'row'},inCart?[btn('-',function(){ inCart.qty--; if(inCart.qty<1) cart().splice(cart().indexOf(inCart),1); schedule(); },'small'),h('b',null,String(inCart.qty)),btn('+',function(){ inCart.qty++; schedule(); },'small')]
@@ -1985,6 +2031,7 @@ function vSettings(){
   return [pageHead('Settings'),
     backupSection(),
     posterSection(),
+    promoSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
       {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
@@ -2490,10 +2537,62 @@ var kTimer=0, kRefresh=0;
 function pref(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){ return null; } }
 function startDeskMode(){
   openForm({title:'Desk mode',saveLabel:'Start desk mode',doneMsg:'Desk mode on.',
-    note:'This screen becomes a check in screen. Members tap their name, then their class. To leave desk mode you need the password for '+(me.email||currentEmail)+'. Best on a tablet signed in with a front desk login, not a manager one.',
+    note:'This screen becomes a check in screen. Members type their name, tap it, then tap their class. No names show until they type. To leave desk mode you need the password for '+(me.email||currentEmail)+'. Best on a tablet signed in with a front desk login, not a manager one.',
     fields:[],onSave:function(){ pref('pk_kiosk','1'); enterKiosk(); return Promise.resolve(); }});
 }
+/* offers and information shown on the desk mode screen; managers change them in Settings */
+var PROMOS=null;
+function loadPromos(){ return sb.from('app_settings').select('value').eq('key','kiosk_promos').maybeSingle().then(function(res){ var d=res.data; try{ PROMOS=d&&d.value?JSON.parse(d.value):[]; }catch(e){ PROMOS=[]; } if(!Array.isArray(PROMOS)) PROMOS=[]; schedule(); }); }
+function savePromos(list){ return sb.from('app_settings').update({value:JSON.stringify(list),updated_at:new Date().toISOString()}).eq('key','kiosk_promos').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; PROMOS=list; schedule(); }); }
+setInterval(function(){ if(ui.tab==='kiosk'&&!ui.kc&&!ui.kdone&&!ui.kq&&PROMOS&&PROMOS.length>1){ ui.kpromo=((ui.kpromo||0)+1)%PROMOS.length; schedule(); } },9000);
+function promoCard(pr){ return h('div',{class:'promo'},pr.image?h('img',{src:pr.image,alt:''}):null,h('div',{class:'promotxt'},pr.title?h('h2',null,pr.title):null,pr.text?h('p',null,pr.text):null)); }
+function promoBoard(){
+  if(!PROMOS) return null;
+  var live=PROMOS.filter(function(x){ return x.on!==false; }); if(!live.length) return null;
+  var i=(ui.kpromo||0)%live.length;
+  return h('div',{class:'promoboard'},promoCard(live[i]),live.length>1?h('div',{class:'dots'},live.map(function(x,j){ return h('span',{class:j===i?'on':''}); })):null);
+}
+function editPromo(idx){
+  var list=(PROMOS||[]).slice(), pr=idx==null?{on:true}:Object.assign({},list[idx]);
+  var title=h('input',{id:'pm-title',type:'text',value:pr.title||'',placeholder:'For example: 3 months for the price of 2'});
+  var text=h('textarea',{id:'pm-text',rows:'3'}); text.value=pr.text||'';
+  var file=h('input',{id:'pm-img',type:'file',accept:'image/jpeg,image/png,image/webp,image/gif'});
+  var on=h('input',{type:'checkbox',id:'pm-on'}); on.checked=pr.on!==false;
+  var prev=h('div',{class:'promoprev'},pr.image?h('img',{src:pr.image,alt:''}):null);
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), saveB;
+  function close(){ $dlg.close(); }
+  function save(){
+    if(!title.value.trim()&&!text.value.trim()&&!pr.image&&!file.files.length){ err.textContent='Add a title, some text or a picture.'; err.hidden=false; return; }
+    saveB.disabled=true;
+    var up=Promise.resolve(pr.image||null);
+    if(file.files.length){ var f=file.files[0];
+      if(f.size>5*1024*1024){ err.textContent='That picture is over 5 MB. Use a smaller one.'; err.hidden=false; saveB.disabled=false; return; }
+      var path='desk/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+(f.name.split('.').pop()||'jpg').toLowerCase();
+      up=sb.storage.from('promos').upload(path,f,{contentType:f.type,upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); }
+    up.then(function(url){ var item={title:title.value.trim(),text:text.value.trim(),image:url,on:on.checked};
+      if(idx==null) list.push(item); else list[idx]=item; return savePromos(list); })
+      .then(function(){ close(); toast('Saved. It shows on the desk mode screen.'); })
+      .catch(function(e){ saveB.disabled=false; err.textContent=errText(e); err.hidden=false; });
+  }
+  saveB=btn('Save',save,'primary');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,idx==null?'New offer or notice':'Edit offer or notice'),
+    field('pm-title','Title',title),field('pm-text','Text',text),field('pm-img','Picture',file,'Optional. JPG or PNG up to 5 MB. Wide pictures look best.'),prev,
+    h('label',{class:'chk'},on,' Show it on the desk screen'),err,
+    h('div',{class:'factions'},idx!=null?btn('Remove',function(){ list.splice(idx,1); savePromos(list).then(function(){ close(); toast('Removed.'); },function(e){ err.textContent=errText(e); err.hidden=false; }); },'danger'):h('span'),
+      h('div',{class:'row'},btn('Cancel',close),saveB))));
+}
+function promoSection(){
+  if(!PROMOS){ loadPromos().catch(function(){}); return null; }
+  var mgr=me&&me.role==='manager';
+  return section('Desk mode screen',mgr?btn('Add offer or notice',function(){ editPromo(null); },'small'):null,
+    h('div',null,h('p',{class:'sub'},'Shown under the name box in desk mode. Names stay hidden until someone types. With more than one, they change every few seconds.'),
+      PROMOS.length?h('div',{class:'promolist'},PROMOS.map(function(pr,i){ return h('div',{class:'promoitem'+(pr.on===false?' off':'')},promoCard(pr),
+        h('div',{class:'row'},pr.on===false?chip('Hidden','warn'):chip('Showing','ok'),mgr?btn('Edit',function(){ editPromo(i); },'small'):null,
+          mgr&&i>0?btn('Move up',function(){ var l=PROMOS.slice(); var t=l[i-1]; l[i-1]=l[i]; l[i]=t; run(savePromos(l)); },'small'):null)); }))
+      :h('div',{class:'panel empty'},'Nothing yet. Add an offer, a promotion or some news.')));
+}
 function enterKiosk(){
+  loadPromos().catch(function(){});
   document.body.classList.add('kiosk'); TABS=[]; ui.tab='kiosk'; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr='';
   try{ history.replaceState(null,'','#'); }catch(e){}
   try{ if(document.documentElement.requestFullscreen&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); }catch(e){}
@@ -2564,10 +2663,14 @@ function vKiosk(){
   var q=String(ui.kq||'').trim().toLowerCase();
   var list=all.filter(function(o){ return !q||String(o.c.name||'').toLowerCase().split(/\s+/).some(function(w){ return w.indexOf(q)===0; })||String(o.c.name||'').toLowerCase().indexOf(q)===0; });
   list.sort(function(a,b){ return a.label.toLowerCase()<b.label.toLowerCase()?-1:1; });
-  var search=h('input',{id:'kq',class:'ksearch',type:'search',autocomplete:'off',placeholder:'Type your name',value:ui.kq||'','aria-label':'Type your name',oninput:function(ev){ ui.kq=ev.target.value; schedule(); }});
+  var search=h('input',{id:'kq',class:'ksearch',type:'search',autocomplete:'off',placeholder:'Type your name to check in',value:ui.kq||'','aria-label':'Type your name',oninput:function(ev){ ui.kq=ev.target.value; if(ev.target.value) kIdle(45000); schedule(); }});
+  /* names stay hidden until at least 2 letters are typed, and only a few matches show */
+  var shown=q.length>=2?list.slice(0,6):[];
   return [head,search,
-    list.length?h('div',{class:'kgrid'},list.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ ui.kc=o.c.id; ui.kq=''; ui.kerr=''; kIdle(30000); schedule(); }},o.label); }))
-      :h('div',{class:'panel empty'},q?'No member with an active package matches that name.':'No members with an active package yet.'),foot];
+    q.length>=2?(shown.length?h('div',{class:'kgrid'},shown.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ ui.kc=o.c.id; ui.kq=''; ui.kerr=''; kIdle(30000); schedule(); }},o.label); }))
+      :h('div',{class:'panel empty'},'No member with an active package matches that name.'))
+    :q.length===1?h('p',{class:'sub'},'Keep typing your name.'):null,
+    !q?promoBoard():null,foot];
 }
 function staffTabs(row){ var keep=row.role==='resort'?['stays','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }); }
 var currentEmail='', authUser=null;
