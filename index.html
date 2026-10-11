@@ -152,6 +152,7 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .cartline{display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:6px}
 .cartline .link{grid-column:1/-1;justify-self:start;font-size:12px}
 .cl-qty{display:flex;align-items:center;gap:6px}
+.qtybtn{min-width:44px;font-weight:700;text-decoration:underline dotted}
 .cl-amt{text-align:right;font-variant-numeric:tabular-nums}
 .carttot div{display:flex;justify-content:space-between}
 .carttot .big,.rc-tot .big{font-size:20px;font-weight:700;margin-top:4px}
@@ -434,6 +435,17 @@ function priceFor(pk,group){
   if(group==='local') return loc!=null?loc:std;
   return std;
 }
+function hasTiers(t){ return Array.isArray(t)&&t.length>0; }
+function tiersFor(pk,group){ return (group==='local'||group==='thai')&&hasTiers(pk.tiers_local)?pk.tiers_local:(hasTiers(pk.tiers)?pk.tiers:null); }
+function tierUnit(t,q){ var u=null; (t||[]).slice().sort(function(a,b){return a.from-b.from;}).forEach(function(x){ if(x.from<=q) u=x.price; }); return u; }
+function tiersText(t){ return hasTiers(t)?t.slice().sort(function(a,b){return a.from-b.from;}).map(function(x){ return x.from+':'+x.price; }).join(', '):''; }
+function parseTiers(str){ str=String(str||'').trim(); if(!str) return null; var out=[], bad=false;
+  str.split(/[,;\n]+/).forEach(function(part){ part=part.trim(); if(!part) return; var m=part.match(/^(\d+)\s*\+?\s*(?:-\s*\d+\s*)?[:=]\s*(\d+)$/); if(!m){ bad=true; return; } out.push({from:Number(m[1]),price:Number(m[2])}); });
+  if(bad||!out.length) throw new Error('Write the prices like 1:900, 5:800, 10:700, 20:650. The first number is how many, the second is the price for each one.');
+  out.sort(function(a,b){return a.from-b.from;}); if(out[0].from!==1) throw new Error('The price list must start at 1, like 1:900.');
+  for(var i=1;i<out.length;i++) if(out[i].from===out[i-1].from) throw new Error('Each amount can only be listed once.');
+  return out; }
+function tiersLine(t){ var s=t.slice().sort(function(a,b){return a.from-b.from;}); return s.map(function(x,i){ var nx=s[i+1]; return (nx?(nx.from-1===x.from?x.from:x.from+' to '+(nx.from-1)):x.from+' or more')+': '+thb(x.price)+' each'; }).join(', '); }
 function canBuy(pk,group){ var a=pk.audience||'all'; return a==='all'||(a==='local'&&(group==='local'||group==='thai'))||(a==='thai'&&group==='thai'); }
 function addonFor(pk,group){ return (group!=='standard'&&pk.addon_fz_local_thb!=null)?pk.addon_fz_local_thb:(pk.addon_fz_thb==null?null:pk.addon_fz_thb); }
 function isPrivatePack(p){ return !!(p.covers&&p.covers.indexOf('Privates')>=0&&p.class_limit); }
@@ -502,23 +514,26 @@ function openForm(spec){
   function read(f){ var el=inputs[f.key]; if(f.type==='checks') return el.boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;}); if(f.type==='checkbox') return el.checked; if(f.type==='number') return el.value===''?null:Number(el.value); return el.value.trim(); }
   function set(k,v){ var el=inputs[k]; if(!el) return; if(el.boxes) el.boxes.forEach(function(b){ b.checked=(v||[]).indexOf(b.value)>=0; }); else if(el.type==='checkbox') el.checked=!!v; else el.value=v==null?'':v; }
   function setOpts(k,options){ var el=inputs[k]; if(el) el.replaceChildren.apply(el,options.map(function(o){return h('option',{value:o[0]},o[1]);})); }
+  var rowEls={};
+  function getV(k){ for(var j=0;j<spec.fields.length;j++) if(spec.fields[j].key===k) return read(spec.fields[j]); }
+  function showRow(k,on){ if(rowEls[k]) rowEls[k].hidden=!on; }
   var rows=spec.fields.map(function(f){
     var id='f-'+f.key, el;
     if(f.type==='checks'){
       var labels=f.options.map(function(o,i){ return h('label',{class:'check',for:id+'-'+i},h('input',{type:'checkbox',id:id+'-'+i,value:o[0]}),h('span',null,o[1])); });
       inputs[f.key]={boxes:labels.map(function(l){return l.firstChild;}),focus:function(){ if(labels[0]) labels[0].firstChild.focus(); }};
       set(f.key, vals[f.key]!==undefined&&vals[f.key]!==null ? vals[f.key] : f.def);
-      return h('fieldset',{class:'field checks'},h('legend',null,f.label),h('div',{class:'checkgrid'},labels),f.hint?h('small',null,f.hint):null);
+      var fs=h('fieldset',{class:'field checks'},h('legend',null,f.label),h('div',{class:'checkgrid'},labels),f.hint?h('small',null,f.hint):null); rowEls[f.key]=fs; if(f.hide) fs.hidden=true; return fs;
     }
     if(f.type==='select') el=h('select',{id:id},f.options.map(function(o){return h('option',{value:o[0]},o[1]);}));
     else if(f.type==='textarea') el=h('textarea',{id:id,rows:'3'});
     else if(f.type==='checkbox') el=h('input',{id:id,type:'checkbox'});
-    else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:f.autocomplete||'off'});
+    else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:f.autocomplete||'off',readonly:f.readonly?'':null});
     inputs[f.key]=el;
     set(f.key, vals[f.key]!==undefined&&vals[f.key]!==null ? vals[f.key] : f.def);
-    if(f.onChange) el.addEventListener('change',function(){ f.onChange(read(f),set,function(k){ for(var j=0;j<spec.fields.length;j++) if(spec.fields[j].key===k) return read(spec.fields[j]); },setOpts); });
-    if(f.type==='checkbox') return h('label',{class:'check',for:id},el,h('span',null,f.label));
-    return h('div',{class:'field'},h('label',{for:id},f.label),el,f.hint?h('small',null,f.hint):null);
+    if(f.onChange){ var fire=function(){ f.onChange(read(f),set,getV,setOpts,showRow); }; el.addEventListener('change',fire); if(f.type==='number') el.addEventListener('input',fire); }
+    var row=f.type==='checkbox'?h('label',{class:'check',for:id},el,h('span',null,f.label)):h('div',{class:'field'},h('label',{for:id},f.label),el,f.hint?h('small',null,f.hint):null);
+    rowEls[f.key]=row; if(f.hide) row.hidden=true; return row;
   });
   var saveBtn=h('button',{type:'submit',class:'btn primary'},spec.saveLabel||'Save');
   var delBtn=spec.onDelete?h('button',{type:'button',class:'btn danger',onclick:function(){
@@ -546,9 +561,10 @@ function coaches(){ return sortBy(S.staff.filter(function(s){return s.role==='co
 function editPackage(p){ p=p||{};
   var seen={}; S.classes.forEach(function(c){ if(c.time) seen[c.time]=1; }); (p.times||[]).forEach(function(t){ seen[t]=1; });
   var timeOpts=Object.keys(seen).sort();
+  p=Object.assign({},p,{tiers_txt:tiersText(p.tiers),tiers_local_txt:tiersText(p.tiers_local)});
   openForm({title:p.id?'Edit package':'New package',values:p,fields:[
     {key:'name',label:'Name',required:true},
-    {key:'price_thb',label:'Standard price (THB)',type:'number',required:true},
+    {key:'price_thb',label:'Standard price (THB)',type:'number',hint:'Leave empty if you use the price per amount below.'},
     {key:'price_local_thb',label:'Local resident price (THB)',type:'number',hint:'Leave empty and local residents pay the standard price.'},
     {key:'price_thai_thb',label:'Thai price (THB)',type:'number',hint:'Leave empty and Thai customers pay the local price, or standard if there is none.'},
     {key:'audience',label:'Who can buy it',type:'select',def:'all',options:[['all','Everyone'],['local','Local residents and Thai customers only'],['thai','Thai customers only']]},
@@ -556,14 +572,22 @@ function editPackage(p){ p=p||{};
     {key:'addon_fz_local_thb',label:'Fitness Zone add-on, local and Thai price (THB)',type:'number',hint:'Leave empty to charge the standard add-on.'},
     {key:'covers',label:'What this package covers',type:'checks',required:true,def:['Muay Thai'],options:DISCIPLINES.map(function(d){return [d,d+' classes'];}).concat(FACILITIES.map(function(f){return [f,f];})).concat([[MEAL,'Cafe meals (meal plan)']]).concat([['Privates','Private sessions (a pack)']])},
     {key:'times',label:'Only these class times',type:'checks',options:timeOpts.map(function(t){return [t,t];}),hint:'Tick none to allow every class time.'},
-    {key:'class_limit',label:'Number of visits',type:'number',hint:'Leave empty for unlimited. On a class pass this counts classes.'},
+    {key:'tiers_txt',label:'Price per amount (customer picks how many)',hint:'For packs bought by the amount, like privates. Write it as 1:900, 5:800, 10:700, 20:650. That means 1 to 4 are 900 each, 5 to 9 are 800 each, 10 to 19 are 700 each, 20 or more are 650 each. Leave empty for a fixed package.'},
+    {key:'tiers_local_txt',label:'Price per amount, local and Thai',hint:'Same format. Leave empty and they pay the standard amounts.'},
+    {key:'qty_default',label:'Amount shown first',type:'number',hint:'Only for price per amount. For example 10.'},
+    {key:'class_limit',label:'Number of visits',type:'number',hint:'Leave empty for unlimited. On a class pass this counts classes. With price per amount, the amount bought is used instead.'},
     {key:'per_week_limit',label:'Visits allowed per week',type:'number',hint:'Leave empty for no weekly limit.'},
     {key:'duration_days',label:'Valid for (days)',type:'number',hint:'30 is a month, 274 is 9 months, 365 is a year. Leave empty if it never expires.'},
     {key:'start_within_days',label:'Must start within (days of buying)',type:'number',hint:'Leave empty for no deadline.'},
     {key:'clock',label:'The clock starts',type:'select',def:'first',options:[['first','At their first class'],['purchase','On the day it is bought']]},
     {key:'active',label:'On sale now',type:'checkbox',def:true},
     {key:'notes',label:'Notes',type:'textarea'}],
-    onSave:function(v){ return save('packages',p.id,Object.assign({},p,v)); },
+    onSave:function(v){ var t,tl; try{ t=parseTiers(v.tiers_txt); tl=parseTiers(v.tiers_local_txt); }catch(e){ return e.message; }
+      if(tl&&!t) return 'Add the standard price per amount too.';
+      if(v.price_thb==null&&!t) return 'Add a standard price, or a price per amount.';
+      var body=Object.assign({},p,v,{tiers:t,tiers_local:tl,qty_default:t?v.qty_default:null}); delete body.tiers_txt; delete body.tiers_local_txt;
+      if(t){ if(body.price_thb==null) body.price_thb=t[0].price; if(tl&&body.price_local_thb==null) body.price_local_thb=tl[0].price; body.class_limit=null; }
+      return save('packages',p.id,body); },
     onDelete:p.id?function(){ return db.doc('packages/'+p.id).delete(); }:null});
 }
 function editStaff(s){ s=s||{};
@@ -592,20 +616,29 @@ function sellPackage(c){
   var group=c.price_group||'standard';
   var list=sortBy(S.packages.filter(function(p){return p.active!==false&&canBuy(p,group);}),'name');
   if(!list.length){ toast('Add a package first, in Packages.'); return; }
-  function total(pk,fz){ return ((Number(priceFor(pk,group))||0)+(fz?Number(addonFor(pk,group))||0:0))||null; }
-  function reprice(set,get){ var pk=byId('packages',get('package_id')); if(pk) set('price_thb',total(pk,get('fz'))); }
-  openForm({title:'Sell a package to '+c.name+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:{price_thb:total(list[0],false)},fields:[
-    {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get){ reprice(set,get); }},
-    {key:'fz',label:'Add Fitness Zone access (the add-on price set on the package)',type:'checkbox',onChange:function(v,set,get){ reprice(set,get); }},
+  function qtyDef(pk){ return pk.qty_default||5; }
+  function total(pk,fz,q){ var t=tiersFor(pk,group), base=t?(tierUnit(t,q||1)||0)*(q||1):Number(priceFor(pk,group))||0; return (base+(fz?Number(addonFor(pk,group))||0:0))||null; }
+  function reprice(set,get,show){ var pk=byId('packages',get('package_id')); if(!pk) return; var t=tiersFor(pk,group);
+    if(show){ show('qty',!!t); show('tiernote',!!t); }
+    if(t){ var q=get('qty'); if(!q){ q=qtyDef(pk); set('qty',q); } set('tiernote',tiersLine(t)+'. '+q+' x '+thb(tierUnit(t,q))); }
+    set('price_thb',total(pk,get('fz'),t?get('qty'):1)); }
+  var t0=tiersFor(list[0],group), q0=t0?qtyDef(list[0]):null;
+  openForm({title:'Sell a package to '+c.name+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:{price_thb:total(list[0],false,q0||1),qty:q0,tiernote:t0?tiersLine(t0)+'. '+q0+' x '+thb(tierUnit(t0,q0)):''},fields:[
+    {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get,o,show){ set('qty',null); reprice(set,get,show); }},
+    {key:'qty',label:'How many',type:'number',hide:!t0,onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
+    {key:'tiernote',label:'Price for each',hide:!t0,readonly:true},
+    {key:'fz',label:'Add Fitness Zone access (the add-on price set on the package)',type:'checkbox',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'price_thb',label:'Price charged (THB)',type:'number',required:true},
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
     {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS},
     {key:'paid',label:'Payment received',type:'checkbox',def:true}],
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
+      var tt=tiersFor(pk,group), q=tt?Math.round(v.qty||0):null; if(tt&&(q<1||q>200)) return 'Type how many, 1 to 200.';
+      var lim=tt?q:(pk.class_limit||null), nm=pk.name+(tt?', '+q+(pk.covers&&pk.covers.indexOf('Privates')>=0?' sessions':' visits'):'');
       if(v.fz&&addonFor(pk,group)==null) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
       var covers=pk.covers?pk.covers.slice():null; if(v.fz&&covers) ['Fitness zone','Open gym'].forEach(function(f){ if(covers.indexOf(f)<0) covers.push(f); });
-      var p={customer_id:c.id,package_id:pk.id,package_name:pk.name+(v.fz?' + Fitness Zone':''),price_thb:v.price_thb,price_group:group,paid:v.paid,method:v.method,purchased_on:v.purchased_on,
-        covers:covers,times:pk.times||null,class_limit:pk.class_limit||null,classes_left:pk.class_limit||null,per_week_limit:pk.per_week_limit||null,duration_days:pk.duration_days||null,
+      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':''),price_thb:v.price_thb,price_group:group,paid:v.paid,method:v.method,purchased_on:v.purchased_on,
+        covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:pk.duration_days||null,
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
       return save('purchases',null,p); }});
@@ -739,7 +772,7 @@ function lastSourcePrice(sourceId,packageId){
 function walkIn(name,target){
   if(!guard()) return;
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
-  var pk=sortBy(S.packages.filter(function(k){ return k.active!==false&&(k.audience||'all')==='all'&&k.price_thb!=null&&!(k.covers&&k.covers.indexOf('Privates')>=0); }),'name');
+  var pk=sortBy(S.packages.filter(function(k){ return k.active!==false&&(k.audience||'all')==='all'&&k.price_thb!=null&&!hasTiers(k.tiers)&&!(k.covers&&k.covers.indexOf('Privates')>=0); }),'name');
   if(!pk.length){ toast('Add a package first, in Packages.'); return; }
   var short=pk.filter(function(k){ return (k.class_limit===1)||(k.duration_days!=null&&k.duration_days<=7); });
   var ordered=short.concat(pk.filter(function(k){ return short.indexOf(k)<0; }));
@@ -1618,7 +1651,8 @@ function vShop(){
   var cartBox=h('div',{class:'cartbox panel'},h('div',{class:'carthead'},h('b',null,'Sale'),cart().length?btn('Clear',clearCart,'small'):null),
     cart().length?h('div',{class:'cartlines'},cart().map(function(l,i){
       return h('div',{class:'cartline'},h('div',{class:'cl-name'},l.name,l.note?h('span',{class:'sub'},' '+l.note):null),
-        h('div',{class:'cl-qty'},btn('-',function(){ l.qty--; if(l.qty<1) cart().splice(i,1); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); },'small'),h('span',null,String(l.qty)),btn('+',function(){ l.qty++; schedule(); },'small')),
+        h('div',{class:'cl-qty'},btn('-',function(){ l.qty--; if(l.qty<1) cart().splice(i,1); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); },'small'),h('button',{type:'button',class:'btn small qtybtn',title:'Type an amount',onclick:function(){ openForm({title:'How many '+l.name+'?',values:{qty:l.qty},saveLabel:'Set',doneMsg:'Updated.',fields:[{key:'qty',label:'Amount',type:'number',required:true}],
+          onSave:function(v){ var q=Math.round(v.qty||0); if(q<0||q>999) return 'Type 0 to 999.'; if(q===0) cart().splice(cart().indexOf(l),1); else l.qty=q; if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }}); }},String(l.qty)),btn('+',function(){ l.qty++; schedule(); },'small')),
         h('div',{class:'cl-amt'},thb(l.price*l.qty)),
         h('button',{type:'button',class:'link',onclick:function(){ openForm({title:'Note for the kitchen',values:{note:l.note},fields:[{key:'note',label:l.name,hint:'For example: no chilli, take away.'}],saveLabel:'Save',doneMsg:'Note added.',onSave:function(v){ l.note=(v.note||'').trim(); schedule(); return true; }}); }},l.note?'Edit note':'Note')); }))
       :h('p',{class:'sub'},'Tap products to add them.'),
@@ -2133,7 +2167,7 @@ function noDb(msg){ $banner.textContent=msg; $banner.hidden=false; }
 var SB_URL='https://jijnshwduhgegacfvpkh.supabase.co', SB_KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
 var sb=null, me=null, currentUser=null, lastLoad=0;
 var MAP={
-  packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes']},
+  packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled']},
@@ -2507,9 +2541,20 @@ function pkgDetail(k){
   return s;
 }
 function orderPkg(k){
+  if(hasTiers(k.tiers)) return orderTier(k);
   openForm({title:'Order '+k.name,note:thb(k.price_thb)+'. Pay at the front desk. It is ready to use as soon as payment is taken.',saveLabel:'Order',doneMsg:'Ordered. Pay at the front desk.',
     fields:k.addon_thb!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(k.addon_thb),type:'checkbox'}]:[],
     onSave:function(v){ return cuCall('customer_buy',{p_package:k.id,p_fz:!!v.fz}).then(function(){ go('c_home'); }); }});
+}
+function orderTier(k){
+  var q0=k.qty_default||5, fzP=k.addon_thb;
+  function line(q,fz){ var u=tierUnit(k.tiers,q); return u==null?'':q+' x '+thb(u)+' = '+thb(u*q+(fz&&fzP!=null?fzP:0)); }
+  openForm({title:'Order '+k.name,note:tiersLine(k.tiers)+'. Pay at the front desk. It is ready to use as soon as payment is taken.',saveLabel:'Order',doneMsg:'Ordered. Pay at the front desk.',
+    values:{qty:q0,total:line(q0,false)},
+    fields:[{key:'qty',label:'How many',type:'number',required:true,onChange:function(v,set,get){ set('total',line(Math.round(v||0),get('fz'))); }},
+      {key:'total',label:'Total',readonly:true}].concat(fzP!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(fzP),type:'checkbox',onChange:function(v,set,get){ set('total',line(Math.round(get('qty')||0),v)); }}]:[]),
+    onSave:function(v){ var q=Math.round(v.qty||0); if(q<1||q>200) return 'Type how many, 1 to 200.';
+      return cuCall('customer_buy_qty',{p_package:k.id,p_fz:!!v.fz,p_qty:q}).then(function(){ go('c_home'); }); }});
 }
 function vCBuy(){
   var g=CU.me.price_group||'standard', fams=[], by={};
@@ -2527,7 +2572,8 @@ function vCBuy(){
   fams.forEach(function(f){
     var list=by[f].slice().sort(function(a,b){ return a.k.price_thb-b.k.price_thb; });
     out.push(section(f,null,cards(list.map(function(x){
-      return {when:x.label,right:thb(x.k.price_thb),note:pkgDetail(x.k),act:btn('Order',function(){ orderPkg(x.k); },'primary small')}; }),'')));
+      var tr=hasTiers(x.k.tiers);
+      return {when:x.label,right:tr?'from '+thb(Math.min.apply(null,x.k.tiers.map(function(t){return t.price;})))+' each':thb(x.k.price_thb),note:tr?'Choose how many. '+tiersLine(x.k.tiers)+'.':pkgDetail(x.k),act:btn('Order',function(){ orderPkg(x.k); },'primary small')}; }),'')));
   });
   return out;
 }
