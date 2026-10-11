@@ -206,6 +206,17 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .promoprev img{max-width:100%;max-height:160px;border-radius:10px}
 .pwshow{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px;letter-spacing:.06em}
 .accessmsg{width:100%;box-sizing:border-box;font-size:13px}
+.todolist{padding:0;overflow:hidden}
+.todo{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.todo:last-child{border-bottom:0}
+.todotxt{flex:1;min-width:0}
+.tick{flex:none;width:26px;height:26px;border-radius:7px;border:2px solid var(--gold);background:var(--surface);cursor:pointer;padding:0}
+.tick:hover{background:var(--sunken)}
+.tick.on{background:var(--ok);border-color:var(--ok);position:relative;display:inline-block}
+.tick.on::after{content:'';position:absolute;left:7px;top:2px;width:7px;height:13px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg)}
+.todo.done .todotxt{opacity:.7}
+.donelist{margin-top:8px}
+.donelist summary{cursor:pointer;color:var(--muted);font-size:14px;margin-bottom:6px}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -1029,7 +1040,7 @@ function vStays(){
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
       return {when:nameOf('rooms',st.room_id),right:thb(billTotal(st)),title:g.name||'Guest',note:'Left '+fmtDate(st.check_out),act:btn('Settle',function(){ openBill(st); },'primary small')}; }),'')):null,
-    hkDeskSections(),
+    me&&me.role==='resort'?[dashTodo(),dashHk()]:hkDeskSections(),
     section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.'))]);
 }
 
@@ -1040,7 +1051,7 @@ var HKT={
     nowArriving:'Clean now, guest arriving',full:'Needs full clean',leavingChip:'Guest leaving today',daily:'Daily clean',cleanedToday:'Cleaned today',clean:'Clean',
     arriving:'Guest arriving today',leaving:'Guest leaving today',staying:'Guest staying',empty:'Empty',
     lastCleaned:'Last cleaned',never:'Not cleaned in the app yet',problemIs:'Problem: ',
-    cleaned:'Cleaned',cleanedAgain:'Cleaned again',minibar:'Mini bar',problem:'Problem',markedClean:function(r){ return r+' marked clean.'; },
+    cleaned:'Cleaned',cleanedAgain:'Cleaned again',minibar:'Mini bar',mbOk:'Mini bar OK, nothing used',mbChecked:'Mini bar checked today',mbOkDone:'Mini bar checked.',problem:'Problem',markedClean:function(r){ return r+' marked clean.'; },
     mbTitle:function(r){ return 'Mini bar, '+r; },mbNote:'How many of each was used? It goes on the guest\'s room bill.',mbSave:'Add to bill',mbDone:'Added to the room bill.',
     mbNone:'Enter how many of at least one item.',mbEmpty:'No mini bar items yet. A manager adds them in Settings.',
     isTitle:function(r){ return 'Problem in '+r; },isNote:'Something broken or not working. The manager sees it straight away.',isLabel:'What is wrong',isSave:'Report',isDone:'Reported.',
@@ -1049,7 +1060,7 @@ var HKT={
     nowArriving:'ဧည့်သည်ရောက်မည်၊ ယခု သန့်ရှင်းပါ',full:'အပြည့်အစုံ သန့်ရှင်းရန်',leavingChip:'ဧည့်သည် ယနေ့ ထွက်မည်',daily:'နေ့စဉ် သန့်ရှင်းရေး',cleanedToday:'ယနေ့ သန့်ရှင်းပြီး',clean:'သန့်ရှင်းသည်',
     arriving:'ဧည့်သည် ယနေ့ ရောက်မည်',leaving:'ဧည့်သည် ယနေ့ ထွက်မည်',staying:'ဧည့်သည် တည်းခိုနေသည်',empty:'အခန်းလွတ်',
     lastCleaned:'နောက်ဆုံး သန့်ရှင်းချိန်',never:'သန့်ရှင်းကြောင်း မမှတ်ရသေးပါ',problemIs:'ပြဿနာ - ',
-    cleaned:'သန့်ရှင်းပြီး',cleanedAgain:'ထပ် သန့်ရှင်းပြီး',minibar:'မီနီဘား',problem:'ပြဿနာ',markedClean:function(r){ return r+' သန့်ရှင်းပြီးဟု မှတ်ပြီးပါပြီ။'; },
+    cleaned:'သန့်ရှင်းပြီး',cleanedAgain:'ထပ် သန့်ရှင်းပြီး',minibar:'မီနီဘား',mbOk:'မီနီဘား စစ်ပြီး၊ ဘာမှမသုံးပါ',mbChecked:'ယနေ့ မီနီဘား စစ်ပြီး',mbOkDone:'မီနီဘား စစ်ပြီးပါပြီ။',problem:'ပြဿနာ',markedClean:function(r){ return r+' သန့်ရှင်းပြီးဟု မှတ်ပြီးပါပြီ။'; },
     mbTitle:function(r){ return 'မီနီဘား - '+r; },mbNote:'ပစ္စည်းတစ်ခုစီ ဘယ်နှခု သုံးသလဲ။ ဧည့်သည်၏ အခန်းဘေလ်ထဲ ထည့်ပါမည်။',mbSave:'ဘေလ်ထဲ ထည့်ရန်',mbDone:'အခန်းဘေလ်ထဲ ထည့်ပြီးပါပြီ။',
     mbNone:'အနည်းဆုံး ပစ္စည်းတစ်ခု၏ အရေအတွက် ထည့်ပါ။',mbEmpty:'မီနီဘား ပစ္စည်း မရှိသေးပါ။ မန်နေဂျာကို ပြောပါ။',
     isTitle:function(r){ return r+' တွင် ပြဿနာ'; },isNote:'ပျက်နေသော သို့မဟုတ် အလုပ်မလုပ်သော အရာ။ မန်နေဂျာ ချက်ချင်း မြင်ရပါမည်။',isLabel:'ဘာဖြစ်နေသလဲ',isSave:'ပို့ရန်',isDone:'ပို့ပြီးပါပြီ။',
@@ -1091,6 +1102,8 @@ function hkCard(r,staffView){
   var again=r.cleaned_today&&!r.needs_full;
   var acts=[btn(T(again?'cleanedAgain':'cleaned'),function(){ run(hkDo('hk_cleaned',{p_room:r.id}),T('markedClean')(r.name)); },again?'small':'primary small')];
   if(!staffView&&r.guest_in) acts.push(btn(T('minibar'),function(){ hkMinibar(r); },'small'));
+  if(!staffView&&r.guest_in&&!r.minibar_today) acts.push(btn(T('mbOk'),function(){ run(hkDo('hk_minibar_ok',{p_room:r.id}),T('mbOkDone')); },'small'));
+  if(r.minibar_today) bits.push(T('mbChecked'));
   if(!staffView) acts.push(btn(T('problem'),function(){ hkIssue(r); },'small'));
   var sep=hkLang()==='my'?'။ ':'. ';
   return {when:r.name,right:st.chip,note:bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),act:acts};
@@ -1693,6 +1706,48 @@ function vCFood(){
       h('div',{class:'row'},stay?btn('Charge to '+stay.room,function(){ order('room'); },'primary'):null,btn('Pay at the counter',function(){ order('counter'); },stay?'':'primary'))):null];
 }
 
+/* dashboard: the to-do list (problems from housekeeping plus jobs added by the team) and the housekeeping log */
+var DASH=null;
+function loadDash(){ ui.dashBusy=true; return sb.rpc('dash_hk',{p_day:ui.dashDay||null}).then(function(r){ ui.dashBusy=false; if(!r.error){ var ch=JSON.stringify(r.data)!==JSON.stringify(DASH); DASH=r.data; if(ch) schedule(); } },function(){ ui.dashBusy=false; }); }
+setInterval(function(){ if(me&&allReady&&ui.tab==='today'&&DASH&&document.visibilityState!=='hidden') loadDash(); },60000);
+function todoTick(t){ run(sb.rpc('todo_set',{p_id:t.id,p_done:true,p_note:null}).then(must).then(loadDash),'Ticked off.'); }
+function todoAdd(){
+  var rooms=S.rooms.filter(function(r){ return r.active!==false; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
+  openForm({title:'Add a to-do',saveLabel:'Add',doneMsg:'Added to the to-do list.',fields:[
+    {key:'text',label:'What needs doing',type:'textarea',required:true},
+    {key:'room',label:'Room',type:'select',options:[['','Not for a room']].concat(rooms.map(function(r){ return [r.id,r.name]; })),def:''}],
+    onSave:function(v){ return sb.rpc('todo_add',{p_text:v.text,p_room:v.room||null}).then(must).then(loadDash); }});
+}
+function dashTodo(){
+  if(!DASH){ if(!ui.dashBusy) loadDash(); return null; }
+  var t=DASH.todos||[], done=DASH.done||[];
+  return section('To do'+(t.length?' ('+t.length+')':''),btn('Add a to-do',todoAdd,'small'),h('div',null,
+    t.length?h('div',{class:'panel todolist'},t.map(function(x){
+      return h('div',{class:'todo'},h('button',{type:'button',class:'tick','aria-label':'Tick off: '+x.text,onclick:function(){ todoTick(x); }}),
+        h('div',{class:'todotxt'},h('div',null,x.room?h('b',null,x.room+': '):null,x.text),
+          h('div',{class:'sub'},(x.kind==='damage'?'Reported by '+(x.by||'housekeeping'):'Added by '+(x.by||'staff'))+', '+fmtDate(String(x.at).slice(0,10)))),
+        x.kind==='damage'?chip('Damage','bad'):null); }))
+      :h('div',{class:'panel empty'},'Nothing to do. Problems housekeeping reports land here.'),
+    done.length?h('details',{class:'donelist'},h('summary',null,'Done this week ('+done.length+')'),
+      h('div',{class:'panel todolist'},done.map(function(x){ return h('div',{class:'todo done'},h('span',{class:'tick on'}),
+        h('div',{class:'todotxt'},h('div',null,x.room?h('b',null,x.room+': '):null,x.text),h('div',{class:'sub'},'Done by '+(x.by||'')+', '+new Date(x.fixed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))),
+        btn('Undo',function(){ run(sb.rpc('todo_set',{p_id:x.id,p_done:false}).then(must).then(loadDash),'Back on the list.'); },'small')); }))):null));
+}
+function dashHk(){
+  if(!DASH) return null;
+  var tm=function(a){ return new Date(a).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); };
+  var today=ymd(new Date()), day=DASH.day, rooms=DASH.rooms||[];
+  var notClean=rooms.filter(function(r){ return r.occupied&&!r.cleaned.length; }).length;
+  var pick=h('div',{class:'row'},[['Today',today],['Yesterday',addDays(today,-1)]].map(function(o){ return btn(o[0],function(){ ui.dashDay=o[1]===today?null:o[1]; DASH=null; loadDash(); schedule(); },(day===o[1])?'primary small':'small'); }));
+  return section('Housekeeping'+(day!==today?', '+fmtDate(day):''),pick,h('div',null,
+    day===today&&notClean?h('p',{class:'sub'},notClean+' occupied '+(notClean===1?'room is':'rooms are')+' not cleaned yet.'):null,
+    table([
+      {label:'Room',cell:function(r){ return [r.name,r.occupied?' ':null,r.occupied?chip('Guest','ok'):null]; }},
+      {label:'Cleaned',cell:function(r){ return r.cleaned.length?h('span',null,chip('Yes','ok'),' '+r.cleaned.map(function(c){ return tm(c.at)+(c.by?' '+c.by:''); }).join(', ')):(r.occupied?chip('Not yet','warn'):h('span',{class:'sub'},'No')); }},
+      {label:'Mini bar',cell:function(r){ return r.minibar.length?h('span',null,chip('Checked','ok'),' '+r.minibar.map(function(m){ return tm(m.at)+(m.by?' '+m.by:'')+(m.total?', used '+(m.items||'')+' ('+thb(m.total)+')':', nothing used'); }).join('; ')):(r.occupied?chip('Not checked','warn'):h('span',{class:'sub'},'')); }}],
+      rooms,'No rooms in the app yet.')));
+}
+
 /* ---------- views ---------- */
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
@@ -1732,6 +1787,7 @@ function vToday(){
   return [
     pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
     h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
+    dashTodo(),
     section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
     orders.length?section('App orders waiting for payment',null,table([
@@ -1769,7 +1825,8 @@ function vToday(){
     renew.length?section('Renewals coming up',null,table([
       {label:'Customer',cell:function(r){return linkBtn(nameOf('customers',r.p.customer_id),function(){ openCustomer(r.p.customer_id); });}},
       {label:'Package',cell:function(r){return r.p.package_name;}},
-      {label:'Why',cell:function(r){return chip(r.why,'warn');}}],renew,'')):null
+      {label:'Why',cell:function(r){return chip(r.why,'warn');}}],renew,'')):null,
+    dashHk()
   ];
 }
 function openCustomer(id){ ui.tab='customers'; ui.customerId=id; schedule(); }
@@ -2680,7 +2737,7 @@ function staffTabs(row){ var keep=row.role==='resort'?['stays','customers','shop
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -2709,7 +2766,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
