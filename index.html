@@ -920,16 +920,22 @@ function editStay(st){
       var first=v.customer_id?Promise.resolve(v.customer_id):sb.from('customers').insert({name:v.new_name,email:v.new_email?v.new_email.toLowerCase():null,tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); });
       /* a MotoPress booking moving room: MotoPress is changed first, so the website shows the right rooms as free */
       var synced=st.id&&/^mphb:/.test(String(st.external_id||''));
-      if(synced&&(v.check_in!==st.check_in||v.check_out!==st.check_out)) return 'This booking comes from MotoPress. Change its dates in MotoPress (WordPress, Bookings), and they update here within 15 minutes.';
-      var moved=synced&&v.room_id!==st.room_id, note=null;
-      var mv=!moved?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'move',stay_id:st.id,room_id:v.room_id}}).then(function(res){
-        if(res.error) throw {message:'Could not reach MotoPress. Nothing was moved.'};
+      var datesCh=synced&&(v.check_in!==st.check_in||v.check_out!==st.check_out);
+      var moved=synced&&(v.room_id!==st.room_id||datesCh), note=null;
+      var mv=!moved?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'change',stay_id:st.id,room_id:v.room_id,check_in:v.check_in,check_out:v.check_out}}).then(function(res){
+        if(res.error) throw {message:'Could not reach MotoPress. Nothing was changed.'};
         var d=res.data||{}; if(d.error) throw {message:d.error};
-        note=d.where==='app_only'?'Room changed here only. This booking came from '+(d.source||'a booking site')+', so MotoPress still shows the old room as taken and the new room as free. Block the new room for these dates in MotoPress so it is not sold twice.':
-          d.price_changed?'Room changed here and in MotoPress. MotoPress now shows '+d.price_after+' '+(d.currency||'')+' instead of '+d.price_before+'. The bill here keeps '+thb(d.kept_price!=null?d.kept_price:d.price_before)+'.':'Room changed here and in MotoPress. Price unchanged.';
+        var what=[d.room?'Room':null,d.dates?'dates':null].filter(Boolean).join(' and ')||'Booking'; what=what.charAt(0).toUpperCase()+what.slice(1);
+        if(d.where==='app_only') note=what+' changed here only. This booking came from '+(d.source||'a booking site')+', which MotoPress cannot change. Change it on '+(d.source||'that site')+' too'+(d.room?', and block the new room in MotoPress so it is not sold twice':'')+'.';
+        else { note=what+' changed here and in MotoPress.';
+          if(d.other_rooms) note+=' The other '+(d.other_rooms===1?'room':d.other_rooms+' rooms')+' on this booking got the new dates too.';
+          if(d.dates&&d.price_changed&&d.new_price!=null) note+=' New room price from MotoPress: '+thb(d.new_price)+' (was '+thb(Math.round(Number(d.price_before)))+').';
+          else if(d.dates&&d.price_changed) note+=' MotoPress now shows '+d.price_after+' '+(d.currency||'')+'. The bill here keeps the price you typed.';
+          else if(d.price_changed) note+=' MotoPress now shows '+d.price_after+' '+(d.currency||'')+' instead of '+d.price_before+'. The bill here keeps '+thb(d.kept_price!=null?d.kept_price:d.price_before)+'.';
+          else note+=' Price unchanged.'; }
       });
       return mv.then(function(){ return first; }).then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email;
-        if(moved){ delete body.room_id; if(!priceTouched){ delete body.room_price_thb; delete body.room_paid_thb; delete body.room_price_manual; } }
+        if(moved){ delete body.room_id; delete body.check_in; delete body.check_out; if(!priceTouched){ delete body.room_price_thb; delete body.room_paid_thb; delete body.room_price_manual; } }
         return save('stays',st.id,body); }).then(function(r){ if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
 }

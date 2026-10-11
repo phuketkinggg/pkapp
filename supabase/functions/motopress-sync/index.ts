@@ -154,7 +154,7 @@ async function sync() {
           const room = roomByExt.get(String(ra.accommodation ?? ""));
           if (!room) { out.errors.push(`Booking ${b.id}: room ${ra.accommodation ?? "?"} not found`); continue; }
           const guests = [ra.adults ? `${ra.adults} adult${ra.adults > 1 ? "s" : ""}` : "", ra.children ? `${ra.children} child${ra.children > 1 ? "ren" : ""}` : ""].filter(Boolean).join(", ") || null;
-          const existing = must(await admin.from("stays").select("id,status,customer_id,room_locked,room_price_manual").eq("external_id", ext).maybeSingle()) as any;
+          const existing = must(await admin.from("stays").select("id,status,customer_id,room_locked,dates_locked,room_price_manual").eq("external_id", ext).maybeSingle()) as any;
           const base: Record<string, unknown> = { room_id: room, check_in: b.check_in_date, check_out: b.check_out_date, source_id: src, guests,
             mp_price: Number.isFinite(mpTotal) && i === 0 ? mpTotal : null };
           // prices typed in the app win; otherwise the room price follows MotoPress
@@ -165,6 +165,7 @@ async function sync() {
             if (!cancelled && existing.status === "cancelled") patch.status = "booked";
             if (existing.status === "in" || existing.status === "out") { delete patch.check_in; delete patch.room_id; }
             if (existing.room_locked) delete patch.room_id;
+            if (existing.dates_locked) { delete patch.check_in; delete patch.check_out; }
             // stays matched to a guest only through our own email get their own guest, by the name on the booking
             if (existing.customer_id) {
               const cur = await custOf(existing.customer_id);
@@ -221,28 +222,39 @@ async function sync() {
   return summary;
 }
 
-// move a stay to another room, and the booking in MotoPress with it
-async function move(stayId: string, roomId: string) {
+// change a stay's room and/or dates, and the booking in MotoPress with it
+async function change(stayId: string, roomId: string | null, inD: string | null, outD: string | null) {
   const st = must(await admin.from("stays").select("id,external_id,room_id,check_in,check_out,status,room_price_manual,room_price_thb").eq("id", stayId).maybeSingle()) as any;
   if (!st) return { error: "That stay was not found." };
-  const room = must(await admin.from("rooms").select("id,name,external_id").eq("id", roomId).maybeSingle()) as any;
+  const room = must(await admin.from("rooms").select("id,name,external_id").eq("id", roomId || st.room_id).maybeSingle()) as any;
   if (!room) return { error: "That room was not found." };
-  if (st.room_id === room.id) return { ok: true, unchanged: true };
-  const clash = must(await admin.from("stays").select("id").eq("room_id", room.id).neq("status", "cancelled").neq("id", st.id)
-    .lt("check_in", st.check_out).gt("check_out", st.check_in).limit(1)) as any[];
-  if (clash.length) return { error: `${room.name} is already booked for some of those nights.` };
+  const ci = inD || st.check_in, co = outD || st.check_out;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ci) || !/^\d{4}-\d{2}-\d{2}$/.test(co) || co <= ci) return { error: "The leaving date must be after the arrival date." };
+  const roomChanged = room.id !== st.room_id, datesChanged = ci !== st.check_in || co !== st.check_out;
+  if (!roomChanged && !datesChanged) return { ok: true, unchanged: true };
   const m = /^mphb:(\d+):(\d+)$/.exec(String(st.external_id ?? ""));
+  // every stay of the same booking moves dates together
+  const siblings = m && datesChanged ? (must(await admin.from("stays").select("id,room_id").like("external_id", `mphb:${m[1]}:%`).neq("id", st.id)) as any[]) : [];
+  const groupIds = [st.id, ...siblings.map((x) => x.id)];
+  for (const x of [{ id: st.id, room_id: room.id }, ...siblings]) {
+    const clash = must(await admin.from("stays").select("id,rooms(name)").eq("room_id", x.room_id).neq("status", "cancelled").not("id", "in", `(${groupIds.join(",")})`)
+      .lt("check_in", co).gt("check_out", ci).limit(1)) as any[];
+    if (clash.length) return { error: `${clash[0].rooms?.name ?? "That room"} is already booked for some of those nights.` };
+  }
   if (!m) {  // added in the app, nothing to tell MotoPress
-    must(await admin.from("stays").update({ room_id: room.id }).eq("id", st.id).select("id"));
+    must(await admin.from("stays").update({ room_id: room.id, check_in: ci, check_out: co }).eq("id", st.id).select("id"));
     return { ok: true, where: "app" };
   }
   const [, bid, idxS] = m, idx = Number(idxS);
   const b = await mp(`bookings/${bid}`);
-  if (b.imported) {  // a calendar booking (Airbnb, Booking.com...): MotoPress cannot move it, so the app keeps the new room
-    must(await admin.from("stays").update({ room_id: room.id, room_locked: true }).eq("id", st.id).select("id"));
-    return { ok: true, where: "app_only", source: sourceName(b) };
+  if (b.imported) {  // a calendar booking (Airbnb, Booking.com...): MotoPress cannot change it, so the app keeps the change
+    const patch: Record<string, unknown> = {};
+    if (roomChanged) { patch.room_id = room.id; patch.room_locked = true; }
+    if (datesChanged) { patch.check_in = ci; patch.check_out = co; patch.dates_locked = true; }
+    must(await admin.from("stays").update(patch).eq("id", st.id).select("id"));
+    return { ok: true, where: "app_only", source: sourceName(b), dates: datesChanged, room: roomChanged };
   }
-  if (!room.external_id) return { error: `${room.name} is not a MotoPress room, so the website booking cannot move there.` };
+  if (roomChanged && !room.external_id) return { error: `${room.name} is not a MotoPress room, so the website booking cannot move there.` };
   const ras: any[] = Array.isArray(b.reserved_accommodations) ? b.reserved_accommodations : [];
   if (!ras[idx]) return { error: "Could not find that room in the MotoPress booking." };
   const total = (x: any) => x?.total_price ?? x?.total ?? null;
@@ -250,17 +262,24 @@ async function move(stayId: string, roomId: string) {
     accommodation: i === idx ? Number(room.external_id) : Number(r.accommodation), adults: r.adults ?? 1, children: r.children ?? 0,
     guest_name: r.guest_name ?? "", services: (r.services ?? []).map((v: any) => ({ id: v.id, adults: v.adults ?? 1, quantity: v.quantity ?? 1 })),
   }));
-  const after = await mp(`bookings/${bid}`, { reserved_accommodations: items });
+  const send: Record<string, unknown> = { reserved_accommodations: items };
+  if (datesChanged) { send.check_in_date = ci; send.check_out_date = co; }
+  const after = await mp(`bookings/${bid}`, send);
   const now = (after?.reserved_accommodations ?? [])[idx];
-  if (!now || String(now.accommodation) !== String(room.external_id)) return { error: "MotoPress did not take the change. Nothing was moved." };
-  // every room is its own room type in MotoPress, so the price can change: the app keeps the price the guest agreed
+  if (!now || String(now.accommodation) !== String(room.external_id ?? now.accommodation)) return { error: "MotoPress did not take the room change. Nothing was changed." };
+  if (datesChanged && (after?.check_in_date !== ci || after?.check_out_date !== co)) return { error: `MotoPress did not take the new dates (it still shows ${after?.check_in_date} to ${after?.check_out_date}). Nothing was changed here.` };
   const was = total(b), now2 = total(after);
   const priceChanged = was !== null && now2 !== null && Number(was) !== Number(now2);
-  const patch: Record<string, unknown> = { room_id: room.id, room_locked: false };
+  const patch: Record<string, unknown> = { room_id: room.id, room_locked: false, dates_locked: false, check_in: ci, check_out: co };
   let kept: number | null = st.room_price_manual ? st.room_price_thb : null;
-  if (priceChanged && !st.room_price_manual && idx === 0 && Number(was) > 0) { patch.room_price_thb = Math.round(Number(was)); patch.room_price_manual = true; kept = Math.round(Number(was)); }
+  if (priceChanged && idx === 0 && !st.room_price_manual) {
+    if (datesChanged) { patch.room_price_thb = Math.round(Number(now2)); }  // more or fewer nights: the new MotoPress price applies
+    else if (Number(was) > 0) { patch.room_price_thb = Math.round(Number(was)); patch.room_price_manual = true; kept = Math.round(Number(was)); }
+  }
   must(await admin.from("stays").update(patch).eq("id", st.id).select("id"));
-  return { ok: true, where: "motopress", booking: Number(bid), price_before: was, price_after: now2, price_changed: priceChanged, kept_price: kept, currency: b.currency ?? null };
+  if (datesChanged && siblings.length) must(await admin.from("stays").update({ check_in: ci, check_out: co, dates_locked: false }).in("id", siblings.map((x) => x.id)).select("id"));
+  return { ok: true, where: "motopress", booking: Number(bid), dates: datesChanged, room: roomChanged, other_rooms: siblings.length,
+    price_before: was, price_after: now2, price_changed: priceChanged, kept_price: kept, new_price: datesChanged && !st.room_price_manual ? Math.round(Number(now2)) : null, currency: b.currency ?? null };
 }
 
 Deno.serve(async (req) => {
@@ -270,9 +289,24 @@ Deno.serve(async (req) => {
   if (!SITE || !KEY || !SECRET) return json({ error: "The MotoPress secrets are missing in Supabase." }, 400);
   const body = await req.json().catch(() => ({}));
   try {
-    if (body.mode === "move") {
+    if (body.mode === "move" || body.mode === "change") {
       if (who !== "staff") return json({ error: "Not allowed." }, 401);
-      return json(await move(String(body.stay_id ?? ""), String(body.room_id ?? "")).catch((e) => ({ error: `Nothing was moved. ${(e as Error).message}` })));
+      return json(await change(String(body.stay_id ?? ""), body.room_id ? String(body.room_id) : null, body.check_in ? String(body.check_in) : null, body.check_out ? String(body.check_out) : null)
+        .catch((e) => ({ error: `Nothing was changed. ${(e as Error).message}` })));
+    }
+    if (body.mode === "schema") {
+      const url = new URL(`${SITE}/wp-json/mphb/v1/bookings`);
+      const headers: Record<string, string> = { Accept: "application/json" };
+      if (useQuery) { url.searchParams.set("consumer_key", KEY); url.searchParams.set("consumer_secret", SECRET); } else headers.Authorization = "Basic " + btoa(`${KEY}:${SECRET}`);
+      const r = await fetch(url, { method: "OPTIONS", headers });
+      const j = await r.json().catch(() => null) as any;
+      const props = j?.schema?.properties ?? {};
+      const pick = (k: string) => props[k] ? { type: props[k].type, context: props[k].context, readonly: props[k].readonly ?? false } : null;
+      const routes = Object.keys(j?.endpoints ?? {}).length;
+      const item = await fetch(new URL(`${SITE}/wp-json/mphb/v1/bookings/1`), { method: "OPTIONS", headers }).then((x) => x.json()).catch(() => null) as any;
+      return json({ status: r.status, methods: j?.methods ?? null, routes, item_methods: item?.methods ?? null,
+        fields: { check_in_date: pick("check_in_date"), check_out_date: pick("check_out_date"), reserved_accommodations: pick("reserved_accommodations"), status: pick("status") },
+        item_args: item?.endpoints?.map((e: any) => ({ methods: e.methods, args: Object.keys(e.args ?? {}) })) ?? null });
     }
     if (body.mode === "inspect") {
       const bookings = await mp("bookings?per_page=5&orderby=date&order=desc");
