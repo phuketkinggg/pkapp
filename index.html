@@ -403,6 +403,8 @@ function classesLeft(p){ return p.class_limit ? (p.classes_left==null ? p.class_
 function purchaseState(p,today,usedThisWeek){
   if(p.cancelled) return {ok:false,status:'cancelled',label:'Cancelled'};
   if(p.class_limit && classesLeft(p)<=0) return {ok:false,status:'used_up',label:'All visits used'};
+  if(p.stay_id&&p.starts_on&&today<p.starts_on) return {ok:false,status:'not_yet',label:'Starts '+fmtDate(p.starts_on)};
+  if(p.stay_id&&p.expires_on===today) return {ok:true,status:'active',label:'Last day of the stay, 1 class'};
   if(!p.starts_on){
     if(p.start_by && today>p.start_by) return {ok:false,status:'start_missed',label:'Start deadline passed'};
     return {ok:true,status:'not_started',label:'Not started'};
@@ -903,6 +905,7 @@ function editStay(st){
       hint:st.mp_price!=null&&Number(st.mp_price)!==Number(st.room_price_thb)?'MotoPress shows '+thb(Math.round(Number(st.mp_price)))+'. The price here is the one on the bill.':
         /^mphb:/.test(String(st.external_id||''))?'Filled in from MotoPress. Type a different price and the app keeps yours.':'The price the guest agreed. Leave empty if the room is free or paid elsewhere.'},
     {key:'room_paid_thb',label:'Room money already paid (THB)',type:'number',def:0,hint:'Deposit or online payment. Leave 0 if they pay at the desk.'},
+    {key:'training_included',label:'Group Muay Thai included for 1 person (untick if booked without it, for example on Booking.com)',type:'checkbox',def:true},
     {key:'notes',label:'Notes',type:'textarea'}];
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
   openForm({title:st.id?'Edit stay':'Add a stay',values:st,fields:fields,
@@ -911,7 +914,7 @@ function editStay(st){
       if(!v.customer_id&&!v.new_name) return 'Choose a guest or type a new guest name.';
       var price=v.room_price_thb===''||v.room_price_thb==null?null:Math.round(Number(v.room_price_thb)), paid=Math.round(Number(v.room_paid_thb)||0);
       if(price!=null&&(isNaN(price)||price<0)) return 'The room price must be a number.';
-      var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null,room_price_thb:price,room_paid_thb:paid});
+      var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null,room_price_thb:price,room_paid_thb:paid,training_included:!!v.training_included});
       /* a price typed here wins over MotoPress from now on; emptying it hands the price back to MotoPress */
       delete body.room_price_manual; var priceTouched=false;
       if(price!==(st.room_price_thb==null?null:Number(st.room_price_thb))||paid!==(Number(st.room_paid_thb)||0)){ body.room_price_manual=price!=null; priceTouched=true; }
@@ -936,7 +939,7 @@ function editStay(st){
       });
       return mv.then(function(){ return first; }).then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email;
         if(moved){ delete body.room_id; delete body.check_in; delete body.check_out; if(!priceTouched){ delete body.room_price_thb; delete body.room_paid_thb; delete body.room_price_manual; } }
-        return save('stays',st.id,body); }).then(function(r){ if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
+        return save('stays',st.id,body); }).then(function(r){ setTimeout(function(){ reload('purchases'); },500); if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
 }
 function setStay(st,patch,msg){ if(guard()) run(db.doc('stays/'+st.id).update(patch),msg); }
@@ -1002,6 +1005,9 @@ function stayCard(st,day){
   if(st.guests) bits.push(st.guests);
   if(st.source_id) bits.push('Via '+nameOf('sources',st.source_id));
   if(st.notes) bits.push(st.notes);
+  var tr=st.training_included!==false;
+  bits.push(tr?'Group Muay Thai included for 1 person (1 class on the last day)':'No training included');
+  if(st.status!=='out'&&st.status!=='cancelled') acts.push(btn(tr?'Remove training':'Add training',function(){ setStay(st,{training_included:!tr},tr?'Training taken off this stay.':'Group Muay Thai added to this stay.'); setTimeout(function(){ reload('purchases'); },700); },'small'));
   return {when:nameOf('rooms',st.room_id),right:status,title:g.name||'Guest',note:bits.join('. '),act:acts};
 }
 var MPSYNC=null;
@@ -2281,7 +2287,7 @@ var MAP={
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
-  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual']},
+  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
   minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
 };
