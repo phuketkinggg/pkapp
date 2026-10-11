@@ -491,6 +491,23 @@ function errText(e){ if(e&&e.plain) return e.message; return e&&e.code==='quota_
 var toastTimer=0;
 function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){$toast.hidden=true;},Math.max(3200,String(msg).length*70)); }
 function chip(text,kind){ return h('span',{class:'chip'+(kind?' '+kind:'')},text); }
+function classOff(c,day){ return !!(c&&c.off_from&&day>=c.off_from&&day<=(c.off_to||c.off_from)); }
+function offText(c){ var a=c.off_from, b=c.off_to||a; return 'Off '+(a===b?fmtDate(a):fmtDate(a)+' to '+fmtDate(b))+(c.off_note?' ('+c.off_note+')':''); }
+function nextClassDate(c){ var d=ymd(new Date()), wd=(new Date().getDay()+6)%7, n=(Number(c.day)-wd+7)%7; return addDays(d,n); }
+function pauseClass(c){
+  var td=ymd(new Date()), nd=nextClassDate(c), wkEnd=addDays(td,6-((new Date().getDay()+6)%7));
+  var same=S.classes.filter(function(x){ return x.id!==c.id&&x.title.trim().toLowerCase()===c.title.trim().toLowerCase(); });
+  openForm({title:'Pause '+c.title,note:DAYS[Number(c.day)]+(c.time?' '+c.time:'')+'. While it is paused it is hidden from check in, and members see it is off.',saveLabel:'Pause',doneMsg:'Class paused.',
+    values:{when:'next',from:nd,to:nd},fields:[
+    {key:'when',label:'How long',type:'select',options:[['next','Only the next one, '+fmtDate(nd)],['week','This week, until Sunday '+fmtDate(wkEnd)],['dates','Choose the dates']],onChange:function(v,set,get,o,show){ show('from',v==='dates'); show('to',v==='dates'); }},
+    {key:'from',label:'First day off',type:'date',hide:true},
+    {key:'to',label:'Last day off',type:'date',hide:true},
+    {key:'note',label:'Reason (members see it)',hint:'Optional. For example: coach away, holiday.'}].concat(same.length?[{key:'all',label:'Also pause the other '+c.title+' classes ('+same.map(function(x){ return DAYS[Number(x.day)].slice(0,3)+(x.time?' '+x.time:''); }).join(', ')+')',type:'checkbox',def:true}]:[]),
+    onSave:function(v){ var f=v.when==='next'?nd:v.when==='week'?td:v.from, t=v.when==='next'?nd:v.when==='week'?wkEnd:v.to; if(!f||!t) return 'Choose the dates.'; if(t<f) return 'The last day is before the first day.';
+      var list=[c].concat(v.all?same:[]);
+      return Promise.all(list.map(function(x){ var ff=f, tt=t; if(v.when==='next'&&x!==c){ ff=tt=nextClassDate(x); } return save('classes',x.id,Object.assign({},x,{off_from:ff,off_to:tt,off_note:v.note||null})); })); }});
+}
+function resumeClass(c){ if(guard()) run(save('classes',c.id,Object.assign({},c,{off_from:null,off_to:null,off_note:null})),'Class is back on.'); }
 function exChip(d){ return d&&d.example?[' ',chip('Example')]:null; }
 function btn(label,onclick,cls){ return h('button',{type:'button',class:'btn'+(cls?' '+cls:''),onclick:onclick},label); }
 function linkBtn(label,onclick){ return h('button',{type:'button',class:'link',onclick:onclick},label); }
@@ -781,7 +798,7 @@ function walkIn(name,target){
   var ordered=short.concat(pk.filter(function(k){ return short.indexOf(k)<0; }));
   var first=ordered.filter(function(k){ return /1 session/i.test(k.name); })[0]||ordered[0];
   var src=sortBy(S.sources,'name'), direct=src.filter(function(x){ return /^direct$/i.test(x.name); })[0];
-  var targets=sortBy(S.classes.filter(function(c){ return Number(c.day)===wd; }),'time').map(function(c){ return ['c:'+c.id,(c.time?c.time+' ':'')+c.title]; })
+  var targets=sortBy(S.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); }),'time').map(function(c){ return ['c:'+c.id,(c.time?c.time+' ':'')+c.title]; })
     .concat(FACILITIES.map(function(f){ return ['f:'+f,f]; }));
   targets.push(['','Do not check in yet']);
   var tdef=target?(target.kind==='class'?'c:'+target.id:'f:'+target.name):(targets[0]?targets[0][0]:'');
@@ -1866,7 +1883,7 @@ function dashHk(){
 /* ---------- views ---------- */
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
-  var entries=entriesOf(day), todays=sortBy(S.classes.filter(function(c){return Number(c.day)===wd;}),'time');
+  var entries=entriesOf(day), todays=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&!classOff(c,day);}),'time');
   var pToday=sortBy(S.privates.filter(function(p){return p.date===day&&p.status!=='cancelled'&&p.status!=='requested';}),'time');
   var waiting=sortBy(S.privates.filter(function(p){return p.status==='requested';}),'date','time');
   var moves=sortBy(S.privates.filter(function(p){return p.reschedule&&p.status!=='cancelled';}),'date','time');
@@ -2006,7 +2023,7 @@ function vPackages(){
       sortBy(S.packages,'name'),'No packages yet. Add your first package, for example a single class or a monthly pass.')];
 }
 function vTimetable(){
-  var out=[pageHead('Timetable','Group classes are turn up and check in. No booking needed.',btn('Add class',function(){ editClass(); },'primary'))];
+  var out=[pageHead('Timetable','Group classes are turn up and check in. No booking needed. Pause a class to turn it off for a day or a week.',btn('Add class',function(){ editClass(); },'primary'))];
   if(!S.classes.length){ out.push(h('div',{class:'panel empty'},'No classes yet. Add your first class and it will show for check in on that day.')); return out; }
   DAYS.forEach(function(d,i){
     var rows=sortBy(S.classes.filter(function(c){return Number(c.day)===i;}),'time'); if(!rows.length) return;
@@ -2014,7 +2031,8 @@ function vTimetable(){
       {label:'Time',cell:function(c){return c.time||'To set';}},
       {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c)];}},
       {label:'Discipline',cell:function(c){return chip(c.discipline||'');}},
-      {label:'Coach',cell:function(c){return c.coach_id?nameOf('staff',c.coach_id):'';}}],rows,'')));
+      {label:'Coach',cell:function(c){return c.coach_id?nameOf('staff',c.coach_id):'';}},
+      {label:'',cell:function(c){ var on=c.off_from&&(c.off_to||c.off_from)>=ymd(new Date()); return on?h('div',{class:'row'},chip(offText(c),'warn'),btn('Turn back on',function(){ resumeClass(c); },'small')):btn('Pause',function(){ pauseClass(c); },'small'); }}],rows,'')));
   });
   return out;
 }
@@ -2101,7 +2119,7 @@ function vCoach(){
   var me=byId('staff',ui.coachId), day=ymd(new Date()), wd=(new Date().getDay()+6)%7, month=day.slice(0,7);
   var pick=h('select',{id:'coachSel','aria-label':'View as coach',onchange:function(ev){ ui.coachId=ev.target.value; schedule(); }},ch.map(function(c){return h('option',{value:c.id,selected:c.id===ui.coachId},c.name);}));
   var mine=S.privates.filter(function(p){return p.coach_id===me.id&&p.status!=='cancelled'&&p.status!=='requested';});
-  var classes=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&c.coach_id===me.id;}),'time');
+  var classes=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&c.coach_id===me.id&&!classOff(c,day);}),'time');
   var todayP=sortBy(mine.filter(function(p){return p.date===day;}),'time');
   var late=sortBy(mine.filter(function(p){return p.status==='confirmed'&&p.date<day;}),'date','time');
   var upcoming=sortBy(mine.filter(function(p){return p.date>day;}),'date','time');
@@ -2252,7 +2270,7 @@ var MAP={
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled']},
-  classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id']},
+  classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
@@ -2384,7 +2402,7 @@ function vMine(){
     if(p.status==='done') return chip(C('done'),'ok');
     return h('div',{class:'row'},btn(C('markDone'),function(){ coachDo('coach_mark_done',{p_private:p.id},C('markedDone')); },'primary small'),moveBtn(p));
   }
-  var classes=CO.classes.filter(function(c){ return Number(c.day)===wd; });
+  var classes=CO.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); });
   var todayP=all.filter(function(p){ return p.date===day; });
   var late=all.filter(function(p){ return p.status==='confirmed'&&p.date<day; });
   var upcoming=all.filter(function(p){ return p.date>day; });
@@ -2498,7 +2516,7 @@ function cuTargets(){
   function usable(t){ return ps.some(function(p){ return canCheckIn(p,cuState(p),t,classToday).ok; }); }
   var out=[];
   CU.classes.forEach(function(c){
-    if(Number(c.day)!==wd) return;
+    if(Number(c.day)!==wd||classOff(c,CU.today)) return;
     var t={kind:'class',id:c.id,discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title};
     t.done=mine.some(function(e){ return e.class_id===c.id; });
     if(!t.done&&c.time&&c.time<cut) return;
@@ -2571,7 +2589,7 @@ function vCHome(){
   var mineP=CU.purchases.filter(cuUsable), live=mineP.filter(function(p){ return cuState(p).ok||cuState(p).status==='week_limit'; });
   var past=mineP.filter(function(p){ return live.indexOf(p)<0; }).slice(0,3);
   var mine=CU.checkins.filter(function(e){ return e.day===day; });
-  var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd; });
+  var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); });
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
   return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day)),
     cuCheckInCard(),
@@ -2595,12 +2613,13 @@ function vCClasses(){
   var wd=cuWd(), ps=cuClassPacks().filter(function(p){ return cuState(p).ok||cuState(p).status==='week_limit'; });
   var out=[pageHead('Timetable','Group classes are turn up and check in. No booking needed.')];
   if(!CU.classes.length){ out.push(h('div',{class:'panel empty'},'The timetable is not set up yet.')); return out; }
-  for(var i=0;i<7;i++){ (function(d,isToday){
+  for(var i=0;i<7;i++){ (function(d,isToday,dd){
     var rows=CU.classes.filter(function(c){ return Number(c.day)===d; }); if(!rows.length) return;
     out.push(section(DAYS[d]+(isToday?', today':''),null,cards(rows.map(function(c){
       var cov=!ps.length||ps.some(function(p){ return !coverReason(p,{kind:'class',discipline:c.discipline,time:c.time||''}); });
-      return {when:c.time||'Time to be set',title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:cov?null:chip('Not in your package')}; }),'')));
-  })((wd+i)%7,i===0); }
+      var off=classOff(c,addDays(CU.today,dd));
+      return {when:c.time||'Time to be set',title:c.title,note:off?offText(c):[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:off?chip('Off this time','bad'):cov?null:chip('Not in your package')}; }),'')));
+  })((wd+i)%7,i===0,i); }
   return out;
 }
 function pkgDays(n){
@@ -2810,7 +2829,7 @@ function kTargets(c,day){
   var wd=(parseYmd(day).getDay()+6)%7, cut=shiftTime(timeNow(),-120), entries=entriesOf(day).filter(function(e){ return e.customer_id===c.id; });
   var classToday=entries.some(function(e){ return !!e.class_id; });
   var ps=S.purchases.filter(function(p){ return p.customer_id===c.id&&kUsable(p,day); });
-  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd; }),'time').map(function(k){ return {kind:'class',id:k.id,discipline:k.discipline,time:k.time||'',label:k.title}; })
+  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,ymd(new Date())); }),'time').map(function(k){ return {kind:'class',id:k.id,discipline:k.discipline,time:k.time||'',label:k.title}; })
     .concat(FACILITIES.map(function(f){ return {kind:'facility',name:f,time:'',label:f}; }));
   var out=[];
   ts.forEach(function(t){
