@@ -131,6 +131,60 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .fptix{font-weight:600;color:var(--gold-ink);margin-top:4px}
 .fptix .th{display:block;font-weight:400;font-size:13px}
 .fshow{display:flex;align-items:flex-end;padding-bottom:8px}
+.till{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin:14px 0}
+@media (max-width:860px){.till{grid-template-columns:1fr}.cartbox{position:static}}
+.tillleft{display:flex;flex-direction:column;gap:10px;min-width:0}
+.tillleft input[type=search]{width:100%;box-sizing:border-box}
+.catchips{gap:6px}
+.tillgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.tillbtn{display:flex;flex-direction:column;justify-content:space-between;gap:6px;min-height:78px;padding:10px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;cursor:pointer;font:inherit;color:inherit}
+.tillbtn:hover{border-color:var(--gold)}
+.tillbtn:active{transform:scale(.98)}
+.tillbtn.k{border-left:4px solid var(--gold)}
+.tillbtn span{font-weight:600;line-height:1.2}
+.tillbtn b{color:var(--gold-ink)}
+.cartbox{position:sticky;top:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.carthead{display:flex;justify-content:space-between;align-items:center}
+.cartlines{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
+.cartline{display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:6px}
+.cartline .link{grid-column:1/-1;justify-self:start;font-size:12px}
+.cl-qty{display:flex;align-items:center;gap:6px}
+.cl-amt{text-align:right;font-variant-numeric:tabular-nums}
+.carttot div{display:flex;justify-content:space-between}
+.carttot .big,.rc-tot .big{font-size:20px;font-weight:700;margin-top:4px}
+.paybtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.paybtns .btn:first-child{grid-column:1/-1;min-height:48px;font-size:17px}
+.paytotal{font-size:26px;font-weight:700;margin:0}
+.paychange{font-size:20px;font-weight:700;color:var(--ok);min-height:1em;margin:0}
+.ff{display:flex;flex-direction:column;gap:3px}
+.ff label{font-weight:600;font-size:14px}
+.ff input,.ff select{width:100%;box-sizing:border-box}
+.ff .sub{font-size:12px}
+.receipt{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;max-width:320px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.receipt table{width:100%}
+.rc-head{text-align:center;display:flex;flex-direction:column}
+.rc-meta{text-align:center;font-size:12px}
+.rc-tot div{display:flex;justify-content:space-between}
+.rc-foot{text-align:center;font-size:12px;margin-top:6px}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.kcard{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.kcard.new{border-color:var(--bad)}
+.kcard.preparing{border-color:var(--warn)}
+.kcard.ready{border-color:var(--ok);opacity:.85}
+.ktop{display:flex;justify-content:space-between;font-size:15px}
+.ktop b{font-size:22px}
+.kwho{font-weight:600;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.kcard ul{margin:0;padding-left:18px;font-size:18px;line-height:1.4}
+.knote{color:var(--bad);font-weight:600;font-size:15px}
+.menuitem .row{margin-top:6px}
+.foodcart{position:sticky;bottom:8px;display:flex;flex-direction:column;gap:6px;border:2px solid var(--gold)}
+.foodcart input{width:100%;box-sizing:border-box}
+@media print{
+  body.print-receipt *{visibility:hidden}
+  body.print-receipt #receipt,body.print-receipt #receipt *{visibility:visible}
+  body.print-receipt #receipt{position:absolute;left:0;top:0;width:72mm;max-width:none}
+  body.print-receipt dialog{border:0;box-shadow:none;background:#fff}
+}
 .scanwrap{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:16px}
 .scanbox{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;align-items:center;color:#fff;text-align:center}
 .scanview{position:relative;width:100%;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:#000}
@@ -360,13 +414,13 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
 var TIERS={train:'Train',progress:'Progress',pangea:'Pangea'};
 var GROUPS={standard:'Standard',local:'Local resident',thai:'Thai'};
-var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping'};
+var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping',kitchen:'Kitchen'};
 var PSTATUS={requested:'Requested',confirmed:'Confirmed',done:'Done',cancelled:'Cancelled'};
 var ui={tab:'today',q:'',cq:'',customerId:null,target:'',targetAuto:true,pfilter:'upcoming',coachId:'',month:ymd(new Date()).slice(0,7)};
 var $view=document.getElementById('view'), $nav=document.getElementById('nav'), $dlg=document.getElementById('dlg'), $toast=document.getElementById('toast'), $banner=document.getElementById('banner'), $who=document.getElementById('who');
@@ -484,7 +538,7 @@ function editStaff(s){ s=s||{};
   openForm({title:s.id?'Edit staff member':'New staff member',values:s,fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
-    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['manager','Manager']]},
+    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['manager','Manager']]},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches.'},
     {key:'phone',label:'Phone'},
     {key:'active',label:'Working here now',type:'checkbox',def:true}],
@@ -1280,6 +1334,317 @@ function editFight(f,focusResult){
   setTimeout(function(){ (focusResult?result:date).focus(); },30);
 }
 
+/* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
+var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
+var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room']];
+function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:(m||''); }
+function isBoss(){ return me&&(me.role==='manager'||me.role==='resort'); }
+function loadShop(){ ui.shopBusy=true; return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
+  ui.shopBusy=false; if(r[0].error) throw r[0].error; SHOP=r[0].data; SALES=r[1].error?null:r[1].data; APPROVALS=r[2].error?[]:(r[2].data||[]); ui.shopErr=null; schedule(); })
+  .catch(function(e){ ui.shopBusy=false; ui.shopErr=errText(e); schedule(); }); }
+function shopRefresh(){ return Promise.all([sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
+  var changed=false; if(!r[0].error&&JSON.stringify(r[0].data)!==JSON.stringify(SALES)){ SALES=r[0].data; changed=true; }
+  if(!r[1].error&&JSON.stringify(r[1].data)!==JSON.stringify(APPROVALS)){ APPROVALS=r[1].data||[]; changed=true; }
+  if(changed&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
+setInterval(function(){ if(me&&allReady&&ui.tab==='shop'&&SHOP&&document.visibilityState!=='hidden') shopRefresh(); },8000);
+function cart(){ return ui.cart||(ui.cart=[]); }
+function cartSub(){ return cart().reduce(function(t,l){ return t+l.price*l.qty; },0); }
+function cartDisc(){ return ui.cartDisc&&ui.cartDisc.amount||0; }
+function addToCart(p){ var l=cart().filter(function(x){ return x.id===p.id&&!x.note; })[0]; if(l) l.qty++; else cart().push({id:p.id,name:p.name,price:p.price,qty:1,note:''}); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }
+function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
+function prodByCat(cat){ return (SHOP.products||[]).filter(function(p){ return p.active&&(!cat||p.category_id===cat); }); }
+function shopDlg(box){ $dlg.replaceChildren(box); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
+function field(id,label,input,hint){ return h('div',{class:'ff'},h('label',{for:id},label),hint?h('span',{class:'sub'},hint):null,input); }
+
+/* manager approval: a PIN typed on the till, or a request that pops up on the manager's phone */
+function approvalBox(kind,amount,orderId,reason,done){
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), pin=h('input',{id:'ap-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'});
+  var wait=h('p',{class:'sub'}), timer=0;
+  function close(){ clearInterval(timer); $dlg.close(); }
+  function usePin(){ if(!pin.value){ err.textContent='Type the PIN, or send a request.'; err.hidden=false; return; } close(); done({pin:pin.value}); }
+  function ask(){
+    sb.rpc('shop_request_approval',{p_kind:kind,p_amount:amount,p_reason:reason,p_order:orderId||null}).then(must).then(function(id){
+      wait.textContent='Request sent. Waiting for a manager to approve on their phone...';
+      timer=setInterval(function(){ sb.rpc('shop_approvals_list').then(function(r){ var a=(r.data||[]).filter(function(x){ return x.id===id; })[0];
+        if(a&&a.status==='approved'){ close(); toast('Approved by '+(a.decided_by||'a manager')+'.'); done({approval_id:id}); }
+        else if(a&&a.status==='declined'){ clearInterval(timer); wait.textContent='Declined by '+(a.decided_by||'a manager')+'.'; } }); },3000);
+    }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
+  }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Manager approval'),
+    h('p',null,(kind==='refund'?'Refund ':'Discount ')+thb(amount)+'. '+reason),
+    field('ap-pin','Manager PIN',pin,'A manager types their PIN here.'),
+    h('div',{class:'row'},btn('Approve with PIN',usePin,'primary'),btn('Send to manager\'s phone',ask)),wait,err,
+    h('div',{class:'factions'},h('span'),btn('Cancel',close))));
+  setTimeout(function(){ pin.focus(); },30);
+}
+function discountDlg(){
+  var sub=cartSub(); if(!sub){ toast('Add something first.'); return; }
+  var amt=h('input',{id:'d-amt',type:'number',inputmode:'numeric',placeholder:'THB'}), pct=h('input',{id:'d-pct',type:'number',inputmode:'numeric',placeholder:'%'}), why=h('input',{id:'d-why',type:'text',placeholder:'For example: staff meal, regular, complaint'});
+  var err=h('p',{class:'ferr',role:'alert',hidden:true});
+  pct.oninput=function(){ var p=Number(pct.value)||0; amt.value=p?Math.round(sub*p/100):''; };
+  function apply(){
+    var a=Math.round(Number(amt.value)||0); if(a<=0||a>sub){ err.textContent='Enter a discount between 1 and '+sub+' THB.'; err.hidden=false; return; }
+    if(!why.value.trim()){ err.textContent='Say why.'; err.hidden=false; return; }
+    if(isBoss()){ ui.cartDisc={amount:a,reason:why.value.trim()}; $dlg.close(); schedule(); return; }
+    approvalBox('discount',a,null,why.value.trim(),function(ok){ ui.cartDisc=Object.assign({amount:a,reason:why.value.trim()},ok); schedule(); });
+  }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Discount'),h('p',{class:'sub'},'Sale '+thb(sub)+'.'+(isBoss()?'':' A manager has to approve it.')),
+    h('div',{class:'fgrid'},field('d-pct','Percent',pct),field('d-amt','Amount (THB)',amt)),field('d-why','Reason',why),err,
+    h('div',{class:'factions'},ui.cartDisc?btn('Remove discount',function(){ ui.cartDisc=null; $dlg.close(); schedule(); }):h('span'),
+      h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Apply',apply,'primary')))));
+}
+function payDlg(method,waitingOrder){
+  var total=waitingOrder?waitingOrder.total:cartSub()-cartDisc();
+  if(!waitingOrder&&!cart().length){ toast('Add something first.'); return; }
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), extra=[], given=null, stay=null, change=h('p',{class:'paychange'});
+  if(method==='cash'){
+    given=h('input',{id:'pay-given',type:'number',inputmode:'numeric',placeholder:String(total)});
+    given.oninput=function(){ var g=Number(given.value)||0; change.textContent=g>=total?'Change: '+thb(g-total):g?'Not enough':''; };
+    extra.push(field('pay-given','Cash given (THB)',given,'Leave empty if they give the exact amount.'),change,
+      h('div',{class:'row'},[100,500,1000].filter(function(n){ return n>=total; }).slice(0,3).map(function(n){ return btn(thb(n),function(){ given.value=n; given.oninput(); },'small'); })));
+  }
+  if(method==='room'){
+    var rooms=SHOP.in_house||[];
+    if(!rooms.length){ toast('Nobody is checked in to a room right now.'); return; }
+    stay=h('select',{id:'pay-stay'},rooms.map(function(r){ return h('option',{value:r.id},r.room+', '+(r.guest||'Guest')); }));
+    extra.push(field('pay-stay','Room',stay));
+  }
+  function go(){
+    var p={method:method,discount:waitingOrder?0:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null};
+    if(waitingOrder) p.order_id=waitingOrder.id; else p.items=cart().map(function(l){ return {product_id:l.id,qty:l.qty,note:l.note||null}; });
+    if(given&&given.value) p.cash_given=Number(given.value);
+    if(stay) p.stay_id=stay.value;
+    var b=this; if(b) b.disabled=true;
+    sb.rpc('shop_sell',{p:p}).then(must).then(function(r){
+      var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
+      var disc=waitingOrder?0:cartDisc(); if(!waitingOrder) clearCart();
+      $dlg.close(); toast('Sale #'+r.number+' done.'+(r.change?' Change '+thb(r.change)+'.':''));
+      receiptDlg({number:r.number,at:new Date().toISOString(),items:lines,subtotal:total+disc,discount:disc,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
+      shopRefresh();
+    }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; });
+  }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),h('p',{class:'paytotal'},'Total '+thb(total)),extra,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(method==='room'?'Charge to room':'Payment received',go,'primary')))));
+  if(given) setTimeout(function(){ given.focus(); },30);
+}
+function receiptNode(o){
+  var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
+  return h('div',{id:'receipt',class:'receipt'},
+    h('div',{class:'rc-head'},h('b',null,'PHUKET KING'),h('span',null,'Muay Thai and Pangea Cafe, Kathu, Phuket')),
+    h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
+    h('table',null,h('tbody',null,(o.items||[]).map(function(l){ return h('tr',null,h('td',null,l.qty+' x '+l.name+(l.note?' ('+l.note+')':'')),h('td',{class:'num'},l.price!=null?thb(l.price*l.qty):'')); }))),
+    h('div',{class:'rc-tot'},
+      o.discount?h('div',null,h('span',null,'Subtotal'),h('span',null,thb(o.subtotal))):null,
+      o.discount?h('div',null,h('span',null,'Discount'),h('span',null,'-'+thb(o.discount))):null,
+      h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(o.total))),
+      vat?h('div',null,h('span',null,'Includes VAT '+vat.rate+'%'),h('span',null,thb(Math.round(o.total*vat.rate/(100+vat.rate))))):null,
+      h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
+      o.change?h('div',null,h('span',null,'Change'),h('span',null,thb(o.change))):null),
+    h('div',{class:'rc-foot'},'Thank you. Work hard, fight easy.'));
+}
+function receiptDlg(o){
+  shopDlg(h('div',{class:'billbox'},receiptNode(o),
+    h('div',{class:'factions noprint'},h('span'),h('div',{class:'row'},btn('Print',function(){ document.body.classList.add('print-receipt'); window.print(); }),btn('Done',function(){ $dlg.close(); },'primary')))));
+}
+window.addEventListener('afterprint',function(){ document.body.classList.remove('print-receipt'); });
+function refundDlg(o){
+  var why=h('input',{id:'rf-why',type:'text',placeholder:'For example: wrong order, cold food'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function go(extra){
+    sb.rpc('shop_refund',Object.assign({p_order:o.id,p_reason:why.value.trim(),p_pin:null,p_approval:null},extra||{})).then(must).then(function(r){
+      $dlg.close(); toast('Sale #'+r.number+' refunded'+(o.method==='room'?' (taken off the room bill)':', give back '+thb(r.amount)+' by '+payName(o.method))+'.'+(r.note?' '+r.note:'')); shopRefresh();
+    }).catch(function(e){ toast(errText(e)); });
+  }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Refund sale #'+o.number),h('p',null,thb(o.total)+', paid by '+payName(o.method)+'.'),field('rf-why','Reason',why),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Refund',function(){
+      if(!why.value.trim()){ err.textContent='Say why.'; err.hidden=false; return; }
+      if(isBoss()){ go(); return; }
+      approvalBox('refund',o.total,o.id,why.value.trim(),function(ok){ go(ok.pin?{p_pin:ok.pin}:{p_approval:ok.approval_id}); });
+    },'primary')))));
+}
+function shiftDlg(){
+  var s=SHOP.shift, cash=h('input',{id:'sh-cash',type:'number',inputmode:'numeric'}), note=h('input',{id:'sh-note',type:'text'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function go(){
+    var v=Math.round(Number(cash.value)||0);
+    (s?sb.rpc('shop_shift_close',{p_counted:v,p_note:note.value}):sb.rpc('shop_shift_open',{p_cash:v})).then(must).then(function(r){
+      $dlg.close();
+      if(s){ var d=r.difference; toast('Shift closed. Expected '+thb(r.expected)+', counted '+thb(r.counted)+(d?', '+(d>0?'over ':'short ')+thb(Math.abs(d)):', exact')+'.'); }
+      else toast('Shift open.');
+      loadShop();
+    }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
+  }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,s?'Close shift':'Open shift'),
+    h('p',{class:'sub'},s?'Count the cash in the drawer. The app compares it with what it expects.':'Count the cash in the drawer before you start.'),
+    field('sh-cash',s?'Cash counted (THB)':'Cash in the drawer (THB)',cash),s?field('sh-note','Note',note):null,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(s?'Close shift':'Open shift',go,'primary')))));
+  setTimeout(function(){ cash.focus(); },30);
+}
+function pinDlg(){
+  var a=h('input',{id:'pin1',type:'password',inputmode:'numeric',autocomplete:'new-password'}), b=h('input',{id:'pin2',type:'password',inputmode:'numeric',autocomplete:'new-password'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'My approval PIN'),h('p',{class:'sub'},'4 to 8 numbers. You type it on the till to approve a discount or refund for staff. Keep it to yourself.'),
+    field('pin1','New PIN',a),field('pin2','Same PIN again',b),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save PIN',function(){
+      if(a.value!==b.value){ err.textContent='The two PINs are different.'; err.hidden=false; return; }
+      sb.rpc('shop_set_pin',{p_pin:a.value}).then(must).then(function(){ $dlg.close(); toast('PIN saved.'); SHOP.has_pin=true; schedule(); }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
+    },'primary')))));
+}
+function editProduct(p){
+  p=p||{}; var cats=SHOP.categories||[];
+  openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku},fields:[
+    {key:'name',label:'Name',required:true},
+    {key:'category_id',label:'Category',type:'select',options:[['','No category']].concat(cats.map(function(c){ return [c.id,c.name]; }))},
+    {key:'price',label:'Price (THB)',type:'number',required:true},
+    {key:'cost',label:'Cost to us (THB)',type:'number',hint:'Optional. Only managers see it.'},
+    {key:'kitchen',label:'Goes to the kitchen screen',type:'checkbox'},
+    {key:'in_app',label:'Guests and members can order it in the app',type:'checkbox'},
+    {key:'active',label:'On sale',type:'checkbox'},
+    {key:'sort',label:'Order on the till',type:'number'},
+    {key:'description',label:'Description for the app menu',type:'textarea'},
+    {key:'sku',label:'Code or barcode',hint:'Optional.'}],
+    onSave:function(v){ return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v)}).then(must).then(loadShop); }});
+}
+function editCategory(c){
+  c=c||{};
+  openForm({title:c.id?'Edit category':'New category',values:{name:c.name,sort:c.sort||0,active:c.active!==false},fields:[
+    {key:'name',label:'Name',required:true},{key:'sort',label:'Order',type:'number'},{key:'active',label:'Shown on the till',type:'checkbox'}],
+    onSave:function(v){ return sb.rpc('shop_category_save',{p:Object.assign({id:c.id||null},v)}).then(must).then(loadShop); }});
+}
+function vProducts(){
+  var cats=SHOP.categories||[], prods=SHOP.products||[];
+  function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:'No category'; }
+  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
+    section('Categories',null,cats.length?h('div',{class:'row wrap'},cats.map(function(c){ return btn(c.name+(c.active?'':' (hidden)'),function(){ editCategory(c); },'small'); })):h('div',{class:'panel empty'},'No categories yet.')),
+    section('All products',null,table([
+      {label:'Product',cell:function(p){ return linkBtn(p.name,function(){ editProduct(p); }); }},
+      {label:'Category',cell:function(p){ return cname(p.category_id); }},
+      {label:'Price',num:true,cell:function(p){ return thb(p.price); }},
+      {label:'Cost',num:true,cell:function(p){ return p.cost!=null?thb(p.cost):''; }},
+      {label:'',cell:function(p){ return h('span',{class:'row'},p.kitchen?chip('Kitchen'):null,p.in_app?chip('In app','ok'):null,p.active?null:chip('Off sale','warn')); }}],
+      prods.slice().sort(function(a,b){ return cname(a.category_id).localeCompare(cname(b.category_id))||(a.sort||0)-(b.sort||0)||a.name.localeCompare(b.name); }),'No products yet. Add them here, or send me the Loyverse export to load them all.'))];
+}
+function vReport(){
+  var r=ui.report;
+  if(!r){ var f=ui.repFrom||ymd(new Date()), t=ui.repTo||f; sb.rpc('shop_sales',{p_from:f,p_to:t}).then(must).then(function(d){ ui.report=d; schedule(); }).catch(function(e){ toast(errText(e)); }); }
+  var from=h('input',{type:'date',value:ui.repFrom||ymd(new Date()),onchange:function(e){ ui.repFrom=e.target.value; ui.report=null; schedule(); }});
+  var to=h('input',{type:'date',value:ui.repTo||ui.repFrom||ymd(new Date()),onchange:function(e){ ui.repTo=e.target.value; ui.report=null; schedule(); }});
+  var orders=r?r.orders:[], paid=orders.filter(function(o){ return o.status==='paid'||o.status==='room'; });
+  var tot=paid.reduce(function(t,o){ return t+o.total; },0), disc=paid.reduce(function(t,o){ return t+o.discount; },0), ref=orders.filter(function(o){ return o.status==='refunded'; });
+  return [pageHead('Sales',r?(fmtDate(r.from)+(r.to!==r.from?' to '+fmtDate(r.to):'')):'Loading.',btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small')),
+    h('div',{class:'row'},h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
+    !r?null:h('div',{class:'stats'},h('div',null,h('b',null,thb(tot)||'0 THB'),' sales'),h('div',null,h('b',null,String(paid.length)),' sales made'),h('div',null,h('b',null,thb(disc)||'0 THB'),' discounts'),h('div',null,h('b',null,String(ref.length)),' refunds')),
+    !r?null:section('By payment',null,table([{label:'How',cell:function(x){ return payName(x[0]); }},{label:'Total',num:true,cell:function(x){ return thb(x[1]); }}],Object.keys(r.by_method||{}).map(function(k){ return [k,r.by_method[k]]; }),'No sales.')),
+    !r||!r.top?null:section('Best sellers',null,table([{label:'Product',cell:function(x){ return x.name; }},{label:'Sold',num:true,cell:function(x){ return String(x.qty); }},{label:'Total',num:true,cell:function(x){ return thb(x.total); }}],r.top,'No sales.')),
+    !r?null:section('Discounts and refunds',null,table([{label:'Sale',cell:function(o){ return '#'+o.number+' '+fmtDate(o.at.slice(0,10)); }},{label:'What',cell:function(o){ return o.status==='refunded'?'Refund: '+(o.refund_reason||''):'Discount '+thb(o.discount)+': '+(o.discount_reason||''); }},
+      {label:'By',cell:function(o){ return (o.by||'')+(o.approved_by?', approved by '+o.approved_by:''); }}],orders.filter(function(o){ return o.discount>0||o.status==='refunded'; }),'None.'))];
+}
+function vShop(){
+  if(!SHOP){
+    if(ui.shopErr) return [pageHead('Shop',''),h('div',{class:'panel empty'},ui.shopErr,' ',btn('Try again',function(){ ui.shopErr=null; loadShop(); },'small'))];
+    if(!ui.shopBusy) loadShop();
+    return [pageHead('Shop',''),h('div',{class:'panel empty'},'Loading.')];
+  }
+  if(ui.shopView==='products'&&me.role==='manager') return vProducts();
+  if(ui.shopView==='report'&&isBoss()) return vReport();
+  var cats=(SHOP.categories||[]).filter(function(c){ return c.active; }), q=(ui.shopQ||'').toLowerCase();
+  var prods=prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q; });
+  var pend=(APPROVALS||[]).filter(function(a){ return a.status==='pending'; });
+  var waiting=SALES&&SALES.waiting||[];
+  var head=h('div',{class:'row wrap'},
+    SHOP.shift?chip('Shift open since '+new Date(SHOP.shift.opened_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' by '+(SHOP.shift.by||''),'ok'):chip('No shift open','warn'),
+    btn(SHOP.shift?'Close shift':'Open shift',shiftDlg,'small'),
+    isBoss()?btn('Sales report',function(){ ui.shopView='report'; ui.report=null; schedule(); },'small'):null,
+    me.role==='manager'?btn('Products',function(){ ui.shopView='products'; schedule(); },'small'):null,
+    isBoss()?btn(SHOP.has_pin?'Change my PIN':'Set my approval PIN',pinDlg,SHOP.has_pin?'small':'primary small'):null);
+  var search=h('input',{id:'shop-q',type:'search',placeholder:'Search products',value:ui.shopQ||'',oninput:function(e){ ui.shopQ=e.target.value; schedule(); }});
+  var grid=h('div',{class:'tillgrid'},prods.length?prods.map(function(p){ return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':''),onclick:function(){ addToCart(p); }},h('span',null,p.name),h('b',null,thb(p.price))); })
+    :h('div',{class:'panel empty'},(SHOP.products||[]).length?'Nothing matches.':me.role==='manager'?'No products yet. Tap Products to add them, or send the Loyverse export to load them all.':'No products yet. A manager adds them.'));
+  var sub=cartSub(), disc=cartDisc(), tot=sub-disc;
+  var cartBox=h('div',{class:'cartbox panel'},h('div',{class:'carthead'},h('b',null,'Sale'),cart().length?btn('Clear',clearCart,'small'):null),
+    cart().length?h('div',{class:'cartlines'},cart().map(function(l,i){
+      return h('div',{class:'cartline'},h('div',{class:'cl-name'},l.name,l.note?h('span',{class:'sub'},' '+l.note):null),
+        h('div',{class:'cl-qty'},btn('-',function(){ l.qty--; if(l.qty<1) cart().splice(i,1); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); },'small'),h('span',null,String(l.qty)),btn('+',function(){ l.qty++; schedule(); },'small')),
+        h('div',{class:'cl-amt'},thb(l.price*l.qty)),
+        h('button',{type:'button',class:'link',onclick:function(){ openForm({title:'Note for the kitchen',values:{note:l.note},fields:[{key:'note',label:l.name,hint:'For example: no chilli, take away.'}],saveLabel:'Save',doneMsg:'Note added.',onSave:function(v){ l.note=(v.note||'').trim(); schedule(); return true; }}); }},l.note?'Edit note':'Note')); }))
+      :h('p',{class:'sub'},'Tap products to add them.'),
+    h('div',{class:'carttot'},disc?h('div',null,h('span',null,'Subtotal'),h('span',null,thb(sub))):null,
+      disc?h('div',null,h('span',null,'Discount'+(ui.cartDisc.reason?' ('+ui.cartDisc.reason+')':'')),h('span',null,'-'+thb(disc))):null,
+      h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(tot)||'0 THB'))),
+    h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small')),
+    h('div',{class:'paybtns'},PAYS.map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); })));
+  var today=SALES?SALES.orders:[];
+  return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
+    head,
+    pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+      act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
+    waiting.length?section('App orders to take payment for',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:thb(o.total),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
+      note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
+      act:[PAYS.filter(function(m){ return m[0]!=='room'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
+    h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
+        cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); })):null,grid),cartBox),
+    section('Sales today',null,cards(today.slice(0,40).map(function(o){
+      var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip('Not paid','warn'):chip(payName(o.method),'ok');
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
+        note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
+        act:[btn('Receipt',function(){ receiptDlg({number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
+          o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null]}; }),'No sales yet today.'))];
+}
+
+/* kitchen screen: new orders at the top, tap through Start, Ready, Served */
+var kBeepIds=null;
+function kitchenBeep(){ try{ var c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.connect(g); g.connect(c.destination); g.gain.value=0.2; o.start(); o.stop(c.currentTime+0.25); }catch(e){} }
+function loadKitchen(){ return sb.rpc('shop_kitchen').then(must).then(function(d){
+  var ids=(d||[]).filter(function(o){ return o.status==='new'; }).map(function(o){ return o.id; });
+  if(kBeepIds&&ids.some(function(id){ return kBeepIds.indexOf(id)<0; })) kitchenBeep();
+  kBeepIds=ids; if(JSON.stringify(d)!==JSON.stringify(KITCHEN)){ KITCHEN=d||[]; if(!document.querySelector('dialog[open]')) schedule(); } }).catch(function(e){ ui.kitErr=errText(e); schedule(); }); }
+setInterval(function(){ if(me&&allReady&&ui.tab==='kitchen'&&document.visibilityState!=='hidden') loadKitchen(); },7000);
+function vKitchen(){
+  if(!KITCHEN){ if(!ui.kitAsked){ ui.kitAsked=true; loadKitchen(); } return [pageHead('Kitchen',''),h('div',{class:'panel empty'},ui.kitErr||'Loading.')]; }
+  var next={new:['preparing','Start'],preparing:['ready','Ready'],ready:['done','Served']};
+  function mins(at){ var m=Math.round((Date.now()-new Date(at))/60000); return m<1?'just now':m+' min ago'; }
+  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),
+    h('div',{class:'kgrid'},KITCHEN.map(function(o){
+      var n=next[o.status];
+      return h('div',{class:'kcard '+o.status},
+        h('div',{class:'ktop'},h('b',null,'#'+o.number),h('span',null,mins(o.at))),
+        h('div',{class:'kwho'},o.room?o.room+(o.who?', '+o.who:''):(o.who||'Counter'),o.deliver_to?h('span',null,' '+o.deliver_to):null,o.source==='app'?chip('App','ok'):null,!o.paid?chip('Not paid yet','warn'):null),
+        h('ul',null,o.items.map(function(i){ return h('li',null,h('b',null,i.qty+' x '),i.name,i.note?h('div',{class:'knote'},i.note):null); })),
+        o.note?h('div',{class:'knote'},o.note):null,
+        h('div',{class:'row'},n?btn(n[1],function(){ sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:n[0]}).then(must).then(loadKitchen).catch(function(e){ toast(errText(e)); }); },'primary'):null,
+          o.status!=='new'?btn('Back',function(){ var back={preparing:'new',ready:'preparing'}[o.status]; sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:back}).then(must).then(loadKitchen); },'small'):null)); })),
+    !KITCHEN.length?h('div',{class:'panel empty'},'New orders from the till and the app show here. A sound plays when one comes in (tap the screen once so the tablet allows sound).'):null];
+}
+
+/* food menu in the member app */
+function loadMenu(){ return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_my_orders')]).then(function(r){ if(r[0].error) throw r[0].error; SHOP=r[0].data; MYORDERS=r[1].error?[]:r[1].data; schedule(); }).catch(function(e){ ui.menuErr=errText(e); schedule(); }); }
+setInterval(function(){ if(me&&me.role==='customer'&&ui.tab==='c_food'&&document.visibilityState!=='hidden') sb.rpc('shop_my_orders').then(function(r){ if(!r.error&&JSON.stringify(r.data)!==JSON.stringify(MYORDERS)){ MYORDERS=r.data; schedule(); } }); },15000);
+function vCFood(){
+  if(!SHOP){ if(!ui.menuAsked){ ui.menuAsked=true; loadMenu(); } return [pageHead('Food',''),h('div',{class:'panel empty'},ui.menuErr||'Loading the menu.')]; }
+  var cats=(SHOP.categories||[]), prods=(SHOP.products||[]).filter(function(p){ return p.active&&p.in_app; });
+  var sub=cartSub(), stay=SHOP.stay;
+  var kst={new:['Order received','warn'],preparing:['Being made','warn'],ready:['Ready','ok'],done:['Done','ok']};
+  var mine=(MYORDERS||[]).filter(function(o){ return o.kitchen_status&&o.kitchen_status!=='done'||o.status==='waiting'; });
+  function group(c){ var list=prods.filter(function(p){ return c?p.category_id===c.id:!cats.some(function(x){ return x.id===p.category_id; }); }); if(!list.length) return null;
+    return section(c?c.name:'More',null,h('div',{class:'panel cards'},list.map(function(p){ var inCart=cart().filter(function(l){ return l.id===p.id; })[0];
+      return h('div',{class:'card menuitem'},h('div',{class:'ctop'},h('span',{class:'cwhen'},p.name),h('span',{class:'cright'},thb(p.price))),
+        p.description?h('div',{class:'cnote'},p.description):null,
+        h('div',{class:'row'},inCart?[btn('-',function(){ inCart.qty--; if(inCart.qty<1) cart().splice(cart().indexOf(inCart),1); schedule(); },'small'),h('b',null,String(inCart.qty)),btn('+',function(){ inCart.qty++; schedule(); },'small')]
+          :btn('Add',function(){ addToCart(p); },'primary small'))); }))); }
+  function order(pay){
+    var note=document.getElementById('fo-note'), where=document.getElementById('fo-where');
+    sb.rpc('shop_app_order',{p:{pay:pay,note:note?note.value:'',deliver_to:where?where.value:'',items:cart().map(function(l){ return {product_id:l.id,qty:l.qty}; })}}).then(must).then(function(r){
+      clearCart(); toast(r.room?'Order #'+r.number+' sent. It goes on your room bill.':'Order #'+r.number+' sent. Pay at the counter.'); return sb.rpc('shop_my_orders').then(function(x){ MYORDERS=x.data||[]; schedule(); });
+    }).catch(function(e){ toast(errText(e)); });
+  }
+  return [pageHead('Food','Order from the Pangea cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
+    mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter':'')}; }),'')):null,
+    prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
+    cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
+      h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
+      h('label',{for:'fo-note'},'Anything we should know?'),h('input',{id:'fo-note',type:'text',placeholder:'No chilli, extra rice...'}),
+      h('label',{for:'fo-where'},'Where are you?'),h('input',{id:'fo-where',type:'text',placeholder:stay?'My room, or the gym, or the cafe':'At the gym, or the cafe'}),
+      h('div',{class:'row'},stay?btn('Charge to '+stay.room,function(){ order('room'); },'primary'):null,btn('Pay at the counter',function(){ order('counter'); },stay?'':'primary'))):null];
+}
+
 /* ---------- views ---------- */
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
@@ -1637,7 +2002,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={chat:vChat,fights:vFights,hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -1834,7 +2199,7 @@ function cards(items,emptyMsg){
 
 /* ---------- customer app ---------- */
 var CU=null, cuCode=null, cuAt=0, cuDone=null, cuBusy=false;
-var CTABS=[['c_home','Home'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates']];
+var CTABS=[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates']];
 (function(){
   /* the QR poster opens the app with ?c=code. Keep it for 20 minutes so it survives signing in. */
   try{
@@ -2204,11 +2569,11 @@ function vKiosk(){
     list.length?h('div',{class:'kgrid'},list.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ ui.kc=o.c.id; ui.kq=''; ui.kerr=''; kIdle(30000); schedule(); }},o.label); }))
       :h('div',{class:'panel empty'},q?'No member with an active package matches that name.':'No members with an active package yet.'),foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','customers']:['today','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }); }
+function staffTabs(row){ var keep=row.role==='resort'?['stays','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -2237,7 +2602,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -2326,6 +2691,7 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
+    if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen']]; ui.tab='kitchen'; allReady=true; schedule(); return loadKitchen(); }
     if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab='hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
     if(row.role==='coach'){ me=row; db=makeDb(); ui.tab='mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
