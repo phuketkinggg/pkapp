@@ -484,7 +484,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -1522,7 +1522,7 @@ function vHK(){
   var rooms=HK.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
   var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length, my=hkLang()==='my';
   var day=parseYmd(HK.today).toLocaleDateString(my?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'});
-  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),
+  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),myJobs(),
     cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
 }
 /* the desk and managers see the same picture on the Stays page, and close problems there */
@@ -2345,7 +2345,7 @@ function vKitchen(){
   if(!KITCHEN){ if(!ui.kitAsked){ ui.kitAsked=true; loadKitchen(); } return [pageHead('Kitchen',''),h('div',{class:'panel empty'},ui.kitErr||'Loading.')]; }
   var next={new:['preparing','Start'],preparing:['ready','Ready'],ready:['done','Served']};
   function mins(at){ var m=Math.round((Date.now()-new Date(at))/60000); return m<1?'just now':m+' min ago'; }
-  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),
+  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),
     h('div',{class:'kitgrid'},KITCHEN.map(function(o){
       var n=next[o.status];
       return h('div',{class:'kcard '+o.status},
@@ -2394,6 +2394,68 @@ function vCFood(){
       h('div',{class:'row'},stay?btn('Charge to '+stay.room,function(){ order('room'); },'primary'):null,btn('Pay at the counter',function(){ order('counter'); },stay?'':'primary'))):null];
 }
 
+/* ---------- pending actions: anything broken or to fix, until someone ticks it off ---------- */
+var ACT=null;
+var AXT={
+  en:{jobs:'Your jobs',none:'No jobs for you right now.',done:'Done',report:'Report a problem',what:'What needs fixing?',where:'Where? Room or place',room:'Room',noroom:'Not a room',place:'Place, if not a room',urgent:'Urgent',sent:'Sent. The manager can see it now. Thank you.',ticked:'Ticked off. Thank you.',note:'What did you do? (optional)',cancel:'Cancel',send:'Send',given:'Given to you',min:'min',hr:'h',day:function(n){ return n===1?'1 day':n+' days'; },open:'open'},
+  th:{jobs:'งานของคุณ',none:'ตอนนี้ไม่มีงานให้คุณ',done:'เสร็จแล้ว',report:'แจ้งปัญหา',what:'อะไรต้องซ่อม',where:'ที่ไหน ห้องหรือสถานที่',room:'ห้อง',noroom:'ไม่ใช่ห้องพัก',place:'สถานที่ ถ้าไม่ใช่ห้อง',urgent:'ด่วน',sent:'ส่งแล้ว ผู้จัดการเห็นแล้ว ขอบคุณ',ticked:'เรียบร้อย ขอบคุณ',note:'ทำอะไรไป (ไม่บังคับ)',cancel:'ยกเลิก',send:'ส่ง',given:'งานที่ได้รับ',min:'นาที',hr:'ชม.',day:function(n){ return n+' วัน'; },open:'ค้างอยู่'},
+  my:{jobs:'သင့်အလုပ်များ',none:'ယခု သင့်အတွက် အလုပ်မရှိပါ။',done:'ပြီးပါပြီ',report:'ပြဿနာ တင်ပြရန်',what:'ဘာပြင်ရမလဲ',where:'ဘယ်နေရာလဲ၊ အခန်း သို့မဟုတ် နေရာ',room:'အခန်း',noroom:'အခန်းမဟုတ်ပါ',place:'နေရာ (အခန်းမဟုတ်လျှင်)',urgent:'အရေးပေါ်',sent:'ပို့ပြီးပါပြီ။ မန်နေဂျာ မြင်ရပါပြီ။ ကျေးဇူးတင်ပါတယ်။',ticked:'ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',note:'ဘာလုပ်ခဲ့လဲ (မဖြစ်မနေမဟုတ်)',cancel:'မလုပ်တော့ပါ',send:'ပို့ရန်',given:'သင့်ကို ပေးထားသော အလုပ်',min:'မိနစ်',hr:'နာရီ',day:function(n){ return n+' ရက်'; },open:'မပြီးသေး'}};
+function AX(k){ var l=AXT[clkLang()]||AXT.en; return l[k]!==undefined?l[k]:AXT.en[k]; }
+function loadActions(bg){ ui.actBusy=true; return sb.rpc('actions_list').then(function(r){ ui.actBusy=false; if(r.error) return; var ch=JSON.stringify(r.data)!==JSON.stringify(ACT); ACT=r.data; if(ch&&!(bg&&document.querySelector('dialog[open]'))) schedule(); },function(){ ui.actBusy=false; }); }
+setInterval(function(){ if(me&&allReady&&me.role!=='investor'&&!CU&&document.visibilityState!=='hidden') loadActions(true); },60000);
+function actAge(at){ var m=Math.max(0,Math.round((Date.now()-new Date(at))/60000)); if(m<60) return m+' '+AX('min'); if(m<1440) return Math.floor(m/60)+' '+AX('hr'); return AX('day')(Math.floor(m/1440)); }
+function actAgeChip(x){ var d=(Date.now()-new Date(x.at))/864e5; return chip(actAge(x.at)+' '+AX('open'),d>=3?'bad':d>=1?'warn':null); }
+function actWhere(x){ return x.room||x.place||''; }
+function actRooms(){ var r=(S.rooms&&S.rooms.length?S.rooms:(HK&&HK.rooms)||[]).filter(function(x){ return x.active!==false; }); return r.slice().sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(String(b.name),'en',{numeric:true}); }); }
+function actStaff(){ return sortBy((S.staff||[]).filter(function(x){ return x.active!==false&&x.role!=='investor'; }),'name'); }
+function actReport(){
+  var rooms=actRooms(), mgr=me&&me.role==='manager', fields=[{key:'text',label:AX('what'),type:'textarea',required:true}];
+  if(rooms.length) fields.push({key:'room',label:AX('room'),type:'select',options:[['',AX('noroom')]].concat(rooms.map(function(r){ return [r.id,r.name]; })),def:''});
+  fields.push({key:'place',label:rooms.length?AX('place'):AX('where'),hint:mgr?'For example: gym toilets, cafe kitchen, resort path lights.':null},{key:'urgent',label:AX('urgent'),type:'checkbox'});
+  if(mgr) fields.push({key:'assign',label:'Give it to',type:'select',options:[['','Nobody yet']].concat(actStaff().map(function(x){ return [x.id,x.name]; })),def:''});
+  openForm({title:AX('report'),saveLabel:AX('send'),cancelLabel:AX('cancel'),doneMsg:AX('sent'),needMsg:AX('what'),fields:fields,
+    onSave:function(v){ return sb.rpc('action_add',{p_text:v.text,p_room:v.room||null,p_place:v.place||null,p_urgent:!!v.urgent,p_assign:v.assign||null}).then(must).then(loadActions); }});
+}
+function actDone(x){
+  openForm({title:AX('done')+': '+x.text,saveLabel:AX('done'),cancelLabel:AX('cancel'),doneMsg:AX('ticked'),fields:[{key:'note',label:AX('note')}],
+    onSave:function(v){ return sb.rpc('action_done',{p_id:x.id,p_note:v.note||null}).then(must).then(loadActions); }});
+}
+function actAssign(x){
+  openForm({title:'Give this job to someone',note:x.text+(actWhere(x)?' ('+actWhere(x)+')':''),saveLabel:'Save',doneMsg:'Saved. It shows on their app.',values:{who:x.assigned_to||''},fields:[
+    {key:'who',label:'Staff member',type:'select',options:[['','Nobody']].concat(actStaff().map(function(s2){ return [s2.id,s2.name+' ('+(s2.role||'').replace('_',' ')+')']; }))}],
+    onSave:function(v){ return sb.rpc('action_assign',{p_id:x.id,p_staff:v.who||null}).then(must).then(loadActions); }});
+}
+/* on every staff member's home screen: the jobs given to them, and a button to report a problem */
+function myJobs(){
+  if(!ACT){ if(!ui.actBusy) loadActions(); return null; }
+  var mine=(ACT.open||[]).filter(function(x){ return x.assigned_to&&x.assigned_to===ACT.me; });
+  if(!mine.length&&me&&(me.role==='manager'||me.role==='front_desk'||me.role==='resort')) return null;
+  return section(AX('jobs')+(mine.length?' ('+mine.length+')':''),btn(AX('report'),actReport,'small'),
+    mine.length?cards(mine.map(function(x){ return {when:actWhere(x),right:actAgeChip(x),title:(x.urgent?'⚠ ':'')+x.text,note:AX('given')+(x.by?'. '+x.by:''),act:btn(AX('done'),function(){ actDone(x); },'primary small')}; }),''):h('div',{class:'panel empty'},AX('none')));
+}
+function actionsBox(limit){
+  if(!ACT){ if(!ui.actBusy) loadActions(); return null; }
+  var open=ACT.open||[], list=limit?open.slice(0,limit):open, mgr=ACT.manager;
+  return section('Pending actions'+(open.length?' ('+open.length+')':''),h('div',{class:'row'},btn('Report a problem',actReport,'small'),limit&&open.length>limit?btn('See all',function(){ ui.tab='actions'; schedule(); },'small'):null),
+    open.length?h('div',{class:'panel todolist'},list.map(function(x){
+      return h('div',{class:'todo'},h('button',{type:'button',class:'tick','aria-label':'Tick off: '+x.text,onclick:function(){ actDone(x); }}),
+        h('div',{class:'todotxt'},h('div',null,actWhere(x)?h('b',null,actWhere(x)+': '):null,x.text),
+          h('div',{class:'sub'},'Reported by '+(x.by||'staff')+', '+new Date(x.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. '+(x.assigned?'Given to '+x.assigned+'.':'Not given to anyone yet.')+(x.kind!=='task'?' From housekeeping.':'')),
+        h('div',{class:'row wrap',style:'margin-top:6px'},x.urgent?chip('Urgent','bad'):null,actAgeChip(x),mgr?btn(x.assigned?'Change':'Give to',function(){ actAssign(x); },'small'):null,
+          mgr?btn('Remove',function(){ if(ui.actRm!==x.id){ ui.actRm=x.id; toast('Tap Remove again to take it off the list without doing it.'); return; } ui.actRm=null; run(sb.rpc('action_remove',{p_id:x.id}).then(must).then(loadActions),'Removed.'); },'small'):null))); }))
+      :h('div',{class:'panel empty'},'Nothing pending. Anything staff report lands here until someone ticks it off.'));
+}
+function vActions(){
+  if(!ACT){ if(!ui.actBusy) loadActions(); return [pageHead('Pending actions',''),h('div',{class:'panel empty'},'Loading.')]; }
+  var open=ACT.open||[], done=ACT.done||[], old=open.filter(function(x){ return Date.now()-new Date(x.at)>=3*864e5; }).length, nobody=open.filter(function(x){ return !x.assigned_to; }).length;
+  return [pageHead('Pending actions',open.length?open.length+' open'+(old?', '+old+' for 3 days or more':'')+(nobody?', '+nobody+' not given to anyone':''):'Nothing open',btn('Refresh',loadActions,'small')),
+    actionsBox(0),
+    done.length?section('Done in the last 2 weeks',null,h('div',{class:'panel todolist'},done.map(function(x){
+      var took=x.fixed_at?Math.max(0,Math.round((new Date(x.fixed_at)-new Date(x.at))/36e5)):null;
+      return h('div',{class:'todo done'},h('span',{class:'tick on'}),h('div',{class:'todotxt'},h('div',null,actWhere(x)?h('b',null,actWhere(x)+': '):null,x.text),
+        h('div',{class:'sub'},'Done by '+(x.done_by||'')+', '+new Date(x.fixed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(took!=null?', '+(took<24?took+' hours':Math.round(took/24)+' days')+' after it was reported':'')+(x.done_note?'. '+x.done_note:''))),
+        btn('Not done',function(){ run(sb.rpc('action_reopen',{p_id:x.id}).then(must).then(loadActions),'Back on the list.'); },'small')); }))):null];
+}
 /* dashboard: the to-do list (problems from housekeeping plus jobs added by the team) and the housekeeping log */
 var DASH=null;
 function loadDash(){ ui.dashBusy=true; return sb.rpc('dash_hk',{p_day:ui.dashDay||null}).then(function(r){ ui.dashBusy=false; if(!r.error){ var ch=JSON.stringify(r.data)!==JSON.stringify(DASH); DASH=r.data; if(ch) schedule(); } },function(){ ui.dashBusy=false; }); }
@@ -2406,7 +2468,8 @@ function todoAdd(){
     {key:'room',label:'Room',type:'select',options:[['','Not for a room']].concat(rooms.map(function(r){ return [r.id,r.name]; })),def:''}],
     onSave:function(v){ return sb.rpc('todo_add',{p_text:v.text,p_room:v.room||null}).then(must).then(loadDash); }});
 }
-function dashTodo(){
+function dashTodo(){ return [myJobs(),actionsBox(5)]; }
+function dashTodoOld(){
   if(!DASH){ if(!ui.dashBusy) loadDash(); return null; }
   var t=DASH.todos||[], done=DASH.done||[];
   return section('To do'+(t.length?' ('+t.length+')':''),btn('Add a to-do',todoAdd,'small'),h('div',null,
@@ -2940,7 +3003,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -3110,7 +3173,7 @@ function vMine(){
   var todayItems=classes.map(function(c){ return {t:c.time||'',when:c.time||'',title:c.title,note:C('group')}; })
     .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:C('privWith')(p.customer),note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
-  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),
+  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),myJobs(),
     h('div',{class:'stats'},
       h('span',null,h('b',null,doneM.length),C('doneMonth')),
       h('span',null,h('b',null,thb(sum(doneM))||'0 THB'),C('earned')),
@@ -3601,7 +3664,7 @@ function vKiosk(){
     :q.length===1?h('p',{class:'sub'},'Keep typing your name.'):null,
     !q?promoBoard():null,foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
+function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','actions','customers','shop','kitchen']:['today','shop','kitchen','stays','actions','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
