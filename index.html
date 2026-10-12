@@ -888,7 +888,8 @@ var PAYOPTS=[['cash','Cash'],['card','Card or Stripe link'],['transfer','Bank tr
 function owedOf(p){ return p.cancelled?0:Math.max(0,(Number(p.price_thb)||0)-(Number(p.paid_thb)||0)); }
 function customerOwes(cid){ var a=S.purchases.filter(function(p){ return p.customer_id===cid; }).reduce(function(t,p){ return t+owedOf(p); },0);
   var b=S.privates.filter(function(x){ return x.customer_id===cid&&!x.purchase_id&&!x.paid&&x.status!=='cancelled'&&Number(x.price_thb)>0; }).reduce(function(t,x){ return t+Number(x.price_thb); },0);
-  return {packages:a,privates:b,total:a+b}; }
+  var st=(S.stays||[]).filter(function(x){ return x.customer_id===cid&&(x.status==='booked'||x.status==='in')&&!x.settled; }).reduce(function(t,x){ return t+Math.max(0,billTotal(x)); },0);
+  return {packages:a,privates:b,stays:st,total:a+b+st}; }
 function pastCheckIn(c){
   var today=ymd(new Date()), y=addDays(today,-1);
   function targetsFor(d){ var wd=(parseYmd(d).getDay()+6)%7;
@@ -1006,6 +1007,53 @@ function stripeLinkDlg(url,amount,label){
 (function(){ try{ var q=new URLSearchParams(location.search); var pd=q.get('paid'); if(pd==null) return; history.replaceState(null,'',location.pathname+location.hash);
   setTimeout(function(){ toast(pd==='1'?'Payment received. Thank you. It can take a minute to show here.':'Payment cancelled. Nothing was charged.'); },1500); }catch(e){} })();
 
+/* build a package at the desk: training, room, meals and extras in one go, then one payment */
+function buildPackage(c){
+  var group=c.price_group||'standard', today=ymd(new Date());
+  var train=sortBy(S.packages.filter(function(p){ return p.active!==false&&canBuy(p,group)&&!(p.covers||[]).every(function(x){ return x===MEAL; }); }),'name');
+  var meals=sortBy(S.packages.filter(function(p){ return p.active!==false&&canBuy(p,group)&&isMealOnly(p); }),'name');
+  var rooms=sortBy((S.rooms||[]).filter(function(r){ return r.active!==false; }),'sort');
+  function priceOf(id){ var pk=byId('packages',id); if(!pk) return null; var t=tiersFor(pk,group); return t?tierUnit(t,pk.qty_default||5)*(pk.qty_default||5):Number(priceFor(pk,group))||0; }
+  function tot(get){ return (Number(get('train_price'))||0)+(get('room_id')?Number(get('room_price'))||0:0)+(Number(get('meal_price'))||0)+(Number(get('extra_price'))||0); }
+  function retotal(set,get){ set('total',thb(tot(get))||'0 THB'); }
+  openForm({title:'Build a package for '+c.name,note:'For camps and bookings like the website package builder. Everything is added at once and paid together.',saveLabel:'Add and take payment',doneMsg:'Package added.',
+    values:{arrive:today,leave:addDays(today,7),total:'0 THB',pay:'stripe'},fields:[
+    {key:'train_id',label:'Training',type:'select',options:[['','No training package']].concat(train.map(function(p){ return [p.id,p.name]; })),onChange:function(v,set,get){ set('train_price',priceOf(v)); retotal(set,get); }},
+    {key:'train_price',label:'Training price (THB)',type:'number',onChange:function(v,set,get){ retotal(set,get); }},
+    {key:'room_id',label:'Room',type:'select',options:[['','No room']].concat(rooms.map(function(r){ return [r.id,r.name]; })),onChange:function(v,set,get){ retotal(set,get); }},
+    {key:'arrive',label:'Arrives',type:'date'},{key:'leave',label:'Leaves',type:'date'},
+    {key:'room_price',label:'Room price for the whole stay (THB)',type:'number',hint:'Group Muay Thai for 1 person comes with the room as usual.',onChange:function(v,set,get){ retotal(set,get); }},
+    {key:'meal_id',label:'Meal plan',type:'select',options:[['','No meal plan']].concat(meals.map(function(p){ return [p.id,p.name]; })),onChange:function(v,set,get){ set('meal_price',priceOf(v)); retotal(set,get); }},
+    {key:'meal_price',label:'Meal plan price (THB)',type:'number',onChange:function(v,set,get){ retotal(set,get); }},
+    {key:'extra',label:'Anything else',hint:'Optional. For example airport pick up.'},
+    {key:'extra_price',label:'Its price (THB)',type:'number',onChange:function(v,set,get){ retotal(set,get); }},
+    {key:'total',label:'Total',readonly:true},
+    {key:'pay',label:'Payment',type:'select',options:[['stripe','Stripe card link (QR for their phone)'],['qr','PromptPay QR'],['cash','Cash now'],['transfer','Bank transfer, already received'],['later','They pay later']]}],
+    onSave:function(v){
+      var total=(Number(v.train_price)||0)+(v.room_id?Number(v.room_price)||0:0)+(Number(v.meal_price)||0)+(Number(v.extra_price)||0);
+      if(!v.train_id&&!v.room_id&&!v.meal_id&&!(v.extra&&v.extra_price)) return 'Choose at least one thing.';
+      if(v.room_id){ if(!v.arrive||!v.leave||v.leave<=v.arrive) return 'The leaving date must be after the arrival date.';
+        var clash=(S.stays||[]).filter(function(x){ return x.room_id===v.room_id&&x.status!=='cancelled'&&x.check_in<v.leave&&x.check_out>v.arrive; })[0];
+        if(clash) return nameOf('rooms',v.room_id)+' is already booked for some of those nights ('+nameOf('customers',clash.customer_id)+').'; }
+      var start=v.arrive||today, jobs=[];
+      function buy(pk,price,label){ var p={customer_id:c.id,package_id:pk?pk.id:null,package_name:label||(pk?pk.name:'Extra'),price_thb:Math.round(price||0),price_group:group,paid:false,paid_thb:0,method:null,purchased_on:today,
+          covers:pk&&pk.covers?pk.covers.slice():[],times:pk&&pk.times||null,class_limit:pk&&pk.class_limit||null,classes_left:pk&&pk.class_limit||null,per_week_limit:pk&&pk.per_week_limit||null,duration_days:pk&&pk.duration_days||null,
+          start_by:pk&&pk.start_within_days?addDays(start,pk.start_within_days):null,starts_on:null,expires_on:null};
+        if(pk&&pk.clock==='purchase') Object.assign(p,startPurchase(p,start));
+        if(pk&&tiersFor(pk,group)){ var q=pk.qty_default||5; p.class_limit=q; p.classes_left=q; p.package_name=pk.name+', '+q+((pk.covers||[]).indexOf('Privates')>=0?' sessions':' visits'); }
+        jobs.push(save('purchases',null,p)); }
+      if(v.train_id) buy(byId('packages',v.train_id),v.train_price);
+      if(v.meal_id) buy(byId('packages',v.meal_id),v.meal_price);
+      if(v.extra&&v.extra_price) buy(null,v.extra_price,v.extra);
+      if(v.room_id) jobs.push(save('stays',null,{customer_id:c.id,room_id:v.room_id,check_in:v.arrive,check_out:v.leave,status:'booked',settled:false,room_price_thb:Math.round(Number(v.room_price)||0),room_paid_thb:0,room_price_manual:true,training_included:true,notes:'Package built at the desk'}));
+      return Promise.all(jobs).then(function(){ return Promise.all([reload('purchases'),reload('stays')]); }).then(function(){
+        setTimeout(function(){
+          if(v.room_id) toast('Added. The room was added here only, so block '+nameOf('rooms',v.room_id)+' for these dates in MotoPress so the website does not sell it.');
+          if(v.pay==='stripe') stripePay('customer',c.id,c.name);
+          else if(v.pay==='qr') deskPromptPay(c);
+          else if(v.pay==='cash'||v.pay==='transfer') sb.rpc('pay_customer',{p_customer:c.id,p_amount:total,p_method:v.pay,p_note:null}).then(must).then(function(){ toast('Paid '+thb(total)+'.'); return Promise.all([reload('purchases'),reload('stays')]); }).catch(function(e){ toast(errText(e)); });
+        },300); }); }});
+}
 function payCustomer(c){
   var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
   openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
@@ -1031,7 +1079,7 @@ function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.sta
 function extrasTotal(st){ return chargesOf(st).reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0); }
 function roomDue(st){ return (Number(st.room_price_thb)||0)-(Number(st.room_paid_thb)||0); }
 /* what the guest still owes: the room (price minus what was already paid) plus everything added to the bill */
-function billTotal(st){ return extrasTotal(st)+roomDue(st); }
+function billTotal(st){ return extrasTotal(st)+roomDue(st)-(Number(st.app_paid_thb)||0); }
 function nights(st){ return Math.round((parseYmd(st.check_out)-parseYmd(st.check_in))/86400000); }
 function mealPlanOf(cid,day){ return S.purchases.filter(function(p){ return p.customer_id===cid&&isMealOnly(p)&&!p.cancelled&&!unpaidOrder(p)&&stateOf(p,day).ok; })[0]||null; }
 function editStay(st){
@@ -2362,7 +2410,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
