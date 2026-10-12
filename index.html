@@ -159,6 +159,10 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .pwwrap input{width:100%;padding-right:70px}
 .pwshow{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;padding:6px 8px;cursor:pointer;text-decoration:underline}
 .subhead{margin:28px 0 4px;font-size:18px}
+.ppbox{display:flex;flex-direction:column;align-items:center;gap:8px;margin:8px 0}
+.ppbox .qr{width:min(280px,80vw);background:#fff;padding:8px;border-radius:12px}
+.pphead{font-size:18px}
+.owebox{align-items:center;flex-wrap:wrap;gap:10px}
 .qtybtn{min-width:44px;font-weight:700;text-decoration:underline dotted}
 .cl-amt{text-align:right;font-variant-numeric:tabular-nums}
 .carttot div{display:flex;justify-content:space-between}
@@ -901,6 +905,82 @@ function pastCheckIn(c){
         setTimeout(function(){ toast('Checked in for '+fmtDate(v.day)+' with '+r.package+'.'); },50); return Promise.all([reload('purchases'),reload('checkin_days')]); }); }});
 }
 
+
+/* PromptPay straight to the bank: the shop's own QR, with the amount added */
+var PP=null;
+function loadPP(){ return sb.rpc('promptpay_get').then(function(r){ PP=Array.isArray(r.data)?r.data:[]; schedule(); return PP; }); }
+function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
+function ppTlv(str){ var out=[], i=0; while(i<str.length){ if(i+4>str.length) return null; var id=str.substr(i,2), n=parseInt(str.substr(i+2,2),10); if(isNaN(n)||i+4+n>str.length) return null; out.push([id,str.substr(i+4,n)]); i+=4+n; } return out; }
+function ppValid(str){ str=String(str||'').trim(); if(!/^0002/.test(str)||str.slice(-8,-4)!=='6304') return false; if(ppCrc(str.slice(0,-4))!==str.slice(-4).toUpperCase()) return false; var t=ppTlv(str); if(!t) return false; var m={}; t.forEach(function(x){ m[x[0]]=x[1]; }); return m['53']==='764'&&!!(m['29']||m['30']); }
+function ppFromId(id){ var d=String(id||'').replace(/\D/g,''), sub;
+  if(d.length===10&&d[0]==='0') sub='01'+'13'+('0066'+d.slice(1)).padStart(13,'0'); else if(d.length===13) sub='02'+'13'+d; else return null;
+  function f(k,v){ return k+String(v.length).padStart(2,'0')+v; }
+  var b=f('00','01')+f('01','11')+f('29',f('00','A000000677010111')+sub)+f('58','TH')+f('53','764')+'6304'; return b+ppCrc(b); }
+function ppWithAmount(str,amt){
+  var t=ppTlv(String(str).trim()).filter(function(x){ return x[0]!=='54'&&x[0]!=='63'; }).map(function(x){ return x[0]==='01'?['01','12']:x; });
+  if(!t.some(function(x){ return x[0]==='01'; })) t.push(['01','12']);
+  var at=-1; t.forEach(function(x,i){ if(x[0]==='53') at=i; }); t.splice(at>=0?at+1:t.length,0,['54',(Math.round(amt*100)/100).toFixed(2)]);
+  var b=t.map(function(x){ return x[0]+String(x[1].length).padStart(2,'0')+x[1]; }).join('')+'6304'; return b+ppCrc(b); }
+function ppFor(locName){ var list=PP||[], want=String(locName||'').toLowerCase();
+  var hit=list.filter(function(a){ return a.payload&&a.location&&want&&a.location.toLowerCase().indexOf(want)>=0; })[0];
+  return hit||list.filter(function(a){ return a.payload&&!a.location_id; })[0]||list.filter(function(a){ return a.payload; })[0]||null; }
+function ppNode(acc,amount){ if(!acc||!window.qrcode) return null;
+  try{ var q=window.qrcode(0,'M'); q.addData(ppWithAmount(acc.payload,amount)); q.make(); var d=h('div',{class:'qr ppqr'}); d.innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true}); return d; }catch(e){ return null; } }
+function ppBox(acc,amount){ return h('div',{class:'ppbox'},h('div',{class:'pphead'},'PromptPay ',h('b',null,thb(amount))),ppNode(acc,amount)||h('p',{class:'sub'},'The QR could not be drawn.'),
+  acc&&acc.name?h('div',{class:'sub'},'To '+acc.name.replace(/\.$/,'')+'. Check the name in your bank app before you pay.'):null); }
+/* the member pays from their phone, then taps I have paid; the desk checks the bank */
+function payPromptPay(kind,id,loc){
+  var go2=function(){ var acc=ppFor(loc); if(!acc){ toast('PromptPay is not set up yet. Pay at the front desk.'); return; }
+    sb.rpc('stripe_quote',{p_kind:kind,p_id:id}).then(must).then(function(q){
+      shopDlg(h('div',{class:'billbox'},h('h2',null,'Pay with PromptPay'),h('p',{class:'sub'},q.what),ppBox(acc,q.amount),
+        h('p',{class:'sub'},'Screenshot this, open your bank app, scan it from your photos and pay. Then tap I have paid. The front desk checks it and it shows as paid.'),
+        h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),btn('I have paid',function(){ sb.rpc('pay_claim',{p_kind:kind,p_id:id}).then(must).then(function(r){ $dlg.close(); toast(r.already?'Already sent. The front desk will check it.':'Thank you. The front desk will check it and it shows as paid soon.'); }).catch(function(e){ toast((e&&e.message)||'That did not work.'); }); },'primary')))); })
+    .catch(function(e){ toast((e&&e.message)||'That did not work.'); }); };
+  if(!PP) loadPP().then(go2); else go2();
+}
+/* the desk shows a QR for what a customer owes */
+function deskPromptPay(c){
+  var go2=function(){ var acc=ppFor('gym'); if(!acc){ toast('Add your PromptPay QR in Settings first.'); return; } var amt=customerOwes(c.id).total;
+    shopDlg(h('div',{class:'billbox'},h('h2',null,c.name+' pays with PromptPay'),ppBox(acc,amt),h('p',{class:'sub'},'Check the money arrived in the bank app, then tap Payment received.'),
+      h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),btn('Payment received',function(){ sb.rpc('pay_customer',{p_customer:c.id,p_amount:amt,p_method:'qr',p_note:null}).then(must).then(function(){ $dlg.close(); toast('Paid by PromptPay.'); return Promise.all([reload('purchases'),reload('privates')]); }).catch(function(e){ toast(errText(e)); }); },'primary')))); };
+  if(!PP) loadPP().then(go2); else go2();
+}
+var CLAIMS=null;
+function loadClaims(){ return sb.rpc('pay_claims_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(CLAIMS); CLAIMS=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); }); }
+setInterval(function(){ if(me&&allReady&&me.role!=='coach'&&me.role!=='housekeeping'&&me.role!=='kitchen'&&!CU&&document.visibilityState!=='hidden') loadClaims(); },30000);
+function claimsSection(){
+  if(!me||!CLAIMS&&!ui.claimsAsked){ if(me){ ui.claimsAsked=true; loadClaims(); } return null; }
+  if(!CLAIMS||!CLAIMS.length) return null;
+  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' '+fmtDate(c.at.slice(0,10)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
+    note:'They say they paid by PromptPay. Check the bank app first.',
+    act:[btn('Money is in',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:true}).then(must).then(function(){ return Promise.all([loadClaims(),reload('purchases'),reload('privates'),reload('stays')]); }),'Confirmed. It is marked paid.'); },'primary small'),
+      btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
+}
+function ppSettings(){
+  if(!PP){ if(!ui.ppAsked){ ui.ppAsked=true; loadPP(); } return section('PromptPay',null,h('div',{class:'panel empty'},'Loading.')); }
+  var places=[{id:null,name:'Default (used everywhere)'}].concat(SHOP&&SHOP.locations?SHOP.locations:[]);
+  function setFor(pl){
+    var file=h('input',{type:'file',accept:'image/*'}), idIn=h('input',{type:'text',placeholder:'Or type the PromptPay phone number or tax ID',inputmode:'numeric'}), nm=h('input',{type:'text',placeholder:'Account name, for example Phuket King Co., Ltd.'});
+    var cur=(PP||[]).filter(function(a){ return (a.location_id||null)===pl.id; })[0]; if(cur) nm.value=cur.name||'';
+    var err=h('p',{class:'ferr',hidden:true}), found=null, info=h('p',{class:'sub'});
+    function bad(m){ err.textContent=m; err.hidden=false; }
+    file.onchange=function(){ var f=file.files[0]; if(!f) return; info.textContent='Reading the QR...'; err.hidden=true;
+      loadJsQR().then(function(){ return createImageBitmap(f); }).then(function(img){ var c=document.createElement('canvas'), w=Math.min(1400,img.width), hh=Math.round(img.height*w/img.width); c.width=w; c.height=hh; var x=c.getContext('2d'); x.drawImage(img,0,0,w,hh);
+        var q=window.jsQR(x.getImageData(0,0,w,hh).data,w,hh); if(!q||!ppValid(q.data)){ info.textContent=''; return bad('Could not read a PromptPay QR in that photo. Try a clearer, straight photo or a screenshot from the bank app.'); }
+        found=q.data; info.textContent='PromptPay QR read. Tap Save.'; }).catch(function(){ info.textContent=''; bad('Could not open that photo.'); }); };
+    shopDlg(h('div',{class:'billbox'},h('h2',null,'PromptPay for '+pl.name),h('p',{class:'sub'},'Upload a photo or screenshot of your PromptPay QR from the bank. The app adds the amount for each payment. The money goes straight to that bank account.'),
+      field('pp-file','Photo of your PromptPay QR',file),info,field('pp-id','',idIn),field('pp-name','Name customers see',nm),err,
+      h('div',{class:'factions'},cur?btn('Remove',function(){ sb.rpc('promptpay_save',{p_location:pl.id,p_payload:'',p_name:''}).then(must).then(function(){ $dlg.close(); loadPP(); toast('Removed.'); }); },'small'):h('span'),
+        h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',function(){ var payload=found||(idIn.value?ppFromId(idIn.value):null);
+          if(!payload) return bad(idIn.value?'Type a 10 digit phone number or a 13 digit tax ID.':'Upload the QR photo, or type the PromptPay number.');
+          sb.rpc('promptpay_save',{p_location:pl.id,p_payload:payload,p_name:nm.value}).then(must).then(function(){ $dlg.close(); loadPP(); toast('PromptPay saved. Check it once with a 1 baht payment.'); }).catch(function(e){ bad(errText(e)); }); },'primary')))));
+  }
+  return section('PromptPay to your bank',null,h('div',null,h('p',{class:'sub'},'Customers pay straight into your bank account with a QR that has the amount in it. Add one for each shop, or one default for everything.'),
+    table([{label:'For',cell:function(pl){ return pl.name; }},{label:'Account',cell:function(pl){ var a=(PP||[]).filter(function(x){ return (x.location_id||null)===pl.id&&x.payload; })[0]; return a?h('span',null,chip('Set','ok'),' '+(a.name||'')):h('span',{class:'sub'},'Not set'); }},
+      {label:'',cell:function(pl){ return btn('Set up',function(){ setFor(pl); },'small'); }},
+      {label:'',cell:function(pl){ var a=(PP||[]).filter(function(x){ return (x.location_id||null)===pl.id&&x.payload; })[0]; return a?btn('Test QR, 1 THB',function(){ shopDlg(h('div',{class:'billbox'},ppBox(a,1),h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); },'primary')))); },'small'):''; }}],places,'')));
+}
+
 /* card payments with Stripe: the server works out the amount, the customer pays on Stripe's page */
 var stripeBusy=false;
 function stripePay(kind,id,label){
@@ -1633,7 +1713,7 @@ var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
 var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room']];
 function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app'})[m]||(m||''); }
 function isBoss(){ return me&&(me.role==='manager'||me.role==='resort'); }
-function loadShop(){ ui.shopBusy=true; return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
+function loadShop(){ ui.shopBusy=true; if(!PP) loadPP(); return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
   ui.shopBusy=false; if(r[0].error) throw r[0].error; SHOP=r[0].data; SALES=r[1].error?null:r[1].data; APPROVALS=r[2].error?[]:(r[2].data||[]); ui.shopErr=null; schedule(); })
   .catch(function(e){ ui.shopBusy=false; ui.shopErr=errText(e); schedule(); }); }
 function shopRefresh(){ return Promise.all([sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
@@ -1718,6 +1798,8 @@ function payDlg(method,waitingOrder){
   var total=waitingOrder?waitingOrder.total:cartSub()-cartDisc();
   if(!waitingOrder&&!cart().length){ toast('Add something first.'); return; }
   var err=h('p',{class:'ferr',role:'alert',hidden:true}), extra=[], given=null, stay=null, change=h('p',{class:'paychange'});
+  if(method==='qr'){ var acc=ppFor(locName(shopLoc())||'');
+    extra.push(acc?h('div',null,ppBox(acc,total),h('p',{class:'sub'},'The customer scans this with their bank app. Check the money is in, then tap Payment received.')):h('p',{class:'sub'},'Tip: add your PromptPay QR in Settings and the exact amount shows here as a QR.')); }
   if(method==='cash'){
     given=h('input',{id:'pay-given',type:'number',inputmode:'numeric',placeholder:String(total)});
     given.oninput=function(){ var g=Number(given.value)||0; change.textContent=g>=total?'Change: '+thb(g-total):g?'Not enough':''; };
@@ -2061,7 +2143,7 @@ function vCFood(){
   }
   return [pageHead('Food','Order from the Pangea cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id&&o.total>=20?btn('Pay by card',function(){ stripePay('order',o.id); },'primary small'):null}; }),'')):null,
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
     cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
@@ -2219,6 +2301,7 @@ function vToday(){
   return [
     pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
     h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
+    claimsSection(),
     dashTodo(),
     staffToday(false),
     section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
@@ -2273,7 +2356,7 @@ function vCustomers(){
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
       pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
-      customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
+      customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
         h('div',null,h('small',null,'Phone'),c.phone||'Not given'),h('div',null,h('small',null,'Visits'),visits.length),
@@ -2527,6 +2610,7 @@ function vSettings(){
   return [pageHead('Settings'),
     backupSection(),
     posterSection(),
+    me.role==='manager'?ppSettings():null,
     promoSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
@@ -2895,7 +2979,7 @@ function pkgCard(p){
 }
 function orderCard(p){
   return {when:p.package_name,right:thb(p.price_thb),note:'Pay by card now, or at the front desk. It is ready to use as soon as it is paid.',
-    act:[btn('Pay by card',function(){ stripePay('purchase',p.id); },'primary small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
+    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
 }
 function editMe(){
   openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'}],
@@ -2905,7 +2989,7 @@ function cuStay(){
   var st=CU.stay, lines=st.charges||[];
   var head={when:st.room,right:chip(st.status==='in'?'Staying now':'Booked',st.status==='in'?'ok':null),note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)};
   var items=[head].concat(lines.map(function(c){ return {when:c.what,right:thb(c.amount),note:fmtDate(c.day)}; }));
-  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>=20?btn('Pay by card',function(){ stripePay('stay',st.id); },'primary small'):null});
+  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card',function(){ stripePay('stay',st.id); },'small'):null]:null});
   return section('Your stay',null,cards(items,''));
 }
 function vCHome(){
@@ -2917,7 +3001,7 @@ function vCHome(){
   var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); });
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
   return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day)),
-    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'),btn('Pay by card',function(){ stripePay('customer',null); },'primary small')):null,
+    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('customer',null); },'small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
