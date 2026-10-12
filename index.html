@@ -1346,7 +1346,7 @@ function welcomeEmail(st,first){
       sb.functions.invoke('stay-email',{body:{mode:'send',stay_id:st.id,to:addr}}).then(function(r){ var x=r.data||{};
         if(r.error||x.error) throw {message:x.error||'The email did not go. Try again.'};
         $dlg.close(); toast('Welcome email sent to '+addr+'.'); reload('stays');
-      }).catch(function(e){ busy=false; sendBtn.disabled=false; sendBtn.textContent='Send'; bad(errText(e)); });
+      }).catch(function(e){ busy=false; sendBtn.disabled=false; sendBtn.textContent='Send'; var m=(e&&e.message)||'The email did not go. Try again.'; if(/not authorized to send emails from|domain is not verified|verify a domain/i.test(m)) m='The email did not go. The email service has not approved phuketking.com yet. In Resend, open Domains and check phuketking.com shows Verified, and that the API key is allowed to send from it. Then try again.'; bad(m); });
     },'primary');
     shopDlg(h('div',{class:'billbox'},h('h2',null,first?'Send the welcome email?':'Welcome email'),
       h('p',{class:'sub'},'Welcome, room, dates, receipt, useful info and extras they can add. '+(d.sent_at?'Already sent '+new Date(d.sent_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. ':'')+'Change the wording in Settings, Welcome email.'),
