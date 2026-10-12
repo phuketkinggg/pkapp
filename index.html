@@ -21,17 +21,18 @@
   --bg:#F3F1EA; --surface:#FFFFFF; --sunken:#E9E6DB; --ink:#101311; --muted:#5A605B; --line:#D9D5C8;
   --gold:#B88A44; --gold-ink:#7A5720; --btn-bg:#101311; --btn-fg:#F2EFE7;
   --ok:#1F6B4A; --warn:#7D5200; --bad:#A3312A; --ok-bg:#DDEFE5; --warn-bg:#F6E7C4; --bad-bg:#F6DCD8;
+  --z-gym:#2a78d6; --z-spa:#eb6834; --z-cafe:#1baf7a; --z-resort:#eda100;
   --display:'Barlow Condensed','Arial Narrow',sans-serif;
   --body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#101311; --surface:#1A1E1B; --sunken:#151916; --ink:#F2EFE7; --muted:#A9AEA8; --line:#2E3430;
   --gold:#B88A44; --gold-ink:#CFA35C; --btn-bg:#B88A44; --btn-fg:#101311;
-  --ok:#8FD1AE; --warn:#E3BE7E; --bad:#F0A19A; --ok-bg:#16332A; --warn-bg:#3A2E14; --bad-bg:#3F1F1C; color-scheme:dark } }
+  --ok:#8FD1AE; --warn:#E3BE7E; --bad:#F0A19A; --ok-bg:#16332A; --warn-bg:#3A2E14; --bad-bg:#3F1F1C; --z-gym:#3987e5; --z-spa:#d95926; --z-cafe:#199e70; --z-resort:#c98500; color-scheme:dark } }
 :root[data-theme="dark"]{
   --bg:#101311; --surface:#1A1E1B; --sunken:#151916; --ink:#F2EFE7; --muted:#A9AEA8; --line:#2E3430;
   --gold:#B88A44; --gold-ink:#CFA35C; --btn-bg:#B88A44; --btn-fg:#101311;
-  --ok:#8FD1AE; --warn:#E3BE7E; --bad:#F0A19A; --ok-bg:#16332A; --warn-bg:#3A2E14; --bad-bg:#3F1F1C; color-scheme:dark }
+  --ok:#8FD1AE; --warn:#E3BE7E; --bad:#F0A19A; --ok-bg:#16332A; --warn-bg:#3A2E14; --bad-bg:#3F1F1C; --z-gym:#3987e5; --z-spa:#d95926; --z-cafe:#199e70; --z-resort:#c98500; color-scheme:dark }
 html,body{height:100%}
 body{margin:0}
 [hidden]{display:none!important}
@@ -163,6 +164,17 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .ppbox .qr{width:min(280px,80vw);background:#fff;padding:8px;border-radius:12px}
 .pphead{font-size:18px}
 .owebox{align-items:center;flex-wrap:wrap;gap:10px}
+.invchart{width:100%;height:auto;display:block}
+.invchart .ax{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.invchart .grid{stroke:var(--line);stroke-width:1}
+.zkey{display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:13px;color:var(--ink)}
+.zkey i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.kpi b{display:block;font-family:var(--display);font-size:28px;line-height:1.1;margin-top:4px}
+.kpi span{font-size:12px;color:var(--muted)}
+.invtip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:8px;z-index:50;white-space:nowrap}
 .qtybtn{min-width:44px;font-weight:700;text-decoration:underline dotted}
 .cl-amt{text-align:right;font-variant-numeric:tabular-nums}
 .carttot div{display:flex;justify-content:space-between}
@@ -471,13 +483,13 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
 var TIERS={train:'Train',progress:'Progress',pangea:'Pangea'};
 var GROUPS={standard:'Standard',local:'Local resident',thai:'Thai'};
-var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping',kitchen:'Kitchen'};
+var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping',kitchen:'Kitchen',investor:'Investor'};
 var PSTATUS={requested:'Requested',confirmed:'Confirmed',done:'Done',cancelled:'Cancelled'};
 var ui={tab:'today',q:'',cq:'',customerId:null,target:'',targetAuto:true,pfilter:'upcoming',coachId:'',month:ymd(new Date()).slice(0,7)};
 var $view=document.getElementById('view'), $nav=document.getElementById('nav'), $dlg=document.getElementById('dlg'), $toast=document.getElementById('toast'), $banner=document.getElementById('banner'), $who=document.getElementById('who');
@@ -625,7 +637,8 @@ function editStaff(s){ s=s||{};
   openForm({title:s.id?'Edit staff member':'New staff member',values:s,fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
-    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['manager','Manager']]},
+    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['investor','Investor: sees the numbers only, for the parts you tick below'],['manager','Manager']]},
+    {key:'investor_zones',label:'Investor can see',type:'checks',options:[['gym','Gym'],['spa','Spa'],['cafe','Cafe'],['resort','Resort']],hint:'Only for investors. They see totals and numbers, never customer names.'},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches.'},
     {key:'phone',label:'Phone'},
     {key:'active',label:'Working here now',type:'checkbox',def:true}],
@@ -1416,7 +1429,7 @@ var CHT={
   my:{tab:'မက်ဆေ့ချ်',newMsg:'မက်ဆေ့ချ်အသစ်',staff:'ဝန်ထမ်းထံ',cust:'ဧည့်သည်ထံ',send:'ပို့ရန်',back:'နောက်သို့',type:'စာရိုက်ပါ',none:'မက်ဆေ့ချ် မရှိသေးပါ',empty:'ဤချက်တွင် စာမရှိသေးပါ',who:'မည်သူ့ထံ'},
   en:{tab:'Messages',newMsg:'New message',staff:'Message staff',cust:'Message a customer',send:'Send',back:'Back',type:'Type a message',none:'No messages yet.',empty:'No messages in this chat yet. Say hello.',who:'Who to'}};
 function M(k){ var l=me&&me.role==='coach'?coLang():me&&me.role==='housekeeping'?hkLang():'en'; return (CHT[l]||CHT.en)[k]||CHT.en[k]; }
-function chatOn(){ return !!(me&&allReady&&!document.body.classList.contains('kiosk')); }
+function chatOn(){ if(me&&me.role==='investor') return false; return !!(me&&allReady&&!document.body.classList.contains('kiosk')); }
 function chatRefresh(){
   if(!chatOn()||CHAT.busy) return Promise.resolve();
   CHAT.busy=true;
@@ -2270,6 +2283,74 @@ function dashHk(){
 }
 
 
+
+/* investor portal: totals only, for the parts of the business the investor can see */
+var INV=null, ZONES=[['gym','Gym'],['spa','Spa'],['cafe','Cafe'],['resort','Resort']];
+function zoneName(z){ var x=ZONES.filter(function(q){ return q[0]===z; })[0]; return x?x[1]:z; }
+function invRange(){ var t=ymd(new Date()), r=ui.invRange||'month', m0=t.slice(0,8)+'01';
+  if(r==='last'){ var e=addDays(m0,-1); return [e.slice(0,8)+'01',e]; }
+  if(r==='ytd') return [t.slice(0,5)+'01-01',t];
+  if(r==='12m') return [addDays(t,-364),t];
+  if(r==='30d') return [addDays(t,-29),t];
+  return [m0,t]; }
+function loadInv(){ var rg=invRange(); ui.invBusy=true;
+  sb.rpc('investor_dashboard',{p_from:rg[0],p_to:rg[1],p_zones:ui.invZones&&ui.invZones.length?ui.invZones:null}).then(must).then(function(d){ INV=d; ui.invBusy=false; ui.invErr=null; schedule(); })
+    .catch(function(e){ ui.invBusy=false; ui.invErr=errText(e); schedule(); }); }
+function kpi(label,value,sub){ return h('div',{class:'kpi'},h('small',null,label),h('b',null,value),sub?h('span',null,sub):null); }
+function invChart(rows,zones){
+  var months=[], t=new Date(); for(var i=11;i>=0;i--){ var d=new Date(t.getFullYear(),t.getMonth()-i,1); months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  var val={}; rows.forEach(function(r){ (val[r.month]=val[r.month]||{})[r.zone]=r.amount; });
+  var tot=months.map(function(m){ return zones.reduce(function(s,z){ return s+((val[m]||{})[z]||0); },0); }), max=Math.max.apply(null,tot.concat([1]));
+  var step=Math.pow(10,Math.floor(Math.log10(max))), nice=Math.ceil(max/step)*step;
+  var W=720,H=260,L=56,B=26,T=10,cw=(W-L-8)/12,bw=Math.min(36,cw-10);
+  var svg='<svg class="invchart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Revenue by month">';
+  for(var g=0;g<=4;g++){ var y=T+(H-T-B)*(1-g/4), v=nice*g/4; svg+='<line class="grid" x1="'+L+'" x2="'+(W-4)+'" y1="'+y+'" y2="'+y+'"/><text class="ax" x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end">'+(v>=1000?Math.round(v/1000)+'k':v)+'</text>'; }
+  months.forEach(function(m,i){ var x=L+i*cw+(cw-bw)/2, y0=H-B, segs=zones.filter(function(z){ return (val[m]||{})[z]; });
+    segs.forEach(function(z,j){ var v=val[m][z], hgt=(H-T-B)*v/nice, y=y0-hgt, last=j===segs.length-1;
+      var gap=j>0?2:0, hh=Math.max(0,hgt-gap);
+      svg+=last?'<path data-tip="'+zoneName(z)+', '+m+': '+thb(Math.round(v))+'" fill="var(--z-'+z+')" d="M'+x+' '+(y+hh+0)+'V'+(y+4)+'q0 -4 4 -4h'+(bw-8)+'q4 0 4 4V'+(y+hh)+'z" transform="translate(0,0)"/>'
+        :'<rect data-tip="'+zoneName(z)+', '+m+': '+thb(Math.round(v))+'" fill="var(--z-'+z+')" x="'+x+'" y="'+y+'" width="'+bw+'" height="'+hh+'"/>';
+      y0=y; });
+    var lbl=new Date(m+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short'});
+    svg+='<text class="ax" x="'+(x+bw/2)+'" y="'+(H-8)+'" text-anchor="middle">'+lbl+'</text>'; });
+  svg+='</svg>';
+  var box=h('div',null); box.innerHTML=svg;
+  var tip=null; box.addEventListener('mousemove',function(e){ var t2=e.target&&e.target.getAttribute&&e.target.getAttribute('data-tip');
+    if(!t2){ if(tip){ tip.remove(); tip=null; } return; } if(!tip){ tip=h('div',{class:'invtip'}); document.body.appendChild(tip); } tip.textContent=t2; tip.style.left=(e.clientX+12)+'px'; tip.style.top=(e.clientY-28)+'px'; });
+  box.addEventListener('mouseleave',function(){ if(tip){ tip.remove(); tip=null; } });
+  return h('div',null,h('div',null,zones.map(function(z){ return h('span',{class:'zkey'},h('i',{style:'background:var(--z-'+z+')'}),zoneName(z)); })),box,
+    h('details',null,h('summary',{class:'sub'},'Show as a table'),table([{label:'Month',cell:function(m){ return m; }}].concat(zones.map(function(z){ return {label:zoneName(z),num:true,cell:function(m){ return thb(Math.round((val[m]||{})[z]||0))||''; }}; })).concat([{label:'Total',num:true,cell:function(m){ return h('b',null,thb(Math.round(zones.reduce(function(s,z){ return s+((val[m]||{})[z]||0); },0)))||'0 THB'); }}]),months.slice().reverse(),'')));
+}
+function vInvestor(){
+  if(!INV&&!ui.invBusy&&!ui.invErr) loadInv();
+  var allowed=INV?INV.allowed:[], sel=INV?INV.zones:[];
+  var rg=invRange();
+  var ranges=h('div',{class:'row wrap'},[['month','This month'],['last','Last month'],['30d','Last 30 days'],['ytd','This year'],['12m','Last 12 months']].map(function(x){
+    return btn(x[1],function(){ ui.invRange=x[0]; INV=null; schedule(); },(ui.invRange||'month')===x[0]?'primary small':'small'); }));
+  var chips=h('div',{class:'row wrap'},allowed.length>1?[btn('All',function(){ ui.invZones=null; INV=null; schedule(); },!ui.invZones||!ui.invZones.length?'primary small':'small')].concat(allowed.map(function(z){
+    var on=ui.invZones&&ui.invZones.indexOf(z)>=0; return btn(zoneName(z),function(){ var cur=(ui.invZones||[]).slice(); var i=cur.indexOf(z); if(i>=0) cur.splice(i,1); else cur.push(z); ui.invZones=cur.length?cur:null; INV=null; schedule(); },on?'primary small':'small'); })):null);
+  var head=pageHead(me.role==='investor'?'Overview':'Investor view',fmtDate(rg[0])+' to '+fmtDate(rg[1])+(me.role==='manager'?'. This is what an investor sees. Choose what each investor can see on the Staff page.':''));
+  if(!INV) return [head,ranges,h('div',{class:'panel empty'},ui.invErr||'Loading.')];
+  if(!allowed.length) return [head,h('div',{class:'panel empty'},'Nothing has been shared with you yet. Ask Tom.')];
+  var rev=INV.revenue||{}, total=sel.reduce(function(s,z){ return s+(rev[z]||0); },0), prev=INV.revenue_prev||0;
+  var change=prev?Math.round((total-prev)/prev*100):null;
+  var out=[head,ranges,chips,
+    h('div',{class:'kpis'},kpi('Revenue',thb(total)||'0 THB',change==null?null:(change>=0?'Up ':'Down ')+Math.abs(change)+'% on the period before'),
+      sel.map(function(z){ return kpi(zoneName(z),thb(rev[z]||0)||'0 THB',total?Math.round((rev[z]||0)/total*100)+'% of revenue':null); })),
+    section('Revenue by month',null,h('div',{class:'panel pad'},invChart(INV.by_month||[],sel)))];
+  if(INV.gym){ var g=INV.gym, nd=Math.max(1,Math.round((parseYmd(rg[1])-parseYmd(rg[0]))/864e5)+1);
+    out.push(section('Gym',null,h('div',{class:'kpis'},kpi('Class check ins',String(g.checkins),Math.round(g.checkins/nd*10)/10+' a day'),kpi('People training',String(g.visitors)),
+      kpi('Active packages',String(g.active_packages)),kpi('Packages sold',String(g.packages_sold)),kpi('Privates done',String(g.privates)),kpi('New customers',String(g.new_customers))))); }
+  if(INV.spa) out.push(section('Spa',null,h('div',{class:'kpis'},kpi('Spa visits',String(INV.spa.visits)),kpi('Spa revenue',thb(rev.spa||0)||'0 THB'))));
+  if(INV.cafe){ var c=INV.cafe; out.push(section('Cafe',null,h('div',null,h('div',{class:'kpis'},kpi('Orders',String(c.orders)),kpi('Average order',thb(c.avg)||'0 THB'),kpi('Ordered in the app',String(c.app_orders))),
+    c.top&&c.top.length?h('p',{class:'sub'},'Best sellers: '+c.top.map(function(x){ return x.qty+' '+x.name; }).join(', ')+'.'):null))); }
+  if(INV.resort){ var r=INV.resort; out.push(section('Resort',null,h('div',{class:'kpis'},kpi('Occupancy',(r.occupancy==null?'0':r.occupancy)+'%',r.nights_sold+' of '+r.nights_available+' room nights'),kpi('Average room rate',thb(r.adr||0)||'0 THB','per night'),
+    kpi('Room revenue',thb(r.room_revenue)||'0 THB'),kpi('Guests',String(r.guests)),kpi('Rooms',String(r.rooms))))); }
+  if(INV.staff&&INV.staff.length) out.push(section('Staff',null,table([{label:'Team',cell:function(x){ return ROLES[x.role]||x.role; }},{label:'People',num:true,cell:function(x){ return String(x.people); }},{label:'Hours worked',num:true,cell:function(x){ return String(x.hours); }}],INV.staff,'')));
+  out.push(h('p',{class:'sub'},'Revenue is money taken: shop and cafe sales, packages and privates when paid, rooms by the nights stayed, and room bill extras. Hours come from staff check ins. No customer names are shown.'));
+  return out;
+}
+
 /* staff today: who is in, who is out, who is late or missed */
 var BOARD=null;
 function loadBoard(){ var d=ymd(new Date()); return sb.rpc('staff_hours',{p_from:d,p_to:d}).then(function(r){ if(r.error) return; var ch=JSON.stringify(r.data)!==JSON.stringify(BOARD); BOARD=r.data; if(ch&&!document.querySelector('dialog[open]')) schedule(); }); }
@@ -2704,7 +2785,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -2728,7 +2809,7 @@ var SB_URL='https://jijnshwduhgegacfvpkh.supabase.co', SB_KEY='sb_publishable_Y-
 var sb=null, me=null, currentUser=null, lastLoad=0;
 var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit']},
-  staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active']},
+  staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
@@ -3369,7 +3450,7 @@ function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','c
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -3398,7 +3479,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -3565,6 +3646,7 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
+    if(row.role==='investor'){ document.getElementById('mode').textContent='Investors'; me=row; db=makeDb(); TABS=[['investor','Overview']]; ui.tab='investor'; allReady=true; schedule(); return; }
     if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen'],['clock','Clock']]; ui.tab=staffCodeOk()?'clock':'kitchen'; allReady=true; schedule(); return loadKitchen(); }
     if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
     if(row.role==='coach'){ me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
