@@ -732,23 +732,29 @@ function editPrivate(p){ p=p||{};
   var first=src.filter(function(x){ return /^direct$/i.test(x.name); })[0]||src[0], cid0=p.customer_id||(cs.filter(function(c){ return !c.is_agency; })[0]||cs[0]).id;
   function groupOf(cid){ var c=byId('customers',cid); return (c&&c.price_group)||'standard'; }
   function reprice(set,get){
-    var pack=byId('purchases',get('purchase_id')); if(pack){ set('price_thb',perSession(pack)); return; }
+    var pack=byId('purchases',get('purchase_id')); if(pack){ set('price_thb',perSession(pack)); set('pack_note',packLine(pack)); return; }
+    set('pack_note','');
     var sr=byId('sources',get('source_id')); if(!sr) return;
     var pr=srcPrice(sr,groupOf(get('customer_id'))); if(pr==null) pr=lastPrivatePrice(sr.id,p.id);
     set('price_thb',pr);
   }
+  function packLine(k){ return thb(k.price_thb)+' for '+k.class_limit+' sessions = '+thb(perSession(k))+' each. The coach share comes from '+thb(perSession(k))+'.'; }
+  function firstPack(cid){ var o=packOpts(cid,p); return o.length>1?o[1][0]:''; }
+  var pk0=p.id?(p.purchase_id||''):firstPack(cid0), pack0=byId('purchases',pk0);
+  if(!p.id&&pack0){ p=Object.assign({},p,{purchase_id:pk0,price_thb:perSession(pack0)}); }
   function agencySource(cid){ var c=byId('customers',cid); if(!c||!c.is_agency) return null; return S.sources.filter(function(x){ return x.name.toLowerCase()===String(c.name).toLowerCase(); })[0]||null; }
   openForm({title:p.id?'Edit private':'Book a private',values:p,fields:[
     {key:'customer_id',label:'Customer',type:'select',options:cs.map(function(c){ return [c.id,c.is_agency?c.name+' guest (agency)':c.name]; }),def:(cs.filter(function(c){ return !c.is_agency; })[0]||cs[0]).id,
       hint:'For a one time agency booking, pick the agency and type the guest name below.',
-      onChange:function(v,set,get,setOpts){ setOpts('purchase_id',packOpts(v,p)); var a=agencySource(v); if(a) set('source_id',a.id); reprice(set,get); }},
+      onChange:function(v,set,get,setOpts){ setOpts('purchase_id',packOpts(v,p)); set('purchase_id',firstPack(v)); var a=agencySource(v); if(a) set('source_id',a.id); reprice(set,get); }},
     {key:'guest_name',label:'Guest name',hint:'Optional. The person training, if you know it. Coaches see it.'},
     {key:'coach_id',label:'Coach',type:'select',options:opts(ch),def:ch[0].id},
     {key:'date',label:'Date',type:'date',def:ymd(new Date()),required:true},
     {key:'time',label:'Start time',type:'time',required:true},
     {key:'purchase_id',label:'Paid with',type:'select',options:packOpts(cid0,p),def:'',onChange:function(v,set,get){ reprice(set,get); }},
     {key:'source_id',label:'Where the booking came from',type:'select',options:opts(src,'Other'),def:first?first.id:'',onChange:function(v,set,get){ reprice(set,get); }},
-    {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first?srcPrice(first,groupOf(cid0)):null,hint:'After any agency fee. With a pack it is the pack price divided by its sessions. Coaches never see this, only their share.'},
+    {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first?srcPrice(first,groupOf(cid0)):null,hint:'After any agency fee. With a pack it is worked out for you: the pack price divided by its sessions. Coaches never see this, only their share.'},
+    {key:'pack_note',label:'From the pack',readonly:true,def:pack0?packLine(pack0):''},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
     {key:'notes',label:'Notes',type:'textarea'}],
@@ -758,8 +764,8 @@ function editPrivate(p){ p=p||{};
         if(!pack||pack.customer_id!==v.customer_id) return 'That pack belongs to a different customer.';
         if(v.status!=='cancelled'&&pack.class_limit-packUsed(pack,p.id)<=0) return 'That pack has no sessions left.';
         if(v.status!=='cancelled'&&pack.expires_on&&v.date>pack.expires_on) return 'That pack expired on '+fmtDate(pack.expires_on)+'. Book a date before then.'; }
-      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v);
-      if(v.purchase_id) body.paid=true;
+      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); delete body.pack_note;
+      if(v.purchase_id){ body.paid=true; var pk=byId('purchases',v.purchase_id); if(pk) body.price_thb=perSession(pk); }
       body.guest_name=v.guest_name||null;
       if(p.id&&(p.date!==v.date||p.time!==v.time)) delete body.reschedule;
       if(body.coach_pct==null||p.coach_id!==v.coach_id) body.coach_pct=coach&&coach.commission_pct!=null?coach.commission_pct:50;
