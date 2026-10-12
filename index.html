@@ -155,6 +155,10 @@ body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{d
 .tillbtn.low{border-color:var(--bad,#c0392b)}
 .tillbtn.low small{color:var(--bad,#c0392b);font-weight:700}
 .btn.warnbtn{border-color:var(--bad);color:var(--bad);background:var(--bad-bg)}
+.pwwrap{position:relative;display:block}
+.pwwrap input{width:100%;padding-right:70px}
+.pwshow{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:600;padding:6px 8px;cursor:pointer;text-decoration:underline}
+.subhead{margin:28px 0 4px;font-size:18px}
 .qtybtn{min-width:44px;font-weight:700;text-decoration:underline dotted}
 .cl-amt{text-align:right;font-variant-numeric:tabular-nums}
 .carttot div{display:flex;justify-content:space-between}
@@ -643,37 +647,37 @@ function sellPackage(c){
   function reprice(set,get,show){ var pk=byId('packages',get('package_id')); if(!pk) return; var t=tiersFor(pk,group);
     if(show){ show('qty',!!t); show('tiernote',!!t); }
     if(t){ var q=get('qty'); if(!q){ q=qtyDef(pk); set('qty',q); } set('tiernote',tiersLine(t)+'. '+q+' x '+thb(tierUnit(t,q))); }
-    set('price_thb',total(pk,get('fz'),t?get('qty'):1)); }
+    set('price_thb',total(pk,get('fz'),t?get('qty'):1)); set('paid_now',get('price_thb')); }
   var t0=tiersFor(list[0],group), q0=t0?qtyDef(list[0]):null;
-  openForm({title:'Sell a package to '+c.name+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:{price_thb:total(list[0],false,q0||1),qty:q0,tiernote:t0?tiersLine(t0)+'. '+q0+' x '+thb(tierUnit(t0,q0)):''},fields:[
+  openForm({title:'Sell a package to '+c.name+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:{price_thb:total(list[0],false,q0||1),paid_now:total(list[0],false,q0||1),qty:q0,tiernote:t0?tiersLine(t0)+'. '+q0+' x '+thb(tierUnit(t0,q0)):''},fields:[
     {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get,o,show){ set('qty',null); reprice(set,get,show); }},
     {key:'qty',label:'How many',type:'number',hide:!t0,onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'tiernote',label:'Price for each',hide:!t0,readonly:true},
     {key:'fz',label:'Add Fitness Zone access (the add-on price set on the package)',type:'checkbox',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
-    {key:'price_thb',label:'Price charged (THB)',type:'number',required:true},
+    {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set){ set('paid_now',v); }},
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS},
-    {key:'paid',label:'Payment received',type:'checkbox',def:true}],
+    {key:'paid_now',label:'Amount paid now (THB)',type:'number',hint:'If they pay part now, type what they paid. The rest shows as owed and they pay it later with Take payment.'},
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS}],
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
+      var paidNow=v.paid_now==null?Number(v.price_thb)||0:Math.round(v.paid_now); if(paidNow<0||paidNow>Number(v.price_thb)) return 'The amount paid now must be between 0 and the price.';
       var tt=tiersFor(pk,group), q=tt?Math.round(v.qty||0):null; if(tt&&(q<1||q>200)) return 'Type how many, 1 to 200.';
       var lim=tt?q:(pk.class_limit||null), nm=pk.name+(tt?', '+q+(pk.covers&&pk.covers.indexOf('Privates')>=0?' sessions':' visits'):'');
       if(v.fz&&addonFor(pk,group)==null) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
       var covers=pk.covers?pk.covers.slice():null; if(v.fz&&covers) ['Fitness zone','Open gym'].forEach(function(f){ if(covers.indexOf(f)<0) covers.push(f); });
-      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':''),price_thb:v.price_thb,price_group:group,paid:v.paid,method:v.method,purchased_on:v.purchased_on,
+      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':''),price_thb:v.price_thb,price_group:group,paid:false,paid_thb:paidNow,method:v.method,purchased_on:v.purchased_on,
         covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:pk.duration_days||null,
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
-      return save('purchases',null,p); }});
+      return save('purchases',null,p).then(function(){ return reload('purchases'); }).then(function(){ var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast('Sold. '+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
 }
 function editPurchase(p){
   openForm({title:'Edit '+(p.package_name||'package'),values:p,fields:[
-    {key:'price_thb',label:'Price charged (THB)',type:'number'},
-    {key:'paid',label:'Payment received',type:'checkbox'},
+    {key:'price_thb',label:'Price charged (THB)',type:'number',hint:'Paid so far: '+(thb(p.paid_thb)||'0 THB')+'. To add money they paid, use Take payment on the customer.'},
     {key:'classes_left',label:'Classes left',type:'number',hint:'Only for packages with a set number of classes.'},
     {key:'starts_on',label:'Started on',type:'date'},
     {key:'expires_on',label:'Expires on',type:'date'},
     {key:'cancelled',label:'Cancelled',type:'checkbox'}],
-    onSave:function(v){ var body=Object.assign({},p,v); body.starts_on=v.starts_on||null; body.expires_on=v.expires_on||null; return save('purchases',p.id,body); },
+    onSave:function(v){ var body=Object.assign({},p,v); delete body.paid; delete body.paid_thb; body.starts_on=v.starts_on||null; body.expires_on=v.expires_on||null; return save('purchases',p.id,body); },
     onDelete:function(){ return db.doc('purchases/'+p.id).delete(); }});
 }
 function editClass(c){ c=c||{};
@@ -757,8 +761,12 @@ function editPrivate(p){ p=p||{};
     {key:'pack_note',label:'From the pack',readonly:true,def:pack0?packLine(pack0):''},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
+    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR']])},
     {key:'notes',label:'Notes',type:'textarea'}],
     onSave:function(v){
+      var today=ymd(new Date());
+      if(v.date<today&&(!p.id||p.date!==v.date)&&me.role!=='manager') return 'Only a manager can add a private on a past date.';
+      if(!p.id&&v.date<today&&v.status==='confirmed') v.status='done';
       if(v.status!=='cancelled'){ var busy=coachBusy(v.coach_id,v.date,v.time,p.id); if(busy) return busy; }
       if(v.purchase_id){ var pack=byId('purchases',v.purchase_id);
         if(!pack||pack.customer_id!==v.customer_id) return 'That pack belongs to a different customer.';
@@ -873,6 +881,32 @@ function undoCheckIn(e){
 }
 function unpaidOrder(p){ return !!(p.ordered_in_app&&!p.paid&&!p.cancelled); }
 var PAYOPTS=[['cash','Cash'],['card','Card or Stripe link'],['transfer','Bank transfer or PromptPay'],['agent','Paid through an agent']];
+function owedOf(p){ return p.cancelled?0:Math.max(0,(Number(p.price_thb)||0)-(Number(p.paid_thb)||0)); }
+function customerOwes(cid){ var a=S.purchases.filter(function(p){ return p.customer_id===cid; }).reduce(function(t,p){ return t+owedOf(p); },0);
+  var b=S.privates.filter(function(x){ return x.customer_id===cid&&!x.purchase_id&&!x.paid&&x.status!=='cancelled'&&Number(x.price_thb)>0; }).reduce(function(t,x){ return t+Number(x.price_thb); },0);
+  return {packages:a,privates:b,total:a+b}; }
+function pastCheckIn(c){
+  var today=ymd(new Date()), y=addDays(today,-1);
+  function targetsFor(d){ var wd=(parseYmd(d).getDay()+6)%7;
+    return sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,d); }),'time').map(function(k){ return ['c:'+k.id,(k.time?k.time+' ':'')+k.title]; })
+      .concat(FACILITIES.map(function(f){ return ['f:'+f,f]; })); }
+  var t0=targetsFor(y);
+  openForm({title:'Check '+c.name+' in for a past day',note:'For a class they did but did not check in for. The right package is used, with its visits and weekly limit for that day.',saveLabel:'Check in',doneMsg:'Checked in.',
+    values:{day:y},fields:[
+    {key:'day',label:'Day',type:'date',required:true,onChange:function(v,set,get,setOpts){ if(v) setOpts('target',targetsFor(v)); }},
+    {key:'target',label:'Class',type:'select',options:t0,def:t0[0]?t0[0][0]:''}],
+    onSave:function(v){ if(!v.day||v.day>today) return 'Choose a day that has passed, or today.'; if(!v.target) return 'Choose the class.';
+      var cls=v.target.slice(0,2)==='c:'?v.target.slice(2):null, fac=v.target.slice(0,2)==='f:'?v.target.slice(2):null;
+      return sb.rpc('check_in_past',{p_customer:c.id,p_day:v.day,p_class:cls,p_facility:fac,p_purchase:null}).then(must).then(function(r){
+        setTimeout(function(){ toast('Checked in for '+fmtDate(v.day)+' with '+r.package+'.'); },50); return Promise.all([reload('purchases'),reload('checkin_days')]); }); }});
+}
+function payCustomer(c){
+  var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
+  openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
+    values:{amount:o.total},fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true},{key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR']])},{key:'note',label:'Note',hint:'Optional.'}],
+    onSave:function(v){ var a=Math.round(v.amount||0); if(a<=0) return 'Type the amount paid.'; if(a>o.total) return 'That is more than they owe ('+thb(o.total)+').';
+      return sb.rpc('pay_customer',{p_customer:c.id,p_amount:a,p_method:v.method,p_note:v.note||null}).then(must).then(function(){ return Promise.all([reload('purchases'),reload('privates')]); }).then(function(){ var n=customerOwes(c.id).total; setTimeout(function(){ toast(n?'Paid '+thb(a)+'. Still owes '+thb(n)+'.':'Paid in full.'); },50); }); }});
+}
 function takePayment(p){
   openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(p.price_thb)+'.',saveLabel:'Payment received',doneMsg:'Paid. The package is ready to use.',fields:[
     {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS}],
@@ -1440,6 +1474,16 @@ function editFight(f,focusResult){
 }
 
 
+/* show password: every password box gets a Show button */
+function addPwToggle(inp){
+  if(inp.dataset.pw) return; inp.dataset.pw='1';
+  var wrap=h('span',{class:'pwwrap'}), b=h('button',{type:'button',class:'pwshow','aria-label':'Show password'},'Show');
+  b.addEventListener('click',function(){ var hide=inp.type==='password'; inp.type=hide?'text':'password'; b.textContent=hide?'Hide':'Show'; b.setAttribute('aria-label',hide?'Hide password':'Show password'); inp.focus(); });
+  inp.parentNode.insertBefore(wrap,inp); wrap.appendChild(inp); wrap.appendChild(b);
+}
+function scanPw(root){ (root||document).querySelectorAll('input[type=password]:not([data-pw])').forEach(addPwToggle); }
+if(window.MutationObserver) new MutationObserver(function(){ scanPw(); }).observe(document.documentElement,{childList:true,subtree:true});
+
 /* ---------- staff time clock: scan the office QR, then clock in and out ---------- */
 var CLOCK=null, STAFFCODE=null, HOURS=null;
 var KTX={
@@ -1493,7 +1537,6 @@ function vClock(){
 /* manager: staff hours */
 function mins(a,b){ return Math.max(0,Math.round((new Date(b)-new Date(a))/60000)); }
 function hm(m){ return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'; }
-function weekStart(d){ var x=parseYmd(d), wd=(x.getDay()+6)%7; return addDays(d,-wd); }
 function loadHours(){ var f=ui.hFrom||weekStart(ymd(new Date())), t=ui.hTo||ymd(new Date()); ui.hBusy=true;
   return sb.rpc('staff_hours',{p_from:f,p_to:t}).then(must).then(function(d){ HOURS=d; ui.hBusy=false; schedule(); }).catch(function(e){ ui.hBusy=false; toast(errText(e)); }); }
 function editHours(e,pre){
@@ -1561,7 +1604,7 @@ function vHours(){
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
 var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
 var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room']];
-function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:(m||''); }
+function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app'})[m]||(m||''); }
 function isBoss(){ return me&&(me.role==='manager'||me.role==='resort'); }
 function loadShop(){ ui.shopBusy=true; return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
   ui.shopBusy=false; if(r[0].error) throw r[0].error; SHOP=r[0].data; SALES=r[1].error?null:r[1].data; APPROVALS=r[2].error?[]:(r[2].data||[]); ui.shopErr=null; schedule(); })
@@ -1824,9 +1867,9 @@ function vStock(){
 }
 function vReport(){
   var r=ui.report;
-  if(!r){ var f=ui.repFrom||ymd(new Date()), t=ui.repTo||f; Promise.all([sb.rpc('shop_sales',{p_from:f,p_to:t}).then(must),sb.rpc('shop_shifts_list',{p_from:f,p_to:t}).then(must)]).then(function(d){ ui.report=d[0]; ui.report.shifts=d[1]||[]; schedule(); }).catch(function(e){ toast(errText(e)); }); }
+  if(!r&&!ui.repBusy){ ui.repBusy=true; var f=ui.repFrom||ymd(new Date()), t=ui.repTo||f; Promise.all([sb.rpc('shop_sales',{p_from:f,p_to:t}).then(must),sb.rpc('shop_shifts_list',{p_from:f,p_to:t}).then(must),sb.rpc('money_in',{p_from:f,p_to:t}).then(must)]).then(function(d){ ui.repBusy=false; ui.report=d[0]; ui.report.shifts=d[1]||[]; ui.report.money=d[2]||{payments:[],owed:0}; schedule(); }).catch(function(e){ ui.repBusy=false; toast(errText(e)); }); }
   var rl=ui.repLoc||'';
-  if(r&&rl){ r=Object.assign({},r); r.orders=r.orders.filter(function(o){ return o.location_id===rl; }); r.shifts=(r.shifts||[]).filter(function(x){ return x.location_id===rl; }); }
+  if(r&&rl){ r=Object.assign({},r); r.orders=r.orders.filter(function(o){ return o.location_id===rl; }); r.shifts=(r.shifts||[]).filter(function(x){ return x.location_id===rl; }); r.money=Object.assign({},r.money,{payments:(r.money.payments||[]).filter(function(x){ return x.location_id===rl; })}); }
   if(r){ var bm={}, tp={}; r.orders.forEach(function(o){ if(o.status!=='paid'&&o.status!=='room') return; bm[o.method]=(bm[o.method]||0)+o.total;
       (o.items||[]).forEach(function(i){ var x=tp[i.name]||(tp[i.name]={name:i.name,qty:0,total:0}); x.qty+=i.qty; x.total+=i.qty*(i.price||0); }); });
     r.by_method=bm; r.top=Object.keys(tp).map(function(k){ return tp[k]; }).sort(function(a,b){ return b.total-a.total; }).slice(0,15);
@@ -1835,9 +1878,34 @@ function vReport(){
   var from=h('input',{type:'date',value:ui.repFrom||ymd(new Date()),onchange:function(e){ ui.repFrom=e.target.value; ui.report=null; schedule(); }});
   var to=h('input',{type:'date',value:ui.repTo||ui.repFrom||ymd(new Date()),onchange:function(e){ ui.repTo=e.target.value; ui.report=null; schedule(); }});
   var orders=r?r.orders:[], paid=orders.filter(function(o){ return o.status==='paid'||o.status==='room'; });
+  var today=ymd(new Date()), mStart=today.slice(0,8)+'01', lmEnd=addDays(mStart,-1), lmStart=lmEnd.slice(0,8)+'01';
+  function setRange(a,b){ ui.repFrom=a; ui.repTo=b; ui.report=null; schedule(); }
+  var ranges=h('div',{class:'row wrap'},[['Today',today,today],['Yesterday',addDays(today,-1),addDays(today,-1)],['This week',weekStart(today),today],['This month',mStart,today],['Last month',lmStart,lmEnd]].map(function(x){
+    var on=(ui.repFrom||today)===x[1]&&(ui.repTo||ui.repFrom||today)===x[2]; return btn(x[0],function(){ setRange(x[1],x[2]); },on?'primary small':'small'); }));
+  var P=(r&&r.money&&r.money.payments)||[];
+  var shopIn=paid.filter(function(o){ return o.method!=='room'; }).reduce(function(t,o){ return t+o.total; },0), toRooms=paid.filter(function(o){ return o.method==='room'; }).reduce(function(t,o){ return t+o.total; },0);
+  function kindSum(k){ return P.filter(function(x){ return x.kind===k; }).reduce(function(t,x){ return t+x.amount; },0); }
+  var inPk=kindSum('package'), inPv=kindSum('private'), inRm=kindSum('room'), inOther=kindSum('other'), inAll=shopIn+inPk+inPv+inRm+inOther;
+  var allM={}; paid.forEach(function(o){ if(o.method!=='room') allM[o.method]=(allM[o.method]||0)+o.total; }); P.forEach(function(x){ allM[x.method]=(allM[x.method]||0)+x.amount; });
+  var long=r&&r.from&&r.to&&(parseYmd(r.to)-parseYmd(r.from))/864e5>62, rows={};
+  function bucket(d){ var k=long?d.slice(0,7):d; return rows[k]||(rows[k]={k:k,shop:0,pk:0,pv:0,rm:0}); }
+  paid.forEach(function(o){ if(o.method!=='room') bucket(o.at.slice(0,10)).shop+=o.total; });
+  P.forEach(function(x){ var b=bucket(x.day); if(x.kind==='package') b.pk+=x.amount; else if(x.kind==='private') b.pv+=x.amount; else b.rm+=x.amount; });
+  var byDay=Object.keys(rows).sort().reverse().map(function(k){ return rows[k]; });
   var tot=paid.reduce(function(t,o){ return t+o.total; },0), disc=paid.reduce(function(t,o){ return t+o.discount; },0), ref=orders.filter(function(o){ return o.status==='refunded'; });
-  return [pageHead('Sales',r?(fmtDate(r.from)+(r.to!==r.from?' to '+fmtDate(r.to):'')):'Loading.',btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small')),
+  return [pageHead('Sales and money in',r?(fmtDate(r.from)+(r.to!==r.from?' to '+fmtDate(r.to):'')):'Loading.',btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small')),
+    ranges,
     h('div',{class:'row wrap'},locSel,h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
+    !r?null:section('Money in',null,h('div',null,h('div',{class:'stats'},h('div',null,h('b',null,thb(inAll)||'0 THB'),' total'),h('div',null,h('b',null,thb(shopIn)||'0 THB'),' shop'),
+        h('div',null,h('b',null,thb(inPk)||'0 THB'),' packages'),h('div',null,h('b',null,thb(inPv)||'0 THB'),' privates'),h('div',null,h('b',null,thb(inRm)||'0 THB'),' room bills')),
+      h('p',{class:'sub'},(toRooms?thb(toRooms)+' of shop sales went on room bills and is counted when the bill is paid. ':'')+'Customers owe '+(thb(r.money.owed)||'0 THB')+' in total.'+(rl?' Package money shows under a shop when it was taken during a shift there.':'')),
+      table([{label:'How',cell:function(x){ return payName(x[0]); }},{label:'Total',num:true,cell:function(x){ return thb(x[1]); }}],Object.keys(allM).sort(function(a,b){ return allM[b]-allM[a]; }).map(function(k){ return [k,allM[k]]; }),'No money in.'))),
+    !r||byDay.length<2?null:section(long?'By month':'By day',null,table([{label:long?'Month':'Day',cell:function(x){ return long?parseYmd(x.k+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'}):fmtDate(x.k); }},
+      {label:'Shop',num:true,cell:function(x){ return thb(x.shop)||''; }},{label:'Packages',num:true,cell:function(x){ return thb(x.pk)||''; }},{label:'Privates',num:true,cell:function(x){ return thb(x.pv)||''; }},
+      {label:'Rooms',num:true,cell:function(x){ return thb(x.rm)||''; }},{label:'Total',num:true,cell:function(x){ return h('b',null,thb(x.shop+x.pk+x.pv+x.rm)||'0 THB'); }}],byDay,'')),
+    !r||!P.length?null:section('Packages, privates and room bills paid',null,table([{label:'Day',cell:function(x){ return fmtDate(x.day); }},{label:'Who',cell:function(x){ return x.customer||''; }},
+      {label:'What',cell:function(x){ return x.what||x.kind; }},{label:'How',cell:function(x){ return payName(x.method); }},{label:'Amount',num:true,cell:function(x){ return thb(x.amount); }},{label:'Taken by',cell:function(x){ return x.by||''; }}],P.slice(0,300),'')),
+    h('h2',{class:'subhead'},'Shop'),
     !r?null:h('div',{class:'stats'},h('div',null,h('b',null,thb(tot)||'0 THB'),' sales'),h('div',null,h('b',null,String(paid.length)),' sales made'),h('div',null,h('b',null,thb(disc)||'0 THB'),' discounts'),h('div',null,h('b',null,String(ref.length)),' refunds')),
     !r?null:section('By payment',null,table([{label:'How',cell:function(x){ return payName(x[0]); }},{label:'Total',num:true,cell:function(x){ return thb(x[1]); }}],Object.keys(r.by_method||{}).map(function(k){ return [k,r.by_method[k]]; }),'No sales.')),
     !r?null:section('Shifts',null,table([{label:'Shop',cell:function(x){ return x.location||''; }},{label:'Opened',cell:function(x){ return fmtDate(x.opened_at.slice(0,10))+' '+bkkTime(x.opened_at)+', '+(x.by||''); }},
@@ -2177,7 +2245,8 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
         h('div',null,h('small',null,'Phone'),c.phone||'Not given'),h('div',null,h('small',null,'Visits'),visits.length),
@@ -2186,11 +2255,11 @@ function vCustomers(){
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
         {label:'Price',num:true,cell:function(p){return thb(p.price_thb);}},
-        {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip(p.ordered_in_app?'App order, not paid':'Not paid','warn');}},
+        {label:'Paid',cell:function(p){ var ow=owedOf(p); return !ow?chip('Paid','ok'):Number(p.paid_thb)>0?chip('Paid '+thb(p.paid_thb)+', owes '+thb(ow),'warn'):chip(p.ordered_in_app?'App order, not paid':'Owes '+thb(ow),'warn');}},
         {label:'Visits left',num:true,cell:function(p){return p.class_limit?left(p)+' of '+p.class_limit:'Unlimited';}},
         {label:'Runs',cell:function(p){return p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
         {label:'Status',cell:function(p){return stateChip(stateOf(p,day));}},
-        {label:'',cell:function(p){return h('div',{class:'row'},!p.paid&&!p.cancelled?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'));}}],ps,'No packages yet. Use Sell a package to record the first one.')),
+        {label:'',cell:function(p){return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'));}}],ps,'No packages yet. Use Sell a package to record the first one.')),
       section('Recent visits',null,table([
         {label:'Date',cell:function(v){return fmtDate(v.day);}},{label:'Time',cell:function(v){return v.e.time;}},
         {label:'For',cell:function(v){return entryWhat(v.e);}}],visits.slice(0,12),'No visits yet.'))
@@ -2475,10 +2544,10 @@ var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
-  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled']},
+  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
-  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','notes','reschedule','last_move'],clear:['reschedule']},
+  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included']},
@@ -2730,13 +2799,29 @@ function cuTargets(){
     if(Number(c.day)!==wd||classOff(c,CU.today)) return;
     var t={kind:'class',id:c.id,discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title};
     t.done=mine.some(function(e){ return e.class_id===c.id; });
-    if(!t.done&&c.time&&c.time<cut) return;
+    if(!t.done&&c.time&&c.time<cut) t.label+=' (earlier today)';
     t.ok=usable(t); out.push(t); });
   FACILITIES.forEach(function(f){
     var t={kind:'facility',name:f,label:f};
     t.done=mine.some(function(e){ return e.facility===f; }); t.ok=usable(t);
     if(t.ok||t.done) out.push(t); });
   return out;
+}
+function cuCheckInYesterday(c){
+  var code=liveCode(), y=addDays(CU.today,-1);
+  if(!code){ forgetCode(); toast('Scan the QR code at the front desk again.'); schedule(); return; }
+  if(cuBusy) return; cuBusy=true;
+  sb.rpc('customer_check_in_day',{p_code:code,p_day:y,p_class:c.id,p_facility:null}).then(must).then(function(d){ toast('Checked in for yesterday, '+d.what+'.'); ui.cuYest=false; return loadCustomer(); })
+    .catch(function(e){ var m=(e&&e.message)||'That did not work.'; if(/out of date/.test(m)) forgetCode(); toast(m); schedule(); }).then(function(){ cuBusy=false; });
+}
+function cuYesterday(){
+  var y=addDays(CU.today,-1), ywd=(cuWd()+6)%7, done=CU.checkins.filter(function(e){ return e.day===y; });
+  var list=CU.classes.filter(function(c){ return Number(c.day)===ywd&&!classOff(c,y); });
+  return h('div',{class:'panel checkin'},h('div',{class:'pad'},h('b',null,'Yesterday, '+fmtDate(y)),h('p',{class:'sub'},'Forgot to check in? Tap the class you did.')),
+    list.length?list.map(function(c){ var d=done.some(function(e){ return e.class_id===c.id; });
+      return h('div',{class:'hit'},h('span',null,(c.time?c.time+' ':'')+c.title),d?chip('Checked in','ok'):btn('Check in',function(){ cuCheckInYesterday(c); },'primary')); })
+      :h('div',{class:'hit'},h('span',{class:'sub'},'No group classes yesterday.')),
+    h('div',{class:'pad'},btn('Close',function(){ ui.cuYest=false; schedule(); },'small')));
 }
 function cuCheckIn(t){
   var code=liveCode();
@@ -2764,10 +2849,12 @@ function cuCheckInCard(){
   if(!any) return h('div',{class:'panel pad narrow'},h('b',null,'No active package'),
     h('p',{class:'sub'},'You need a paid package to check in. Order one here and pay at the front desk, or ask the team.'),
     h('div',{class:'row'},btn('See packages',function(){ go('c_buy'); },'primary small')));
+  if(ui.cuYest) return cuYesterday();
   return h('div',{class:'panel checkin'},h('div',{class:'pad'},h('b',null,'Check in'),h('p',{class:'sub'},'Tap what you are here for.')),
     ts.length?ts.map(function(t){ return h('div',{class:'hit'},h('span',null,t.label),
       t.done?chip('Checked in','ok'):t.ok?btn('Check in',function(){ cuCheckIn(t); },'primary'):chip('Not in your package')); }):
-    h('div',{class:'hit'},h('span',{class:'sub'},'No more classes today.')));
+    h('div',{class:'hit'},h('span',{class:'sub'},'No more classes today.')),
+    h('div',{class:'pad'},btn('Forgot to check in yesterday?',function(){ ui.cuYest=true; schedule(); },'small')));
 }
 function pkgCard(p){
   var st=cuState(p), pack=isPrivatePack(p), bits=[];
