@@ -395,6 +395,7 @@ body.lang-my .btn{min-height:44px}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
 @media (max-width:760px){ .cal{--room:118px;--day:34px} }
 @media (prefers-reduced-motion:no-preference){ .btn,#nav button{transition:background-color .12s,border-color .12s} }
+.mailprev{width:100%;height:58vh;border:1px solid var(--line);border-radius:10px;background:#f5f0e8;margin:8px 0}
 </style>
 </head>
 <body>
@@ -1082,6 +1083,10 @@ function buildPackage(c){
       return Promise.all(jobs).then(function(){ return Promise.all([reload('purchases'),reload('stays')]); }).then(function(){
         setTimeout(function(){
           if(v.room_id) toast('Added. The room was added here only, so block '+nameOf('rooms',v.room_id)+' for these dates in MotoPress so the website does not sell it.');
+          var ns=v.room_id?newStay({customer_id:c.id,room_id:v.room_id,check_in:v.arrive}):null;
+          if(ns&&(v.pay==='later'||v.pay==='transfer')) welcomeEmail(ns,true);
+          else if(ns&&v.pay==='cash') setTimeout(function(){ welcomeEmail(byId('stays',ns.id)||ns,true); },1500);
+          else if(ns) setTimeout(function(){ toast('When they have paid, send the welcome email with the Welcome email button on the stay.'); },4000);
           if(v.pay==='stripe') stripePay('customer',c.id,c.name);
           else if(v.pay==='qr') deskPromptPay(c);
           else if(v.pay==='cash'||v.pay==='transfer') sb.rpc('pay_customer',{p_customer:c.id,p_amount:total,p_method:v.pay,p_note:null}).then(must).then(function(){ toast('Paid '+thb(total)+'.'); return Promise.all([reload('purchases'),reload('stays')]); }).catch(function(e){ toast(errText(e)); });
@@ -1166,9 +1171,11 @@ function editStay(st){
       });
       return mv.then(function(){ return first; }).then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email;
         if(moved){ delete body.room_id; delete body.check_in; delete body.check_out; if(!priceTouched){ delete body.room_price_thb; delete body.room_paid_thb; delete body.room_price_manual; } }
-        return save('stays',st.id,body); }).then(function(r){ setTimeout(function(){ reload('purchases'); },500); if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
+        return save('stays',st.id,body); }).then(function(r){ setTimeout(function(){ reload('purchases'); },500);
+        if(!st.id) setTimeout(function(){ var ns=newStay(body); if(ns) welcomeEmail(ns,true); },400); if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
 }
+function newStay(b){ return (S.stays||[]).filter(function(x){ return x.customer_id===b.customer_id&&x.room_id===b.room_id&&x.check_in===b.check_in; }).sort(function(a,b2){ return String(b2.created_at||'').localeCompare(String(a.created_at||'')); })[0]||null; }
 function setStay(st,patch,msg){ if(guard()) run(db.doc('stays/'+st.id).update(patch),msg); }
 function addCharge(st,after){
   openForm({title:'Add to room bill',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id),saveLabel:'Add',doneMsg:'Added to the bill.',fields:[
@@ -1228,11 +1235,13 @@ function stayCard(st,day){
   acts.push(btn('Bill',function(){ openBill(st); },'small'));
   if(st.status==='in') acts.push(btn('Check out',function(){ checkOutStay(st); },'small'));
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
+  if(st.status==='booked'||st.status==='in') acts.push(btn(st.welcome_sent_at?'Email again':'Welcome email',function(){ welcomeEmail(st); },'small'));
   var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),(st.room_price_thb!=null?'Room '+thb(st.room_price_thb)+(Number(st.room_paid_thb)>0?', '+thb(st.room_paid_thb)+' paid':'')+'. ':'No room price. ')+(st.settled?'Settled':'To pay '+(thb(Math.max(0,total))||'0 THB'))];
   if(meal) bits.push('Meals left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:''));
   if(st.guests) bits.push(st.guests);
   if(st.source_id) bits.push('Via '+nameOf('sources',st.source_id));
   if(st.notes) bits.push(st.notes);
+  if(st.welcome_sent_at) bits.push('Welcome email sent '+fmtDate(String(st.welcome_sent_at).slice(0,10)));
   var tr=st.training_included!==false;
   bits.push(tr?'Group Muay Thai included for 1 person (morning class only on the leaving day)':'No training included');
   if(st.status!=='out'&&st.status!=='cancelled') acts.push(btn(tr?'Remove training':'Add training',function(){ setStay(st,{training_included:!tr},tr?'Training taken off this stay.':'Group Muay Thai added to this stay.'); setTimeout(function(){ reload('purchases'); },700); },'small'));
@@ -1275,6 +1284,70 @@ function stayDialog(st){
     h('div',{class:'factions'},h('span'),btn('Close',close)));
   $dlg.replaceChildren(box);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+/* welcome email for a stay: the desk sees it first, then sends it */
+function welcomeEmail(st,first){
+  if(!st||!st.id) return;
+  toast('Making the welcome email.');
+  sb.functions.invoke('stay-email',{body:{mode:'preview',stay_id:st.id}}).then(function(res){
+    var d=res.data||{}; if(res.error||d.error){ toast(d.error||'Could not make the email. Try again.'); return; }
+    var to=h('input',{type:'email',id:'we-to',placeholder:'guest@email.com',autocomplete:'off'}); to.value=d.to||'';
+    var frame=h('iframe',{class:'mailprev',title:'Email preview',sandbox:''}); frame.srcdoc=d.html||'';
+    var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
+    function bad(m){ err.textContent=m; err.hidden=false; }
+    var sendBtn=btn(d.sent_at?'Send again':'Send',function(){
+      if(busy) return; err.hidden=true;
+      if(!d.can_send) return bad('Email sending is not switched on yet. Tom adds the email key in Supabase once, then this button works.');
+      var addr=to.value.trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return bad('Type the guest email address.');
+      busy=true; sendBtn.disabled=true; sendBtn.textContent='Sending.';
+      sb.functions.invoke('stay-email',{body:{mode:'send',stay_id:st.id,to:addr}}).then(function(r){ var x=r.data||{};
+        if(r.error||x.error) throw {message:x.error||'The email did not go. Try again.'};
+        $dlg.close(); toast('Welcome email sent to '+addr+'.'); reload('stays');
+      }).catch(function(e){ busy=false; sendBtn.disabled=false; sendBtn.textContent='Send'; bad(errText(e)); });
+    },'primary');
+    shopDlg(h('div',{class:'billbox'},h('h2',null,first?'Send the welcome email?':'Welcome email'),
+      h('p',{class:'sub'},'Welcome, room, dates, receipt, useful info and extras they can add. '+(d.sent_at?'Already sent '+new Date(d.sent_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. ':'')+'Change the wording in Settings, Welcome email.'),
+      field('we-to','Send to',to),
+      d.subject?h('p',{class:'sub'},'Subject: '+d.subject):null,
+      frame,err,
+      h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(first?'Not now':'Close',function(){ $dlg.close(); }),sendBtn))));
+  },function(){ toast('Could not make the email. Check the connection.'); });
+}
+var WELCOME=null;
+function loadWelcome(){ return sb.from('app_settings').select('value').eq('key','welcome_email').maybeSingle().then(function(res){ var d=res.data; try{ WELCOME=d&&d.value?JSON.parse(d.value):{}; }catch(e){ WELCOME={}; } schedule(); }); }
+function saveWelcome(cfg){ return sb.from('app_settings').update({value:JSON.stringify(cfg),updated_at:new Date().toISOString()}).eq('key','welcome_email').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; WELCOME=cfg; schedule(); }); }
+var WE_INFO=6, WE_UPS=6;
+function editWelcome(){
+  var c=WELCOME||{}, info=c.info||[], ups=c.upsells||[], vals={from:c.from,reply_to:c.reply_to,subject:c.subject,intro:c.intro,whatsapp:c.whatsapp,footer:c.footer,auto:!!c.auto,auto_sources:c.auto_sources||'direct'}, fields=[
+    {key:'subject',label:'Subject',required:true},
+    {key:'intro',label:'Welcome text at the top',type:'textarea'}];
+  for(var i=0;i<WE_INFO;i++){ var a=info[i]||{}; vals['it'+i]=a.title; vals['ix'+i]=a.text;
+    fields.push({key:'it'+i,label:'Useful info '+(i+1)+', heading',hint:i===0?'Leave the heading empty to leave a block out.':null},{key:'ix'+i,label:'Useful info '+(i+1)+', text',type:'textarea'}); }
+  for(var j=0;j<WE_UPS;j++){ var u=ups[j]||{}; vals['ut'+j]=u.title; vals['up'+j]=u.price; vals['ux'+j]=u.text; vals['ul'+j]=u.link;
+    fields.push({key:'ut'+j,label:'Extra to sell '+(j+1)+', name',hint:j===0?'Each one gets an "Add to my stay" button. Without a link the button opens WhatsApp with a message already written for you.':null},
+      {key:'up'+j,label:'Extra '+(j+1)+', price text',hint:j===0?'Optional, for example From 650 THB a session.':null},{key:'ux'+j,label:'Extra '+(j+1)+', short text',type:'textarea'},{key:'ul'+j,label:'Extra '+(j+1)+', link',hint:j===0?'Optional. A web page or Stripe payment link starting with https://':null}); }
+  fields.push({key:'whatsapp',label:'WhatsApp number for the buttons',hint:'With country code, for example 66969076150.'},
+    {key:'footer',label:'Sign off at the bottom',type:'textarea'},
+    {key:'from',label:'Sent from',hint:'Name and address, for example Phuket King <hello@phuketking.com>. The address must be on a domain set up in the email service.'},
+    {key:'reply_to',label:'Replies go to',type:'email'},
+    {key:'auto',label:'Send it by itself to new bookings that come in from MotoPress (checked every 15 minutes)',type:'checkbox'},
+    {key:'auto_sources',label:'Which bookings get it by itself',type:'select',options:[['direct','Website and direct only (not Booking.com, Airbnb, Agoda)'],['all','All bookings that have an email']]});
+  openForm({title:'Welcome email',note:'Sent when you book a stay in the app (you see it first), from the Welcome email button on a stay, and by itself if you switch that on.',values:vals,fields:fields,doneMsg:'Welcome email saved.',
+    onSave:function(v){
+      if(v.reply_to&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.reply_to)) return 'Replies go to needs a valid email address.';
+      var n={from:v.from||'Phuket King <hello@phuketking.com>',reply_to:v.reply_to||'',subject:v.subject,intro:v.intro,whatsapp:String(v.whatsapp||'').replace(/\D/g,''),footer:v.footer,
+        auto:!!v.auto,auto_sources:v.auto_sources,auto_since:v.auto?(c.auto&&c.auto_since?c.auto_since:new Date().toISOString()):null,info:[],upsells:[]};
+      for(var i=0;i<WE_INFO;i++) if(v['it'+i]||v['ix'+i]) n.info.push({title:v['it'+i],text:v['ix'+i]});
+      for(var j=0;j<WE_UPS;j++){ if(v['ul'+j]&&!/^https:\/\//.test(v['ul'+j])) return 'Extra '+(j+1)+': the link must start with https://';
+        if(v['ut'+j]) n.upsells.push({title:v['ut'+j],price:v['up'+j],text:v['ux'+j],link:v['ul'+j]}); }
+      return saveWelcome(n); }});
+}
+function welcomeSection(){
+  if(!WELCOME){ if(!ui.weAsked){ ui.weAsked=true; loadWelcome().catch(function(){}); } return section('Welcome email',null,h('div',{class:'panel empty'},'Loading.')); }
+  var c=WELCOME;
+  return section('Welcome email',btn('Edit',editWelcome,'small'),h('div',{class:'panel pad'},
+    h('p',{class:'sub',style:'margin:0 0 6px'},'Guests get a welcome email with their room, dates, receipt, useful info and extras to add. You see it before it goes when you book a stay here, and every stay has a Welcome email button.'),
+    h('p',{class:'sub',style:'margin:0'},'Subject: '+(c.subject||'')+'. '+(c.info||[]).length+' info '+((c.info||[]).length===1?'block':'blocks')+', '+(c.upsells||[]).length+' '+((c.upsells||[]).length===1?'extra':'extras')+'. Sending by itself: '+(c.auto?'on, '+(c.auto_sources==='all'?'all bookings':'website and direct bookings'):'off')+'.')));
 }
 function vCalendar(){
   var today=ymd(new Date()), days=window.innerWidth<760?14:28;
@@ -2767,6 +2840,7 @@ function vSettings(){
     backupSection(),
     posterSection(),
     me.role==='manager'?ppSettings():null,
+    me.role==='manager'?welcomeSection():null,
     promoSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
