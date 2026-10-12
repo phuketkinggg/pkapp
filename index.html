@@ -463,7 +463,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -1135,7 +1135,7 @@ function hkLang(){ return pref('pk_lang')==='my'&&me&&me.role==='housekeeping'?'
 function T(k){ return HKT[hkLang()][k]; }
 function hkDate(d){ return parseYmd(d).toLocaleDateString(hkLang()==='my'?'my-MM':'en-GB',{day:'numeric',month:'short'}); }
 function hkErr(e){ var m=(e&&e.message)||''; if(hkLang()==='my'&&/Nobody is staying/.test(m)) m=T('noGuest'); return m; }
-function setHkLang(l){ pref('pk_lang',l==='my'?'my':null); document.body.classList.toggle('lang-my',l==='my'); document.documentElement.lang=l==='my'?'my':'en'; TABS=[['hk',T('rooms')]]; schedule(); }
+function setHkLang(l){ pref('pk_lang',l==='my'?'my':null); document.body.classList.toggle('lang-my',l==='my'); document.documentElement.lang=l==='my'?'my':'en'; TABS=[['hk',T('rooms')],['clock',K('tab')]]; schedule(); }
 function loadHK(){ lastLoad=Date.now(); return sb.rpc('housekeeping_home').then(function(res){ HK=must(res); schedule(); }); }
 function hkDo(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return (me&&me.role==='housekeeping'?loadHK():reloadHKDesk()).then(function(){ return d; }); }); }
 function hkState(r){
@@ -1431,6 +1431,124 @@ function editFight(f,focusResult){
   $dlg.replaceChildren(box);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
   setTimeout(function(){ (focusResult?result:date).focus(); },30);
+}
+
+
+/* ---------- staff time clock: scan the office QR, then clock in and out ---------- */
+var CLOCK=null, STAFFCODE=null, HOURS=null;
+var KTX={
+  en:{tab:'Clock',title:'Clock in and out',sub:'Scan the staff QR code in the office, then tap Check in. Tap Check out when you finish.',scan:'Scan the office QR code',scanned:'Office code scanned',scanMsg:'Point your camera at the staff QR code in the office.',notCode:'That is not the staff QR code. Use the one in the office.',
+      in:'Check in',out:'Check out',notIn:'Not checked in',inNow:'In since',doneTxt:'Done',inOk:'Checked in at',outOk:'Checked out at',pDone:'Private marked done.',privates:'My privates today',classes:'My group classes today',shift:'My shift',shiftIn:'Start shift',shiftOut:'End shift',none:'Nothing today.',noShift:'Not working yet'},
+  th:{tab:'ลงเวลา',title:'ลงเวลาเข้าออก',sub:'สแกน QR ของพนักงานในออฟฟิศ แล้วแตะ เช็คอิน เมื่อเสร็จแตะ เช็คเอาท์',scan:'สแกน QR ในออฟฟิศ',scanned:'สแกนแล้ว',scanMsg:'ส่องกล้องไปที่ QR ของพนักงานในออฟฟิศ',notCode:'นี่ไม่ใช่ QR ของพนักงาน ใช้อันที่อยู่ในออฟฟิศ',
+      in:'เช็คอิน',out:'เช็คเอาท์',notIn:'ยังไม่เช็คอิน',inNow:'เข้าตั้งแต่',doneTxt:'เสร็จ',inOk:'เช็คอินเวลา',outOk:'เช็คเอาท์เวลา',pDone:'บันทึกไพรเวทว่าเสร็จแล้ว',privates:'ไพรเวทของฉันวันนี้',classes:'คลาสกลุ่มของฉันวันนี้',shift:'กะของฉัน',shiftIn:'เริ่มงาน',shiftOut:'เลิกงาน',none:'วันนี้ไม่มี',noShift:'ยังไม่เริ่มงาน'},
+  my:{tab:'အချိန်',title:'အလုပ်ဝင် အလုပ်ထွက်',sub:'ရုံးခန်းထဲက ဝန်ထမ်း QR ကို စကင်ဖတ်ပြီး Check in ကိုနှိပ်ပါ။ ပြီးရင် Check out ကိုနှိပ်ပါ။',scan:'ရုံးခန်း QR ကို စကင်ဖတ်ပါ',scanned:'စကင်ဖတ်ပြီး',scanMsg:'ရုံးခန်းထဲက ဝန်ထမ်း QR ကို ကင်မရာနဲ့ ချိန်ပါ။',notCode:'ဒါ ဝန်ထမ်း QR မဟုတ်ပါ။ ရုံးခန်းထဲကဟာကို သုံးပါ။',
+      in:'Check in',out:'Check out',notIn:'မဝင်ရသေး',inNow:'ဝင်ချိန်',doneTxt:'ပြီးပြီ',inOk:'ဝင်ချိန်',outOk:'ထွက်ချိန်',pDone:'',privates:'',classes:'',shift:'ကျွန်ုပ်၏ အလုပ်ချိန်',shiftIn:'အလုပ်စ',shiftOut:'အလုပ်ပြီး',none:'ဒီနေ့ မရှိပါ။',noShift:'အလုပ်မစရသေး'}};
+function clkLang(){ return me&&me.role==='coach'?coLang():me&&me.role==='housekeeping'?hkLang():'en'; }
+function K(k){ var l=KTX[clkLang()]||KTX.en; return l[k]||KTX.en[k]; }
+function devId(){ try{ var d=localStorage.getItem('pk_dev'); if(!d){ d=Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); localStorage.setItem('pk_dev',d); } return d; }catch(e){ return 'no-storage'; } }
+function staffCodeOk(){ return !!(STAFFCODE&&Date.now()-STAFFCODE.t<10*60000); }
+function staffCodeFromText(t){ try{ var u=new URL(String(t)); var c=u.searchParams.get('s'); return c&&/^[a-f0-9]{16,64}$/.test(c)?c:null; }catch(e){ return null; } }
+function scanStaffCode(then){ scanQR(K('scanMsg'),function(t){ var c=staffCodeFromText(t); if(!c) return K('notCode'); STAFFCODE={c:c,t:Date.now()}; schedule(); if(then) then(); return true; }); }
+function loadClock(){ return sb.rpc('staff_clock_today').then(must).then(function(d){ CLOCK=d; ui.clockErr=null; schedule(); }).catch(function(e){ ui.clockErr=(e&&e.message)||'Could not load.'; schedule(); }); }
+function punch(kind,ref){
+  function send(){ return sb.rpc('staff_clock_punch',{p_code:STAFFCODE.c,p_kind:kind,p_ref:ref||null,p_device:devId()}).then(must).then(function(r){
+      toast(r.action==='in'?K('inOk')+' '+bkkTime(r.at)+'.':K('outOk')+' '+bkkTime(r.at)+(r.minutes!=null?', '+r.minutes+' min.':'.')+(r.private?' '+K('pDone'):''));
+      if(me.role==='coach'&&typeof loadCoach==='function') loadCoach(); return loadClock(); })
+    .catch(function(e){ var m=(e&&e.message)||''; if(/Scan the staff QR/.test(m)) STAFFCODE=null; toast(m||'That did not work.'); schedule(); }); }
+  if(staffCodeOk()) return send();
+  scanStaffCode(send);
+}
+function vClock(){
+  if(!CLOCK){ if(!ui.clockAsked){ ui.clockAsked=true; loadClock(); } return [pageHead(K('title'),''),h('div',{class:'panel empty'},ui.clockErr||'...')]; }
+  var E=CLOCK.entries||[];
+  function last(kind,ref){ var l=E.filter(function(e){ return e.kind===kind&&(e.ref_id||null)===(ref||null); }); return l[l.length-1]||null; }
+  function item(kind,ref,when,title){
+    var e=last(kind,ref), open=e&&!e.out_at, closed=e&&e.out_at;
+    var times=e?bkkTime(e.in_at)+(e.out_at?' - '+bkkTime(e.out_at):''):'';
+    var st=!e?chip(K('notIn'),'warn'):open?chip(K('inNow')+' '+times,'ok'):chip(K('doneTxt')+' '+times,'ok');
+    var act=closed?null:btn(open?K('out'):K('in'),function(){ punch(kind,ref); },open?'small':'primary small');
+    return {when:when,title:title,right:st,act:act};
+  }
+  var out=[pageHead(K('title'),K('sub')),
+    h('div',{class:'row'},staffCodeOk()?chip(K('scanned'),'ok'):null,btn(K('scan'),function(){ scanStaffCode(); },staffCodeOk()?'small':'primary'))];
+  if(me.role==='coach'){
+    out.push(section(K('privates'),null,cards((CLOCK.privates||[]).map(function(p){ return item('private',p.id,p.time,p.who); }),K('none'))));
+    out.push(section(K('classes'),null,cards((CLOCK.classes||[]).map(function(c){ return item('class',c.id,c.time,c.title); }),K('none'))));
+  } else {
+    var sh=E.filter(function(e){ return e.kind==='shift'; }), open=sh.filter(function(e){ return !e.out_at; })[0];
+    out.push(section(K('shift'),null,h('div',{class:'panel pad'},
+      h('p',null,open?chip(K('inNow')+' '+bkkTime(open.in_at),'ok'):chip(K('noShift'),'warn')),
+      sh.filter(function(e){ return e.out_at; }).map(function(e){ return h('p',{class:'sub'},bkkTime(e.in_at)+' - '+bkkTime(e.out_at)); }),
+      btn(open?K('shiftOut'):K('shiftIn'),function(){ punch('shift',null); },open?'':'primary'))));
+  }
+  return out;
+}
+
+/* manager: staff hours */
+function mins(a,b){ return Math.max(0,Math.round((new Date(b)-new Date(a))/60000)); }
+function hm(m){ return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'; }
+function weekStart(d){ var x=parseYmd(d), wd=(x.getDay()+6)%7; return addDays(d,-wd); }
+function loadHours(){ var f=ui.hFrom||weekStart(ymd(new Date())), t=ui.hTo||ymd(new Date()); ui.hBusy=true;
+  return sb.rpc('staff_hours',{p_from:f,p_to:t}).then(must).then(function(d){ HOURS=d; ui.hBusy=false; schedule(); }).catch(function(e){ ui.hBusy=false; toast(errText(e)); }); }
+function editHours(e,pre){
+  e=e||{}; pre=pre||{};
+  var staff=sortBy(S.staff.filter(function(s){ return s.active!==false; }),'name');
+  openForm({title:e.id?'Edit hours':'Add hours',note:e.what?e.staff+', '+e.what:pre.what?pre.staff+', '+pre.what:null,saveLabel:'Save',doneMsg:'Hours saved.',
+    values:{staff_id:e.staff_id||pre.staff_id||'',day:e.day||pre.day||ymd(new Date()),in:e.in_at?bkkTime(e.in_at):pre.time||'',out:e.out_at?bkkTime(e.out_at):'',note:e.note||''},
+    fields:(e.id||pre.staff_id?[]:[{key:'staff_id',label:'Who',type:'select',required:true,options:staff.map(function(s){ return [s.id,s.name+' ('+(ROLES[s.role]||s.role)+')']; })}]).concat([
+      {key:'day',label:'Day',type:'date',required:true},{key:'in',label:'Started',type:'time',required:true},{key:'out',label:'Finished',type:'time',hint:'Leave empty if they are still working.'},
+      {key:'note',label:'Note',hint:'For example: forgot to scan, added by Tom.'}]),
+    onSave:function(v){ return sb.rpc('staff_clock_save',{p:{id:e.id||null,staff_id:e.staff_id||pre.staff_id||v.staff_id,kind:e.kind||pre.kind||'shift',ref_id:e.ref_id||pre.ref_id||null,day:v.day,in:v.in,out:v.out||null,note:v.note||null}}).then(must).then(loadHours); },
+    onDelete:e.id?function(){ return sb.rpc('staff_clock_save',{p:{id:e.id,void:true}}).then(must).then(loadHours); }:null});
+}
+var STAFFQR=null;
+function staffPoster(){
+  var url=STAFFQR?location.origin+location.pathname+'?s='+STAFFQR:null, qr=url?qrNode(url):null;
+  return h('section',{class:'sec posterwrap'},
+    h('div',{class:'sechead noprint'},h('h2',null,'Staff QR code for the office'),h('div',{class:'row'},qr?btn('Print poster',printPoster,'primary small'):null,
+      btn(ui.armStaffQR?'Tap again. The old poster stops working':'Make a new code',function(){ if(!ui.armStaffQR){ ui.armStaffQR=true; schedule(); return; } ui.armStaffQR=false;
+        sb.rpc('staff_clock_code',{p_new:true}).then(must).then(function(c){ STAFFQR=c; toast('New staff code made. Print it and take the old one down.'); schedule(); }); },'small'+(ui.armStaffQR?' danger':'')),
+      btn('Close',function(){ ui.hPoster=false; schedule(); },'small'))),
+    h('div',{class:'panel pad poster'},h('img',{class:'plogo',src:'icons/icon-512.png',alt:'Phuket King'}),
+      h('div',{class:'p2'},'Staff only: clock in and out'),h('div',{class:'pth'},'สำหรับพนักงาน: ลงเวลาเข้าออก'),
+      qr||h('p',{class:'sub'},'Loading the code.'),
+      h('ol',null,h('li',null,'Open the Phuket King app and tap Clock',h('span',{class:'th'},'เปิดแอป Phuket King แล้วแตะ ลงเวลา')),
+        h('li',null,'Tap Scan the office QR code and point at this',h('span',{class:'th'},'แตะ สแกน QR ในออฟฟิศ แล้วส่องที่นี่')),
+        h('li',null,'Tap Check in before you start, Check out when you finish',h('span',{class:'th'},'แตะ เช็คอิน ก่อนเริ่ม และ เช็คเอาท์ เมื่อเสร็จ')))),
+    h('p',{class:'sub noprint'},'Keep this inside the office. Each scan is saved with the phone it came from, so the app shows if one phone is used for two people.'));
+}
+function vHours(){
+  if(!HOURS&&!ui.hBusy) loadHours();
+  if(ui.hPoster&&!STAFFQR) sb.rpc('staff_clock_code',{p_new:false}).then(must).then(function(c){ STAFFQR=c; schedule(); });
+  var d=HOURS||{entries:[],missed:[],missed_classes:[]}, who=ui.hWho||'';
+  var E=d.entries.filter(function(e){ return !who||e.staff_id===who; });
+  var miss=d.missed.concat(d.missed_classes).filter(function(m){ return !who||m.staff_id===who; });
+  var today=ymd(new Date());
+  function late(e){ if(!e.starts||!e.in_at||e.manual) return 0; var st=new Date(e.day+'T'+e.starts.slice(0,5)+':00+07:00'); var m=Math.round((new Date(e.in_at)-st)/60000); return m>5?m:0; }
+  var devs={}; d.entries.forEach(function(e){ [e.in_device,e.out_device].forEach(function(x){ if(!x) return; (devs[x]=devs[x]||{})[e.staff]=1; }); });
+  function shared(e){ var n=[]; [e.in_device,e.out_device].forEach(function(x){ if(x&&devs[x]&&Object.keys(devs[x]).length>1) Object.keys(devs[x]).forEach(function(k){ if(k!==e.staff&&n.indexOf(k)<0) n.push(k); }); }); return n; }
+  var tot={}; E.forEach(function(e){ var t=tot[e.staff_id]||(tot[e.staff_id]={name:e.staff,role:e.role,m:0,priv:0,cls:0,open:0}); if(e.out_at) t.m+=mins(e.in_at,e.out_at); else t.open++; if(e.kind==='private') t.priv++; if(e.kind==='class') t.cls++; });
+  var mp={}; miss.forEach(function(m){ var t=tot[m.staff_id]||(tot[m.staff_id]={name:m.staff,m:0,priv:0,cls:0,open:0}); t.missed=(t.missed||0)+1; });
+  var forgot=E.filter(function(e){ return !e.out_at&&e.day<today; });
+  var staffSel=h('select',{onchange:function(ev){ ui.hWho=ev.target.value; schedule(); }},[h('option',{value:''},'Everyone')].concat(sortBy(S.staff.filter(function(s){ return s.active!==false; }),'name').map(function(s){ var o=h('option',{value:s.id},s.name); if(s.id===who) o.selected=true; return o; })));
+  var from=h('input',{type:'date',value:ui.hFrom||weekStart(today),onchange:function(ev){ ui.hFrom=ev.target.value; HOURS=null; schedule(); }});
+  var to=h('input',{type:'date',value:ui.hTo||today,onchange:function(ev){ ui.hTo=ev.target.value; HOURS=null; schedule(); }});
+  return [pageHead('Staff hours','Coaches check in and out for every private and group class. Front desk, kitchen and housekeeping check in and out for their shift. You can add or fix hours by hand.',
+      h('div',{class:'row'},btn('Office QR poster',function(){ ui.hPoster=true; schedule(); },'small'),btn('Add hours',function(){ editHours(); },'primary'))),
+    ui.hPoster?staffPoster():null,
+    h('div',{class:'row wrap'},staffSel,h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
+    !HOURS?h('div',{class:'panel empty'},'Loading.'):null,
+    section('Totals',null,table([{label:'Who',cell:function(t){ return t.name; }},{label:'Hours',num:true,cell:function(t){ return hm(t.m); }},
+      {label:'Privates',num:true,cell:function(t){ return String(t.priv); }},{label:'Classes',num:true,cell:function(t){ return String(t.cls); }},
+      {label:'',cell:function(t){ return h('span',{class:'row'},t.missed?chip(t.missed+' not checked in','bad'):null,t.open?chip(t.open+' still in','warn'):null); }}],
+      Object.keys(tot).map(function(k){ return tot[k]; }).sort(function(a,b){ return b.m-a.m; }),'No hours in these dates.')),
+    miss.length||forgot.length?section('Needs a look',null,cards(miss.map(function(m){ return {when:fmtDate(m.day)+' '+m.time,title:m.staff+': '+m.what,right:chip('Not checked in','bad'),act:btn('Add times',function(){ editHours(null,m); },'small')}; })
+      .concat(forgot.map(function(e){ return {when:fmtDate(e.day)+' '+bkkTime(e.in_at),title:e.staff+': '+(e.what||'Shift'),right:chip('Never checked out','warn'),act:btn('Fix',function(){ editHours(e); },'small')}; })),'')):null,
+    section('All check ins',null,table([{label:'Day',cell:function(e){ return fmtDate(e.day); }},{label:'Who',cell:function(e){ return e.staff; }},{label:'What',cell:function(e){ return e.what||'Shift'; }},
+      {label:'In',cell:function(e){ return e.in_at?bkkTime(e.in_at):''; }},{label:'Out',cell:function(e){ return e.out_at?bkkTime(e.out_at):chip('still in','warn'); }},
+      {label:'Time',num:true,cell:function(e){ return e.out_at?hm(mins(e.in_at,e.out_at)):''; }},
+      {label:'',cell:function(e){ var l=late(e), sh=shared(e); return h('span',{class:'row'},l?chip(l+' min late','warn'):null,e.manual?chip('Added by hand'):null,sh.length?chip('Same phone as '+sh.join(', '),'bad'):null,e.note?h('span',{class:'sub'},e.note):null); }},
+      {label:'',cell:function(e){ return btn('Edit',function(){ editHours(e); },'small'); }}],E,'No check ins in these dates.'))];
 }
 
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
@@ -2255,7 +2373,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -2376,7 +2494,7 @@ function coErr(e){
   if(/last day off/.test(m)) return 'วันสุดท้ายต้องไม่อยู่ก่อนวันแรก';
   return 'ทำไม่สำเร็จ '+m;
 }
-function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=[['mine',C('work')],['fights',F('tab')]]; schedule(); }
+function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=[['mine',C('work')],['clock',K('tab')],['fights',F('tab')]]; schedule(); }
 function loadCoach(){ lastLoad=Date.now(); return sb.rpc('coach_home').then(function(res){ CO=must(res); schedule(); }); }
 function coachDo(fn,args,okMsg){ sb.rpc(fn,args).then(must).then(loadCoach).then(function(){ if(okMsg) toast(okMsg); },function(e){ toast(coErr(e)); }); }
 function coForm(spec){ spec.cancelLabel=C('cancel'); spec.needMsg=C('need'); var save=spec.onSave;
@@ -2474,18 +2592,23 @@ function codeFromText(t){
   try{ var u=new URL(String(t)); var c=u.searchParams.get('c'); return c&&/^[a-zA-Z0-9]{6,64}$/.test(c)?c:null; }catch(e){ return null; }
 }
 function scanCheckIn(){
+  scanQR('Point your camera at the QR code at the front desk.',function(text){
+    var c=codeFromText(text); if(!c) return 'That is not the Phuket King check in code. Try the poster at the front desk.';
+    setCode(c); go('c_home'); toast('Code scanned. Tap your class.'); return true; });
+}
+function scanQR(prompt,onText){
   var stream=null, timer=null, done=false, detector=null;
   var video=h('video',{playsinline:'',muted:'',autoplay:''}); video.muted=true; video.setAttribute('playsinline','');
-  var msg=h('p',{class:'scanmsg'},'Point your camera at the QR code at the front desk.');
+  var msg=h('p',{class:'scanmsg'},prompt);
   var box=h('div',{class:'scanbox'},h('div',{class:'scanview'},video,h('div',{class:'scanframe'})),msg,
     btn('Cancel',function(){ stop(); },'small'));
   var wrap=h('div',{class:'scanwrap'},box); document.body.appendChild(wrap);
   var canvas=document.createElement('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
   function stop(){ done=true; clearTimeout(timer); if(stream) stream.getTracks().forEach(function(t){ t.stop(); }); if(wrap.parentNode) wrap.parentNode.removeChild(wrap); }
   function found(text){
-    var c=codeFromText(text);
-    if(!c){ msg.textContent='That is not the Phuket King check in code. Try the poster at the front desk.'; return false; }
-    stop(); setCode(c); go('c_home'); toast('Code scanned. Tap your class.'); return true;
+    var r=onText(text);
+    if(r!==true){ msg.textContent=r||'That QR code is not the right one.'; return false; }
+    stop(); return true;
   }
   function tick(){
     if(done) return;
@@ -2891,11 +3014,11 @@ function vKiosk(){
     :q.length===1?h('p',{class:'sub'},'Keep typing your name.'):null,
     !q?promoBoard():null,foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }); }
+function staffTabs(row){ var keep=row.role==='resort'?['stays','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -2924,7 +3047,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -3091,11 +3214,12 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
-    if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen']]; ui.tab='kitchen'; allReady=true; schedule(); return loadKitchen(); }
-    if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab='hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
-    if(row.role==='coach'){ me=row; db=makeDb(); ui.tab='mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
+    if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen'],['clock','Clock']]; ui.tab=staffCodeOk()?'clock':'kitchen'; allReady=true; schedule(); return loadKitchen(); }
+    if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
+    if(row.role==='coach'){ me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row; db=makeDb();
     TABS=staffTabs(row);
+    if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
     if(!TABS.some(function(t){return t[0]===ui.tab;})) ui.tab=TABS[0][0];
     return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });
   }).catch(function(e){ noDb('The gym database could not be reached. '+((e&&e.message)||'')+' Reload the page to try again.'); });
@@ -3112,6 +3236,7 @@ if(!window.supabase||!window.supabase.createClient){
       linkNote=code==='otp_expired'?'That email link has expired or was already used. Each link works once. Ask for a new one below.':'That email link did not work. Ask for a new one below.';
       try{ history.replaceState(null,'',location.pathname); }catch(e){}
     }
+    var sc=qp.get('s'); if(sc&&/^[a-f0-9]{16,64}$/.test(sc)){ STAFFCODE={c:sc,t:Date.now()}; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
   })();
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
