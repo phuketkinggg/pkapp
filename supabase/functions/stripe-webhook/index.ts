@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   const md = s.metadata ?? {};
   if (!md.kind || !md.id || md.kind === "test") return new Response("no app payment");
   const amount = Math.round(Number(s.amount_total ?? 0) / 100);
-  const { data, error } = await admin.rpc("stripe_record", { p_session: s.id, p_kind: md.kind, p_id: md.id, p_amount: amount, p_method: "card" });
+  const { data, error } = await admin.rpc("stripe_record", { p_session: s.id, p_kind: md.kind, p_id: md.id, p_amount: amount, p_method: "stripe" });
   if (error) return new Response(`could not record: ${error.message}`, { status: 500 });
   return new Response(JSON.stringify(data ?? { ok: true }), { headers: { "Content-Type": "application/json" } });
 });
