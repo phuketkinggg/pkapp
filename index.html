@@ -900,6 +900,32 @@ function pastCheckIn(c){
       return sb.rpc('check_in_past',{p_customer:c.id,p_day:v.day,p_class:cls,p_facility:fac,p_purchase:null}).then(must).then(function(r){
         setTimeout(function(){ toast('Checked in for '+fmtDate(v.day)+' with '+r.package+'.'); },50); return Promise.all([reload('purchases'),reload('checkin_days')]); }); }});
 }
+
+/* card payments with Stripe: the server works out the amount, the customer pays on Stripe's page */
+var stripeBusy=false;
+function stripePay(kind,id,label){
+  if(stripeBusy) return; stripeBusy=true; toast('Opening the card payment page.');
+  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:location.origin+location.pathname}}).then(function(res){
+    stripeBusy=false;
+    var d=res.data||{}; if(res.error||d.error||!d.url){ toast(d.error||'Card payment could not start. Try again.'); return; }
+    if(me&&me.role!=='customer'&&!CU) return stripeLinkDlg(d.url,d.amount,label);
+    location.href=d.url;
+  },function(){ stripeBusy=false; toast('Card payment could not start. Check the connection.'); });
+}
+function stripeLinkDlg(url,amount,label){
+  var qr=qrNode(url);
+  var msg='Phuket King payment, '+thb(amount)+(label?' ('+label+')':'')+'. Pay by card here: '+url;
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Card payment, '+thb(amount)),
+    h('p',{class:'sub'},'The customer scans this with their phone and pays by card. It marks itself paid in the app when the money goes through. The link works for 24 hours.'),
+    qr||null,
+    h('div',{class:'row wrap'},btn('Copy link',function(){ (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(function(){ toast('Link copied.'); },function(){ toast(url); }); },'small'),
+      navigator.share?btn('Send link',function(){ navigator.share({text:msg}).catch(function(){}); },'small'):null,
+      btn('Open here',function(){ window.open(url,'_blank'); },'small')),
+    h('div',{class:'factions'},h('span'),btn('Done',function(){ $dlg.close(); setTimeout(function(){ Promise.all([reload('purchases'),reload('privates'),reload('stays')]).catch(function(){}); },2000); },'primary'))));
+}
+(function(){ try{ var q=new URLSearchParams(location.search); var pd=q.get('paid'); if(pd==null) return; history.replaceState(null,'',location.pathname+location.hash);
+  setTimeout(function(){ toast(pd==='1'?'Payment received. Thank you. It can take a minute to show here.':'Payment cancelled. Nothing was charged.'); },1500); }catch(e){} })();
+
 function payCustomer(c){
   var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
   openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
@@ -1023,6 +1049,7 @@ function openBill(st,msg,thenOut){
         :btn('Add to bill',function(){ close(); addCharge(st,function(){ openBill(byId('stays',st.id),msg,thenOut); }); }),
       h('div',{class:'row'},btn('Close',close),
         !st.settled?h('label',{class:'row',for:'bill-method'},h('span',{class:'sub'},'Paid by'),method):null,
+        !st.settled&&total>=20?btn('Card link',function(){ close(); stripePay('stay',st.id,nameOf('rooms',st.room_id)); },'small'):null,
         !st.settled?btn(thenOut?'Settle and check out':'Settle bill',settle,'primary'):null)));
   $dlg.replaceChildren(box);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
@@ -2034,7 +2061,7 @@ function vCFood(){
   }
   return [pageHead('Food','Order from the Pangea cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter':'')}; }),'')):null,
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id&&o.total>=20?btn('Pay by card',function(){ stripePay('order',o.id); },'primary small'):null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
     cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
@@ -2246,7 +2273,7 @@ function vCustomers(){
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
       pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
-      customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small')):null,
+      customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
         h('div',null,h('small',null,'Phone'),c.phone||'Not given'),h('div',null,h('small',null,'Visits'),visits.length),
@@ -2867,8 +2894,8 @@ function pkgCard(p){
   return {when:p.package_name,right:c,note:bits.join('. ')};
 }
 function orderCard(p){
-  return {when:p.package_name,right:thb(p.price_thb),note:'Pay at the front desk. It is ready to use as soon as payment is taken.',
-    act:btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')};
+  return {when:p.package_name,right:thb(p.price_thb),note:'Pay by card now, or at the front desk. It is ready to use as soon as it is paid.',
+    act:[btn('Pay by card',function(){ stripePay('purchase',p.id); },'primary small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
 }
 function editMe(){
   openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'}],
@@ -2878,7 +2905,7 @@ function cuStay(){
   var st=CU.stay, lines=st.charges||[];
   var head={when:st.room,right:chip(st.status==='in'?'Staying now':'Booked',st.status==='in'?'ok':null),note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)};
   var items=[head].concat(lines.map(function(c){ return {when:c.what,right:thb(c.amount),note:fmtDate(c.day)}; }));
-  if(lines.length) items.push({when:'Room bill so far',right:thb(st.total),note:st.settled?'Settled. Thank you.':'Pay at check out.'});
+  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>=20?btn('Pay by card',function(){ stripePay('stay',st.id); },'primary small'):null});
   return section('Your stay',null,cards(items,''));
 }
 function vCHome(){
@@ -2890,6 +2917,7 @@ function vCHome(){
   var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); });
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
   return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day)),
+    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'),btn('Pay by card',function(){ stripePay('customer',null); },'primary small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
