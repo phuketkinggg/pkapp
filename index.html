@@ -676,7 +676,7 @@ function sellPackage(c){
     {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set){ set('paid_now',v); }},
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
     {key:'paid_now',label:'Amount paid now (THB)',type:'number',hint:'If they pay part now, type what they paid. The rest shows as owed and they pay it later with Take payment.'},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS}],
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat(PAYLINK),hint:'Stripe card link and PromptPay QR show the payment straight after you tap Record sale.'}],
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
       var paidNow=v.paid_now==null?Number(v.price_thb)||0:Math.round(v.paid_now); if(paidNow<0||paidNow>Number(v.price_thb)) return 'The amount paid now must be between 0 and the price.';
       var tt=tiersFor(pk,group), q=tt?Math.round(v.qty||0):null; if(tt&&(q<1||q>200)) return 'Type how many, 1 to 200.';
@@ -687,7 +687,12 @@ function sellPackage(c){
         covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:byDay?q:(pk.duration_days||null),
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
-      return save('purchases',null,p).then(function(){ return reload('purchases'); }).then(function(){ var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast('Sold. '+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
+      var link=v.method==='stripe'||v.method==='qr', linkAmt=paidNow;
+      if(link){ if(!(paidNow>0)) return 'Type the amount they pay now by '+(v.method==='stripe'?'card':'PromptPay')+'.'; if(v.method==='stripe'&&paidNow!==Number(v.price_thb)) return 'A Stripe link charges the full price. Set Amount paid now to '+thb(v.price_thb)+', or choose another way to pay.'; p.paid_thb=0; p.method=null; }
+      return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must).then(function(d){ return reload('purchases').then(function(){ return d.id; }); }).then(function(id){
+        if(v.method==='stripe') return setTimeout(function(){ stripePay('purchase',id,nm); },300);
+        if(v.method==='qr') return setTimeout(function(){ promptPayAmount(c,linkAmt,nm); },300);
+        var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast('Sold. '+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
 }
 function editPurchase(p){
   openForm({title:'Edit '+(p.package_name||'package'),values:p,fields:[
@@ -902,7 +907,8 @@ function undoCheckIn(e){
   run(sb.from('checkins').delete().eq('id',e.key).select('id').then(must).then(function(){ return Promise.all([reload('checkin_days'),reload('purchases')]); }),'Check in removed.');
 }
 function unpaidOrder(p){ return !!(p.ordered_in_app&&!p.paid&&!p.cancelled); }
-var PAYOPTS=[['cash','Cash'],['card','Card or Stripe link'],['transfer','Bank transfer or PromptPay'],['agent','Paid through an agent']];
+var PAYLINK=[['stripe','Stripe card link (QR for their phone)'],['qr','PromptPay QR']];
+var PAYOPTS=[['cash','Cash'],['card','Card machine'],['transfer','Bank transfer or PromptPay'],['agent','Paid through an agent']];
 function owedOf(p){ return p.cancelled?0:Math.max(0,(Number(p.price_thb)||0)-(Number(p.paid_thb)||0)); }
 function customerOwes(cid){ var a=S.purchases.filter(function(p){ return p.customer_id===cid; }).reduce(function(t,p){ return t+owedOf(p); },0);
   var b=S.privates.filter(function(x){ return x.customer_id===cid&&!x.purchase_id&&!x.paid&&x.status!=='cancelled'&&Number(x.price_thb)>0; }).reduce(function(t,x){ return t+Number(x.price_thb); },0);
@@ -958,6 +964,13 @@ function payPromptPay(kind,id,loc){
   if(!PP) loadPP().then(go2); else go2();
 }
 /* the desk shows a QR for what a customer owes */
+function promptPayAmount(c,amt,label){
+  var go2=function(){ var acc=ppFor('gym'); if(!acc){ toast('Add your PromptPay QR in Settings first. The sale is saved as owed.'); return; }
+    shopDlg(h('div',{class:'billbox'},h('h2',null,c.name+' pays with PromptPay'),label?h('p',{class:'sub'},label):null,ppBox(acc,amt),h('p',{class:'sub'},'Check the money arrived in the bank app, then tap Payment received. Until then it shows as owed.'),
+      h('div',{class:'factions'},btn('Not paid yet',function(){ $dlg.close(); }),btn('Payment received',function(){ sb.rpc('pay_customer',{p_customer:c.id,p_amount:amt,p_method:'qr',p_note:label||null}).then(must).then(function(){ $dlg.close(); toast('Paid by PromptPay.'); return Promise.all([reload('purchases'),reload('privates'),reload('stays')]); }).catch(function(e){ toast(errText(e)); }); },'primary'))));
+  };
+  if(!PP) loadPP().then(go2); else go2();
+}
 function deskPromptPay(c){
   var go2=function(){ var acc=ppFor('gym'); if(!acc){ toast('Add your PromptPay QR in Settings first.'); return; } var amt=customerOwes(c.id).total;
     shopDlg(h('div',{class:'billbox'},h('h2',null,c.name+' pays with PromptPay'),ppBox(acc,amt),h('p',{class:'sub'},'Check the money arrived in the bank app, then tap Payment received.'),
@@ -1095,14 +1108,16 @@ function buildPackage(c){
 function payCustomer(c){
   var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
   openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
-    values:{amount:o.total},fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true},{key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR']])},{key:'note',label:'Note',hint:'Optional.'}],
-    onSave:function(v){ var a=Math.round(v.amount||0); if(a<=0) return 'Type the amount paid.'; if(a>o.total) return 'That is more than they owe ('+thb(o.total)+').';
+    values:{amount:o.total},fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true},{key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR (money already in the bank)'],['stripe','Stripe card link for everything owed']])},{key:'note',label:'Note',hint:'Optional.'}],
+    onSave:function(v){ var a=Math.round(v.amount||0); if(v.method==='stripe'){ setTimeout(function(){ stripePay('customer',c.id,c.name); },300); return true; } if(a<=0) return 'Type the amount paid.'; if(a>o.total) return 'That is more than they owe ('+thb(o.total)+').';
       return sb.rpc('pay_customer',{p_customer:c.id,p_amount:a,p_method:v.method,p_note:v.note||null}).then(must).then(function(){ return Promise.all([reload('purchases'),reload('privates')]); }).then(function(){ var n=customerOwes(c.id).total; setTimeout(function(){ toast(n?'Paid '+thb(a)+'. Still owes '+thb(n)+'.':'Paid in full.'); },50); }); }});
 }
 function takePayment(p){
   openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(p.price_thb)+'.',saveLabel:'Payment received',doneMsg:'Paid. The package is ready to use.',fields:[
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS}],
-    onSave:function(v){ return sb.rpc('take_payment',{p_purchase:p.id,p_method:v.method}).then(must).then(function(){ return reload('purchases'); }); }});
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat(PAYLINK)}],
+    onSave:function(v){ if(v.method==='stripe'){ setTimeout(function(){ stripePay('purchase',p.id,p.package_name); },300); return true; }
+      if(v.method==='qr'){ var cu=byId('customers',p.customer_id)||{id:p.customer_id,name:'Customer'}; setTimeout(function(){ promptPayAmount(cu,(Number(p.price_thb)||0)-(Number(p.paid_thb)||0),p.package_name); },300); return true; }
+      return sb.rpc('take_payment',{p_purchase:p.id,p_method:v.method}).then(must).then(function(){ return reload('purchases'); }); }});
 }
 function purchaseLine(p,st){ var bits=[p.package_name||'Package'];
   if(p.class_limit) bits.push(left(p)+' of '+p.class_limit+' left');
@@ -1139,11 +1154,29 @@ function editStay(st){
     {key:'room_paid_thb',label:'Room money already paid (THB)',type:'number',def:0,hint:'Deposit or online payment. Leave 0 if they pay at the desk.'},
     {key:'training_included',label:'Group Muay Thai included for 1 person (untick if booked without it, for example on Booking.com)',type:'checkbox',def:true},
     {key:'notes',label:'Notes',type:'textarea'}];
+  if(!st.id) fields.splice(fields.length-1,0,
+    {key:'deal',label:'Special deal: one price for the room and everything included',type:'checkbox',onChange:function(v,set,get,o,show){ ['deal_inc','deal_meals','deal_privates','deal_priv_value','deal_other'].forEach(function(k){ show(k,!!v); }); show('training_included',!v); }},
+    {key:'deal_inc',label:'Included in the deal price',type:'checks',hide:true,options:[['training','Unlimited group Muay Thai'],['recovery','Recovery (sauna and ice bath)'],['fz','Fitness zone'],['meals','Meal plan'],['privates','Private sessions']],def:['training'],
+      hint:'Type the whole deal price in Room price above. Everything ticked here is included for the stay.'},
+    {key:'deal_meals',label:'Meals included (number of meals)',type:'number',hide:true},
+    {key:'deal_privates',label:'Private sessions included',type:'number',hide:true},
+    {key:'deal_priv_value',label:'Value of each private inside the deal (THB)',type:'number',hide:true,def:700,hint:'Used to pay the coach. This part of the deal shows as the private pack, the rest as the room.'},
+    {key:'deal_other',label:'Anything else included',hide:true,hint:'For example: airport pick up. Shows on the bill and the welcome email.'});
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
   openForm({title:st.id?'Edit stay':'Add a stay',values:st,fields:fields,
     onSave:function(v){
       if(v.check_out<=v.check_in) return 'The leaving date must be after the arrival date.';
       if(!v.customer_id&&!v.new_name) return 'Choose a guest or type a new guest name.';
+      var deal=!st.id&&v.deal, inc=deal?(v.deal_inc||[]):[], dN=Math.round((parseYmd(v.check_out)-parseYmd(v.check_in))/864e5), privN=inc.indexOf('privates')>=0?Math.round(v.deal_privates||0):0, privV=Math.round(Number(v.deal_priv_value)||0);
+      if(deal){ if(v.room_price_thb===''||v.room_price_thb==null) return 'Type the whole deal price in Room price.';
+        if(inc.indexOf('meals')>=0&&!(v.deal_meals>0)) return 'Type how many meals are included.';
+        if(inc.indexOf('privates')>=0&&!(privN>0)) return 'Type how many private sessions are included.';
+        if(privN*privV>Number(v.room_price_thb)) return 'The privates are worth more than the whole deal. Lower the value of each private.';
+        v.training_included=inc.indexOf('training')>=0;
+        v.room_price_thb=Number(v.room_price_thb)-privN*privV;
+        var incTxt=inc.filter(function(k){ return k!=='privates'&&k!=='meals'; }).map(function(k){ return {training:'unlimited group Muay Thai',recovery:'recovery',fz:'fitness zone'}[k]; });
+        if(inc.indexOf('meals')>=0) incTxt.push(v.deal_meals+' meals'); if(privN) incTxt.push(privN+' privates'); if(v.deal_other) incTxt.push(v.deal_other);
+        v.notes=('Special deal '+thb(Number(v.room_price_thb)+privN*privV)+(incTxt.length?', includes '+incTxt.join(', '):'')+'. '+(v.notes||'')).trim(); }
       var price=v.room_price_thb===''||v.room_price_thb==null?null:Math.round(Number(v.room_price_thb)), paid=Math.round(Number(v.room_paid_thb)||0);
       if(price!=null&&(isNaN(price)||price<0)) return 'The room price must be a number.';
       var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null,room_price_thb:price,room_paid_thb:paid,training_included:!!v.training_included});
@@ -1172,7 +1205,17 @@ function editStay(st){
       return mv.then(function(){ return first; }).then(function(cid){ body.customer_id=cid; delete body.new_name; delete body.new_email;
         if(moved){ delete body.room_id; delete body.check_in; delete body.check_out; if(!priceTouched){ delete body.room_price_thb; delete body.room_paid_thb; delete body.room_price_manual; } }
         return save('stays',st.id,body); }).then(function(r){ setTimeout(function(){ reload('purchases'); },500);
-        if(!st.id) setTimeout(function(){ var ns=newStay(body); if(ns) welcomeEmail(ns,true); },400); if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
+        var dealJobs=[]; if(deal){ var ns0=newStay(body), cid0=body.customer_id, today=ymd(new Date());
+          function inc0(name,covers,lim,sid){ dealJobs.push(sb.from('purchases').insert(toRow('purchases',{customer_id:cid0,package_name:'Deal: '+name,price_thb:0,price_group:'standard',paid:true,paid_thb:0,purchased_on:today,covers:covers,class_limit:lim||null,classes_left:lim||null,
+              starts_on:v.check_in,expires_on:addDays(v.check_out,-1),duration_days:dN,stay_id:sid},true)).then(must)); }
+          var sid=ns0?ns0.id:null;
+          if(inc.indexOf('recovery')>=0) inc0('Recovery for the stay',['Spa'],null,sid);
+          if(inc.indexOf('fz')>=0) inc0('Fitness zone for the stay',['Fitness zone','Open gym'],null,sid);
+          if(inc.indexOf('meals')>=0) inc0(Math.round(v.deal_meals)+' meals',[MEAL],Math.round(v.deal_meals),sid);
+          if(v.deal_other) inc0(v.deal_other,[],null,sid);
+          if(privN){ var pp={customer_id:cid0,package_name:'Privates in the deal, '+privN+' sessions',price_thb:privN*privV,price_group:'standard',paid:false,paid_thb:0,purchased_on:today,covers:['Privates'],class_limit:privN,classes_left:privN,starts_on:v.check_in,expires_on:addDays(v.check_out,30),duration_days:dN+30};
+            dealJobs.push(sb.from('purchases').insert(toRow('purchases',pp,true)).then(must)); } }
+        if(!st.id) Promise.all(dealJobs).then(function(){ return reload('purchases'); }).then(function(){ setTimeout(function(){ var ns=newStay(body); if(ns) welcomeEmail(ns,true); },300); },function(e){ toast('The stay is saved, but some deal items were not: '+errText(e)); }); if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
 }
 function newStay(b){ return (S.stays||[]).filter(function(x){ return x.customer_id===b.customer_id&&x.room_id===b.room_id&&x.check_in===b.check_in; }).sort(function(a,b2){ return String(b2.created_at||'').localeCompare(String(a.created_at||'')); })[0]||null; }
@@ -1280,7 +1323,7 @@ function stayDialog(st){
   var box=h('div',{class:'billbox'},h('h2',null,it.title),
     h('div',{class:'row'},h('b',null,it.when),it.right),
     h('p',{class:'sub'},it.note),
-    h('div',{class:'row',onclick:function(ev){ if(ev.target.tagName==='BUTTON') close(); }},it.act),
+    (function(){ var r=h('div',{class:'row wrap'},it.act); r.addEventListener('click',function(ev){ if(ev.target.closest('button')) close(); },true); return r; })(),
     h('div',{class:'factions'},h('span'),btn('Close',close)));
   $dlg.replaceChildren(box);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
@@ -1907,6 +1950,38 @@ function groupProducts(list){
 }
 function priceRange(items){ var ps=items.filter(function(p){ return !p.open_price; }).map(function(p){ return p.price; }); if(!ps.length) return 'Type price'; var a=Math.min.apply(null,ps), b=Math.max.apply(null,ps); return a===b?thb(a):thb(a)+' to '+thb(b); }
 function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
+/* training packages on the gym till: the package goes on the customer, the money goes through the till */
+function cartItems(){ return cart().map(function(l){ return l.pkg?{package:l.pkg,price:l.price}:{product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; }); }
+function cartCust(){ var l=cart().filter(function(x){ return x.pkg; })[0]; return l?l.pkg.customer_id:null; }
+function gymTill(loc){ return !!loc&&!/cafe/i.test(locName(loc)); }
+function tillPackages(){ return sortBy(S.packages.filter(function(p){ return p.active!==false&&!isMealOnly(p); }),'name'); }
+function tillPackage(pk){
+  var cc=cartCust(), cs=sortBy(S.customers,'name');
+  function grp(get){ var c=byId('customers',get('customer_id')); return c&&c.price_group||'standard'; }
+  function price(get){ var g=grp(get), t=tiersFor(pk,g), q=Number(get('qty'))||pk.qty_default||1; return t?(tierUnit(t,q)||0)*q:Number(priceFor(pk,g))||0; }
+  var g0=(byId('customers',cc)||{}).price_group||'standard', t0=tiersFor(pk,g0), q0=pk.qty_default||5, p0=t0?(tierUnit(t0,q0)||0)*q0:Number(priceFor(pk,g0))||0;
+  openForm({title:pk.name,note:'Goes on the customer like a package sold at the desk. They pay for it with the rest of this sale.',saveLabel:'Add to sale',doneMsg:'Added to the sale.',
+    values:{customer_id:cc||'',qty:t0?q0:null,price:p0},fields:[
+    {key:'customer_id',label:'Customer',type:'select',options:[['','New customer, type the name below']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),onChange:function(v,set,get){ set('price',price(get)); }},
+    {key:'new_name',label:'New customer name',hint:'Only if they are not in the list.'},
+    {key:'qty',label:pk.qty_unit==='days'?'How many days':'How many sessions',type:'number',hide:!t0,onChange:function(v,set,get){ set('price',price(get)); }},
+    {key:'price',label:'Price (THB)',type:'number',required:true}],
+    onSave:function(v){
+      if(!v.customer_id&&!v.new_name) return 'Choose the customer or type a new name.';
+      if(cc&&v.customer_id!==cc) return 'One customer per sale. Finish this sale first, or choose '+nameOf('customers',cc)+'.';
+      var c=v.customer_id?byId('customers',v.customer_id):null, g=c&&c.price_group||'standard', t=tiersFor(pk,g), q=t?Math.round(v.qty||0):null;
+      if(t&&(q<1||q>200)) return 'Type how many, 1 to 200.';
+      var pr=Math.round(Number(v.price)); if(!(pr>=0)) return 'Type the price.';
+      var first=v.customer_id?Promise.resolve(v.customer_id):sb.from('customers').insert({name:v.new_name,tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); });
+      return first.then(function(cid){
+        var today=ymd(new Date()), byDay=t&&pk.qty_unit==='days', lim=t&&!byDay?q:(byDay?null:pk.class_limit||null);
+        var nm=pk.name+(t?', '+q+(byDay?(q===1?' day':' days'):(pk.covers||[]).indexOf('Privates')>=0?' sessions':' visits'):'');
+        var tp={customer_id:cid,purchased_on:today,duration_days:byDay?q:(pk.duration_days||null),start_by:pk.start_within_days?addDays(today,pk.start_within_days):null,starts_on:null,expires_on:null};
+        if(pk.clock==='purchase') Object.assign(tp,startPurchase(tp,today));
+        cart().push({id:'pkg'+Date.now(),name:nm,price:pr,qty:1,note:'',pkg:{customer_id:cid,package_id:pk.id,package_name:nm,price_group:g,covers:pk.covers||[],visit_limit:lim,per_week_limit:pk.per_week_limit||null,
+          duration_days:tp.duration_days,start_by:tp.start_by,starts_on:tp.starts_on,expires_on:tp.expires_on}});
+        if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }); }});
+}
 function prodByCat(cat){ var loc=shopLoc(); return (SHOP.products||[]).filter(function(p){ return p.active&&soldAt(p,loc)&&(!cat||p.category_id===cat); }); }
 function shopDlg(box){ $dlg.replaceChildren(box); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
 function field(id,label,input,hint){ return h('div',{class:'ff'},h('label',{for:id},label),hint?h('span',{class:'sub'},hint):null,input); }
@@ -1951,7 +2026,7 @@ function discountDlg(){
 function tillStripe(){
   var total=cartSub()-cartDisc(); if(!cart().length){ toast('Add something first.'); return; } if(total<20){ toast('Stripe needs at least 20 THB.'); return; }
   var p={location_id:shopLoc(),method:'stripe',discount:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null,
-    items:cart().map(function(l){ return {product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; })};
+    items:cartItems(),customer_id:cartCust()};
   sb.rpc('shop_sell',{p:p}).then(must).then(function(r){ clearCart(); shopRefresh(); toast('Sale #'+r.number+' is waiting for the card payment.'); stripePay('order',r.id,'Sale #'+r.number); }).catch(function(e){ toast(errText(e)); });
 }
 function payDlg(method,waitingOrder){
@@ -1975,16 +2050,17 @@ function payDlg(method,waitingOrder){
   }
   function go(){
     var p={location_id:shopLoc(),method:method,discount:waitingOrder?0:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null};
-    if(waitingOrder) p.order_id=waitingOrder.id; else p.items=cart().map(function(l){ return {product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; });
+    if(waitingOrder) p.order_id=waitingOrder.id; else { p.items=cartItems(); p.customer_id=cartCust(); }
     if(given&&given.value) p.cash_given=Number(given.value);
     if(stay) p.stay_id=stay.value;
     var b=this; if(b) b.disabled=true;
+    var hadPk=!waitingOrder&&cart().some(function(l){ return l.pkg; });
     sb.rpc('shop_sell',{p:p}).then(must).then(function(r){
       var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
       var disc=waitingOrder?0:cartDisc(); if(!waitingOrder) clearCart();
       $dlg.close(); toast('Sale #'+r.number+' done.'+(r.change?' Change '+thb(r.change)+'.':''));
       receiptDlg({loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:total+disc,discount:disc,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
-      shopRefresh(); loadShop();
+      shopRefresh(); loadShop(); if(hadPk) reload('purchases');
     }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; });
   }
   shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),h('p',{class:'paytotal'},'Total '+thb(total)),extra,err,
@@ -2202,7 +2278,8 @@ function vShop(){
   var shift=curShift(), lows=isBoss()?lowList(loc):[];
   var here=prodByCat(null), cats=(SHOP.categories||[]).filter(function(c){ return c.active&&here.some(function(p){ return p.category_id===c.id; }); });
   var q=(ui.shopQ||'').toLowerCase();
-  var prods=prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q; });
+  var pkMode=ui.shopCat==='__pk'&&gymTill(loc);
+  var prods=pkMode?[]:prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q; });
   var pend=(APPROVALS||[]).filter(function(a){ return a.status==='pending'; });
   var waiting=(SALES&&SALES.waiting||[]).filter(function(o){ return !o.location_id||o.location_id===loc; });
   var head=h('div',{class:'row wrap'},
@@ -2215,13 +2292,16 @@ function vShop(){
     me.role==='manager'?btn('Products',function(){ ui.shopView='products'; schedule(); },'small'):null,
     isBoss()?btn(SHOP.has_pin?'Change my PIN':'Set my approval PIN',pinDlg,SHOP.has_pin?'small':'primary small'):null);
   var search=h('input',{id:'shop-q',type:'search',placeholder:'Search products',value:ui.shopQ||'',oninput:function(e){ ui.shopQ=e.target.value; schedule(); }});
-  var grid=h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return Object.assign({},p,{grp:null}); }):prods).map(function(g){
+  var grid=pkMode?h('div',{class:'tillgrid'},tillPackages().filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0; }).map(function(p){ var t=tiersFor(p,'standard');
+      return h('button',{type:'button',class:'tillbtn',onclick:function(){ tillPackage(p); }},h('span',null,p.name),h('small',null,'Training package'),h('b',null,t?thb(tierUnit(t,1))+(p.qty_unit==='days'?' a day':' each'):thb(priceFor(p,'standard')))); }))
+    :h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return Object.assign({},p,{grp:null}); }):prods).map(function(g){
       if(g.one){ var p=g.one, sq=stockAt(p,loc); return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':'')+(isLow(p,loc)?' low':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),sq!=null?h('small',null,sq+' left'):null,h('b',null,p.open_price?'Type price':thb(p.price))); }
       return h('button',{type:'button',class:'tillbtn grp'+(g.items[0].kitchen?' k':''),onclick:function(){ pickOption(g.grp,g.items,tillTap); }},h('span',null,g.grp),h('small',null,g.items.length+' options'),h('b',null,priceRange(g.items))); })
     :h('div',{class:'panel empty'},(SHOP.products||[]).length?'Nothing matches.':me.role==='manager'?'No products yet. Tap Products to add them, or send the Loyverse export to load them all.':'No products yet. A manager adds them.'));
   var sub=cartSub(), disc=cartDisc(), tot=sub-disc;
   var cartBox=h('div',{class:'cartbox panel'},h('div',{class:'carthead'},h('b',null,'Sale'),cart().length?btn('Clear',clearCart,'small'):null),
     cart().length?h('div',{class:'cartlines'},cart().map(function(l,i){
+      if(l.pkg) return h('div',{class:'cartline'},h('div',{class:'cl-name'},l.name,h('span',{class:'sub'},' for '+nameOf('customers',l.pkg.customer_id))),h('div',{class:'cl-qty'},btn('Remove',function(){ cart().splice(i,1); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); },'small')),h('div',{class:'cl-amt'},thb(l.price)),h('span'));
       return h('div',{class:'cartline'},h('div',{class:'cl-name'},l.name,l.note?h('span',{class:'sub'},' '+l.note):null),
         h('div',{class:'cl-qty'},btn('-',function(){ l.qty--; if(l.qty<1) cart().splice(i,1); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); },'small'),h('button',{type:'button',class:'btn small qtybtn',title:'Type an amount',onclick:function(){ openForm({title:'How many '+l.name+'?',values:{qty:l.qty},saveLabel:'Set',doneMsg:'Updated.',fields:[{key:'qty',label:'Amount',type:'number',required:true}],
           onSave:function(v){ var q=Math.round(v.qty||0); if(q<0||q>999) return 'Type 0 to 999.'; if(q===0) cart().splice(cart().indexOf(l),1); else l.qty=q; if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }}); }},String(l.qty)),btn('+',function(){ l.qty++; schedule(); },'small')),
@@ -2242,8 +2322,9 @@ function vShop(){
     waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:thb(o.total),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
       act:[shift?PAYS.filter(function(m){ return m[0]!=='room'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
-    h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
-        cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); })):null,grid),cartBox),
+    h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
+        cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); }),
+        gymTill(loc)?btn('Training packages',function(){ ui.shopCat='__pk'; ui.shopQ=''; schedule(); },pkMode?'primary small':'small'):null):null,grid),cartBox),
     section('Sales today',null,cards(today.slice(0,40).map(function(o){
       var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip('Not paid','warn'):chip(payName(o.method),'ok');
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
@@ -2885,7 +2966,7 @@ var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
-  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb']},
+  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move'],clear:['reschedule']},
