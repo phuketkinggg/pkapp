@@ -463,7 +463,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -1536,6 +1536,7 @@ function vHours(){
   return [pageHead('Staff hours','Coaches check in and out for every private and group class. Front desk, kitchen and housekeeping check in and out for their shift. You can add or fix hours by hand.',
       h('div',{class:'row'},btn('Office QR poster',function(){ ui.hPoster=true; schedule(); },'small'),btn('Add hours',function(){ editHours(); },'primary'))),
     ui.hPoster?staffPoster():null,
+    (!ui.hTo||ui.hTo>=ymd(new Date()))?staffToday(true):null,
     h('div',{class:'row wrap'},staffSel,h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
     !HOURS?h('div',{class:'panel empty'},'Loading.'):null,
     section('Totals',null,table([{label:'Who',cell:function(t){ return t.name; }},{label:'Hours',num:true,cell:function(t){ return hm(t.m); }},
@@ -2010,6 +2011,74 @@ function dashHk(){
       rooms,'No rooms in the app yet.')));
 }
 
+
+/* staff today: who is in, who is out, who is late or missed */
+var BOARD=null;
+function loadBoard(){ var d=ymd(new Date()); return sb.rpc('staff_hours',{p_from:d,p_to:d}).then(function(r){ if(r.error) return; var ch=JSON.stringify(r.data)!==JSON.stringify(BOARD); BOARD=r.data; if(ch&&!document.querySelector('dialog[open]')) schedule(); }); }
+setInterval(function(){ if(me&&me.role==='manager'&&allReady&&(ui.tab==='today'||ui.tab==='hours')&&document.visibilityState!=='hidden') loadBoard(); },60000);
+function boardItems(){
+  var day=ymd(new Date()), wd=(new Date().getDay()+6)%7, now=timeNow(), E=(BOARD&&BOARD.entries)||[], out=[];
+  function late(e,t){ if(!e||!e.in_at||!t) return 0; var m=Math.round((new Date(e.in_at)-new Date(day+'T'+t+':00+07:00'))/60000); return m>5?m:0; }
+  function add(kind,ref,staffId,t,what){
+    var e=E.filter(function(x){ return x.kind===kind&&x.ref_id===ref; })[0], l=late(e,t), st;
+    if(e&&e.out_at) st=['Done '+bkkTime(e.in_at)+' - '+bkkTime(e.out_at),'ok','done'];
+    else if(e) st=['In since '+bkkTime(e.in_at),'ok','in'];
+    else if(shiftTime(t,5)<now) st=['Missed, not checked in','bad','missed'];
+    else st=[shiftTime(t,-60)<=now?'Starts soon':'Coming up','',''];
+    out.push({t:t,staff:nameOf('staff',staffId),what:what,st:st,late:l,e:e,kind:kind,ref:ref,staff_id:staffId});
+  }
+  S.privates.filter(function(p){ return p.date===day&&(p.status==='confirmed'||p.status==='done')&&p.coach_id; }).forEach(function(p){ add('private',p.id,p.coach_id,p.time||'00:00','Private, '+nameOf('customers',p.customer_id)); });
+  S.classes.filter(function(c){ return Number(c.day)===wd&&c.coach_id&&!classOff(c,day); }).forEach(function(c){ add('class',c.id,c.coach_id,c.time||'00:00','Class, '+c.title); });
+  E.filter(function(e){ return e.kind==='shift'; }).forEach(function(e){ out.push({t:bkkTime(e.in_at),staff:e.staff,what:'Shift',st:e.out_at?['Worked '+bkkTime(e.in_at)+' - '+bkkTime(e.out_at),'ok','done']:['In since '+bkkTime(e.in_at),'ok','in'],late:0,e:e}); });
+  return out.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
+}
+function staffToday(full){
+  if(!me||me.role!=='manager') return null;
+  if(!BOARD){ if(!ui.boardAsked){ ui.boardAsked=true; loadBoard(); } return null; }
+  var it=boardItems(), inNow=it.filter(function(x){ return x.st[2]==='in'; }), missed=it.filter(function(x){ return x.st[2]==='missed'; }), late=it.filter(function(x){ return x.late; });
+  var shiftStaff={}; it.forEach(function(x){ if(x.what==='Shift') shiftStaff[x.staff]=1; });
+  var notIn=S.staff.filter(function(s){ return s.active!==false&&['front_desk','housekeeping','kitchen','resort'].indexOf(s.role)>=0&&!shiftStaff[s.name]; });
+  var sumRow=h('div',{class:'row wrap'},chip(inNow.length+' in now','ok'),late.length?chip(late.length+' late','warn'):null,missed.length?chip(missed.length+' missed','bad'):null,
+    !full?btn('Open staff hours',function(){ go('hours'); },'small'):null);
+  if(!full) return it.length?section('Staff today',null,sumRow):null;
+  return section('Today, live',btn('Refresh',function(){ loadBoard(); },'small'),h('div',null,sumRow,
+    cards(it.map(function(x){ return {when:x.t,title:x.staff+': '+x.what,right:h('span',{class:'row'},x.late?chip(x.late+' min late','warn'):null,chip(x.st[0],x.st[1])),
+      act:x.st[2]==='missed'?btn('Add times',function(){ editHours(null,{staff_id:x.staff_id,staff:x.staff,day:ymd(new Date()),time:x.t,what:x.what,kind:x.kind,ref_id:x.ref}); },'small'):null}; }),'Nothing on today yet.'),
+    notIn.length?h('p',{class:'sub'},'Not clocked in today: '+notIn.map(function(s){ return s.name; }).join(', ')+'.'):null));
+}
+
+/* housekeeping page for the manager and resort manager */
+var HKR=null, HKS=null;
+function loadHkr(){ var d=ui.hkDay||ymd(new Date()), f=addDays(d,-6);
+  return Promise.all([sb.rpc('dash_hk',{p_day:d}),sb.rpc('hk_sales',{p_from:f,p_to:d})]).then(function(r){ HKR=r[0].error?null:r[0].data; HKS=r[1].error?null:r[1].data; ui.hkrErr=r[0].error?errText(r[0].error):null; schedule(); }); }
+function vHousekeeping(){
+  var day=ui.hkDay||ymd(new Date()), today=ymd(new Date());
+  if(!HKR||HKR.day!==day){ if(ui.hkrFor!==day){ ui.hkrFor=day; loadHkr(); } return [pageHead('Housekeeping',''),h('div',{class:'panel empty'},ui.hkrErr||'Loading.')]; }
+  if(!DASH&&!ui.dashBusy) loadDash();
+  var tm=function(a){ return new Date(a).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); };
+  var rooms=HKR.rooms||[], occ=rooms.filter(function(r){ return r.occupied; });
+  var cleaned=occ.filter(function(r){ return r.cleaned.length; }).length, mb=occ.filter(function(r){ return r.minibar.length; }).length;
+  var dayChecks=rooms.reduce(function(a,r){ return a.concat(r.minibar.filter(function(m){ return m.total; }).map(function(m){ return {room:r.name,m:m}; })); },[]);
+  var daySales=dayChecks.reduce(function(t,x){ return t+x.m.total; },0);
+  var weekSales=HKS?HKS.charges.reduce(function(t,c){ return t+c.amount; },0):0;
+  var items={}; (HKS?HKS.checks:[]).forEach(function(c){ String(c.items||'').split(/,\s*/).forEach(function(x){ var m=x.match(/^(\d+)\s*x?\s*(.+)$/i); if(!m) return; items[m[2].trim()]=(items[m[2].trim()]||0)+Number(m[1]); }); });
+  var dateIn=h('input',{type:'date',value:day,max:today,onchange:function(e){ ui.hkDay=e.target.value||null; HKR=null; schedule(); }});
+  function nav(n){ return btn(n<0?'Previous day':'Next day',function(){ ui.hkDay=addDays(day,n); if(ui.hkDay>today) ui.hkDay=today; HKR=null; schedule(); },'small'); }
+  return [pageHead('Housekeeping',fmtDate(day)+(day===today?', today':''),h('div',{class:'row'},nav(-1),dateIn,day<today?nav(1):null)),
+    h('div',{class:'stats'},h('span',null,h('b',null,cleaned+' of '+occ.length),'occupied rooms cleaned'),h('span',null,h('b',null,mb+' of '+occ.length),'mini bars checked'),
+      h('span',null,h('b',null,thb(daySales)||'0 THB'),'mini bar sales this day'),h('span',null,h('b',null,String(DASH&&DASH.todos?DASH.todos.length:0)),'problems open')),
+    section('Rooms',null,table([
+      {label:'Room',cell:function(r){ return h('span',null,h('b',null,r.name),r.occupied?h('div',{class:'sub'},r.guest||'Guest'):h('div',{class:'sub'},'Empty')); }},
+      {label:'Cleaned',cell:function(r){ return r.cleaned.length?h('span',null,chip('Yes','ok'),' '+r.cleaned.map(function(c){ return tm(c.at)+(c.by?' '+c.by:''); }).join(', ')):(r.occupied?chip('Not cleaned','bad'):h('span',{class:'sub'},'No')); }},
+      {label:'Mini bar',cell:function(r){ return r.minibar.length?h('span',null,r.minibar.map(function(m){ return h('div',null,chip(m.total?'Used '+thb(m.total):'Nothing used','ok'),' '+tm(m.at)+(m.by?' '+m.by:'')+(m.items?', '+m.items:'')); })):(r.occupied?chip('Not checked','warn'):h('span',{class:'sub'},'')); }}],
+      rooms,'No rooms in the app yet.')),
+    dashTodo(),
+    section('Mini bar sales, last 7 days',null,h('div',null,
+      h('p',{class:'sub'},'Total '+(thb(weekSales)||'0 THB')+' on room bills.'+(Object.keys(items).length?' Most used: '+Object.keys(items).sort(function(a,b){ return items[b]-items[a]; }).slice(0,6).map(function(k){ return items[k]+' '+k; }).join(', ')+'.':'')),
+      table([{label:'Day',cell:function(c){ return fmtDate(c.day); }},{label:'Room',cell:function(c){ return c.room+(c.guest?', '+c.guest:''); }},{label:'What',cell:function(c){ return c.what; }},
+        {label:'Amount',num:true,cell:function(c){ return thb(c.amount); }},{label:'By',cell:function(c){ return c.by||''; }}],HKS?HKS.charges:[],'No mini bar sales in the last 7 days.')))];
+}
+
 /* ---------- views ---------- */
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
@@ -2050,6 +2119,7 @@ function vToday(){
     pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
     h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
     dashTodo(),
+    staffToday(false),
     section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
     orders.length?section('App orders waiting for payment',null,table([
@@ -2373,7 +2443,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -3014,11 +3084,11 @@ function vKiosk(){
     :q.length===1?h('p',{class:'sub'},'Keep typing your name.'):null,
     !q?promoBoard():null,foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
+function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','customers','shop','kitchen']:['today','shop','kitchen','stays','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -3047,7 +3117,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
