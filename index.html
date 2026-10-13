@@ -2860,8 +2860,11 @@ function vToday(){
       return {p:p,st:st,can:unpaidOrder(p)?{ok:false,reason:'(ordered in the app, not paid yet)'}:canCheckIn(p,st,target,classToday)}; });
     var usable=ps.filter(function(x){return x.can.ok;}), right;
     if(usable.length) right=h('div',{class:'row'},usable.map(function(x){ return btn((already?'Check in again: ':'Check in: ')+x.p.package_name,function(){ checkIn(c,x.p,target); },'primary small'); }));
-    else { var live=ps.filter(function(x){return x.st.ok;})[0];
-      right=h('div',{class:'row'},chip(live?live.p.package_name+' '+live.can.reason:(ps.length?ps[ps.length-1].st.label:'No package'),'bad'),btn('Sell a package',function(){ sellPackage(c); },'small')); }
+    else { var live=ps.filter(function(x){return x.st.ok;})[0], pk=S.purchases.filter(function(p){ return p.customer_id===c.id&&isPrivatePack(p)&&!p.cancelled&&stateOf(p,day).ok; })[0];
+      right=h('div',{class:'row'},pk&&!ps.length?chip('Privates only: '+left(pk)+' of '+pk.class_limit+' left to book'):chip(live?live.p.package_name+' '+live.can.reason:(ps.length?ps[ps.length-1].st.label:'No group package'),'bad'),btn('Sell a package',function(){ sellPackage(c); },'small')); }
+    var privToday=sortBy(S.privates.filter(function(x){ return x.customer_id===c.id&&x.date===day&&(x.status==='confirmed'||x.status==='done'); }),'time');
+    if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
+      return x.status==='done'?chip('Private '+(x.time||'')+who+': done','ok'):btn('Private '+(x.time||'')+who+': here, mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'primary small'); }),usable.length?right:null);
     return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
       h('small',null,already?'Already checked in today at '+already.time+'. ':'',usable.map(function(x){return purchaseLine(x.p,x.st);}).join(' | '))),right);
   });
