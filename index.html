@@ -800,7 +800,7 @@ function editPrivate(p,approving){ p=p||{};
     {key:'pack_note',label:'From the pack',readonly:true,def:pack0?packLine(pack0):''},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
-    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR']])},
+    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us on the day of the private.'},
     {key:'notes',label:'Notes',type:'textarea'}],
     onSave:function(v){
       var today=ymd(new Date());
@@ -813,10 +813,11 @@ function editPrivate(p,approving){ p=p||{};
         if(v.status!=='cancelled'&&pack.expires_on&&v.date>pack.expires_on) return 'That pack expired on '+fmtDate(pack.expires_on)+'. Book a date before then.'; }
       var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); delete body.pack_note;
       if(v.purchase_id){ body.paid=true; var pk=byId('purchases',v.purchase_id); if(pk) body.price_thb=perSession(pk); }
+      else if(v.method==='room'){ if(!v.customer_id) return 'Charge to room needs a customer who is staying with us.'; body.paid=true; }
       body.guest_name=v.guest_name||null;
       if(p.id&&(p.date!==v.date||p.time!==v.time)) delete body.reschedule;
       if(body.coach_pct==null||p.coach_id!==v.coach_id) body.coach_pct=coach&&coach.commission_pct!=null?coach.commission_pct:50;
-      return save('privates',p.id,body); },
+      return save('privates',p.id,body).then(function(r){ if(v.method==='room'&&!v.purchase_id) setTimeout(function(){ reload('charges'); },400); return r; }); },
     onDelete:p.id?function(){ return db.doc('privates/'+p.id).delete(); }:null});
 }
 function editSource(s){ s=s||{};
@@ -1142,7 +1143,7 @@ function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.
 
 /* ---------- resort: stays, room bills and meal plans ---------- */
 function stayOn(st,day){ return (st.status==='booked'||st.status==='in')&&st.check_in<=day&&day<=st.check_out; }
-function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.stay_id===st.id; }),'day','created_at'); }
+function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.stay_id===st.id&&!(c.private_id&&!Number(c.amount_thb)); }),'day','created_at'); }
 function extrasTotal(st){ return chargesOf(st).reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0); }
 function roomDue(st){ return (Number(st.room_price_thb)||0)-(Number(st.room_paid_thb)||0); }
 /* what the guest still owes: the room (price minus what was already paid) plus everything added to the bill */
@@ -3681,14 +3682,18 @@ function vCBuy(){
 function cuPack(){ return CU.purchases.filter(function(p){ return isPrivatePack(p)&&cuUsable(p)&&cuState(p).ok; })[0]||null; }
 function requestPrivate(){
   if(!CU.coaches.length){ toast('Privates cannot be requested in the app yet. Ask at the front desk.'); return; }
-  var pack=cuPack(), cost=pack?'This uses 1 session from your pack. You have '+classesLeft(pack)+' left. ':(CU.private_price!=null?'A private is '+thb(CU.private_price)+', paid at the front desk. ':'');
-  openForm({title:'Request a private',note:'This is a request, not a booking yet. '+cost+'The manager confirms the time and chooses your coach. It is booked when it shows Confirmed here.',saveLabel:'Send request',doneMsg:'Request sent. Wait for it to show Confirmed.',fields:[
+  var pack=cuPack(), price=CU.private_price!=null?thb(CU.private_price):null;
+  var pays=[]; if(pack) pays.push(['pack','From my pack ('+classesLeft(pack)+' sessions left)']); if(CU.stay&&CU.stay.status!=='out') pays.push(['room','Charge to my room'+(price?', '+price:'')]); pays.push(['desk','Pay at the front desk or by card'+(price?', '+price:'')]);
+  openForm({title:'Request a private',note:'This is a request, not a booking yet. The manager confirms the time and chooses your coach. It is booked when it shows Confirmed here.',saveLabel:'Send request',doneMsg:'Request sent. Wait for it to show Confirmed.',fields:[
+    {key:'pay',label:'How you pay',type:'select',options:pays,def:pays[0][0],hint:CU.stay?'Charge to my room works for days you are staying with us.':null},
     {key:'coach',label:'Coach you would like (a request)',type:'select',options:[['','No preference']].concat(CU.coaches.map(function(c){ return [c.id,c.name]; })),def:'',hint:'We try to give you this coach, but the manager makes the final choice.'},
     {key:'date',label:'Date',type:'date',required:true,def:addDays(CU.today,1)},
     {key:'time',label:'Start time',type:'time',required:true},
     {key:'note',label:'Anything we should know',type:'textarea'}],
     onSave:function(v){ if(v.date<CU.today) return 'That date has already passed.';
-      return cuCall('customer_request_private',{p_coach:v.coach||null,p_date:v.date,p_time:v.time,p_note:v.note||null}); }});
+      return sb.rpc('customer_request_private',{p_coach:v.coach||null,p_date:v.date,p_time:v.time,p_note:v.note||null}).then(must).then(function(id){
+        var want=v.pay||'pack', got=pack?'pack':'desk'; if(want===got) return loadCustomer();
+        return sb.rpc('customer_private_pay',{p_private:id,p_pay:want}).then(must).then(loadCustomer,function(e){ return loadCustomer().then(function(){ throw {plain:true,message:'Request sent, but '+((e&&e.message)||'the payment choice did not save')+' Choose again on the private.'}; }); }); }); }});
 }
 function cuAskMove(p){
   var late=CU.today>=p.date;
@@ -3701,11 +3706,18 @@ function cuAskMove(p){
 function ptCard(p,brief){
   var r=p.reschedule, note=[], act=null;
   var st=p.status==='requested'?chip('Waiting for confirmation','warn'):p.status==='confirmed'?chip('Confirmed','ok'):p.status==='done'?chip('Done','ok'):chip('Not booked','bad');
-  if(p.status!=='cancelled') note.push(p.pack?'Paid with your pack':(p.paid?'Paid':'Pay at the front desk'));
+  if(p.status!=='cancelled') note.push(p.pack?'Paid with your pack':p.method==='room'?'On your room bill':(p.paid?'Paid':'Pay at the front desk'));
   if(r&&p.status==='confirmed') note.push((r.by==='coach'?'Your coach asked to move this to ':'You asked to move this to ')+fmtDate(r.date)+' '+r.time+'. '+(r.by==='customer'&&r.needs_coach&&!r.coach_agreed?'Waiting for your coach':'Waiting for a manager'));
   else if(!brief&&p.status==='confirmed'&&p.date>=CU.today) act=btn('Ask to move',function(){ cuAskMove(p); },'small');
   if(p.status==='requested') note.unshift('Waiting for the manager to confirm the time and choose your coach'+(p.preferred?' (you asked for '+p.preferred+')':''));
+  if(!brief&&(p.status==='requested'||p.status==='confirmed')&&p.date>=CU.today&&(cuPack()||CU.stay)) act=[act,btn('How I pay',function(){ cuPrivPay(p); },'small')];
   return {when:fmtDate(p.date)+' '+p.time,right:st,title:p.coach?'With '+p.coach:'Coach to be confirmed',note:note.join('. '),act:act};
+}
+function cuPrivPay(p){
+  var pack=cuPack(), price=CU.private_price!=null?thb(CU.private_price):null, pays=[];
+  if(pack||p.pack) pays.push(['pack','From my pack'+(pack?' ('+classesLeft(pack)+' sessions left)':'')]); if(CU.stay) pays.push(['room','Charge to my room'+(price?', '+price:'')]); pays.push(['desk','Pay at the front desk or by card'+(price?', '+price:'')]);
+  openForm({title:'How you pay for this private',note:fmtDate(p.date)+' '+p.time+'.',saveLabel:'Save',doneMsg:'Saved.',values:{pay:p.pack?'pack':p.method==='room'?'room':'desk'},fields:[{key:'pay',label:'Pay with',type:'select',options:pays}],
+    onSave:function(v){ return cuCall('customer_private_pay',{p_private:p.id,p_pay:v.pay}); }});
 }
 function vCPt(){
   var day=CU.today, pack=cuPack();
