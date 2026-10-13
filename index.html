@@ -1136,6 +1136,8 @@ function purchaseLine(p,st){ var bits=[p.package_name||'Package'];
   if(p.expires_on) bits.push('to '+fmtDate(p.expires_on)); else if(!p.starts_on&&p.start_by) bits.push('start by '+fmtDate(p.start_by));
   return bits.join(', '); }
 function stateChip(st){ return chip(st.label, st.ok?(st.status==='active'?'ok':null):'bad'); }
+function arrivedChip(p){ return p.arrived_at?chip('Arrived '+bkkTime(p.arrived_at)+(p.arrived_by==='customer'?' (own app)':''),'ok'):null; }
+function privArrived(p,name){ setPrivate(p,{arrived_at:new Date().toISOString(),arrived_by:'desk'},(name||'Customer')+' is here.'); }
 function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.id).update(patch),msg); }
 
 /* ---------- resort: stays, room bills and meal plans ---------- */
@@ -2864,7 +2866,7 @@ function vToday(){
       right=h('div',{class:'row'},pk&&!ps.length?chip('Privates only: '+left(pk)+' of '+pk.class_limit+' left to book'):chip(live?live.p.package_name+' '+live.can.reason:(ps.length?ps[ps.length-1].st.label:'No group package'),'bad'),btn('Sell a package',function(){ sellPackage(c); },'small')); }
     var privToday=sortBy(S.privates.filter(function(x){ return x.customer_id===c.id&&x.date===day&&(x.status==='confirmed'||x.status==='done'); }),'time');
     if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
-      return x.status==='done'?chip('Private '+(x.time||'')+who+': done','ok'):btn('Private '+(x.time||'')+who+': here, mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'primary small'); }),usable.length?right:null);
+      return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length?right:null);
     return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
       h('small',null,already?'Already checked in today at '+already.time+'. ':'',usable.map(function(x){return purchaseLine(x.p,x.st);}).join(' | '))),right);
   });
@@ -2910,8 +2912,8 @@ function vToday(){
       {label:'Time',cell:function(p){return p.time||'';}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
-      {label:'Status',cell:function(p){return chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null);}},
-      {label:'',cell:function(p){return p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):'';}}],pToday,'No privates booked for today.')),
+      {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null),arrivedChip(p));}},
+      {label:'',cell:function(p){return h('span',{class:'row'},!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null);}}],pToday,'No privates booked for today.')),
     renew.length?section('Renewals coming up',null,table([
       {label:'Customer',cell:function(r){return linkBtn(nameOf('customers',r.p.customer_id),function(){ openCustomer(r.p.customer_id); });}},
       {label:'Package',cell:function(r){return r.p.package_name;}},
@@ -3010,7 +3012,7 @@ function vPrivates(){
       {label:'Paid with',cell:payLabel},
       {label:'You receive',num:true,cell:function(p){return thb(p.price_thb);}},
       {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}},
-      {label:'Status',cell:function(p){return chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':p.status==='requested'?'warn':p.status==='cancelled'?'bad':null);}},
+      {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':p.status==='requested'?'warn':p.status==='cancelled'?'bad':null),arrivedChip(p));}},
       {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip('Not paid','warn');}},
       {label:'',cell:function(p){ return p.status==='requested'?btn('Approve',function(){ approvePrivate(p); },'primary small'):p.status==='confirmed'&&p.date<=day?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):''; }}],
       list,ui.pfilter==='upcoming'?'No privates coming up. Book the first one with the button above.':'Nothing to show here.')];
@@ -3233,7 +3235,7 @@ var MAP={
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
-  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move'],clear:['reschedule']},
+  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included']},
@@ -3372,7 +3374,7 @@ function vMine(){
   var doneP=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===prev; });
   function card(p,act,right){ return {when:when(p),title:p.customer,note:p.notes,right:right,act:act}; }
   var todayItems=classes.map(function(c){ return {t:c.time||'',when:c.time||'',title:c.title,note:C('group')}; })
-    .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:C('privWith')(p.customer),note:p.notes,act:doneBtn(p)}; }));
+    .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:C('privWith')(p.customer),right:p.arrived_at?chip((coLang()==='th'?'ลูกค้ามาแล้ว ':'Customer here ')+bkkTime(p.arrived_at),'ok'):null,note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
   return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),myJobs(),
     h('div',{class:'stats'},
@@ -3521,7 +3523,21 @@ function cuCheckIn(t){
     toast(m); schedule();
   }).then(function(){ cuBusy=false; });
 }
-function cuCheckInCard(){
+function cuPrivToday(){
+  var day=CU.today, list=(CU.privates||[]).filter(function(p){ return p.date===day&&(p.status==='confirmed'||p.status==='done'); });
+  if(!list.length) return null;
+  return h('div',{class:'panel checkin'},h('div',{class:'pad'},h('b',null,'Your private today'),h('p',{class:'sub'},liveCode()?'Tap I am here when you arrive, so the team knows you came.':'At the gym, scan the QR code at the front desk, then tap I am here.')),
+    list.map(function(p){ return h('div',{class:'hit'},h('span',null,(p.time||'')+(p.coach?' with '+p.coach:'')),
+      p.arrived_at?chip('Checked in '+bkkTime(p.arrived_at),'ok'):liveCode()?btn('I am here',function(){ cuPrivArrived(p); },'primary'):btn('Scan to check in',scanCheckIn,'small')); }));
+}
+function cuPrivArrived(p){
+  var code=liveCode(); if(!code){ forgetCode(); toast('Scan the QR code at the front desk again.'); schedule(); return; }
+  if(cuBusy) return; cuBusy=true;
+  sb.rpc('customer_private_arrived',{p_code:code,p_private:p.id}).then(must).then(function(){ toast('Checked in for your private. Your coach knows you are here.'); return loadCustomer(); })
+    .catch(function(e){ var m=(e&&e.message)||'That did not work. Try again.'; if(/out of date/.test(m)) forgetCode(); toast(m); schedule(); }).then(function(){ cuBusy=false; });
+}
+function cuCheckInCard(){ var pv=cuPrivToday(); if(pv&&!cuDone&&!cuClassPacks().some(function(p){ return cuState(p).ok; })) return pv; return [pv,cuCheckInMain()]; }
+function cuCheckInMain(){
   if(cuDone) return h('div',{class:'panel pad done',role:'status'},
     h('div',{class:'donebig'},'Checked in'),h('div',{class:'donewhat'},cuDone.what),
     h('div',{class:'cnote'},CU.me.name+'. '+fmtDate(CU.today)+' at '+cuDone.time+'. '+cuDone.package+'.'),
