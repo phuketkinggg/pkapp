@@ -1458,7 +1458,10 @@ function vCalendar(){
       var a=Math.max(0,idx(st.check_in)), b=Math.min(days,idx(st.check_out)), g=byId('customers',st.customer_id)||{};
       if(b<=a) return null;
       var name=String(g.name||'Guest'), label=b-a>=3?name:name.split(' ')[0];
-      return h('button',{type:'button',class:'bk '+srcClass(st)+' '+st.status+(st.check_in<start?' cut-l':'')+(st.check_out>end?' cut-r':''),style:'grid-column:'+(a+1)+' / '+(b+1),
+      /* hotel style: the bar starts half way through the arrival day and ends half way through the leaving day */
+      var cutL=st.check_in<start, cutR=idx(st.check_out)>=days, endCol=cutR?days+1:idx(st.check_out)+2;
+      return h('button',{type:'button',class:'bk '+srcClass(st)+' '+st.status+(cutL?' cut-l':'')+(cutR?' cut-r':''),
+        style:'grid-column:'+(a+1)+' / '+endCol+(cutL?'':';margin-left:calc(var(--day) / 2 + 1px)')+(cutR?'':';margin-right:calc(var(--day) / 2 + 1px)'),
         title:name+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+(st.source_id?', '+nameOf('sources',st.source_id):''),
         onclick:function(){ stayDialog(st); }},label);
     });
