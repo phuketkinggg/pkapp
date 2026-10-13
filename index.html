@@ -396,6 +396,8 @@ body.lang-my .btn{min-height:44px}
 @media (max-width:760px){ .cal{--room:118px;--day:34px} }
 @media (prefers-reduced-motion:no-preference){ .btn,#nav button{transition:background-color .12s,border-color .12s} }
 .mailprev{width:100%;height:58vh;border:1px solid var(--line);border-radius:10px;background:#f5f0e8;margin:8px 0}
+.rxprev{max-width:100%;max-height:220px;border-radius:8px;margin:6px 0}
+.rxbig{max-width:100%;max-height:70vh;display:block;margin:8px auto;border-radius:8px}
 </style>
 </head>
 <body>
@@ -484,7 +486,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, ready={}, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -1534,15 +1536,15 @@ function vHK(){
   var rooms=HK.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
   var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length, my=hkLang()==='my';
   var day=parseYmd(HK.today).toLocaleDateString(my?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'});
-  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),myJobs(),
+  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),h('div',{class:'row'},btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),myJobs(),
     cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
 }
 /* ---------- room supplies and the resort store: staff note what they used, managers keep the counts ---------- */
 var STOCK=null, STOCKR=null;
 var SUT={
-  en:{supplies:'Supplies',title:function(n){ return 'Supplies for '+n; },titleAny:'Supplies used',note:'Type how many you put in or used. Leave the rest at 0.',cons:'Used from the store',extras:'Extra given to the room',towel:'Towel',pillow:'Pillow',blanket:'Blanket',sheet:'Sheet',other:'Something else (write it)',otherQty:'How many',more:'Other stock used (for example a light bulb)',moreQty:'How many of that',none:'Nothing',room:'Room',noroom:'Not a room',save:'Save',saved:'Saved. Thank you.',cancel:'Cancel',need:'Type how many for at least one thing.',loading:'Loading the list.'},
-  my:{supplies:'ပစ္စည်းများ',title:function(n){ return n+' အတွက် ပစ္စည်းများ'; },titleAny:'သုံးခဲ့သော ပစ္စည်းများ',note:'ထည့်ပေး သို့မဟုတ် သုံးခဲ့သော အရေအတွက်ကို ရိုက်ပါ။ ကျန်တာ 0 ထားပါ။',cons:'စတိုမှ သုံးခဲ့သည်',extras:'အခန်းသို့ ထပ်ပေးသည်',towel:'တဘက်',pillow:'ခေါင်းအုံး',blanket:'စောင်',sheet:'အိပ်ယာခင်း',other:'အခြား (ရေးပါ)',otherQty:'ဘယ်နှစ်ခု',more:'အခြား ပစ္စည်း သုံးခဲ့သည် (ဥပမာ မီးသီး)',moreQty:'ဘယ်နှစ်ခု',none:'မရှိပါ',room:'အခန်း',noroom:'အခန်းမဟုတ်ပါ',save:'သိမ်းရန်',saved:'သိမ်းပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',cancel:'မလုပ်တော့ပါ',need:'အနည်းဆုံး တစ်ခုအတွက် အရေအတွက် ရိုက်ပါ။',loading:'စာရင်း ဖွင့်နေသည်။'},
-  th:{supplies:'ของใช้',title:function(n){ return 'ของใช้สำหรับ '+n; },titleAny:'ของที่ใช้ไป',note:'ใส่จำนวนที่เติมหรือใช้ไป ที่เหลือใส่ 0',cons:'ใช้จากสต็อก',extras:'ให้ห้องเพิ่ม',towel:'ผ้าเช็ดตัว',pillow:'หมอน',blanket:'ผ้าห่ม',sheet:'ผ้าปูที่นอน',other:'อย่างอื่น (เขียน)',otherQty:'จำนวน',more:'ของอื่นที่ใช้ (เช่น หลอดไฟ)',moreQty:'จำนวน',none:'ไม่มี',room:'ห้อง',noroom:'ไม่ใช่ห้องพัก',save:'บันทึก',saved:'บันทึกแล้ว ขอบคุณ',cancel:'ยกเลิก',need:'ใส่จำนวนอย่างน้อยหนึ่งอย่าง',loading:'กำลังโหลด'}};
+  en:{addStock:'Add stock',addTitle:'Add to the store',addNote:'Things you bought, or what you counted in the store. You can only add here. Things used go out through Supplies on a room.',addItem:'Item',addQty:'How many to add',addWhy:'Note',addWhyHint:'For example: bought at Makro, or first count.',added:'Added to the store.',inStore:'in store',supplies:'Supplies',title:function(n){ return 'Supplies for '+n; },titleAny:'Supplies used',note:'Type how many you put in or used. Leave the rest at 0.',cons:'Used from the store',extras:'Extra given to the room',towel:'Towel',pillow:'Pillow',blanket:'Blanket',sheet:'Sheet',other:'Something else (write it)',otherQty:'How many',more:'Other stock used (for example a light bulb)',moreQty:'How many of that',none:'Nothing',room:'Room',noroom:'Not a room',save:'Save',saved:'Saved. Thank you.',cancel:'Cancel',need:'Type how many for at least one thing.',loading:'Loading the list.'},
+  my:{addStock:'စတိုသို့ ထည့်ရန်',addTitle:'စတိုသို့ ထည့်ရန်',addNote:'ဝယ်လာသော ပစ္စည်း သို့မဟုတ် စတိုတွင် ရေတွက်ထားသည့် အရေအတွက်။ ဤနေရာတွင် ထည့်ရုံသာ လုပ်နိုင်သည်။ သုံးသည့်ပစ္စည်းကို အခန်း၏ ပစ္စည်းများ ခလုတ်မှ ထုတ်ပါ။',addItem:'ပစ္စည်း',addQty:'ထည့်မည့် အရေအတွက်',addWhy:'မှတ်ချက်',addWhyHint:'ဥပမာ Makro မှ ဝယ်သည်၊ ပထမဆုံး ရေတွက်ခြင်း။',added:'စတိုသို့ ထည့်ပြီးပါပြီ။',inStore:'စတိုတွင်',supplies:'ပစ္စည်းများ',title:function(n){ return n+' အတွက် ပစ္စည်းများ'; },titleAny:'သုံးခဲ့သော ပစ္စည်းများ',note:'ထည့်ပေး သို့မဟုတ် သုံးခဲ့သော အရေအတွက်ကို ရိုက်ပါ။ ကျန်တာ 0 ထားပါ။',cons:'စတိုမှ သုံးခဲ့သည်',extras:'အခန်းသို့ ထပ်ပေးသည်',towel:'တဘက်',pillow:'ခေါင်းအုံး',blanket:'စောင်',sheet:'အိပ်ယာခင်း',other:'အခြား (ရေးပါ)',otherQty:'ဘယ်နှစ်ခု',more:'အခြား ပစ္စည်း သုံးခဲ့သည် (ဥပမာ မီးသီး)',moreQty:'ဘယ်နှစ်ခု',none:'မရှိပါ',room:'အခန်း',noroom:'အခန်းမဟုတ်ပါ',save:'သိမ်းရန်',saved:'သိမ်းပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',cancel:'မလုပ်တော့ပါ',need:'အနည်းဆုံး တစ်ခုအတွက် အရေအတွက် ရိုက်ပါ။',loading:'စာရင်း ဖွင့်နေသည်။'},
+  th:{addStock:'เพิ่มสต็อก',addTitle:'เพิ่มเข้าสต็อก',addNote:'ของที่ซื้อมา หรือจำนวนที่นับได้ในสต็อก ที่นี่เพิ่มได้อย่างเดียว ของที่ใช้ให้ลงที่ปุ่มของใช้ของห้อง',addItem:'ของ',addQty:'จำนวนที่เพิ่ม',addWhy:'หมายเหตุ',addWhyHint:'เช่น ซื้อที่ Makro หรือ นับครั้งแรก',added:'เพิ่มเข้าสต็อกแล้ว',inStore:'ในสต็อก',supplies:'ของใช้',title:function(n){ return 'ของใช้สำหรับ '+n; },titleAny:'ของที่ใช้ไป',note:'ใส่จำนวนที่เติมหรือใช้ไป ที่เหลือใส่ 0',cons:'ใช้จากสต็อก',extras:'ให้ห้องเพิ่ม',towel:'ผ้าเช็ดตัว',pillow:'หมอน',blanket:'ผ้าห่ม',sheet:'ผ้าปูที่นอน',other:'อย่างอื่น (เขียน)',otherQty:'จำนวน',more:'ของอื่นที่ใช้ (เช่น หลอดไฟ)',moreQty:'จำนวน',none:'ไม่มี',room:'ห้อง',noroom:'ไม่ใช่ห้องพัก',save:'บันทึก',saved:'บันทึกแล้ว ขอบคุณ',cancel:'ยกเลิก',need:'ใส่จำนวนอย่างน้อยหนึ่งอย่าง',loading:'กำลังโหลด'}};
 function SU(k){ var l=SUT[clkLang()]||SUT.en; return l[k]!==undefined?l[k]:SUT.en[k]; }
 function stockName(i){ var l=clkLang(); return (l==='my'&&i.name_my)||(l==='th'&&i.name_th)||i.name; }
 function loadStock(){ return sb.rpc('stock_home').then(function(r){ if(r.error) throw r.error; STOCK=r.data; schedule(); return STOCK; }); }
@@ -1563,6 +1565,14 @@ function suppliesDlg(r){
       if(v.x_other) ex.push({name:v.x_other,qty:Math.max(1,Math.round(Number(v.x_other_qty)||0))});
       if(!use.length&&!ex.length) return SU('need');
       return sb.rpc('stock_use',{p_room:r?r.id:(v.room||null),p_items:use,p_extras:ex,p_note:null}).then(must).then(function(){ if(STOCK&&STOCK.boss){ loadStock(); STOCKR=null; ui.stockRFor=null; } }); }});
+}
+function stockAddDlg(){
+  if(!STOCK){ toast(SU('loading')); loadStock().then(stockAddDlg,function(e){ toast(errText(e)); }); return; }
+  var items=(STOCK.items||[]).filter(function(i){ return i.active!==false; });
+  openForm({title:SU('addTitle'),note:SU('addNote'),saveLabel:SU('save'),cancelLabel:SU('cancel'),doneMsg:SU('added'),needMsg:SU('addQty'),fields:[
+    {key:'item',label:SU('addItem'),type:'select',options:items.map(function(i){ return [i.id,stockName(i)+(i.qty!=null?' ('+i.qty+' '+SU('inStore')+')':'')]; }),required:true},
+    {key:'qty',label:SU('addQty'),type:'number',required:true},{key:'note',label:SU('addWhy'),hint:SU('addWhyHint')}],
+    onSave:function(v){ var q=Math.round(Number(v.qty)); if(!(q>0)) return SU('addQty'); return sb.rpc('stock_adjust',{p_item:v.item,p_mode:'delivery',p_qty:q,p_note:v.note||null}).then(must).then(function(){ STOCKR=null; ui.stockRFor=null; return loadStock(); }); }});
 }
 function stockEdit(i){ i=i||{};
   openForm({title:i.id?'Edit '+i.name:'New stock item',values:i,fields:[
@@ -2478,6 +2488,95 @@ function vCFood(){
       h('div',{class:'row'},stay?btn('Charge to '+stay.room,function(){ order('room'); },'primary'):null,btn('Pay at the counter',function(){ order('counter'); },stay?'':'primary'))):null];
 }
 
+/* ---------- receipts: anyone photographs a receipt, the manager checks them and downloads them for the accounts ---------- */
+var RDEPTS=['Gym','Gym shop','Spa','Pangea Resort','Pangea Cafe','Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other'];
+var RXT={
+  en:{btn:'Receipt',title:'Add a receipt',note:'Take a photo of the receipt. The manager sees it and it goes into the accounts.',photo:'Photo of the receipt',dept:'Department',amount:'Total paid (THB)',what:'Shop, or what it was for',paid:'Paid by',day:'Date on the receipt',save:'Send',cancel:'Cancel',sent:'Receipt sent. Thank you.',needPhoto:'Take a photo of the receipt first.',needDept:'Choose the department.',sending:'Sending...',
+    m:{transfer:'Transfer or PromptPay',scan:'Scan QR',cash:'Cash',card:'Card'},
+    d:{'Gym':'Gym','Gym shop':'Gym shop','Spa':'Spa','Pangea Resort':'Pangea Resort','Pangea Cafe':'Pangea Cafe','Housekeeping':'Housekeeping','Maintenance':'Maintenance','Office':'Office','Marketing':'Marketing','Visa and DTV':'Visa and DTV','Other':'Other'}},
+  th:{btn:'ใบเสร็จ',title:'เพิ่มใบเสร็จ',note:'ถ่ายรูปใบเสร็จ ผู้จัดการจะเห็นและนำเข้าบัญชี',photo:'รูปใบเสร็จ',dept:'แผนก',amount:'ยอดที่จ่าย (บาท)',what:'ร้าน หรือ ซื้ออะไร',paid:'จ่ายโดย',day:'วันที่ในใบเสร็จ',save:'ส่ง',cancel:'ยกเลิก',sent:'ส่งใบเสร็จแล้ว ขอบคุณ',needPhoto:'ถ่ายรูปใบเสร็จก่อน',needDept:'เลือกแผนก',sending:'กำลังส่ง...',
+    m:{transfer:'โอน หรือ พร้อมเพย์',scan:'สแกน QR',cash:'เงินสด',card:'บัตร'},
+    d:{'Gym':'ยิม','Gym shop':'ร้านค้ายิม','Spa':'สปา','Pangea Resort':'รีสอร์ท Pangea','Pangea Cafe':'คาเฟ่ Pangea','Housekeeping':'แม่บ้าน','Maintenance':'ซ่อมบำรุง','Office':'ออฟฟิศ','Marketing':'การตลาด','Visa and DTV':'วีซ่า และ DTV','Other':'อื่นๆ'}},
+  my:{btn:'ပြေစာ',title:'ပြေစာ ထည့်ရန်',note:'ပြေစာကို ဓာတ်ပုံရိုက်ပါ။ မန်နေဂျာ မြင်ပြီး စာရင်းထဲ ထည့်ပါမည်။',photo:'ပြေစာ ဓာတ်ပုံ',dept:'ဌာန',amount:'ပေးခဲ့သော စုစုပေါင်း (ဘတ်)',what:'ဆိုင် သို့မဟုတ် ဘာအတွက်',paid:'ပေးချေနည်း',day:'ပြေစာပါ ရက်စွဲ',save:'ပို့ရန်',cancel:'မလုပ်တော့ပါ',sent:'ပြေစာ ပို့ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',needPhoto:'ပြေစာကို အရင် ဓာတ်ပုံရိုက်ပါ။',needDept:'ဌာန ရွေးပါ။',sending:'ပို့နေသည်...',
+    m:{transfer:'ငွေလွှဲ / PromptPay',scan:'QR စကန်',cash:'ငွေသား',card:'ကတ်'},
+    d:{'Gym':'ဂျင်','Gym shop':'ဂျင် ဆိုင်','Spa':'စပါ','Pangea Resort':'Pangea ရီဆော့','Pangea Cafe':'Pangea ကဖေး','Housekeeping':'အိမ်ထိန်း','Maintenance':'ပြုပြင်ထိန်းသိမ်းရေး','Office':'ရုံး','Marketing':'စျေးကွက်','Visa and DTV':'ဗီဇာ နှင့် DTV','Other':'အခြား'}}};
+function RX(k){ var l=RXT[clkLang()]||RXT.en; return l[k]!==undefined?l[k]:RXT.en[k]; }
+function shrinkImage(file){
+  return new Promise(function(ok,bad){ if(!/^image\//.test(file.type)) return ok(file);
+    createImageBitmap(file).then(function(img){ var m=1600, sc=Math.min(1,m/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(function(b){ b?ok(b):bad({message:'Could not read the photo.'}); },'image/jpeg',0.8); },function(){ ok(file); }); });
+}
+function expReceipt(){
+  var file=h('input',{type:'file',id:'rx-file',accept:'image/*,application/pdf',capture:'environment'}), prev=h('img',{class:'rxprev',alt:'',hidden:true});
+  var dept=h('select',{id:'rx-dept'},[h('option',{value:''},'')].concat(RDEPTS.map(function(d){ return h('option',{value:d},RX('d')[d]||d); })));
+  var amt=h('input',{type:'number',id:'rx-amt',inputmode:'decimal',min:'0',step:'any'}), what=h('input',{type:'text',id:'rx-what'}), day=h('input',{type:'date',id:'rx-day',value:ymd(new Date()),max:ymd(new Date())});
+  var meth=h('select',{id:'rx-m'},['transfer','scan','cash','card'].map(function(k){ return h('option',{value:k},RX('m')[k]); }));
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
+  file.onchange=function(){ var f=file.files[0]; if(f&&/^image\//.test(f.type)){ prev.src=URL.createObjectURL(f); prev.hidden=false; } else prev.hidden=true; };
+  function bad(m){ err.textContent=m; err.hidden=false; }
+  var go=btn(RX('save'),function(){
+    if(busy) return; err.hidden=true; var f=file.files[0];
+    if(!f) return bad(RX('needPhoto')); if(!dept.value) return bad(RX('needDept'));
+    busy=true; go.disabled=true; go.textContent=RX('sending');
+    shrinkImage(f).then(function(blob){ var ext=blob.type==='application/pdf'?'pdf':'jpg', path=currentUser+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
+      return sb.storage.from('receipts').upload(path,blob,{contentType:blob.type||'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return path; }); })
+    .then(function(path){ return sb.rpc('receipt_add',{p:{photo_path:path,department:dept.value,amount:amt.value||null,method:meth.value,supplier:what.value||null,day:day.value||null}}).then(must); })
+    .then(function(){ $dlg.close(); toast(RX('sent')); if(me&&me.role==='manager'){ RCPT=null; schedule(); } })
+    .catch(function(e){ busy=false; go.disabled=false; go.textContent=RX('save'); bad(errText(e)); });
+  },'primary');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,RX('title')),h('p',{class:'sub'},RX('note')),
+    field('rx-file',RX('photo'),file),prev,field('rx-dept',RX('dept'),dept),field('rx-amt',RX('amount'),amt),field('rx-what',RX('what'),what),field('rx-m',RX('paid'),meth),field('rx-day',RX('day'),day),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(RX('cancel'),function(){ $dlg.close(); }),go))));
+}
+function receiptBtn(){ return h('button',{type:'button',class:'btn small',onclick:expReceipt},RX('btn')); }
+var RCPT=null;
+function rcMonth(){ return ui.rcMonth||ymd(new Date()).slice(0,7); }
+function loadReceipts(){ var m=rcMonth(), from=m+'-01', to=addDays(addDays(from,32).slice(0,7)+'-01',-1); ui.rcBusy=true;
+  return sb.rpc('receipts_list',{p_from:from,p_to:to}).then(function(r){ ui.rcBusy=false; if(r.error){ ui.rcErr=errText(r.error); schedule(); return; } RCPT={month:m,list:r.data||[]}; ui.rcErr=null; schedule(); }); }
+function rcPhoto(x){ sb.storage.from('receipts').createSignedUrl(x.photo_path,600).then(function(r){ if(r.error||!r.data) return toast('Could not open the photo.');
+  var u=r.data.signedUrl; shopDlg(h('div',{class:'billbox'},h('h2',null,(x.supplier||x.department)+', '+fmtDate(x.day)),/\.pdf(\?|$)/i.test(x.photo_path)?h('p',null,h('a',{href:u,target:'_blank',rel:'noopener'},'Open the PDF')):h('img',{src:u,alt:'Receipt photo',class:'rxbig'}),
+    h('div',{class:'factions'},h('a',{href:u,target:'_blank',rel:'noopener',class:'btn small'},'Open full size'),btn('Close',function(){ $dlg.close(); },'primary')))); }); }
+function rcEdit(x){
+  openForm({title:'Receipt from '+(x.by||'staff'),values:{day:x.day,department:x.department,business:x.business,amount:x.amount,method:x.method,supplier:x.supplier,note:x.note,status:x.status},fields:[
+    {key:'day',label:'Date',type:'date',required:true},
+    {key:'business',label:'Business',type:'select',options:[['Phuket King Gym','Phuket King Gym'],['Pangea Resort','Pangea Resort'],['Intercompany','Intercompany']]},
+    {key:'department',label:'Department',type:'select',options:RDEPTS.map(function(d){ return [d,d]; })},
+    {key:'amount',label:'Amount (THB)',type:'number'},
+    {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan'],['cash','Cash'],['card','Card']]},
+    {key:'supplier',label:'Supplier or what for'},{key:'note',label:'Note'},
+    {key:'status',label:'Status',type:'select',options:[['new','New, not checked'],['checked','Checked'],['removed','Remove (duplicate or wrong)']]}],
+    onSave:function(v){ return sb.rpc('receipt_save',{p:Object.assign({id:x.id},v)}).then(must).then(loadReceipts); }});
+}
+function rcDownload(){
+  var list=(RCPT&&RCPT.list)||[]; if(!list.length){ toast('No receipts this month.'); return; }
+  toast('Making the file.');
+  sb.storage.from('receipts').createSignedUrls(list.map(function(x){ return x.photo_path; }),31536000).then(function(r){
+    var urls={}; (r.data||[]).forEach(function(u){ if(u&&u.path) urls[u.path]=u.signedUrl; });
+    var head=['Date','Business','Department','Supplier or what for','Amount (THB)','Payment method','Submitted by','Status','Note','Receipt photo'];
+    var rows=list.map(function(x){ return [x.day,x.business,x.department,x.supplier||'',x.amount==null?'':Number(x.amount).toFixed(2),{transfer:'Transfer',scan:'Scan',cash:'Cash',card:'Card'}[x.method]||x.method,x.by||'',x.status==='checked'?'Checked':'Not checked',x.note||'',urls[x.photo_path]||'']; });
+    var csv=[head].concat(rows).map(function(row){ return row.map(function(c){ c=String(c==null?'':c); if(/^[=+\-@]/.test(c)) c="'"+c; return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
+    var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'})); a.download='Receipts '+rcMonth()+'.csv'; document.body.appendChild(a); a.click(); a.remove();
+  });
+}
+function vReceipts(){
+  if(!RCPT||RCPT.month!==rcMonth()){ if(!ui.rcBusy) loadReceipts(); return [pageHead('Receipts',''),h('div',{class:'panel empty'},ui.rcErr||'Loading.')]; }
+  var list=RCPT.list, total=0, byB={}, unchecked=0;
+  list.forEach(function(x){ var a=Number(x.amount)||0; total+=a; var k=x.business+', '+x.department; byB[k]=(byB[k]||0)+a; if(x.status!=='checked') unchecked++; });
+  var monthIn=h('input',{type:'month',value:rcMonth(),onchange:function(e){ ui.rcMonth=e.target.value||null; RCPT=null; schedule(); }});
+  var noAmt=list.filter(function(x){ return x.amount==null; }).length;
+  return [pageHead('Receipts',list.length+' this month, '+(thb(Math.round(total))||'0 THB')+(unchecked?', '+unchecked+' not checked':''),h('div',{class:'row'},monthIn,btn('Add a receipt',expReceipt,'small'),btn('Download for the accounts',rcDownload,'primary small'))),
+    Object.keys(byB).length?section('By department',null,table([{label:'Business and department',cell:function(k){ return k; }},{label:'Total',num:true,cell:function(k){ return thb(Math.round(byB[k]))||'0 THB'; }}],Object.keys(byB).sort(),'')):null,
+    noAmt?h('p',{class:'sub'},noAmt+' receipt'+(noAmt===1?' has':'s have')+' no amount yet. Open the photo and type it in with Edit.'):null,
+    section('All receipts',null,table([
+      {label:'Date',cell:function(x){ return fmtDate(x.day); }},
+      {label:'Department',cell:function(x){ return h('span',null,x.department,h('div',{class:'sub'},x.business)); }},
+      {label:'What',cell:function(x){ return (x.supplier||'')+(x.note?' ('+x.note+')':''); }},
+      {label:'Amount',num:true,cell:function(x){ return x.amount==null?chip('No amount','warn'):thb(Number(x.amount)); }},
+      {label:'Paid by',cell:function(x){ return ({transfer:'Transfer',scan:'Scan',cash:'Cash',card:'Card'})[x.method]||x.method; }},
+      {label:'By',cell:function(x){ return x.by||''; }},
+      {label:'',cell:function(x){ return h('div',{class:'row'},x.status==='checked'?chip('Checked','ok'):btn('Checked',function(){ run(sb.rpc('receipt_save',{p:{id:x.id,amount:x.amount,status:'checked',supplier:x.supplier,note:x.note}}).then(must).then(loadReceipts),'Marked checked.'); },'small'),
+        btn('Photo',function(){ rcPhoto(x); },'small'),btn('Edit',function(){ rcEdit(x); },'small')); }}],list,'No receipts this month. Anyone on the team can add one with the Receipt button at the top.'))];
+}
 /* ---------- pending actions: anything broken or to fix, until someone ticks it off ---------- */
 var ACT=null;
 var AXT={
@@ -2535,7 +2634,7 @@ function vJobs(){
   var others=(ACT.open||[]).filter(function(x){ return x.assigned_to!==ACT.me; });
   return [pageHead(AX('title'),new Date().toLocaleDateString(l==='th'?'th-TH':l==='my'?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'}),btn(AX('lang'),function(){ setMtLang(next); },'small')),
     myJobs(),
-    h('div',{class:'row'},btn(SU('titleAny'),function(){ suppliesDlg(null); },'small')),
+    h('div',{class:'row'},btn(SU('titleAny'),function(){ suppliesDlg(null); },'small'),btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),
     section(AX('other')+(others.length?' ('+others.length+')':''),btn('↻',function(){ loadActions(); },'small'),
       others.length?cards(others.map(function(x){ return {when:actWhere(x),right:actAgeChip(x),title:(x.urgent?'⚠ ':'')+x.text,note:(x.assigned?x.assigned+'. ':'')+(x.by||''),act:btn(AX('done'),function(){ actDone(x); },'small')}; }),''):h('div',{class:'panel empty'},AX('otherNone')))];
 }
@@ -3102,7 +3201,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -3960,7 +4059,7 @@ function enter(user){
     if(recovering){ currentUser=null; return; }
     var row=must(res), staff=!!(row&&row.active!==false), asMember=staff&&pref('pk_view')==='member';
     var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
-    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},swap,passwordBtn(),signOutBtn()));
+    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
     if(row.role==='investor'){ document.getElementById('mode').textContent='Investors'; me=row; db=makeDb(); TABS=[['investor','Overview']]; ui.tab='investor'; allReady=true; schedule(); return; }
