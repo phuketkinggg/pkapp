@@ -714,7 +714,7 @@ function editPurchase(p){
         if(ub<0) return 'That is more than the pack holds. '+p.class_limit+' sessions, '+booked+' booked in the app, so at most '+(p.class_limit-booked)+' left.';
         body.used_before=ub; body.classes_left=null; }
       return save('purchases',p.id,body); },
-    onDelete:function(){ return db.doc('purchases/'+p.id).delete(); }});
+    onDelete:function(){ return db.doc('purchases/'+p.id).delete().then(function(){ return Promise.all([reload('charges'),reload('privates')]); }); }});
 }
 function editClass(c){ c=c||{};
   openForm({title:c.id?'Edit class':'New class',values:c,fields:[
@@ -822,7 +822,7 @@ function editPrivate(p,approving){ p=p||{};
         /* a pack that is not paid yet, with Charge to room: the pack price goes on the room bill */
         if(roomPack) return db.doc('purchases/'+roomPack.id).update({method:'room',paid:true,paid_thb:roomPack.price_thb}).then(function(){ return Promise.all([reload('charges'),reload('stays')]); }).then(function(){ setTimeout(function(){ toast(roomPack.package_name+', '+thb(roomPack.price_thb)+', is on the room bill.'); },60); return r; });
         if(v.method==='room'&&!v.purchase_id) setTimeout(function(){ reload('charges'); },400); return r; }); },
-    onDelete:p.id?function(){ return db.doc('privates/'+p.id).delete(); }:null});
+    onDelete:p.id?function(){ return db.doc('privates/'+p.id).delete().then(function(){ return reload('charges'); }); }:null});
 }
 function editSource(s){ s=s||{};
   openForm({title:s.id?'Edit booking source':'New booking source',values:s,fields:[
@@ -2962,14 +2962,23 @@ function vCustomers(){
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
         h('div',null,h('small',null,'Phone'),c.phone||'Not given'),h('div',null,h('small',null,'Visits'),visits.length),
         c.notes?h('div',null,h('small',null,'Notes'),c.notes):null),
+      (function(){ var sts=S.stays.filter(function(st){ return st.customer_id===c.id&&st.status!=='cancelled'; }).sort(function(a,b){ return a.check_in<b.check_in?1:-1; });
+        return sts.length?section('Stays and room bills',null,table([
+          {label:'Room',cell:function(st){ return nameOf('rooms',st.room_id); }},
+          {label:'Dates',cell:function(st){ return fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'); }},
+          {label:'Room price',num:true,cell:function(st){ return st.room_price_thb==null?'':thb(st.room_price_thb); }},
+          {label:'Paid ahead',num:true,cell:function(st){ var a=(Number(st.room_paid_thb)||0)+(Number(st.app_paid_thb)||0); return a?thb(a):''; }},
+          {label:'Extras on bill',num:true,cell:function(st){ var x=extrasTotal(st); return x?thb(x):''; }},
+          {label:'To pay',num:true,cell:function(st){ return st.settled?chip('Settled','ok'):billTotal(st)>0?chip(thb(billTotal(st)),'warn'):chip('Nothing','ok'); }},
+          {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
       section('Packages',null,table([
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
         {label:'Price',num:true,cell:function(p){return thb(p.price_thb);}},
         {label:'Paid',cell:function(p){ var ow=owedOf(p); return !ow?chip('Paid','ok'):Number(p.paid_thb)>0?chip('Paid '+thb(p.paid_thb)+', owes '+thb(ow),'warn'):chip(p.ordered_in_app?'App order, not paid':'Owes '+thb(ow),'warn');}},
-        {label:'Visits left',num:true,cell:function(p){return p.class_limit?left(p)+' of '+p.class_limit:'Unlimited';}},
-        {label:'Runs',cell:function(p){return p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
-        {label:'Status',cell:function(p){return stateChip(stateOf(p,day));}},
+        {label:'Visits left',num:true,cell:function(p){return p.covers&&!p.covers.length?'':p.class_limit?left(p)+' of '+p.class_limit:'Unlimited';}},
+        {label:'Runs',cell:function(p){return p.covers&&!p.covers.length?'':p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
+        {label:'Status',cell:function(p){return p.covers&&!p.covers.length?(p.cancelled?chip('Cancelled','bad'):chip('Extra')):stateChip(stateOf(p,day));}},
         {label:'',cell:function(p){return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'));}}],ps,'No packages yet. Use Sell a package to record the first one.')),
       section('Recent visits',null,table([
         {label:'Date',cell:function(v){return fmtDate(v.day);}},{label:'Time',cell:function(v){return v.e.time;}},
