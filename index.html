@@ -515,7 +515,15 @@ function sortBy(list){ var keys=Array.prototype.slice.call(arguments,1); return 
 function thb(n){ return n==null||n===''?'':Number(n).toLocaleString('en-US')+' THB'; }
 function fmtDate(s){ if(!s) return ''; return parseYmd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
 function timeNow(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-function errText(e){ if(e&&e.plain) return e.message; return e&&e.code==='quota_exceeded' ? 'The test database is full. Delete some old records first.' : 'That did not save. '+((e&&e.message)||'Try again.'); }
+/* messages from the database are already written for people; technical ones get a plain version */
+function errText(e){ var m=String((e&&e.message)||'');
+  if(e&&e.plain) return m;
+  if(/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return 'No connection. Check the internet and try again.';
+  if(/JWT|refresh token|not authenticated|session/i.test(m)) return 'You were signed out. Sign in again.';
+  if(/permission denied|row-level security/i.test(m)) return 'You are not allowed to do that.';
+  if(/duplicate key/i.test(m)) return 'That is already saved.';
+  if(/violates (check|foreign key|not-null) constraint|invalid input syntax/i.test(m)) return 'Something in the form is not right. Check it and try again.';
+  return m||'That did not work. Try again.'; }
 var toastTimer=0;
 function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){$toast.hidden=true;},Math.max(3200,String(msg).length*70)); }
 function chip(text,kind){ return h('span',{class:'chip'+(kind?' '+kind:'')},text); }
@@ -1060,7 +1068,7 @@ function stripeLinkDlg(url,amount,label){
     qr||null,
     h('div',{class:'row wrap'},btn('Copy link',function(){ (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(function(){ toast('Link copied.'); },function(){ toast(url); }); },'small'),
       navigator.share?btn('Send link',function(){ navigator.share({text:msg}).catch(function(){}); },'small'):null,
-      btn('Open here',function(){ window.open(url,'_blank'); },'small')),
+      btn('Open here',function(){ window.open(url,'_blank','noopener'); },'small')),
     h('div',{class:'factions'},h('span'),btn('Done',function(){ $dlg.close(); setTimeout(function(){ Promise.all([reload('purchases'),reload('privates'),reload('stays')]).catch(function(){}); },2000); },'primary'))));
 }
 (function(){ try{ var q=new URLSearchParams(location.search); var pd=q.get('paid'); if(pd==null) return; history.replaceState(null,'',location.pathname+location.hash);
