@@ -703,8 +703,8 @@ function sellPackage(c){
 }
 function editPurchase(p){
   var pp=isPrivatePack(p), booked=pp?packUsed(p)-(Number(p.used_before)||0):0;
-  openForm({title:'Edit '+(p.package_name||'package'),values:pp?Object.assign({},p,{classes_left:left(p)}):p,note:pp?booked+' booked in the app so far'+(Number(p.used_before)?', '+p.used_before+' used before the app':'')+'.':null,fields:[
-    {key:'price_thb',label:'Price charged (THB)',type:'number',hint:'Paid so far: '+(thb(p.paid_thb)||'0 THB')+'. To add money they paid, use Take payment on the customer.'},
+  openForm({title:'Edit '+(p.package_name||'package'),values:pp?Object.assign({},p,{classes_left:left(p)}):p,note:p.stay_id&&p.package_name==='Stay: group Muay Thai included'?'Free group training that comes with the room. The room price is on the stay, not here.':pp?booked+' booked in the app so far'+(Number(p.used_before)?', '+p.used_before+' used before the app':'')+'.':null,fields:[
+    {key:'price_thb',label:'Price charged (THB)',type:'number',hide:!!p.stay_id&&p.package_name==='Stay: group Muay Thai included',hint:'Paid so far: '+(thb(p.paid_thb)||'0 THB')+'. To add money they paid, use Take payment on the customer.'},
     {key:'classes_left',label:pp?'Sessions left':'Classes left',type:'number',hint:pp?'For a pack bought on the old system, type how many sessions they really have left. The app counts the rest as used before the app.':'Only for packages with a set number of classes.'},
     {key:'starts_on',label:'Started on',type:'date'},
     {key:'expires_on',label:'Expires on',type:'date'},
