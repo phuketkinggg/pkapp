@@ -1147,7 +1147,7 @@ function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.
 
 /* ---------- resort: stays, room bills and meal plans ---------- */
 function stayOn(st,day){ return (st.status==='booked'||st.status==='in')&&st.check_in<=day&&day<=st.check_out; }
-function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.stay_id===st.id&&!(c.private_id&&!Number(c.amount_thb)); }),'day','created_at'); }
+function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.stay_id===st.id&&!c.voided&&!(c.private_id&&!Number(c.amount_thb)); }),'day','created_at'); }
 function extrasTotal(st){ return chargesOf(st).reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0); }
 function roomDue(st){ return (Number(st.room_price_thb)||0)-(Number(st.room_paid_thb)||0); }
 /* what the guest still owes: the room (price minus what was already paid) plus everything added to the bill */
@@ -1270,7 +1270,8 @@ function openBill(st,msg,thenOut){
     msg?h('p',{class:'kerr',style:'font-size:14px'},msg):null,
     lines.length||roomRows.length?h('div',{class:'panel scroll'},h('table',null,h('tbody',null,roomRows,lines.map(function(c){
       return h('tr',null,h('td',null,fmtDate(c.day)),h('td',null,c.description),h('td',{class:'num'},thb(c.amount_thb)),
-        mgr&&!st.settled&&!c.purchase_id?h('td',null,h('button',{type:'button',class:'link',onclick:function(){ db.doc('charges/'+c.id).delete().then(function(){ close(); openBill(byId('stays',st.id),msg,thenOut); },function(e){ err.textContent=errText(e); err.hidden=false; }); }},'Remove')):h('td'));
+        !st.settled?h('td',null,h('button',{type:'button',class:'link',onclick:function(){ close(); mistakeDlg('Remove from the bill: '+c.description+', '+thb(c.amount_thb),c.order_id?'This removes the whole till sale it came from, puts the stock back and takes it out of the sales, as if it never happened.':'It comes off the bill as if it was never there.',
+          function(pin,why){ return sb.rpc('room_charge_mistake',{p_charge:c.id,p_pin:pin,p_reason:why}).then(must).then(function(){ return Promise.all([reload('charges'),reload('purchases'),reload('privates')]); }).then(function(){ openBill(byId('stays',st.id),msg,thenOut); if(SALES) shopRefresh(); }); }); }},'Remove (mistake)')):h('td'));
     })),h('tfoot',null,h('tr',null,h('td',null,st.settled?'Total':'To pay'),h('td'),h('td',{class:'num'},total<0?'-'+thb(-total):(thb(total)||'0 THB')),h('td'))))):h('div',{class:'panel empty'},'Nothing on this bill yet. Edit the stay to add the room price.'),
     st.settled?h('p',{class:'sub'},'Settled by '+(st.settled_method||'')+' on '+fmtDate(st.settled_on)+'.'):null,
     err,
@@ -2050,6 +2051,24 @@ function groupProducts(list){
   return out.map(function(g){ return g.one?g:(g.items.length===1?{one:g.items[0]}:g); });
 }
 function priceRange(items){ var ps=items.filter(function(p){ return !p.open_price; }).map(function(p){ return p.price; }); if(!ps.length) return 'Type price'; var a=Math.min.apply(null,ps), b=Math.max.apply(null,ps); return a===b?thb(a):thb(a)+' to '+thb(b); }
+/* a mistake on the till or a bill: a manager types their PIN and it is removed as if it never happened */
+function mistakeDlg(title,note,go,extra){
+  var pin=h('input',{id:'mk-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'}), why=h('input',{id:'mk-why',type:'text',placeholder:'For example: rang up twice, wrong room'});
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false, b=btn('Remove',function(){
+    if(busy) return; err.hidden=true; if(!pin.value){ err.textContent='A manager types their PIN.'; err.hidden=false; return; } if(!why.value.trim()){ err.textContent='Say what the mistake was.'; err.hidden=false; return; }
+    busy=true; b.disabled=true; Promise.resolve(go(pin.value,why.value.trim(),extra&&extra.value)).then(function(){ if(document.getElementById('mk-pin')) $dlg.close(); toast('Removed.'); },function(e){ busy=false; b.disabled=false; err.textContent=errText(e); err.hidden=false; });
+  },'danger');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Remove a mistake'),h('p',null,title),h('p',{class:'sub'},note+' Only a manager can do this, with their PIN. The PIN is the one set in Shop, Set my approval PIN.'),
+    extra?field('mk-what','What to remove',extra):null,field('mk-pin','Manager PIN',pin),field('mk-why','What was the mistake',why),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),b))));
+  setTimeout(function(){ pin.focus(); },30);
+}
+function saleMistake(o){
+  var lines=(o.items||[]).filter(function(i){ return i.id; });
+  var pick=h('select',{id:'mk-what'},[h('option',{value:''},'The whole sale, '+thb(o.total))].concat(lines.length>1?lines.map(function(i){ return h('option',{value:i.id},'Only '+i.qty+' x '+i.name+(i.price!=null?', '+thb(i.price*i.qty):'')); }):[]));
+  mistakeDlg('Sale #'+o.number+', '+thb(o.total)+(o.room?', on '+o.room:''),'Stock goes back, it comes out of the sales and the shift cash, and off the room bill if it was charged to a room.',
+    function(pin,why,item){ return sb.rpc('shop_mistake',{p_order:o.id,p_item:item||null,p_pin:pin,p_reason:why}).then(must).then(function(){ shopRefresh(); loadShop(); reload('charges'); reload('purchases'); }); },lines.length>1?pick:null);
+}
 function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
 /* training packages on the gym till: the package goes on the customer, the money goes through the till */
 function cartItems(){ return cart().map(function(l){ return l.pkg?{package:l.pkg,price:l.price}:{product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; }); }
@@ -2431,7 +2450,8 @@ function vShop(){
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
         act:[btn('Receipt',function(){ receiptDlg({loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
-          o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null]}; }),'No sales yet today.'))];
+          o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null,
+          o.status==='paid'||o.status==='room'||o.status==='waiting'?btn('Mistake',function(){ saleMistake(o); },'small'):null]}; }),'No sales yet today.'))];
 }
 
 /* kitchen screen: new orders at the top, tap through Start, Ready, Served */
