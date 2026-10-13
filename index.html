@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Phuket King</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
@@ -13,8 +15,8 @@
 <meta name="apple-mobile-web-app-title" content="Phuket King">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="vendor/supabase-js-2.117.2.js"></script>
+<script src="vendor/qrcode-generator-1.4.4.js"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -487,7 +489,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
-var db=null, ready={}, allReady=false;
+var db=null, allReady=false;
 var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -513,7 +515,6 @@ function sortBy(list){ var keys=Array.prototype.slice.call(arguments,1); return 
 function thb(n){ return n==null||n===''?'':Number(n).toLocaleString('en-US')+' THB'; }
 function fmtDate(s){ if(!s) return ''; return parseYmd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
 function timeNow(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function errText(e){ if(e&&e.plain) return e.message; return e&&e.code==='quota_exceeded' ? 'The test database is full. Delete some old records first.' : 'That did not save. '+((e&&e.message)||'Try again.'); }
 var toastTimer=0;
 function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(function(){$toast.hidden=true;},Math.max(3200,String(msg).length*70)); }
@@ -2020,7 +2021,7 @@ function vHours(){
   var devs={}; d.entries.forEach(function(e){ [e.in_device,e.out_device].forEach(function(x){ if(!x) return; (devs[x]=devs[x]||{})[e.staff]=1; }); });
   function shared(e){ var n=[]; [e.in_device,e.out_device].forEach(function(x){ if(x&&devs[x]&&Object.keys(devs[x]).length>1) Object.keys(devs[x]).forEach(function(k){ if(k!==e.staff&&n.indexOf(k)<0) n.push(k); }); }); return n; }
   var tot={}; E.forEach(function(e){ var t=tot[e.staff_id]||(tot[e.staff_id]={name:e.staff,role:e.role,m:0,priv:0,cls:0,open:0}); if(e.out_at) t.m+=mins(e.in_at,e.out_at); else t.open++; if(e.kind==='private') t.priv++; if(e.kind==='class') t.cls++; });
-  var mp={}; miss.forEach(function(m){ var t=tot[m.staff_id]||(tot[m.staff_id]={name:m.staff,m:0,priv:0,cls:0,open:0}); t.missed=(t.missed||0)+1; });
+  miss.forEach(function(m){ var t=tot[m.staff_id]||(tot[m.staff_id]={name:m.staff,m:0,priv:0,cls:0,open:0}); t.missed=(t.missed||0)+1; });
   var forgot=E.filter(function(e){ return !e.out_at&&e.day<today; });
   var staffSel=h('select',{onchange:function(ev){ ui.hWho=ev.target.value; schedule(); }},[h('option',{value:''},'Everyone')].concat(sortBy(S.staff.filter(function(s){ return s.active!==false; }),'name').map(function(s){ var o=h('option',{value:s.id},s.name); if(s.id===who) o.selected=true; return o; })));
   var from=h('input',{type:'date',value:ui.hFrom||weekStart(today),onchange:function(ev){ ui.hFrom=ev.target.value; HOURS=null; schedule(); }});
@@ -2769,30 +2770,7 @@ function vActions(){
 var DASH=null;
 function loadDash(){ ui.dashBusy=true; return sb.rpc('dash_hk',{p_day:ui.dashDay||null}).then(function(r){ ui.dashBusy=false; if(!r.error){ var ch=JSON.stringify(r.data)!==JSON.stringify(DASH); DASH=r.data; if(ch) schedule(); } },function(){ ui.dashBusy=false; }); }
 setInterval(function(){ if(me&&allReady&&ui.tab==='today'&&DASH&&document.visibilityState!=='hidden') loadDash(); },60000);
-function todoTick(t){ run(sb.rpc('todo_set',{p_id:t.id,p_done:true,p_note:null}).then(must).then(loadDash),'Ticked off.'); }
-function todoAdd(){
-  var rooms=S.rooms.filter(function(r){ return r.active!==false; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
-  openForm({title:'Add a to-do',saveLabel:'Add',doneMsg:'Added to the to-do list.',fields:[
-    {key:'text',label:'What needs doing',type:'textarea',required:true},
-    {key:'room',label:'Room',type:'select',options:[['','Not for a room']].concat(rooms.map(function(r){ return [r.id,r.name]; })),def:''}],
-    onSave:function(v){ return sb.rpc('todo_add',{p_text:v.text,p_room:v.room||null}).then(must).then(loadDash); }});
-}
 function dashTodo(){ return [myJobs(),actionsBox(5)]; }
-function dashTodoOld(){
-  if(!DASH){ if(!ui.dashBusy) loadDash(); return null; }
-  var t=DASH.todos||[], done=DASH.done||[];
-  return section('To do'+(t.length?' ('+t.length+')':''),btn('Add a to-do',todoAdd,'small'),h('div',null,
-    t.length?h('div',{class:'panel todolist'},t.map(function(x){
-      return h('div',{class:'todo'},h('button',{type:'button',class:'tick','aria-label':'Tick off: '+x.text,onclick:function(){ todoTick(x); }}),
-        h('div',{class:'todotxt'},h('div',null,x.room?h('b',null,x.room+': '):null,x.text),
-          h('div',{class:'sub'},(x.kind==='damage'?'Reported by '+(x.by||'housekeeping'):'Added by '+(x.by||'staff'))+', '+fmtDate(String(x.at).slice(0,10)))),
-        x.kind==='damage'?chip('Damage','bad'):null); }))
-      :h('div',{class:'panel empty'},'Nothing to do. Problems housekeeping reports land here.'),
-    done.length?h('details',{class:'donelist'},h('summary',null,'Done this week ('+done.length+')'),
-      h('div',{class:'panel todolist'},done.map(function(x){ return h('div',{class:'todo done'},h('span',{class:'tick on'}),
-        h('div',{class:'todotxt'},h('div',null,x.room?h('b',null,x.room+': '):null,x.text),h('div',{class:'sub'},'Done by '+(x.by||'')+', '+new Date(x.fixed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))),
-        btn('Undo',function(){ run(sb.rpc('todo_set',{p_id:x.id,p_done:false}).then(must).then(loadDash),'Back on the list.'); },'small')); }))):null));
-}
 function dashHk(){
   if(!DASH) return null;
   var tm=function(a){ return new Date(a).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); };
@@ -3283,11 +3261,13 @@ function editRoom(r){ r=r||{};
 }
 /* ---------- backups: download everything as one file, and see the nightly copies ---------- */
 var BK=null;
+var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,work_days,work_start,work_end';
+function cols(t){ return t==='staff'?STAFF_COLS:'*'; }
 var BACKUP_TABLES=['staff','customers','packages','purchases','classes','checkins','booking_sources','privates','holidays','rooms','stays','room_charges','minibar_items','room_cleanings','room_issues','app_settings'];
 function downloadBackup(){
   if(!guard()||ui.backingUp) return; ui.backingUp=true; schedule();
   var out={app:'Phuket King',taken_at:new Date().toISOString(),tables:{}}, jobs=BACKUP_TABLES.map(function(t){
-    function page(from,acc){ return sb.from(t).select('*').range(from,from+999).then(must).then(function(rows){ acc=acc.concat(rows||[]); return rows&&rows.length===1000?page(from+1000,acc):acc; }); }
+    function page(from,acc){ return sb.from(t).select(cols(t)).range(from,from+999).then(must).then(function(rows){ acc=acc.concat(rows||[]); return rows&&rows.length===1000?page(from+1000,acc):acc; }); }
     return page(0,[]).then(function(rows){ out.tables[t]=rows; });
   });
   Promise.all(jobs).then(function(){
@@ -3397,7 +3377,7 @@ function reload(col){
       var by={}; must(res).forEach(function(r){ (by[r.day]=by[r.day]||[]).push({key:r.id,customer_id:r.customer_id,purchase_id:r.purchase_id,class_id:r.class_id,facility:r.facility,counted:r.counted,time:bkkTime(r.checked_in_at)}); });
       S.checkin_days=Object.keys(by).sort().map(function(d){ return {id:d,entries:by[d]}; }); schedule(); });
   }
-  return sb.from(MAP[col].t).select('*').then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
+  return sb.from(MAP[col].t).select(cols(MAP[col].t)).then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
 function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); return Promise.all(jobs); }
 function makeDb(){
@@ -3539,7 +3519,7 @@ function liveCode(){ return cuCode&&Date.now()-cuAt<20*60000?cuCode:null; }
 function forgetCode(){ cuCode=null; try{ localStorage.removeItem('pk_code'); }catch(e){} }
 function setCode(c){ cuCode=c; cuAt=Date.now(); cuDone=null; try{ localStorage.setItem('pk_code',JSON.stringify({c:c,t:cuAt})); }catch(e){} }
 /* in-app scanner: an installed app on iPhone cannot be opened by the camera, so members scan the poster from inside the app */
-var JSQR_URL='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+var JSQR_URL='vendor/jsqr-1.4.0.js';
 function loadJsQR(){
   if(window.jsQR) return Promise.resolve();
   return new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=JSQR_URL; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); });
@@ -4034,7 +4014,6 @@ function setPassword(){
     onSave:function(v){ if(v.pw.length<8) return 'Use at least 8 characters.'; if(v.pw!==v.pw2) return 'The two passwords are different.';
       return sb.auth.updateUser({password:v.pw}).then(function(res){ if(res.error){ lostSession(res.error); throw {plain:true,message:authText(res.error)}; } }); }});
 }
-function notice(title,text){ $view.replaceChildren(h('div',{class:'panel pad login'},h('h1',null,title),h('p',{class:'sub'},text),h('div',null,signOutBtn()))); }
 function authText(e){
   var m=(e&&e.message)||'';
   if(/invalid login credentials/i.test(m)) return 'Email or password is wrong. If you have only ever signed in with an email link, tap Forgot password to set one.';
@@ -4208,7 +4187,7 @@ function enter(user){
   if(currentUser===user.id&&me) return;
   currentUser=user.id; authUser=user; currentEmail=user.email||'';
   $view.replaceChildren(h('div',{class:'panel empty'},'Signing you in.'));
-  sb.from('staff').select('*').eq('user_id',user.id).maybeSingle().then(function(res){
+  sb.from('staff').select(STAFF_COLS).eq('user_id',user.id).maybeSingle().then(function(res){
     if(recovering){ currentUser=null; return; }
     var row=must(res), staff=!!(row&&row.active!==false), asMember=staff&&pref('pk_view')==='member';
     var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
