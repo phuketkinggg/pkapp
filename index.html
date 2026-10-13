@@ -800,7 +800,7 @@ function editPrivate(p,approving){ p=p||{};
     {key:'pack_note',label:'From the pack',readonly:true,def:pack0?packLine(pack0):''},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
-    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us on the day of the private.'},
+    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us. If the pack above is not paid yet, the pack goes on the room bill.'},
     {key:'notes',label:'Notes',type:'textarea'}],
     onSave:function(v){
       var today=ymd(new Date());
@@ -817,7 +817,11 @@ function editPrivate(p,approving){ p=p||{};
       body.guest_name=v.guest_name||null;
       if(p.id&&(p.date!==v.date||p.time!==v.time)) delete body.reschedule;
       if(body.coach_pct==null||p.coach_id!==v.coach_id) body.coach_pct=coach&&coach.commission_pct!=null?coach.commission_pct:50;
-      return save('privates',p.id,body).then(function(r){ if(v.method==='room'&&!v.purchase_id) setTimeout(function(){ reload('charges'); },400); return r; }); },
+      var roomPack=v.method==='room'&&v.purchase_id?byId('purchases',v.purchase_id):null; if(roomPack&&(Number(roomPack.paid_thb)||0)>=(Number(roomPack.price_thb)||0)) roomPack=null;
+      return save('privates',p.id,body).then(function(r){
+        /* a pack that is not paid yet, with Charge to room: the pack price goes on the room bill */
+        if(roomPack) return db.doc('purchases/'+roomPack.id).update({method:'room',paid:true,paid_thb:roomPack.price_thb}).then(function(){ return Promise.all([reload('charges'),reload('stays')]); }).then(function(){ setTimeout(function(){ toast(roomPack.package_name+', '+thb(roomPack.price_thb)+', is on the room bill.'); },60); return r; });
+        if(v.method==='room'&&!v.purchase_id) setTimeout(function(){ reload('charges'); },400); return r; }); },
     onDelete:p.id?function(){ return db.doc('privates/'+p.id).delete(); }:null});
 }
 function editSource(s){ s=s||{};
