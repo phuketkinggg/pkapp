@@ -700,13 +700,18 @@ function sellPackage(c){
         var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast('Sold. '+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
 }
 function editPurchase(p){
-  openForm({title:'Edit '+(p.package_name||'package'),values:p,fields:[
+  var pp=isPrivatePack(p), booked=pp?packUsed(p)-(Number(p.used_before)||0):0;
+  openForm({title:'Edit '+(p.package_name||'package'),values:pp?Object.assign({},p,{classes_left:left(p)}):p,note:pp?booked+' booked in the app so far'+(Number(p.used_before)?', '+p.used_before+' used before the app':'')+'.':null,fields:[
     {key:'price_thb',label:'Price charged (THB)',type:'number',hint:'Paid so far: '+(thb(p.paid_thb)||'0 THB')+'. To add money they paid, use Take payment on the customer.'},
-    {key:'classes_left',label:'Classes left',type:'number',hint:'Only for packages with a set number of classes.'},
+    {key:'classes_left',label:pp?'Sessions left':'Classes left',type:'number',hint:pp?'For a pack bought on the old system, type how many sessions they really have left. The app counts the rest as used before the app.':'Only for packages with a set number of classes.'},
     {key:'starts_on',label:'Started on',type:'date'},
     {key:'expires_on',label:'Expires on',type:'date'},
     {key:'cancelled',label:'Cancelled',type:'checkbox'}],
-    onSave:function(v){ var body=Object.assign({},p,v); delete body.paid; delete body.paid_thb; body.starts_on=v.starts_on||null; body.expires_on=v.expires_on||null; return save('purchases',p.id,body); },
+    onSave:function(v){ var body=Object.assign({},p,v); delete body.paid; delete body.paid_thb; body.starts_on=v.starts_on||null; body.expires_on=v.expires_on||null;
+      if(pp){ var want=Math.round(Number(v.classes_left)); if(isNaN(want)||want<0) return 'Type how many sessions are left.'; var ub=p.class_limit-booked-want;
+        if(ub<0) return 'That is more than the pack holds. '+p.class_limit+' sessions, '+booked+' booked in the app, so at most '+(p.class_limit-booked)+' left.';
+        body.used_before=ub; body.classes_left=null; }
+      return save('purchases',p.id,body); },
     onDelete:function(){ return db.doc('purchases/'+p.id).delete(); }});
 }
 function editClass(c){ c=c||{};
@@ -895,7 +900,7 @@ function walkIn(name,target){
 /* ---------- check in ---------- */
 function usedThisWeek(p,day){ var a=weekStart(day), b=addDays(a,6), n=0;
   S.checkin_days.forEach(function(d){ if(d.id>=a&&d.id<=b) (d.entries||[]).forEach(function(e){ if(e.purchase_id===p.id&&e.counted!==false) n++; }); }); return n; }
-function packUsed(p,exceptId){ var n=0; S.privates.forEach(function(x){ if(x.purchase_id===p.id&&x.status!=='cancelled'&&x.id!==exceptId) n++; }); return n; }
+function packUsed(p,exceptId){ var n=Number(p.used_before)||0; S.privates.forEach(function(x){ if(x.purchase_id===p.id&&x.status!=='cancelled'&&x.id!==exceptId) n++; }); return n; }
 function effective(p){ return isPrivatePack(p)?Object.assign({},p,{classes_left:p.class_limit-packUsed(p)}):p; }
 function left(p){ return classesLeft(effective(p)); }
 function stateOf(p,day){ return purchaseState(effective(p),day,usedThisWeek(p,day)); }
@@ -3123,7 +3128,7 @@ var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes']},
-  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id']},
+  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before']},
   classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move'],clear:['reschedule']},
