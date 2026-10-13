@@ -1454,7 +1454,7 @@ function vStays(){
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
       return {when:nameOf('rooms',st.room_id),right:thb(billTotal(st)),title:g.name||'Guest',note:'Left '+fmtDate(st.check_out),act:btn('Settle',function(){ openBill(st); },'primary small')}; }),'')):null,
-    me&&me.role==='resort'?[dashTodo(),dashHk()]:hkDeskSections(),
+    me&&me.role==='resort'?[dashTodo(),hkDeskSections(),dashHk()]:hkDeskSections(),
     section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.'))]);
 }
 
@@ -1495,11 +1495,12 @@ function hkState(r){
   return {rank:4,chip:chip(T('clean'),'ok')};
 }
 function hkMinibar(r){
-  if(!HK.items.length){ toast(T('mbEmpty')); return; }
+  var MB=(me&&me.role==='housekeeping'?HK:HKD)||HK||HKD;
+  if(!MB.items.length){ toast(T('mbEmpty')); return; }
   openForm({title:T('mbTitle')(r.name),note:T('mbNote'),saveLabel:T('mbSave'),doneMsg:T('mbDone'),cancelLabel:T('cancel'),needMsg:T('need'),
-    fields:HK.items.map(function(m){ return {key:'q_'+m.id,label:m.name+' ('+thb(m.price)+')',type:'number',def:0}; }),
+    fields:MB.items.map(function(m){ return {key:'q_'+m.id,label:m.name+' ('+thb(m.price)+')',type:'number',def:0}; }),
     onSave:function(v){
-      var items=HK.items.map(function(m){ return {id:m.id,qty:Number(v['q_'+m.id])||0}; }).filter(function(x){ return x.qty>0; });
+      var items=MB.items.map(function(m){ return {id:m.id,qty:Number(v['q_'+m.id])||0}; }).filter(function(x){ return x.qty>0; });
       if(!items.length) return T('mbNone');
       return hkDo('hk_minibar',{p_room:r.id,p_items:items}).catch(function(e){ throw {plain:true,message:hkErr(e)}; });
     }});
@@ -1518,6 +1519,7 @@ function hkCard(r,staffView){
   if(!staffView&&r.guest_in) acts.push(btn(T('minibar'),function(){ hkMinibar(r); },'small'));
   if(!staffView&&r.guest_in&&!r.minibar_today) acts.push(btn(T('mbOk'),function(){ run(hkDo('hk_minibar_ok',{p_room:r.id}),T('mbOkDone')); },'small'));
   if(r.minibar_today) bits.push(T('mbChecked'));
+  if(!staffView) acts.push(btn(SU('supplies'),function(){ suppliesDlg(r); },'small'));
   if(!staffView) acts.push(btn(T('problem'),function(){ hkIssue(r); },'small'));
   var sep=hkLang()==='my'?'။ ':'. ';
   return {when:r.name,right:st.chip,note:bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),act:acts};
@@ -1530,17 +1532,87 @@ function vHK(){
   return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),myJobs(),
     cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
 }
+/* ---------- room supplies and the resort store: staff note what they used, managers keep the counts ---------- */
+var STOCK=null, STOCKR=null;
+var SUT={
+  en:{supplies:'Supplies',title:function(n){ return 'Supplies for '+n; },titleAny:'Supplies used',note:'Type how many you put in or used. Leave the rest at 0.',cons:'Used from the store',extras:'Extra given to the room',towel:'Towel',pillow:'Pillow',blanket:'Blanket',sheet:'Sheet',other:'Something else (write it)',otherQty:'How many',more:'Other stock used (for example a light bulb)',moreQty:'How many of that',none:'Nothing',room:'Room',noroom:'Not a room',save:'Save',saved:'Saved. Thank you.',cancel:'Cancel',need:'Type how many for at least one thing.',loading:'Loading the list.'},
+  my:{supplies:'ပစ္စည်းများ',title:function(n){ return n+' အတွက် ပစ္စည်းများ'; },titleAny:'သုံးခဲ့သော ပစ္စည်းများ',note:'ထည့်ပေး သို့မဟုတ် သုံးခဲ့သော အရေအတွက်ကို ရိုက်ပါ။ ကျန်တာ 0 ထားပါ။',cons:'စတိုမှ သုံးခဲ့သည်',extras:'အခန်းသို့ ထပ်ပေးသည်',towel:'တဘက်',pillow:'ခေါင်းအုံး',blanket:'စောင်',sheet:'အိပ်ယာခင်း',other:'အခြား (ရေးပါ)',otherQty:'ဘယ်နှစ်ခု',more:'အခြား ပစ္စည်း သုံးခဲ့သည် (ဥပမာ မီးသီး)',moreQty:'ဘယ်နှစ်ခု',none:'မရှိပါ',room:'အခန်း',noroom:'အခန်းမဟုတ်ပါ',save:'သိမ်းရန်',saved:'သိမ်းပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',cancel:'မလုပ်တော့ပါ',need:'အနည်းဆုံး တစ်ခုအတွက် အရေအတွက် ရိုက်ပါ။',loading:'စာရင်း ဖွင့်နေသည်။'},
+  th:{supplies:'ของใช้',title:function(n){ return 'ของใช้สำหรับ '+n; },titleAny:'ของที่ใช้ไป',note:'ใส่จำนวนที่เติมหรือใช้ไป ที่เหลือใส่ 0',cons:'ใช้จากสต็อก',extras:'ให้ห้องเพิ่ม',towel:'ผ้าเช็ดตัว',pillow:'หมอน',blanket:'ผ้าห่ม',sheet:'ผ้าปูที่นอน',other:'อย่างอื่น (เขียน)',otherQty:'จำนวน',more:'ของอื่นที่ใช้ (เช่น หลอดไฟ)',moreQty:'จำนวน',none:'ไม่มี',room:'ห้อง',noroom:'ไม่ใช่ห้องพัก',save:'บันทึก',saved:'บันทึกแล้ว ขอบคุณ',cancel:'ยกเลิก',need:'ใส่จำนวนอย่างน้อยหนึ่งอย่าง',loading:'กำลังโหลด'}};
+function SU(k){ var l=SUT[clkLang()]||SUT.en; return l[k]!==undefined?l[k]:SUT.en[k]; }
+function stockName(i){ var l=clkLang(); return (l==='my'&&i.name_my)||(l==='th'&&i.name_th)||i.name; }
+function loadStock(){ return sb.rpc('stock_home').then(function(r){ if(r.error) throw r.error; STOCK=r.data; schedule(); return STOCK; }); }
+function suppliesDlg(r){
+  if(!STOCK){ toast(SU('loading')); loadStock().then(function(){ suppliesDlg(r); },function(e){ toast(errText(e)); }); return; }
+  var items=(STOCK.items||[]).filter(function(i){ return i.active!==false; }), cons=items.filter(function(i){ return i.category==='consumable'; }), more=items.filter(function(i){ return i.category!=='consumable'; });
+  var fields=[];
+  if(!r) fields.push({key:'room',label:SU('room'),type:'select',options:[['',SU('noroom')]].concat((STOCK.rooms||[]).map(function(x){ return [x.id,x.name]; })),def:''});
+  cons.forEach(function(i,k){ fields.push({key:'c_'+i.id,label:(k===0?SU('cons')+': ':'')+stockName(i),type:'number',def:0}); });
+  [['towel','Towel'],['pillow','Pillow'],['blanket','Blanket'],['sheet','Sheet']].forEach(function(x,k){ fields.push({key:'x_'+x[0],label:(k===0?SU('extras')+': ':'')+SU(x[0]),type:'number',def:0}); });
+  fields.push({key:'x_other',label:SU('other')},{key:'x_other_qty',label:SU('otherQty'),type:'number',def:0});
+  if(more.length) fields.push({key:'m_item',label:SU('more'),type:'select',options:[['',SU('none')]].concat(more.map(function(i){ return [i.id,stockName(i)]; })),def:''},{key:'m_qty',label:SU('moreQty'),type:'number',def:0});
+  openForm({title:r?SU('title')(r.name):SU('titleAny'),note:SU('note'),saveLabel:SU('save'),cancelLabel:SU('cancel'),doneMsg:SU('saved'),fields:fields,
+    onSave:function(v){
+      var use=cons.map(function(i){ return {id:i.id,qty:Math.round(Number(v['c_'+i.id])||0)}; }).filter(function(x){ return x.qty>0; });
+      if(v.m_item&&Math.round(Number(v.m_qty)||0)>0) use.push({id:v.m_item,qty:Math.round(Number(v.m_qty))});
+      var ex=[['towel','Towel'],['pillow','Pillow'],['blanket','Blanket'],['sheet','Sheet']].map(function(x){ return {name:x[1],qty:Math.round(Number(v['x_'+x[0]])||0)}; }).filter(function(x){ return x.qty>0; });
+      if(v.x_other) ex.push({name:v.x_other,qty:Math.max(1,Math.round(Number(v.x_other_qty)||0))});
+      if(!use.length&&!ex.length) return SU('need');
+      return sb.rpc('stock_use',{p_room:r?r.id:(v.room||null),p_items:use,p_extras:ex,p_note:null}).then(must).then(function(){ if(STOCK&&STOCK.boss){ loadStock(); STOCKR=null; ui.stockRFor=null; } }); }});
+}
+function stockEdit(i){ i=i||{};
+  openForm({title:i.id?'Edit '+i.name:'New stock item',values:i,fields:[
+    {key:'name',label:'Name (English)',required:true},{key:'name_my',label:'Name in Burmese',hint:'Optional. Housekeeping see this when their app is in Burmese.'},{key:'name_th',label:'Name in Thai',hint:'Optional.'},
+    {key:'category',label:'Type',type:'select',def:'consumable',options:[['consumable','Consumable (toilet rolls, soap): shows on every room'],['linen','Linen (sheets, towels, pillows)'],['other','Other (light bulbs and the like)']]},
+    {key:'low',label:'Warn me when the store has this many or fewer',type:'number'},
+    {key:'active',label:'In use',type:'checkbox',def:true}],
+    onSave:function(v){ return sb.rpc('stock_item_save',{p:Object.assign({id:i.id||null},v)}).then(must).then(loadStock); }});
+}
+function stockAdjust(i,mode){
+  openForm({title:(mode==='delivery'?'Delivery in: ':'Count: ')+i.name,note:mode==='delivery'?'Adds to the store. Now '+i.qty+'.':'Type how many are in the store now. The app keeps the difference in the history. Now '+i.qty+'.',saveLabel:'Save',doneMsg:'Stock saved.',fields:[
+    {key:'qty',label:mode==='delivery'?'How many came in':'How many are there',type:'number',required:true},{key:'note',label:'Note',hint:mode==='delivery'?'For example: Makro.':'Optional.'}],
+    onSave:function(v){ var q=Math.round(Number(v.qty)); if(!(q>=0)) return 'Type a number, 0 or more.'; return sb.rpc('stock_adjust',{p_item:i.id,p_mode:mode,p_qty:q,p_note:v.note||null}).then(must).then(function(){ STOCKR=null; ui.stockRFor=null; return loadStock(); }); }});
+}
+function stockSections(day){
+  if(!STOCK){ if(!ui.stockAsked){ ui.stockAsked=true; loadStock().catch(function(){}); } return null; }
+  if(!STOCK.boss) return null;
+  var from=addDays(day,-6);
+  if(!STOCKR||STOCKR.day!==day){ if(ui.stockRFor!==day){ ui.stockRFor=day; sb.rpc('stock_report',{p_from:from,p_to:day}).then(function(r){ if(!r.error){ STOCKR={day:day,moves:r.data.moves||[]}; schedule(); } }); } }
+  var items=STOCK.items||[], cats={consumable:'Consumables',linen:'Linen',other:'Other'};
+  var low=items.filter(function(i){ return i.active!==false&&i.low!=null&&i.qty<=i.low; });
+  var moves=STOCKR?STOCKR.moves:[], used={}, extras={};
+  moves.forEach(function(m){ if(m.kind==='used') used[m.item]=(used[m.item]||0)-m.qty; if(m.kind==='extra') extras[m.item]=(extras[m.item]||0)+m.qty; });
+  var uk=Object.keys(used).sort(function(a,b){ return used[b]-used[a]; }), ek=Object.keys(extras);
+  return [
+    section('Store stock'+(low.length?' ('+low.length+' low)':''),btn('Add item',function(){ stockEdit(); },'small'),table([
+      {label:'Item',cell:function(i){ return h('span',null,linkBtn(i.name,function(){ stockEdit(i); }),h('div',{class:'sub'},cats[i.category]||i.category)); }},
+      {label:'In store',num:true,cell:function(i){ return h('span',null,i.active===false?chip('Not in use'):i.low!=null&&i.qty<=i.low?chip(String(i.qty),'bad'):h('b',null,String(i.qty))); }},
+      {label:'Warn at',num:true,cell:function(i){ return i.low==null?'':String(i.low); }},
+      {label:'',cell:function(i){ return h('div',{class:'row'},btn('Delivery',function(){ stockAdjust(i,'delivery'); },'small'),btn('Count',function(){ stockAdjust(i,'count'); },'small')); }}],
+      items,'No stock items yet.')),
+    section('Supplies used, '+fmtDate(from)+' to '+fmtDate(day),btn('Record supplies',function(){ suppliesDlg(null); },'small'),h('div',null,
+      h('p',{class:'sub'},uk.length?'From the store: '+uk.map(function(k){ return used[k]+' '+k; }).join(', ')+'.':'Nothing taken from the store in these days.',ek.length?' Extras given to rooms: '+ek.map(function(k){ return extras[k]+' '+k; }).join(', ')+'.':''),
+      table([{label:'When',cell:function(m){ return new Date(m.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
+        {label:'Room',cell:function(m){ return m.room||''; }},
+        {label:'What',cell:function(m){ return (m.kind==='used'?(-m.qty):m.kind==='count'?(m.qty>=0?'+':'')+m.qty:m.qty)+' '+(m.item||'')+(m.kind==='extra'?' (extra)':m.kind==='delivery'?' (delivery)':m.kind==='count'?' (count fix)':''); }},
+        {label:'By',cell:function(m){ return (m.by||'')+(m.note?', '+m.note:''); }}],moves.slice(0,80),'Nothing recorded in these days.')))];
+}
 /* the desk and managers see the same picture on the Stays page, and close problems there */
 var HKD=null;
 function reloadHKDesk(){ return sb.rpc('housekeeping_home').then(function(res){ HKD=must(res); if(!HKD||!HKD.rooms) HKD={rooms:[],items:[]}; schedule(); }); }
 function fixIssue(i){ if(guard()) run(sb.from('room_issues').update({status:'fixed',fixed_at:new Date().toISOString(),fixed_by:me.id||null}).eq('id',i.id).select('id').then(must).then(reloadHKDesk),'Marked fixed.'); }
+function hkBoss(){ return !!(me&&(me.role==='manager'||me.role==='resort')); }
+function hkRoomsFull(){
+  if(!HKD){ if(!ui.hkAsked){ ui.hkAsked=true; reloadHKDesk().catch(function(){}); } return null; }
+  var rooms=HKD.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
+  return section('Clean, mini bar and supplies',btn('Refresh',function(){ reloadHKDesk(); },'small'),cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.'));
+}
 function hkDeskSections(){
   if(!HKD){ if(!ui.hkAsked){ ui.hkAsked=true; reloadHKDesk().catch(function(){}); } return []; }
   var issues=[]; HKD.rooms.forEach(function(r){ r.issues.forEach(function(i){ issues.push({room:r.name,i:i}); }); });
   var dirty=HKD.rooms.filter(function(r){ return hkState(r).rank<4; }).sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
   return [
     issues.length?section('Problems reported',null,cards(issues.map(function(x){ return {when:x.room,right:fmtDate(x.i.at),title:x.i.text,act:btn('Fixed',function(){ fixIssue(x.i); },'primary small')}; }),'')):null,
-    section('Housekeeping today',btn('Refresh',function(){ reloadHKDesk(); },'small'),cards(dirty.map(function(r){ return hkCard(r,true); }),'All rooms are clean.'))];
+    section('Housekeeping today',btn('Refresh',function(){ reloadHKDesk(); },'small'),cards(dirty.map(function(r){ return hkCard(r,!hkBoss()); }),'All rooms are clean.'))];
 }
 
 /* ---------- messages: customers, coaches, desk and staff groups. Managers can read every chat. ---------- */
@@ -2458,6 +2530,7 @@ function vJobs(){
   var others=(ACT.open||[]).filter(function(x){ return x.assigned_to!==ACT.me; });
   return [pageHead(AX('title'),new Date().toLocaleDateString(l==='th'?'th-TH':l==='my'?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'}),btn(AX('lang'),function(){ setMtLang(next); },'small')),
     myJobs(),
+    h('div',{class:'row'},btn(SU('titleAny'),function(){ suppliesDlg(null); },'small')),
     section(AX('other')+(others.length?' ('+others.length+')':''),btn('↻',function(){ loadActions(); },'small'),
       others.length?cards(others.map(function(x){ return {when:actWhere(x),right:actAgeChip(x),title:(x.urgent?'⚠ ':'')+x.text,note:(x.assigned?x.assigned+'. ':'')+(x.by||''),act:btn(AX('done'),function(){ actDone(x); },'small')}; }),''):h('div',{class:'panel empty'},AX('otherNone')))];
 }
@@ -2647,11 +2720,13 @@ function vHousekeeping(){
       {label:'Cleaned',cell:function(r){ return r.cleaned.length?h('span',null,chip('Yes','ok'),' '+r.cleaned.map(function(c){ return tm(c.at)+(c.by?' '+c.by:''); }).join(', ')):(r.occupied?chip('Not cleaned','bad'):h('span',{class:'sub'},'No')); }},
       {label:'Mini bar',cell:function(r){ return r.minibar.length?h('span',null,r.minibar.map(function(m){ return h('div',null,chip(m.total?'Used '+thb(m.total):'Nothing used','ok'),' '+tm(m.at)+(m.by?' '+m.by:'')+(m.items?', '+m.items:'')); })):(r.occupied?chip('Not checked','warn'):h('span',{class:'sub'},'')); }}],
       rooms,'No rooms in the app yet.')),
+    hkRoomsFull(),
     dashTodo(),
     section('Mini bar sales, last 7 days',null,h('div',null,
       h('p',{class:'sub'},'Total '+(thb(weekSales)||'0 THB')+' on room bills.'+(Object.keys(items).length?' Most used: '+Object.keys(items).sort(function(a,b){ return items[b]-items[a]; }).slice(0,6).map(function(k){ return items[k]+' '+k; }).join(', ')+'.':'')),
       table([{label:'Day',cell:function(c){ return fmtDate(c.day); }},{label:'Room',cell:function(c){ return c.room+(c.guest?', '+c.guest:''); }},{label:'What',cell:function(c){ return c.what; }},
-        {label:'Amount',num:true,cell:function(c){ return thb(c.amount); }},{label:'By',cell:function(c){ return c.by||''; }}],HKS?HKS.charges:[],'No mini bar sales in the last 7 days.')))];
+        {label:'Amount',num:true,cell:function(c){ return thb(c.amount); }},{label:'By',cell:function(c){ return c.by||''; }}],HKS?HKS.charges:[],'No mini bar sales in the last 7 days.'))),
+    stockSections(day)];
 }
 
 /* ---------- views ---------- */
