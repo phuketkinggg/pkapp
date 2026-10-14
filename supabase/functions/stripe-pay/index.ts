@@ -17,6 +17,7 @@ function backUrl(u: unknown): string {
   try {
     const x = new URL(String(u ?? ""));
     if (x.origin === "https://phuketkinggg.github.io" && x.pathname.startsWith("/pkapp")) return x.origin + x.pathname;
+    if (x.origin === "https://app.phuketking.com") return x.origin + x.pathname;
   } catch { /* fall through */ }
   return APP;
 }
