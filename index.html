@@ -601,7 +601,7 @@ function openForm(spec){
   var delBtn=spec.onDelete?h('button',{type:'button',class:'btn danger',onclick:function(){
     if(!armed){ armed=true; delBtn.textContent='Tap again to delete'; return; }
     delBtn.disabled=true; spec.onDelete().then(function(){ $dlg.close(); toast('Deleted.'); },function(e){ showErr(errText(e)); delBtn.disabled=false; });
-  }},'Delete'):h('span');
+  }},'Delete'):spec.extraBtn?h('button',{type:'button',class:'btn danger',onclick:spec.extraBtn[1]},spec.extraBtn[0]):h('span');
   var form=h('form',{novalidate:true},h('h2',null,spec.title),spec.note?h('p',{class:'sub'},spec.note):null,rows,err,
     h('div',{class:'factions'},delBtn,h('div',{class:'row'},btn(spec.cancelLabel||'Cancel',function(){ $dlg.close(); }),saveBtn)));
   form.addEventListener('submit',function(ev){
@@ -739,7 +739,7 @@ function editPurchase(p){
         if(ub<0) return 'That is more than the pack holds. '+p.class_limit+' sessions, '+booked+' booked in the app, so at most '+(p.class_limit-booked)+' left.';
         body.used_before=ub; body.classes_left=null; }
       return save('purchases',p.id,body); },
-    onDelete:function(){ return db.doc('purchases/'+p.id).delete().then(function(){ return Promise.all([reload('charges'),reload('privates')]); }); }});
+    extraBtn:me&&me.role==='manager'&&!(p.stay_id&&p.package_name==='Stay: group Muay Thai included')?['Delete (mistake)',function(){ $dlg.close(); deletePurchase(p); }]:null});
 }
 function editClass(c){ c=c||{};
   openForm({title:c.id?'Edit class':'New class',values:c,fields:[
@@ -1360,6 +1360,75 @@ function openBill(st,msg,thenOut){
   $dlg.replaceChildren(box);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
+/* stay longer: same price per night, or a new price for the extra nights */
+function extendStay(st){
+  var n=nights(st), rate=st.room_price_thb!=null&&n>0?Math.round(Number(st.room_price_thb)/n):null;
+  openForm({title:'Extend stay',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+'. Now '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+n+' night'+(n===1?'':'s')+(st.room_price_thb!=null?', '+thb(st.room_price_thb):'')+'.',
+    saveLabel:'Extend',doneMsg:'Stay extended.',values:{check_out:addDays(st.check_out,1),how:rate!=null?'same':'new',rate:''},
+    fields:[{key:'check_out',label:'New leaving date',type:'date',required:true},
+      {key:'how',label:'Price for the extra nights',type:'select',options:(rate!=null?[['same','Keep the same price, '+thb(rate)+' a night']]:[]).concat([['new','New price per night']]),
+        onChange:function(v,set,get,o,show){ show('rate',v==='new'); }},
+      {key:'rate',label:'New price per night (THB)',type:'number',hide:rate!=null,hint:'Only for the extra nights. The nights already booked keep their price.'}],
+    onSave:function(v){
+      if(!v.check_out||v.check_out<=st.check_out) return 'Pick a leaving date after '+fmtDate(st.check_out)+'.';
+      var clash=S.stays.filter(function(o){ return o.id!==st.id&&o.room_id===st.room_id&&o.status!=='cancelled'&&o.check_in<v.check_out&&o.check_out>st.check_out; })[0];
+      if(clash) return nameOf('rooms',st.room_id)+' is booked from '+fmtDate(clash.check_in)+' by '+nameOf('customers',clash.customer_id)+'. Extend to '+fmtDate(clash.check_in)+' at most, or move one of them to another room.';
+      var r=v.how==='same'?rate:Math.round(Number(v.rate)); if(r==null||isNaN(r)||r<0) return 'Type the price per night.';
+      var extra=Math.round((parseYmd(v.check_out)-parseYmd(st.check_out))/864e5), price=(Number(st.room_price_thb)||0)+extra*r;
+      var patch={check_out:v.check_out,room_price_thb:price,room_price_manual:true}, mp=/^mphb:/.test(String(st.external_id||'')), note='';
+      if(st.ical_feed){ patch.dates_locked=true; note=' Extend it on '+(nameOf('sources',st.source_id)||'the booking site')+' too, so the room stays closed there.'; }
+      var first=!mp?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'change',stay_id:st.id,room_id:st.room_id,check_in:st.check_in,check_out:v.check_out}}).then(function(res){
+        if(res.error) throw {message:'Could not reach MotoPress. Nothing was changed.'}; var d=res.data||{}; if(d.error) throw {message:d.error};
+        if(d.where==='app_only') note=' This booking came from '+(d.source||'a booking site')+'. Extend it there too.'; else note=' MotoPress has the new date too.'; });
+      return first.then(function(){ return db.doc('stays/'+st.id).update(patch); }).then(function(){ setTimeout(function(){ reload('purchases'); toast('Extended to '+fmtDate(v.check_out)+', '+extra+' more night'+(extra===1?'':'s')+' at '+thb(r)+'. Room now '+thb(price)+'.'+note); },400); });
+    }});
+}
+function reloadMoney(){ return Promise.all([reload('purchases'),reload('privates'),reload('charges'),reload('stays'),reload('checkin_days')]).then(function(){ if(typeof loadNotices==='function') loadNotices(); if(SALES) shopRefresh(); CUORD={}; }); }
+/* refund: a manager PIN every time. Money back is recorded, the package or private stops working everywhere. */
+function refundTab(kind,x){
+  var isP=kind==='private', name=isP?'Private '+fmtDate(x.date)+' '+(x.time||''):x.package_name;
+  sb.rpc('refund_info',isP?{p_private:x.id}:{p_purchase:x.id}).then(must).then(function(info){
+    var amt=h('input',{id:'rf-amt',type:'number',inputmode:'numeric',value:String(info.max||0)}), meth=h('select',{id:'rf-meth'},[['cash','Cash'],['transfer','Bank transfer'],['card','Card'],['stripe','Stripe']].map(function(o){ return h('option',{value:o[0]},o[1]); }));
+    var pin=h('input',{id:'rf-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'}), why=h('input',{id:'rf-why',type:'text',placeholder:'For example: injured, left early'});
+    var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
+    var bits=[]; if(info.max) bits.push('They paid '+thb(info.max)+'. Type how much to give back, 0 for none.'); else bits.push(isP&&x.purchase_id?'Paid with a pack. The session goes back on the pack.':'Nothing was paid, so no money goes back.');
+    if(info.on_bill) bits.push(thb(info.on_bill)+' on the room bill comes off.'); if(info.future_privates) bits.push(info.future_privates+' booked private'+(info.future_privates===1?'':'s')+' on it will be cancelled.');
+    var b=btn('Refund',function(){ if(busy) return; err.hidden=true; var a=Math.round(Number(amt.value)||0);
+      if(a<0||a>(info.max||0)){ err.textContent='Give back between 0 and '+(thb(info.max)||'0 THB')+'.'; err.hidden=false; return; }
+      if(!pin.value){ err.textContent='A manager types their PIN.'; err.hidden=false; return; } if(!why.value.trim()){ err.textContent='Say why.'; err.hidden=false; return; }
+      busy=true; b.disabled=true;
+      sb.rpc(isP?'refund_private':'refund_purchase',{p_id:x.id,p_amount:a,p_method:meth.value,p_pin:pin.value,p_reason:why.value.trim()}).then(must).then(reloadMoney)
+        .then(function(){ $dlg.close(); toast('Refunded'+(a?' '+thb(a):'')+'. '+name+' no longer works.'); },function(e){ busy=false; b.disabled=false; err.textContent=errText(e); err.hidden=false; }); },'danger');
+    shopDlg(h('div',{class:'billbox'},h('h2',null,'Refund'),h('p',null,nameOf('customers',x.customer_id)+': '+name),h('p',{class:'sub'},bits.join(' ')+' It comes off their tab and check in at once, and shows as money out. Only a manager can do this, with their PIN.'),
+      info.max?h('div',{class:'fgrid'},field('rf-amt','Give back (THB)',amt),field('rf-meth','How',meth)):null,field('rf-pin','Manager PIN',pin),field('rf-why','Why',why),err,
+      h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),b))));
+    setTimeout(function(){ (info.max?amt:pin).focus(); },30);
+  }).catch(function(e){ toast(errText(e)); });
+}
+/* delete a package as if it never happened: check ins on it, privates booked on it, bill lines and payments all go */
+function deletePurchase(p){
+  sb.rpc('refund_info',{p_purchase:p.id}).then(must).then(function(info){
+    var bits=[]; if(info.checkins) bits.push(info.checkins+' check in'+(info.checkins===1?'':'s')); if(info.privates) bits.push(info.privates+' private'+(info.privates===1?'':'s')+' booked on it'); if(info.payments) bits.push(info.payments+' payment'+(info.payments===1?'':'s'));
+    mistakeDlg('Delete '+p.package_name+' from '+nameOf('customers',p.customer_id),'It is removed as if it was never sold'+(bits.length?', with '+bits.join(', '):'')+'. Money taken for it no longer counts. To give money back and keep a record, use Refund instead.',
+      function(pin,why){ return sb.rpc('purchase_delete_ok',{p_id:p.id,p_pin:pin,p_reason:why}).then(must)
+        .then(function(){ return sb.from('checkins').delete().eq('purchase_id',p.id).then(must); })
+        .then(function(){ return sb.from('privates').delete().eq('purchase_id',p.id).then(must); })
+        .then(function(){ return sb.from('purchases').delete().eq('id',p.id).select('id').then(must); })
+        .then(reloadMoney); });
+  }).catch(function(e){ toast(errText(e)); });
+}
+var CUORD={};
+function customerOrders(cid){
+  var x=CUORD[cid]; if(!x){ CUORD[cid]={busy:true}; sb.rpc('customer_orders',{p_customer:cid}).then(must).then(function(d){ CUORD[cid]={d:d}; schedule(); },function(e){ CUORD[cid]={err:errText(e)}; schedule(); }); return section('Shop and cafe',null,h('div',{class:'panel empty'},'Loading.')); }
+  if(x.busy) return section('Shop and cafe',null,h('div',{class:'panel empty'},'Loading.'));
+  if(x.err) return null;
+  var ST={paid:['Paid','ok'],room:['On room bill','warn'],waiting:['Not paid','warn'],refunded:['Refunded','bad'],void:['Removed',null]};
+  return section('Shop and cafe',null,table([
+    {label:'When',cell:function(o){ return fmtDate(String(o.at).slice(0,10))+' '+bkkTime(o.at); }},
+    {label:'Sale',cell:function(o){ return h('span',null,'#'+o.number+' ',h('span',{class:'sub'},o.items||'')); }},
+    {label:'Total',num:true,cell:function(o){ return thb(o.total)||'0 THB'; }},
+    {label:'',cell:function(o){ var k=ST[o.status]||[o.status]; return h('span',{class:'row'},chip(k[0]+(o.status==='room'&&o.room?', '+o.room:''),k[1]),o.refund_reason?h('span',{class:'sub'},o.refund_reason):null); }}],x.d,'Nothing bought in the shop or cafe yet.'));
+}
 function checkOutStay(st){
   var exO=stayExtras(st).reduce(function(t,x){ return t+x.owe; },0);
   if((!st.settled&&billTotal(st)>0)||exO>0) return openBill(st,'Settle the bill before checking out.',true);
@@ -1373,6 +1442,7 @@ function stayCard(st,day){
   if(!st.settled) acts.push(btn('Add to bill',function(){ addCharge(st); },'small'));
   acts.push(btn('Bill',function(){ openBill(st); },'small'));
   if(st.status==='in') acts.push(btn('Check out',function(){ checkOutStay(st); },'small'));
+  if(st.status==='booked'||st.status==='in') acts.push(btn('Extend',function(){ extendStay(st); },'small'));
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
   if(st.status==='booked'||st.status==='in') acts.push(btn(st.welcome_sent_at?'Email again':'Welcome email',function(){ welcomeEmail(st); },'small'));
   var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),(st.room_price_thb!=null?'Room '+thb(st.room_price_thb)+(Number(st.room_paid_thb)>0?', '+thb(st.room_paid_thb)+' paid':'')+'. ':'No room price. ')+(st.settled?'Settled':'To pay '+(thb(Math.max(0,total))||'0 THB'))];
@@ -1384,7 +1454,7 @@ function stayCard(st,day){
   var tr=st.training_included!==false;
   bits.push(tr?'Group Muay Thai included for 1 person (morning class only on the leaving day)':'No training included');
   if(st.status!=='out'&&st.status!=='cancelled') acts.push(btn(tr?'Remove training':'Add training',function(){ setStay(st,{training_included:!tr},tr?'Training taken off this stay.':'Group Muay Thai added to this stay.'); setTimeout(function(){ reload('purchases'); },700); },'small'));
-  return {when:nameOf('rooms',st.room_id),right:status,title:g.name||'Guest',note:bits.join('. '),act:acts};
+  return {when:nameOf('rooms',st.room_id),right:status,title:g.id?linkBtn(g.name||'Guest',function(){ openCustomer(g.id); }):'Guest',note:bits.join('. '),act:acts};
 }
 var MPSYNC=null;
 function loadMpSync(){ return sb.from('app_settings').select('value').eq('key','motopress_last_sync').maybeSingle().then(function(res){ var d=res.data; try{ MPSYNC=d&&d.value?JSON.parse(d.value):null; }catch(e){ MPSYNC=null; } schedule(); }); }
@@ -1416,7 +1486,7 @@ function srcClass(st){
 }
 function stayDialog(st){
   var day=ymd(new Date()), it=stayCard(st,day), close=function(){ $dlg.close(); };
-  var box=h('div',{class:'billbox'},h('h2',null,it.title),
+  var box=h('div',{class:'billbox'},h('h2',{onclick:function(ev){ if(ev.target.closest('button')) close(); }},it.title),
     h('div',{class:'row'},h('b',null,it.when),it.right),
     h('p',{class:'sub'},it.note),
     (function(){ var r=h('div',{class:'row wrap'},it.act); r.addEventListener('click',function(ev){ if(ev.target.closest('button')) close(); },true); return r; })(),
@@ -3155,7 +3225,7 @@ function vCustomers(){
           {label:'Paid ahead',num:true,cell:function(st){ var a=(Number(st.room_paid_thb)||0)+(Number(st.app_paid_thb)||0); return a?thb(a):''; }},
           {label:'Extras on bill',num:true,cell:function(st){ var x=extrasTotal(st); return x?thb(x):''; }},
           {label:'To pay',num:true,cell:function(st){ var o=(st.settled?0:Math.max(0,billTotal(st)))+stayExtras(st).reduce(function(t,x){ return t+x.owe; },0); return o?chip(thb(o),'warn'):chip(st.settled?'Settled':'Nothing','ok'); }},
-          {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
+          {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),st.status==='booked'||st.status==='in'?btn('Extend',function(){ extendStay(st); },'small'):null,btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
       section('Packages',null,table([
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
@@ -3163,8 +3233,18 @@ function vCustomers(){
         {label:'Paid',cell:function(p){ var ow=owedOf(p); return !ow?chip('Paid','ok'):Number(p.paid_thb)>0?chip('Paid '+thb(p.paid_thb)+', owes '+thb(ow),'warn'):chip(p.ordered_in_app?'App order, not paid':'Owes '+thb(ow),'warn');}},
         {label:'Visits left',num:true,cell:function(p){return p.covers&&!p.covers.length?'':p.class_limit?left(p)+' of '+p.class_limit:'Unlimited';}},
         {label:'Runs',cell:function(p){return p.covers&&!p.covers.length?'':p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
-        {label:'Status',cell:function(p){return p.covers&&!p.covers.length?(p.cancelled?chip('Cancelled','bad'):chip('Extra')):stateChip(stateOf(p,day));}},
-        {label:'',cell:function(p){return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'));}}],ps,'No packages yet. Use Sell a package to record the first one.')),
+        {label:'Status',cell:function(p){return p.refunded_at?chip('Refunded'+(p.refund_thb?' '+thb(p.refund_thb):''),'bad'):p.covers&&!p.covers.length?(p.cancelled?chip('Cancelled','bad'):chip('Extra')):stateChip(stateOf(p,day));}},
+        {label:'',cell:function(p){ var stayTr=p.stay_id&&p.package_name==='Stay: group Muay Thai included';
+          return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'),
+            !p.refunded_at&&!stayTr?btn('Refund',function(){ refundTab('purchase',p); },'small'):null,me&&me.role==='manager'&&!stayTr?btn('Delete (mistake)',function(){ deletePurchase(p); },'small'):null);}}],ps,'No packages yet. Use Sell a package to record the first one.')),
+      (function(){ var pv=S.privates.filter(function(x){ return x.customer_id===c.id; }).sort(function(a,b){ return (a.date+(a.time||''))<(b.date+(b.time||''))?1:-1; }); return pv.length?section('Privates',null,table([
+        {label:'When',cell:function(x){ return linkBtn(fmtDate(x.date)+' '+(x.time||''),function(){ editPrivate(x); }); }},
+        {label:'Coach',cell:function(x){ return x.coach_id?nameOf('staff',x.coach_id):''; }},
+        {label:'Paid with',cell:payLabel},
+        {label:'Price',num:true,cell:function(x){ return x.purchase_id?'':thb(x.price_thb); }},
+        {label:'Status',cell:function(x){ return x.refunded_at?chip('Refunded'+(x.refund_thb?' '+thb(x.refund_thb):''),'bad'):chip(PSTATUS[x.status]||x.status,x.status==='done'?'ok':x.status==='cancelled'?'bad':null); }},
+        {label:'',cell:function(x){ return !x.refunded_at&&x.status!=='requested'&&(x.purchase_id?x.status!=='cancelled':(x.paid||x.method==='room'))?btn('Refund',function(){ refundTab('private',x); },'small'):null; }}],pv.slice(0,30),'')):null; })(),
+      customerOrders(c.id),
       section('Recent visits',null,table([
         {label:'Date',cell:function(v){return fmtDate(v.day);}},{label:'Time',cell:function(v){return v.e.time;}},
         {label:'For',cell:function(v){return entryWhat(v.e);}}],visits.slice(0,12),'No visits yet.'))
@@ -3492,7 +3572,7 @@ var MAP={
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
-  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included']},
+  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
   minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
 };

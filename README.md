@@ -19,3 +19,5 @@ One app for Phuket King Muay Thai and Pangea: the customer app, the coach, house
 - Customer and staff personal data never goes into this repo.
 - The page has a content security policy: scripts only from this site, data only from the Supabase project.
 - Removing a mistake from the till or a bill needs a manager's PIN every time. Payments of deleted sales are voided, never left counting.
+- Refunds (packages and privates) need a manager's PIN. Money given back is a negative payment, so every report sees it. Deleting a package needs a manager's PIN and removes its check ins and the privates booked on it; the database refuses a package delete without that PIN step.
+- The stay is the master for who the guest is: change the guest on a stay and its training, till sales and payments follow.
