@@ -1031,14 +1031,14 @@ function claimsSection(){
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
 /* new things the desk should know about: app sign ups, first app sign ins, packages sold, stays booked */
-var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn']};
+var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad']};
 function seesNotices(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
 function loadNotices(){ if(!seesNotices()) return Promise.resolve(); return sb.rpc('notices_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(NOTI); NOTI=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
 setInterval(function(){ if(allReady&&seesNotices()&&!CU&&document.visibilityState!=='hidden') loadNotices(); },30000);
 function noticeDone(id){ NOTI=(NOTI||[]).filter(function(n){ return id&&n.id!==id; }); schedule(); run(sb.rpc('notice_done',{p_id:id||null}).then(must).then(loadNotices)); }
 function noticeOpen(n){
   if(n.kind==='stay'){ var st=byId('stays',n.ref_id); noticeDone(n.id); if(st){ if(me.role==='resort'){ ui.tab='stays'; schedule(); } editStay(st); } else if(n.customer_id) openCustomer(n.customer_id); return; }
-  if(n.kind==='package') noticeDone(n.id);
+  if(n.kind==='package'||n.kind==='refund') noticeDone(n.id);
   if(n.customer_id) openCustomer(n.customer_id);
 }
 function noticesBox(kinds){
