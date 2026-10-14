@@ -298,6 +298,7 @@ tfoot td{font-weight:600;border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--sunken);color:var(--muted);white-space:nowrap}
 .chip.ok{background:var(--ok-bg);color:var(--ok)}
+.newcu{font-size:12px;font-weight:600;color:var(--ok);margin-left:6px;white-space:nowrap}
 .chip.warn{background:var(--warn-bg);color:var(--warn)}
 .chip.bad{background:var(--bad-bg);color:var(--bad)}
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -1027,6 +1028,33 @@ function claimsSection(){
     act:[btn('Money is in',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:true}).then(must).then(function(){ return Promise.all([loadClaims(),reload('purchases'),reload('privates'),reload('stays')]); }),'Confirmed. It is marked paid.'); },'primary small'),
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
+/* new things the desk should know about: app sign ups, first app sign ins, packages sold, stays booked */
+var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn']};
+function seesNotices(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
+function loadNotices(){ if(!seesNotices()) return Promise.resolve(); return sb.rpc('notices_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(NOTI); NOTI=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
+setInterval(function(){ if(allReady&&seesNotices()&&!CU&&document.visibilityState!=='hidden') loadNotices(); },30000);
+function noticeDone(id){ NOTI=(NOTI||[]).filter(function(n){ return id&&n.id!==id; }); schedule(); run(sb.rpc('notice_done',{p_id:id||null}).then(must).then(loadNotices)); }
+function noticeOpen(n){
+  if(n.kind==='stay'){ var st=byId('stays',n.ref_id); noticeDone(n.id); if(st){ if(me.role==='resort'){ ui.tab='stays'; schedule(); } editStay(st); } else if(n.customer_id) openCustomer(n.customer_id); return; }
+  if(n.kind==='package') noticeDone(n.id);
+  if(n.customer_id) openCustomer(n.customer_id);
+}
+function noticesBox(kinds){
+  if(!seesNotices()) return null;
+  if(NOTI===null){ if(!ui.notiAsked){ ui.notiAsked=true; loadNotices(); } return null; }
+  var list=NOTI.filter(function(n){ return !kinds||kinds.indexOf(n.kind)>=0; });
+  if(!list.length) return null;
+  return section('New ('+list.length+')',list.length>1?btn('Clear all',function(){ if(kinds) list.forEach(function(n){ noticeDone(n.id); }); else noticeDone(null); },'small'):null,
+    cards(list.map(function(n){ var k=NOTK[n.kind]||['New'];
+      return {when:actAge(n.at)+' ago',right:chip(k[0],k[1]),title:h('b',null,n.title),note:n.detail||null,
+        act:[n.customer_id||n.ref_id?btn(n.kind==='stay'?'Open stay':'Open customer',function(){ noticeOpen(n); },'primary small'):null,btn('Seen',function(){ noticeDone(n.id); },'small')]}; }),''));
+}
+function newTag(c){ return c&&c.seen_at===null&&!c.is_agency?h('i',{class:'newcu'},' New customer'):null; }
+function ackCustomer(id){
+  var c=byId('customers',id); if(!c||c.seen_at!==null||!seesNotices()) return;
+  c.seen_at=new Date().toISOString(); NOTI=(NOTI||[]).filter(function(n){ return !(n.customer_id===id&&(n.kind==='signup'||n.kind==='first_signin')); });
+  sb.rpc('customer_ack',{p_customer:id}).then(function(){ loadNotices(); },function(){});
+}
 function ppSettings(){
   if(!PP){ if(!ui.ppAsked){ ui.ppAsked=true; loadPP(); } return section('PromptPay',null,h('div',{class:'panel empty'},'Loading.')); }
   var places=[{id:null,name:'Default (used everywhere)'}].concat(SHOP&&SHOP.locations?SHOP.locations:[]);
@@ -1511,7 +1539,7 @@ function vStays(){
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   var view=ui.stayView||'calendar';
   var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
-  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine()];
+  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine(),me&&me.role==='resort'?noticesBox():null];
   if(view==='calendar') return head.concat(vCalendar());
   return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
@@ -2970,7 +2998,7 @@ function vToday(){
     var privToday=sortBy(S.privates.filter(function(x){ return x.customer_id===c.id&&x.date===day&&(x.status==='confirmed'||x.status==='done'); }),'time');
     if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
       return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length?right:null);
-    return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
+    return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),newTag(c),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
       h('small',null,already?'Already checked in today at '+already.time+'. ':'',usable.map(function(x){return purchaseLine(x.p,x.st);}).join(' | '))),right);
   });
   var soon=addDays(day,7), renew=[];
@@ -2981,6 +3009,7 @@ function vToday(){
     pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
     h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
     claimsSection(),
+    noticesBox(),
     dashTodo(),
     staffToday(false),
     section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
@@ -3024,11 +3053,12 @@ function vToday(){
     dashHk()
   ];
 }
-function openCustomer(id){ ui.tab='customers'; ui.customerId=id; schedule(); }
+function openCustomer(id){ ackCustomer(id); ui.tab='customers'; ui.customerId=id; schedule(); }
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
   if(c){
+    if(c.seen_at===null) ackCustomer(c.id);
     var ps=S.purchases.filter(function(p){return p.customer_id===c.id;}).sort(function(a,b){return a.purchased_on<b.purchased_on?1:-1;});
     var visits=[]; S.checkin_days.forEach(function(d){ (d.entries||[]).forEach(function(e){ if(e.customer_id===c.id) visits.push({day:d.id,e:e}); }); });
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
@@ -3069,7 +3099,7 @@ function vCustomers(){
     pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
     h('div',{class:'row'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }})),
     table([
-      {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),exChip(x),x.is_agency?[' ',chip('Agency')]:null];}},
+      {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),newTag(x),exChip(x),x.is_agency?[' ',chip('Agency')]:null];}},
       {label:'Level',cell:function(x){return chip(TIERS[x.tier]||'Train');}},
       {label:'Pricing',cell:function(x){ var g=x.price_group||'standard'; return g==='standard'?'Standard':chip(GROUPS[g],'warn'); }},
       {label:'Contact',cell:function(x){return x.email||x.phone||'';}},
@@ -3423,7 +3453,7 @@ function reload(col){
   }
   return sb.from(MAP[col].t).select(cols(MAP[col].t)).then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
-function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); return Promise.all(jobs); }
+function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); return Promise.all(jobs); }
 function makeDb(){
   function changed(res){ var d=must(res); if(!d||!d.length) throw {message:'You do not have permission to change this, or it no longer exists.'}; }
   function then(q,col){ return q.select('id').then(changed).then(function(){ return reload(col); }); }
@@ -3895,6 +3925,7 @@ function showJoin(email){
 function startCustomer(){
   if(!CU||!CU.me) return showJoin((CU&&CU.email)||'');
   TABS=CTABS; if(liveCode()||!TABS.some(function(t){ return t[0]===ui.tab; })) ui.tab='c_home';
+  if(!PV&&!ui.helloSent){ ui.helloSent=true; sb.rpc('customer_hello').then(function(){},function(){}); }
   allReady=true; schedule();
 }
 function enterCustomer(){ me={role:'customer'}; db=makeDb(); return loadCustomer().then(startCustomer); }
