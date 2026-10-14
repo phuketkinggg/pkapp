@@ -2,6 +2,7 @@
   "name": "Phuket King",
   "short_name": "Phuket King",
   "description": "Classes, check in, privates and stays at Phuket King Muay Thai.",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

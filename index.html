@@ -120,7 +120,19 @@ body.chatting{overflow:hidden}
 .installbar .btn.primary{background:var(--gold);border-color:var(--gold);color:#fff;flex:none}
 .installx{background:none;border:0;color:inherit;font-size:22px;line-height:1;padding:4px 6px;cursor:pointer;opacity:.7;flex:none}
 body.has-install main{padding-bottom:96px}
-body.kiosk .installbar,body.chatting .installbar,body.print-poster .installbar{display:none}
+.isheet{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.isbox{background:var(--panel,#fff);color:var(--ink);border-radius:18px;padding:16px;width:100%;max-width:480px;max-height:85vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35);margin-bottom:56px}
+.ishead{display:flex;align-items:center;gap:10px;margin-bottom:8px}.ishead .installx{color:var(--ink)}
+.isteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.istep{display:flex;gap:12px;align-items:center;background:var(--sunken);border-radius:12px;padding:10px 12px}
+.isicon{flex:none;width:44px;height:44px;border-radius:10px;background:var(--ink);color:var(--btn-fg,#fff);display:flex;align-items:center;justify-content:center}
+.istxt{display:flex;flex-direction:column;gap:2px;font-size:15px;line-height:1.35}.istxt span{font-size:13px;color:var(--muted)}
+.isnote{font-size:13px;color:var(--muted);padding:0 4px}
+.isacts{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.isacts .btn.primary{flex:1}
+.isarrow{position:fixed;left:50%;bottom:4px;transform:translateX(-50%);font-size:40px;color:#fff;animation:isb 1s ease-in-out infinite;text-shadow:0 2px 8px rgba(0,0,0,.5)}
+@keyframes isb{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion:reduce){.isarrow{animation:none}}
+body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,body.print-poster .installbar{display:none}
 .fightform{display:flex;flex-direction:column;gap:10px;max-width:560px}
 .fightform label{display:block;font-weight:600;font-size:14px;margin-bottom:3px}
 .fightform label.chk{font-weight:400;display:flex}
@@ -3925,7 +3937,7 @@ function vCHome(){
   var mine=CU.checkins.filter(function(e){ return e.day===day; });
   var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); });
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
-  return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day)),
+  return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day),window.pkCanInstall&&window.pkCanInstall()&&!PV?btn('Install app',function(){ window.pkInstall(); },'small'):null),
     CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('customer',null); },'small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
@@ -4290,6 +4302,7 @@ function showSignIn(){
     h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),
     mode==='in'||mode==='up'?h('div',{class:'field'},h('label',{for:'login-pw'},'Password'),pw,mode==='up'?h('small',null,'At least 8 characters.'):null):null,
     h('div',null,go),note,
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'')&&!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)&&window.navigator.standalone!==true?h('button',{type:'button',class:'btn small',onclick:function(){ if(window.pkInstall) window.pkInstall(); }},'Put the app on your phone'):null,
     h('div',{class:'row'},
       mode!=='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='in'; showSignIn(); }},'Back to sign in'):null,
       mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='reset'; showSignIn(); }},'Forgot password'):null,
@@ -4384,7 +4397,7 @@ function giveAccess(kind,row){
       if(d.error) throw {message:d.error};
       return d;
     }).then(function(d){
-      var link=location.origin+location.pathname;
+      var link=location.origin+location.pathname+'?openExternalBrowser=1';
       var msg='Phuket King app\n'+link+'\nEmail: '+d.email+'\nStarting password: '+d.password+'\nYou choose your own password when you first sign in.\n\nแอป Phuket King\n'+link+'\nอีเมล: '+d.email+'\nรหัสผ่านเริ่มต้น: '+d.password+'\nเมื่อเข้าสู่ระบบครั้งแรก ให้ตั้งรหัสผ่านของคุณเอง';
       var ta=h('textarea',{rows:'9',readonly:'',class:'accessmsg'}); ta.value=msg;
       $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access for '+d.name),
@@ -4476,34 +4489,83 @@ if(!window.supabase||!window.supabase.createClient){
 })();
 </script>
 <script>
-/* ---------- install banner: shown in the browser until the app is on the home screen ---------- */
+/* ---------- install: one button, then a screen that shows exactly what to tap on this phone ---------- */
 (function(){
   var ua=navigator.userAgent||'', ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), android=/Android/i.test(ua);
-  var inApp=/FBAN|FBAV|Instagram|Line\/|; wv\)|WhatsApp|MicroMessenger|TikTok/i.test(ua);
+  var line=/Line\//i.test(ua), inApp=line||/FBAN|FBAV|FB_IAB|Instagram|; wv\)|WhatsApp|MicroMessenger|TikTok|musical_ly|Snapchat|GSA\//i.test(ua);
+  var crios=/CriOS/.test(ua), fxios=/FxiOS/.test(ua), edgios=/EdgiOS/.test(ua), samsung=/SamsungBrowser/i.test(ua);
   var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
-  var deferred=null, bar=null;
+  var deferred=null, bar=null, sheet=null;
+  var appUrl=location.origin+location.pathname;
+  /* LINE opens this link in the phone's real browser */
+  if(line&&!/openExternalBrowser=1/.test(location.search)&&!sessionStorageGet('pk_ext')){ sessionStorageSet('pk_ext','1'); location.replace(appUrl+(location.search?location.search+'&':'?')+'openExternalBrowser=1'+location.hash); return; }
+  function sessionStorageGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
+  function sessionStorageSet(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} }
   function hidden(){ try{ var t=Number(localStorage.getItem('pk_install_hide')||0); return t&&Date.now()<t; }catch(e){ return false; } }
   function hideFor(days){ try{ localStorage.setItem('pk_install_hide',String(Date.now()+days*86400000)); }catch(e){} if(bar){ bar.remove(); bar=null; } document.body.classList.remove('has-install'); }
   function el(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+  var ICON={
+    share:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/></svg>',
+    add:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M12 8v8M8 12h8"/></svg>',
+    dots:'<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+    more:'<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+    ok:'<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>'};
+  function step(icon,en,th){ var r=el('li','istep'), i=el('span','isicon'); i.innerHTML=ICON[icon]; var t=el('div','istxt'); t.appendChild(el('b',null,en)); if(th) t.appendChild(el('span',null,th)); r.appendChild(i); r.appendChild(t); return r; }
+  function copyLink(btnEl){ var done=function(){ btnEl.textContent='Link copied'; }; try{ navigator.clipboard.writeText(appUrl).then(done,function(){ prompt('Copy this link',appUrl); }); }catch(e){ prompt('Copy this link',appUrl); } }
+  function closeSheet(){ if(sheet){ sheet.remove(); sheet=null; document.body.classList.remove('isheet-open'); } }
+  function open(){
+    if(deferred){ var d=deferred; deferred=null; d.prompt(); (d.userChoice||Promise.resolve({})).then(function(r){ if(r&&r.outcome==='accepted') hideFor(3650); }); return; }
+    closeSheet();
+    sheet=el('div','isheet'); sheet.setAttribute('role','dialog'); sheet.setAttribute('aria-modal','true'); sheet.setAttribute('aria-label','Put the app on your phone');
+    var box=el('div','isbox'), head=el('div','ishead'), img=el('img','installicon'); img.src='icons/icon-192.png'; img.alt='';
+    var ht=el('div','installtxt'); ht.appendChild(el('b',null,'Put Phuket King on your phone')); ht.appendChild(el('span',null,'วางแอป Phuket King ไว้บนหน้าจอโทรศัพท์'));
+    var x=el('button','installx','×'); x.type='button'; x.setAttribute('aria-label','Close'); x.onclick=closeSheet;
+    head.appendChild(img); head.appendChild(ht); head.appendChild(x); box.appendChild(head);
+    var ol=el('ol','isteps'), acts=el('div','isacts');
+    if(standalone){ ol.appendChild(step('ok','It is already on your phone.','แอปอยู่บนโทรศัพท์แล้ว')); }
+    else if(inApp&&android){
+      ol.appendChild(step('dots','This chat app can not install apps. Open it in Chrome first.','แอปแชทนี้ติดตั้งไม่ได้ เปิดใน Chrome ก่อน'));
+      var go=el('button','btn primary','Open in Chrome'); go.type='button';
+      go.onclick=function(){ location.href='intent://'+appUrl.replace(/^https?:\/\//,'')+'#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url='+encodeURIComponent(appUrl)+';end'; };
+      acts.appendChild(go);
+      ol.appendChild(step('add','Then tap Install app.','แล้วแตะ ติดตั้งแอป'));
+    } else if(inApp&&ios){
+      ol.appendChild(step('more','This chat app can not install apps. Tap ⋯ or the compass icon and choose "Open in Safari".','แอปแชทนี้ติดตั้งไม่ได้ แตะ ⋯ แล้วเลือก เปิดใน Safari'));
+      ol.appendChild(step('share','No such button? Copy the link, open Safari and paste it.','ถ้าไม่มีปุ่มนี้ คัดลอกลิงก์ เปิด Safari แล้ววาง'));
+      var cp=el('button','btn primary','Copy the link'); cp.type='button'; cp.onclick=function(){ copyLink(cp); }; acts.appendChild(cp);
+    } else if(ios){
+      if(crios||edgios||fxios) ol.appendChild(step('share','Tap the Share button at the top, next to the address.','แตะปุ่ม แชร์ ด้านบน ข้างช่องที่อยู่'));
+      else { ol.appendChild(step('share','Tap the Share button at the bottom of Safari.','แตะปุ่ม แชร์ ด้านล่างของ Safari'));
+        ol.appendChild(el('li','isnote','New iPhones: tap ⋯ at the bottom right first, then Share.')); }
+      ol.appendChild(step('add','Scroll down and tap "Add to Home Screen". You may need to tap "View More" first.','เลื่อนลงแล้วแตะ เพิ่มไปยังหน้าจอโฮม'));
+      ol.appendChild(step('ok','Tap Add. Open Phuket King from your home screen from now on.','แตะ เพิ่ม แล้วเปิดแอปจากหน้าจอโฮม'));
+      if(!crios&&!edgios&&!fxios){ var arrow=el('div','isarrow','↓'); arrow.setAttribute('aria-hidden','true'); sheet.appendChild(arrow); }
+    } else if(android){
+      ol.appendChild(step('dots','Tap ⋮ at the top right of '+(samsung?'Samsung Internet (or ≡ at the bottom)':'Chrome')+'.','แตะ ⋮ มุมขวาบน'));
+      ol.appendChild(step('add','Tap "Install app" or "Add to Home screen".','แตะ ติดตั้งแอป หรือ เพิ่มไปยังหน้าจอหลัก'));
+      ol.appendChild(step('ok','Tap Install. Open Phuket King from your home screen from now on.','แตะ ติดตั้ง แล้วเปิดแอปจากหน้าจอหลัก'));
+    } else {
+      ol.appendChild(step('add','On a computer, use the install icon at the right of the address bar. On your phone, open this page and tap Install.','บนคอมพิวเตอร์ ใช้ไอคอนติดตั้งในช่องที่อยู่'));
+    }
+    box.appendChild(ol); if(acts.childNodes.length) box.appendChild(acts);
+    var done=el('button','btn','Close'); done.type='button'; done.onclick=closeSheet; var f=el('div','isacts'); f.appendChild(done); box.appendChild(f);
+    sheet.appendChild(box); sheet.addEventListener('click',function(e){ if(e.target===sheet) closeSheet(); });
+    document.body.appendChild(sheet); document.body.classList.add('isheet-open'); done.focus();
+  }
   function show(){
     if(standalone||hidden()||bar||document.body.classList.contains('kiosk')) return;
-    var en, th, action=null;
-    if(inApp){ en='To install the app, open this page in '+(ios?'Safari':'Chrome')+': tap the menu (⋯ or ⋮) and choose "Open in browser".'; th='เพื่อติดตั้งแอป ให้เปิดหน้านี้ใน '+(ios?'Safari':'Chrome')+' แตะเมนู แล้วเลือก เปิดในเบราว์เซอร์'; }
-    else if(deferred){ en='Install the Phuket King app on your phone.'; th='ติดตั้งแอป Phuket King บนมือถือ';
-      action=el('button','btn primary small','Install'); action.type='button';
-      action.onclick=function(){ var d=deferred; deferred=null; d.prompt(); (d.userChoice||Promise.resolve({})).then(function(r){ if(r&&r.outcome==='accepted') hideFor(3650); }); }; }
-    else if(ios){ en='Install the app: tap Share, then "Add to Home Screen".'; th='ติดตั้งแอป: แตะ แชร์ แล้วเลือก เพิ่มไปยังหน้าจอโฮม'; }
-    else if(android){ en='Install the app: tap ⋮, then "Install app" or "Add to Home screen".'; th='ติดตั้งแอป: แตะ ⋮ แล้วเลือก ติดตั้งแอป'; }
-    else return;   // computers: only when the browser offers an install button
+    if(!ios&&!android&&!deferred) return;
     bar=el('div','installbar'); bar.setAttribute('role','region'); bar.setAttribute('aria-label','Install the app');
     var img=el('img','installicon'); img.src='icons/icon-192.png'; img.alt='';
-    var txt=el('div','installtxt'); txt.appendChild(el('b',null,en)); txt.appendChild(el('span',null,th));
+    var txt=el('div','installtxt'); txt.appendChild(el('b',null,'Get the Phuket King app')); txt.appendChild(el('span',null,'ติดตั้งแอปบนมือถือ'));
+    var action=el('button','btn primary small','Install'); action.type='button'; action.onclick=open;
     var close=el('button','installx','×'); close.type='button'; close.setAttribute('aria-label','Not now'); close.onclick=function(){ hideFor(7); };
-    bar.appendChild(img); bar.appendChild(txt); if(action) bar.appendChild(action); bar.appendChild(close);
+    bar.appendChild(img); bar.appendChild(txt); bar.appendChild(action); bar.appendChild(close);
     document.body.appendChild(bar); document.body.classList.add('has-install');
   }
+  window.pkInstall=open; window.pkCanInstall=function(){ return !standalone&&(ios||android||!!deferred); };
   window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; if(bar){ bar.remove(); bar=null; } show(); });
-  window.addEventListener('appinstalled',function(){ hideFor(3650); });
+  window.addEventListener('appinstalled',function(){ hideFor(3650); closeSheet(); });
   window.addEventListener('load',function(){ setTimeout(show,1500); });
 })();
 if('serviceWorker' in navigator && location.protocol==='https:') window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
