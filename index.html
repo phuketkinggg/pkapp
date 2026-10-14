@@ -298,6 +298,8 @@ tfoot td{font-weight:600;border-top:1px solid var(--line)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .chip{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--sunken);color:var(--muted);white-space:nowrap}
 .chip.ok{background:var(--ok-bg);color:var(--ok)}
+.tgood{color:var(--ok);font-weight:700}.tbad{color:var(--bad);font-weight:700}
+.cbcell{font-size:13px;line-height:1.35;white-space:nowrap}.cbbtn{all:unset;cursor:pointer;display:block}.cbbtn:focus-visible{outline:2px solid var(--ok);outline-offset:2px}.btn.hide{visibility:hidden}
 .newcu{font-size:12px;font-weight:600;color:var(--ok);margin-left:6px;white-space:nowrap}
 .chip.warn{background:var(--warn-bg);color:var(--warn)}
 .chip.bad{background:var(--bad-bg);color:var(--bad)}
@@ -1969,9 +1971,9 @@ if(window.MutationObserver) new MutationObserver(function(){ scanPw(); }).observ
 var CLOCK=null, STAFFCODE=null, HOURS=null;
 var KTX={
   en:{tab:'Clock',title:'Clock in and out',sub:'Scan the staff QR code in the office, then tap Check in. Tap Check out when you finish.',scan:'Scan the office QR code',scanned:'Office code scanned',scanMsg:'Point your camera at the staff QR code in the office.',notCode:'That is not the staff QR code. Use the one in the office.',
-      in:'Check in',out:'Check out',notIn:'Not checked in',inNow:'In since',doneTxt:'Done',inOk:'Checked in at',outOk:'Checked out at',pDone:'Private marked done.',privates:'My privates today',classes:'My group classes today',shift:'My shift',shiftIn:'Start shift',shiftOut:'End shift',none:'Nothing today.',noShift:'Not working yet'},
+      in:'Check in',out:'Check out',notIn:'Not checked in',inNow:'In since',doneTxt:'Done',inOk:'Checked in at',outOk:'Checked out at',pDone:'Private marked done.',privates:'My privates today',classes:'My group classes today',shift:'My shift',shiftIn:'Start shift',shiftOut:'End shift',none:'Nothing today.',noShift:'Not working yet',sess:'Group classes today (every coach)',sessSub:'Check in before the class starts and check out when it ends.',late:'min late',early:'min early',onTime:'on time',leftEarly:'min early out',notYet:'Not yet',noOut:'No check out',offDay:'Day off'},
   th:{tab:'ลงเวลา',title:'ลงเวลาเข้าออก',sub:'สแกน QR ของพนักงานในออฟฟิศ แล้วแตะ เช็คอิน เมื่อเสร็จแตะ เช็คเอาท์',scan:'สแกน QR ในออฟฟิศ',scanned:'สแกนแล้ว',scanMsg:'ส่องกล้องไปที่ QR ของพนักงานในออฟฟิศ',notCode:'นี่ไม่ใช่ QR ของพนักงาน ใช้อันที่อยู่ในออฟฟิศ',
-      in:'เช็คอิน',out:'เช็คเอาท์',notIn:'ยังไม่เช็คอิน',inNow:'เข้าตั้งแต่',doneTxt:'เสร็จ',inOk:'เช็คอินเวลา',outOk:'เช็คเอาท์เวลา',pDone:'บันทึกไพรเวทว่าเสร็จแล้ว',privates:'ไพรเวทของฉันวันนี้',classes:'คลาสกลุ่มของฉันวันนี้',shift:'กะของฉัน',shiftIn:'เริ่มงาน',shiftOut:'เลิกงาน',none:'วันนี้ไม่มี',noShift:'ยังไม่เริ่มงาน'},
+      in:'เช็คอิน',out:'เช็คเอาท์',notIn:'ยังไม่เช็คอิน',inNow:'เข้าตั้งแต่',doneTxt:'เสร็จ',inOk:'เช็คอินเวลา',outOk:'เช็คเอาท์เวลา',pDone:'บันทึกไพรเวทว่าเสร็จแล้ว',privates:'ไพรเวทของฉันวันนี้',classes:'คลาสกลุ่มของฉันวันนี้',shift:'กะของฉัน',shiftIn:'เริ่มงาน',shiftOut:'เลิกงาน',none:'วันนี้ไม่มี',noShift:'ยังไม่เริ่มงาน',sess:'คลาสกลุ่มวันนี้ (โค้ชทุกคน)',sessSub:'เช็คอินก่อนคลาสเริ่ม และเช็คเอาท์เมื่อคลาสจบ',late:'นาที สาย',early:'นาที ก่อนเวลา',onTime:'ตรงเวลา',leftEarly:'นาที ออกก่อน',notYet:'ยังไม่ถึงเวลา',noOut:'ไม่ได้เช็คเอาท์',offDay:'วันหยุด'},
   my:{tab:'အချိန်',title:'အလုပ်ဝင် အလုပ်ထွက်',sub:'ရုံးခန်းထဲက ဝန်ထမ်း QR ကို စကင်ဖတ်ပြီး Check in ကိုနှိပ်ပါ။ ပြီးရင် Check out ကိုနှိပ်ပါ။',scan:'ရုံးခန်း QR ကို စကင်ဖတ်ပါ',scanned:'စကင်ဖတ်ပြီး',scanMsg:'ရုံးခန်းထဲက ဝန်ထမ်း QR ကို ကင်မရာနဲ့ ချိန်ပါ။',notCode:'ဒါ ဝန်ထမ်း QR မဟုတ်ပါ။ ရုံးခန်းထဲကဟာကို သုံးပါ။',
       in:'Check in',out:'Check out',notIn:'မဝင်ရသေး',inNow:'ဝင်ချိန်',doneTxt:'ပြီးပြီ',inOk:'ဝင်ချိန်',outOk:'ထွက်ချိန်',pDone:'',privates:'',classes:'',shift:'ကျွန်ုပ်၏ အလုပ်ချိန်',shiftIn:'အလုပ်စ',shiftOut:'အလုပ်ပြီး',none:'ဒီနေ့ မရှိပါ။',noShift:'အလုပ်မစရသေး'}};
 function clkLang(){ return me&&me.role==='coach'?coLang():me&&me.role==='housekeeping'?hkLang():me&&me.role==='maintenance'?mtLang():'en'; }
@@ -1983,13 +1985,24 @@ function staffCodeOk(){ return !!(STAFFCODE&&Date.now()-STAFFCODE.t<10*60000); }
 function staffCodeFromText(t){ try{ var u=new URL(String(t)); var c=u.searchParams.get('s'); return c&&/^[a-f0-9]{16,64}$/.test(c)?c:null; }catch(e){ return null; } }
 function scanStaffCode(then){ scanQR(K('scanMsg'),function(t){ var c=staffCodeFromText(t); if(!c) return K('notCode'); STAFFCODE={c:c,t:Date.now()}; schedule(); if(then) then(); return true; }); }
 function loadClock(){ return sb.rpc('staff_clock_today').then(must).then(function(d){ CLOCK=d; ui.clockErr=null; schedule(); }).catch(function(e){ ui.clockErr=(e&&e.message)||'Could not load.'; schedule(); }); }
-function punch(kind,ref){
-  function send(){ return sb.rpc('staff_clock_punch',{p_code:STAFFCODE.c,p_kind:kind,p_ref:ref||null,p_device:devId()}).then(must).then(function(r){
-      toast(r.action==='in'?K('inOk')+' '+bkkTime(r.at)+'.':K('outOk')+' '+bkkTime(r.at)+(r.minutes!=null?', '+r.minutes+' min.':'.')+(r.private?' '+K('pDone'):''));
+function punch(kind,ref,slot){
+  var args={p_code:STAFFCODE&&STAFFCODE.c,p_kind:kind,p_ref:ref||null,p_device:devId()};
+  function send(){ args.p_code=STAFFCODE.c; if(slot) args.p_slot=slot; return sb.rpc('staff_clock_punch',args).then(must).then(function(r){
+      toast(r.action==='in'?K('inOk')+' '+bkkTime(r.at)+(r.late>0?', '+r.late+' '+K('late'):'')+'.':K('outOk')+' '+bkkTime(r.at)+(r.minutes!=null?', '+r.minutes+' min.':'.')+(r.private?' '+K('pDone'):''));
       if(me.role==='coach'&&typeof loadCoach==='function') loadCoach(); return loadClock(); })
     .catch(function(e){ var m=(e&&e.message)||''; if(/Scan the staff QR/.test(m)) STAFFCODE=null; toast(m||'That did not work.'); schedule(); }); }
   if(staffCodeOk()) return send();
   scanStaffCode(send);
+}
+/* group class blocks: in on time or early is green, late is red. Out on time or later is green, early is red. To the minute. */
+function sessJudge(day,x,e,now){
+  var st=new Date(day+'T'+x.start+':00+07:00').getTime(), en=new Date(day+'T'+x.end+':00+07:00').getTime(), r={state:'wait'};
+  function fl(t){ return Math.floor(new Date(t).getTime()/60000)*60000; }
+  if(e&&e.in_at){ var d=Math.round((fl(e.in_at)-st)/60000); r.lateMin=Math.max(0,d); r.inTxt=bkkTime(e.in_at)+(d>0?', '+d+' '+K('late'):d<0?', '+(-d)+' '+K('early'):', '+K('onTime')); r.inCls=d>0?'tbad':'tgood'; r.state='in'; }
+  if(e&&e.out_at){ var o=Math.round((en-fl(e.out_at))/60000); r.earlyMin=Math.max(0,o); r.outTxt=bkkTime(e.out_at)+(o>0?', '+o+' '+K('leftEarly'):''); r.outCls=o>0?'tbad':'tgood'; r.state='done'; }
+  else if(e&&e.in_at&&now>en+30*60000){ r.outTxt=K('noOut'); r.outCls='tbad'; r.noOut=true; }
+  if(!e&&now>=en) r.state='missed'; else if(!e&&now>=st) r.state='late';
+  return r;
 }
 function vClock(){
   if(!CLOCK){ if(!ui.clockAsked){ ui.clockAsked=true; loadClock(); } return [pageHead(K('title'),''),h('div',{class:'panel empty'},ui.clockErr||'...')]; }
@@ -2006,7 +2019,12 @@ function vClock(){
     h('div',{class:'row'},staffCodeOk()?chip(K('scanned'),'ok'):null,btn(K('scan'),function(){ scanStaffCode(); },staffCodeOk()?'small':'primary'))];
   if(me.role==='coach'){
     out.push(section(K('privates'),null,cards((CLOCK.privates||[]).map(function(p){ return item('private',p.id,p.time,p.who); }),K('none'))));
-    out.push(section(K('classes'),null,cards((CLOCK.classes||[]).map(function(c){ return item('class',c.id,c.time,c.title); }),K('none'))));
+    if(CLOCK.sessions) out.push(section(K('sess'),null,h('div',null,h('p',{class:'sub'},K('sessSub')),cards(CLOCK.sessions.map(function(x){
+      var l=E.filter(function(e){ return e.kind==='session'&&e.slot===x.start; }), e=l[l.length-1]||null, j=sessJudge(CLOCK.today,x,e,Date.now());
+      return {when:x.start+' - '+x.end,title:h('span',{class:'row'},j.inTxt?h('span',{class:j.inCls},K('in')+' '+j.inTxt):null,j.outTxt?h('span',{class:j.outCls},K('out')+' '+j.outTxt):null),
+        right:!e?chip(j.state==='wait'?K('notYet'):K('notIn'),j.state==='wait'?null:'bad'):e.out_at?chip(K('doneTxt'),'ok'):chip(K('inNow')+' '+bkkTime(e.in_at),'ok'),
+        act:e&&e.out_at?null:j.state==='missed'?null:btn(e?K('out'):K('in'),function(){ punch('session',null,x.start); },e?'small':'primary small')}; }),K('none')))));
+    if((CLOCK.classes||[]).length) out.push(section(K('classes'),null,cards((CLOCK.classes||[]).map(function(c){ return item('class',c.id,c.time,c.title); }),K('none'))));
   } else {
     var sh=E.filter(function(e){ return e.kind==='shift'; }), open=sh.filter(function(e){ return !e.out_at; })[0];
     out.push(section(K('shift'),null,h('div',{class:'panel pad'},
@@ -2030,8 +2048,8 @@ function editHours(e,pre){
     fields:(e.id||pre.staff_id?[]:[{key:'staff_id',label:'Who',type:'select',required:true,options:staff.map(function(s){ return [s.id,s.name+' ('+(ROLES[s.role]||s.role)+')']; })}]).concat([
       {key:'day',label:'Day',type:'date',required:true},{key:'in',label:'Started',type:'time',required:true},{key:'out',label:'Finished',type:'time',hint:'Leave empty if they are still working.'},
       {key:'note',label:'Note',hint:'For example: forgot to scan, added by Tom.'}]),
-    onSave:function(v){ return sb.rpc('staff_clock_save',{p:{id:e.id||null,staff_id:e.staff_id||pre.staff_id||v.staff_id,kind:e.kind||pre.kind||'shift',ref_id:e.ref_id||pre.ref_id||null,day:v.day,in:v.in,out:v.out||null,note:v.note||null}}).then(must).then(loadHours); },
-    onDelete:e.id?function(){ return sb.rpc('staff_clock_save',{p:{id:e.id,void:true}}).then(must).then(loadHours); }:null});
+    onSave:function(v){ return sb.rpc('staff_clock_save',{p:{id:e.id||null,staff_id:e.staff_id||pre.staff_id||v.staff_id,kind:e.kind||pre.kind||'shift',ref_id:e.ref_id||pre.ref_id||null,slot:e.slot||pre.slot||null,day:v.day,in:v.in,out:v.out||null,note:v.note||null}}).then(must).then(function(){ CB={}; return loadHours(); }); },
+    onDelete:e.id?function(){ return sb.rpc('staff_clock_save',{p:{id:e.id,void:true}}).then(must).then(function(){ CB={}; return loadHours(); }); }:null});
 }
 var STAFFQR=null;
 function staffPoster(){
@@ -2049,12 +2067,69 @@ function staffPoster(){
         h('li',null,'Tap Check in before you start, Check out when you finish',h('span',{class:'th'},'แตะ เช็คอิน ก่อนเริ่ม และ เช็คเอาท์ เมื่อเสร็จ')))),
     h('p',{class:'sub noprint'},'Keep this inside the office. Each scan is saved with the phone it came from, so the app shows if one phone is used for two people.'));
 }
+/* manager: every coach, every group class block, exact minutes in green or red */
+var CB={};
+function loadCB(from,to){ var k=from+'|'+to; if(CB[k]&&CB[k].busy) return; CB[k]=Object.assign(CB[k]||{},{busy:true});
+  sb.rpc('coach_board',{p_from:from,p_to:to}).then(must).then(function(d){ CB[k]={d:d,at:Date.now()}; schedule(); },function(e){ CB[k]={err:errText(e),at:Date.now()}; schedule(); }); }
+function cbGet(from,to){ var k=from+'|'+to, x=CB[k]; if(!x||(!x.busy&&Date.now()-x.at>60000)) loadCB(from,to); return x||{}; }
+function cbCell(x,c,now){
+  if(c.off&&!c.in_at) return h('span',{class:'sub'},K('offDay'));
+  var j=sessJudge(x.day,x,c.in_at?c:null,now);
+  if(!c.in_at) return j.state==='wait'?h('span',{class:'sub'},'Not yet'):h('span',{class:'tbad'},'Not in');
+  return h('div',{class:'cbcell'},h('div',{class:j.inCls},'In '+j.inTxt),h('div',{class:j.outCls||'sub'},j.outTxt?'Out '+j.outTxt:'In class'),c.manual?h('div',{class:'sub'},'Added by hand'):null);
+}
+function cbFix(x,c){ if(!me||me.role!=='manager') return;
+  if(c.id) editHours({id:c.id,staff_id:c.staff_id,staff:c.name,what:'Group class '+x.start+' to '+x.end,kind:'session',slot:x.start,day:x.day,in_at:c.in_at,out_at:c.out_at,note:c.note});
+  else editHours(null,{staff_id:c.staff_id,staff:c.name,what:'Group class '+x.start+' to '+x.end,kind:'session',slot:x.start,day:x.day,time:x.start}); }
+function cbGrid(list,now){
+  if(!list.length) return h('div',{class:'panel empty'},'No group classes this day.');
+  var names={}; list.forEach(function(x){ x.coaches.forEach(function(c){ names[c.staff_id]=c.name; }); });
+  var rows=Object.keys(names).sort(function(a,b){ return names[a].localeCompare(names[b]); });
+  if(!rows.length) return h('div',{class:'panel empty'},'No active coaches. Add coaches in Staff.');
+  return table([{label:'Coach',cell:function(id){ return h('b',null,names[id]); }}].concat(list.map(function(x){
+    return {label:x.start+' - '+x.end,cell:function(id){ var c=x.coaches.filter(function(y){ return y.staff_id===id; })[0]; if(!c) return '';
+      return me&&me.role==='manager'?h('button',{type:'button',class:'cbbtn','aria-label':'Fix times for '+c.name+' '+x.start,onclick:function(){ cbFix(x,c); }},cbCell(x,c,now)):cbCell(x,c,now); }}; })),rows,'');
+}
+function coachBoardToday(){
+  if(!me||me.role!=='manager') return null;
+  var t=ymd(new Date()), x=cbGet(t,t); if(!x.d) return null;
+  var list=x.d.sessions.filter(function(s2){ return s2.day===t; }); if(!list.length) return null;
+  return section('Coaches, group classes today',btn('All days',function(){ ui.tab='hours'; schedule(); },'small'),cbGrid(list,Date.now()));
+}
+function coachBoard(){
+  var today=ymd(new Date()), from=ui.hFrom||weekStart(today), to=ui.hTo||today, x=cbGet(from,to);
+  if(x.err) return null;
+  if(!x.d) return section('Coaches, group classes',null,h('div',{class:'panel empty'},'Loading.'));
+  var all=x.d.sessions, now=Date.now(), days=[]; all.forEach(function(s2){ if(days.indexOf(s2.day)<0) days.push(s2.day); });
+  if(!ui.cbDay||days.indexOf(ui.cbDay)<0) ui.cbDay=days[0]||today;
+  var i=days.indexOf(ui.cbDay), list=all.filter(function(s2){ return s2.day===ui.cbDay; });
+  var tot={};
+  all.forEach(function(s2){ s2.coaches.forEach(function(c){ var t=tot[c.staff_id]||(tot[c.staff_id]={name:c.name,due:0,ok:0,late:0,lateM:0,early:0,earlyM:0,missed:0,noOut:0});
+    if(c.off&&!c.in_at) return; var j=sessJudge(s2.day,s2,c.in_at?c:null,now); if(j.state==='wait') return; t.due++;
+    if(!c.in_at){ if(j.state==='missed'||j.state==='late') t.missed++; return; }
+    if(j.lateMin>0){ t.late++; t.lateM+=j.lateMin; } else t.ok++;
+    if(j.earlyMin>0){ t.early++; t.earlyM+=j.earlyMin; } if(j.noOut) t.noOut++; }); });
+  var nav=h('div',{class:'row'},btn('Earlier day',function(){ ui.cbDay=days[i+1]; schedule(); },'small'+(i+1<days.length?'':' hide')),
+    h('b',null,fmtDate(ui.cbDay)+(ui.cbDay===today?', today':'')),btn('Later day',function(){ ui.cbDay=days[i-1]; schedule(); },'small'+(i>0?'':' hide')));
+  return [section('Coaches, group classes',nav,h('div',null,
+      h('p',{class:'sub'},'Every coach checks in before each group class and out after it. Green: in on time or early, out on time or later. Red: late in, early out, or missing.'+(me&&me.role==='manager'?' Tap a time to fix it.':'')),
+      cbGrid(list,now))),
+    section('Coaches, '+fmtDate(from)+(to!==from?' to '+fmtDate(to):''),null,table([
+      {label:'Coach',cell:function(t){ return h('b',null,t.name); }},
+      {label:'Classes',num:true,cell:function(t){ return String(t.due); }},
+      {label:'In on time',num:true,cell:function(t){ return h('span',{class:'tgood'},String(t.ok)); }},
+      {label:'Late in',num:true,cell:function(t){ return t.late?h('span',{class:'tbad'},t.late+' ('+t.lateM+' min)'):'0'; }},
+      {label:'Early out',num:true,cell:function(t){ return t.early?h('span',{class:'tbad'},t.early+' ('+t.earlyM+' min)'):'0'; }},
+      {label:'Missed',num:true,cell:function(t){ return t.missed?h('span',{class:'tbad'},String(t.missed)):'0'; }},
+      {label:'No check out',num:true,cell:function(t){ return t.noOut?h('span',{class:'tbad'},String(t.noOut)):'0'; }}],
+      Object.keys(tot).map(function(k){ return tot[k]; }).sort(function(a,b){ return (b.late+b.early+b.missed)-(a.late+a.early+a.missed)||a.name.localeCompare(b.name); }),'No group classes in these dates.'))];
+}
 function vHours(){
   if(!HOURS&&!ui.hBusy) loadHours();
   if(ui.hPoster&&!STAFFQR) sb.rpc('staff_clock_code',{p_new:false}).then(must).then(function(c){ STAFFQR=c; schedule(); });
   var d=HOURS||{entries:[],missed:[],missed_classes:[]}, who=ui.hWho||'';
   var E=d.entries.filter(function(e){ return !who||e.staff_id===who; });
-  var miss=d.missed.concat(d.missed_classes,d.missed_shifts||[]).filter(function(m){ return !who||m.staff_id===who; });
+  var miss=d.missed.concat(d.missed_classes,d.missed_shifts||[],d.missed_sessions||[]).filter(function(m){ return !who||m.staff_id===who; });
   var today=ymd(new Date());
   function late(e){ if(!e.starts||!e.in_at||e.manual) return 0; var st=new Date(e.day+'T'+e.starts.slice(0,5)+':00+07:00'); var m=Math.round((new Date(e.in_at)-st)/60000); return m>5?m:0; }
   var devs={}; d.entries.forEach(function(e){ [e.in_device,e.out_device].forEach(function(x){ if(!x) return; (devs[x]=devs[x]||{})[e.staff]=1; }); });
@@ -2069,6 +2144,7 @@ function vHours(){
       h('div',{class:'row'},btn('Office QR poster',function(){ ui.hPoster=true; schedule(); },'small'),btn('Add hours',function(){ editHours(); },'primary'))),
     ui.hPoster?staffPoster():null,
     (!ui.hTo||ui.hTo>=ymd(new Date()))?staffToday(true):null,
+    coachBoard(),
     h('div',{class:'row wrap'},staffSel,h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
     !HOURS?h('div',{class:'panel empty'},'Loading.'):null,
     section('Totals',null,table([{label:'Who',cell:function(t){ return t.name; }},{label:'Hours',num:true,cell:function(t){ return hm(t.m); }},
@@ -3012,6 +3088,7 @@ function vToday(){
     noticesBox(),
     dashTodo(),
     staffToday(false),
+    coachBoardToday(),
     section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
     orders.length?section('App orders waiting for payment',null,table([
