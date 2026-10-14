@@ -402,6 +402,9 @@ body.lang-my .btn{min-height:44px}
 .rxbig{max-width:100%;max-height:70vh;display:block;margin:8px auto;border-radius:8px}
 .billh{font-size:15px;margin:14px 0 6px}
 .billsum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 4px;font-size:16px}
+body.cuview #view button:not(.pvexit),body.cuview #view input,body.cuview #view select,body.cuview #view textarea,body.cuview #view a{pointer-events:none}
+body.cuview #view button:not(.pvexit){opacity:.75}
+.pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -3031,7 +3034,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
@@ -3331,6 +3334,7 @@ function render(){
   if(!allReady) return;
   var act=document.activeElement, keep=act&&act.id&&$view.contains(act)?{id:act.id,s:act.selectionStart,e:act.selectionEnd}:null;
   var nodes=[]; (function flat(l){ l.forEach(function(n){ if(Array.isArray(n)) flat(n); else if(n) nodes.push(n); }); })(VIEWS[ui.tab]());
+  if(PV) nodes.unshift(h('div',{class:'pvbar',role:'status'},h('span',null,h('b',null,PV.name+'\u2019s app'),' as they see it. View only, nothing here can be changed.'),h('button',{type:'button',class:'btn small primary pvexit',onclick:exitCustomerView},'Back to back office')));
   $view.replaceChildren.apply($view,nodes);
   if(keep){ var el=document.getElementById(keep.id); if(el){ el.focus(); try{ el.setSelectionRange(keep.s,keep.e); }catch(e){} } }
 }
@@ -3862,6 +3866,17 @@ function startCustomer(){
   allReady=true; schedule();
 }
 function enterCustomer(){ me={role:'customer'}; db=makeDb(); return loadCustomer().then(startCustomer); }
+/* staff look at a customer's app exactly as the customer sees it: read only, nothing can be tapped */
+var PV=null;
+function viewAsCustomer(c){
+  toast('Opening '+c.name+'’s app.');
+  Promise.all([sb.rpc('customer_home_as',{p_customer:c.id}),sb.rpc('customer_stay_as',{p_customer:c.id}),sb.rpc('fights_public')]).then(function(r){
+    var home=must(r[0]); if(!home||!home.me){ toast(c.name+' has not set up the app yet.'); return; }
+    PV={tabs:TABS,tab:ui.tab,cid:c.id,name:c.name}; CU=home; CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[];
+    TABS=CTABS; ui.tab='c_home'; document.body.classList.add('cuview'); window.scrollTo(0,0); schedule();
+  }).catch(function(e){ toast(errText(e)); });
+}
+function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab='customers'; ui.customerId=PV.cid; CU=null; PV=null; document.body.classList.remove('cuview'); schedule(); }
 
 /* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */
 var kTimer=0, kRefresh=0;
