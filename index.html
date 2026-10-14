@@ -1511,7 +1511,7 @@ function vStays(){
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   var view=ui.stayView||'calendar';
   var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
-  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Add a stay',function(){ editStay(); },'primary'))),syncLine()];
+  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine()];
   if(view==='calendar') return head.concat(vCalendar());
   return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
@@ -3266,9 +3266,40 @@ function editMinibar(m){ m=m||{};
     {key:'active',label:'In the mini bar',type:'checkbox',def:true}],
     onSave:function(v){ return save('minibar',m.id,Object.assign({},m,v)); }});
 }
+var OTAS=['Booking.com','Airbnb','Agoda','Expedia','Other'];
+function icalUrl(r){ return r&&r.ical_token?SB_URL+'/functions/v1/ical?r='+r.id+'&t='+r.ical_token:''; }
+function copyText(t,msg){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ toast(msg||'Copied.'); },function(){ toast(t); }); }
 function editRoom(r){ r=r||{};
-  openForm({title:r.id?'Edit room':'New room',values:r,fields:[{key:'name',label:'Name',required:true},{key:'sort',label:'Order in lists',type:'number',def:S.rooms.length+1},{key:'active',label:'In use',type:'checkbox',def:true}],
-    onSave:function(v){ return save('rooms',r.id,Object.assign({},r,v)); }});
+  var feeds=Array.isArray(r.ical_feeds)?r.ical_feeds:[], vals=Object.assign({},r);
+  for(var i=0;i<4;i++){ vals['fn'+i]=feeds[i]?feeds[i].name:''; vals['fu'+i]=feeds[i]?feeds[i].url:''; }
+  var fields=[{key:'name',label:'Name',required:true},{key:'sort',label:'Order in lists',type:'number',def:S.rooms.length+1},{key:'active',label:'In use',type:'checkbox',def:true}];
+  if(r.id) fields.push({key:'ical_out',label:'This room’s calendar link',readonly:true,hint:'Paste this into Booking.com, Airbnb and Agoda (import or sync calendar), so they close the dates booked here. Keep it private.'});
+  for(var j=0;j<4;j++) fields.push({key:'fn'+j,label:'Their calendar '+(j+1)+', site',type:'select',options:[['','None']].concat(OTAS.map(function(o){ return [o,o]; })),hint:j===0?'Their calendar links, so bookings made there come into Stays here. In Booking.com it is under Rates and availability, Sync calendars, Export. In Airbnb under Availability, Connect calendars, Export.':null},
+    {key:'fu'+j,label:'Their calendar '+(j+1)+', link',hint:j===0?'Starts with https:// and usually ends in .ics':null});
+  if(r.id) vals.ical_out=icalUrl(r);
+  openForm({title:r.id?'Edit room':'New room',values:vals,fields:fields,
+    onSave:function(v){ var out=[];
+      for(var k=0;k<4;k++){ var u=String(v['fu'+k]||'').trim(); if(!u) continue; if(!/^https:\/\/\S+$/i.test(u)) return 'Calendar '+(k+1)+': the link must start with https://'; if(u.indexOf(SB_URL)===0) return 'Calendar '+(k+1)+' is our own link. Put their link here, and ours into their site.';
+        var nm=v['fn'+k]||'Other'; if(out.some(function(x){ return x.name===nm; })) return 'Two calendars from '+nm+'. Use one per site.'; out.push({name:nm,url:u}); }
+      var body={name:v.name,sort:v.sort,active:v.active,ical_feeds:out}; return save('rooms',r.id,Object.assign({},r,body)); }});
+  setTimeout(function(){ var el=document.getElementById('f-ical_out'); if(el) el.addEventListener('focus',function(){ el.select(); copyText(el.value,'Calendar link copied.'); }); },30);
+}
+var ICAL=null;
+function loadIcal(){ return sb.from('app_settings').select('value').eq('key','ical_last_sync').maybeSingle().then(function(res){ try{ ICAL=res.data&&res.data.value?JSON.parse(res.data.value):{}; }catch(e){ ICAL={}; } schedule(); }); }
+function syncCalendars(){
+  if(ui.icalBusy) return; ui.icalBusy=true; schedule();
+  sb.functions.invoke('ical',{body:{mode:'import'}}).then(function(res){ var d=res.data||{}; if(res.error||d.error) throw {message:d.error||'Could not reach the calendars.'};
+    ICAL=d; toast('Calendars checked: '+(d.created||0)+' new, '+(d.updated||0)+' moved, '+(d.cancelled||0)+' cancelled'+(d.errors&&d.errors.length?', '+d.errors.length+' to check':'')+'.');
+    return Promise.all([reload('stays'),reload('customers'),reload('sources')]); }).catch(function(e){ toast(errText(e)); }).then(function(){ ui.icalBusy=false; schedule(); });
+}
+function icalLine(){
+  if(!ICAL){ if(!ui.icalAsked){ ui.icalAsked=true; loadIcal().catch(function(){}); } return null; }
+  var any=S.rooms.some(function(r){ return Array.isArray(r.ical_feeds)&&r.ical_feeds.length; });
+  if(!any) return null;
+  var when=ICAL.at?new Date(ICAL.at):null, mins=when?Math.round((Date.now()-when)/60000):null, errs=ICAL.errors||[];
+  return h('div',{class:'row'},h('span',{class:'sub'},'Booking site calendars are read every 15 minutes'+(when?'. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):'')+'.'),
+    btn(ui.icalBusy?'Checking.':'Check calendars now',syncCalendars,'small'),
+    errs.length?h('details',null,h('summary',{class:'sub',style:'color:var(--bad)'},errs.length+' to check'),h('ul',{class:'plain'},errs.map(function(e){ return h('li',null,e); }))):null);
 }
 /* ---------- backups: download everything as one file, and see the nightly copies ---------- */
 var BK=null;
@@ -3310,7 +3341,8 @@ function vSettings(){
       S.minibar.slice().sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(b.name); }),'No items yet. Add what you stock, with the price the guest pays.')),
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
-      {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
+      {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
+      {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
     section('Booking sources',btn('Add source',function(){ editSource(); },'small'),table([
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
@@ -3352,7 +3384,7 @@ var MAP={
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
-  rooms:{t:'rooms',r:{},w:['name','sort','active']},
+  rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
   minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
