@@ -1987,7 +1987,7 @@ function scanStaffCode(then){ scanQR(K('scanMsg'),function(t){ var c=staffCodeFr
 function loadClock(){ return sb.rpc('staff_clock_today').then(must).then(function(d){ CLOCK=d; ui.clockErr=null; schedule(); }).catch(function(e){ ui.clockErr=(e&&e.message)||'Could not load.'; schedule(); }); }
 function punch(kind,ref,slot){
   var args={p_code:STAFFCODE&&STAFFCODE.c,p_kind:kind,p_ref:ref||null,p_device:devId()};
-  function send(){ args.p_code=STAFFCODE.c; if(slot) args.p_slot=slot; return sb.rpc('staff_clock_punch',args).then(must).then(function(r){
+  function send(){ args.p_code=STAFFCODE.c; return (slot?sb.rpc('staff_session_punch',{p_code:STAFFCODE.c,p_slot:slot,p_device:devId()}):sb.rpc('staff_clock_punch',args)).then(must).then(function(r){
       toast(r.action==='in'?K('inOk')+' '+bkkTime(r.at)+(r.late>0?', '+r.late+' '+K('late'):'')+'.':K('outOk')+' '+bkkTime(r.at)+(r.minutes!=null?', '+r.minutes+' min.':'.')+(r.private?' '+K('pDone'):''));
       if(me.role==='coach'&&typeof loadCoach==='function') loadCoach(); return loadClock(); })
     .catch(function(e){ var m=(e&&e.message)||''; if(/Scan the staff QR/.test(m)) STAFFCODE=null; toast(m||'That did not work.'); schedule(); }); }
@@ -2020,10 +2020,10 @@ function vClock(){
   if(me.role==='coach'){
     out.push(section(K('privates'),null,cards((CLOCK.privates||[]).map(function(p){ return item('private',p.id,p.time,p.who); }),K('none'))));
     if(CLOCK.sessions) out.push(section(K('sess'),null,h('div',null,h('p',{class:'sub'},K('sessSub')),cards(CLOCK.sessions.map(function(x){
-      var l=E.filter(function(e){ return e.kind==='session'&&e.slot===x.start; }), e=l[l.length-1]||null, j=sessJudge(CLOCK.today,x,e,Date.now());
+      var l=E.filter(function(e){ return e.slot===x.start; }), e=l[l.length-1]||null, j=sessJudge(CLOCK.today,x,e,Date.now());
       return {when:x.start+' - '+x.end,title:h('span',{class:'row'},j.inTxt?h('span',{class:j.inCls},K('in')+' '+j.inTxt):null,j.outTxt?h('span',{class:j.outCls},K('out')+' '+j.outTxt):null),
         right:!e?chip(j.state==='wait'?K('notYet'):K('notIn'),j.state==='wait'?null:'bad'):e.out_at?chip(K('doneTxt'),'ok'):chip(K('inNow')+' '+bkkTime(e.in_at),'ok'),
-        act:e&&e.out_at?null:j.state==='missed'?null:btn(e?K('out'):K('in'),function(){ punch('session',null,x.start); },e?'small':'primary small')}; }),K('none')))));
+        act:e&&e.out_at?null:j.state==='missed'?null:btn(e?K('out'):K('in'),function(){ punch('class',null,x.start); },e?'small':'primary small')}; }),K('none')))));
     if((CLOCK.classes||[]).length) out.push(section(K('classes'),null,cards((CLOCK.classes||[]).map(function(c){ return item('class',c.id,c.time,c.title); }),K('none'))));
   } else {
     var sh=E.filter(function(e){ return e.kind==='shift'; }), open=sh.filter(function(e){ return !e.out_at; })[0];
@@ -2079,8 +2079,8 @@ function cbCell(x,c,now){
   return h('div',{class:'cbcell'},h('div',{class:j.inCls},'In '+j.inTxt),h('div',{class:j.outCls||'sub'},j.outTxt?'Out '+j.outTxt:'In class'),c.manual?h('div',{class:'sub'},'Added by hand'):null);
 }
 function cbFix(x,c){ if(!me||me.role!=='manager') return;
-  if(c.id) editHours({id:c.id,staff_id:c.staff_id,staff:c.name,what:'Group class '+x.start+' to '+x.end,kind:'session',slot:x.start,day:x.day,in_at:c.in_at,out_at:c.out_at,note:c.note});
-  else editHours(null,{staff_id:c.staff_id,staff:c.name,what:'Group class '+x.start+' to '+x.end,kind:'session',slot:x.start,day:x.day,time:x.start}); }
+  if(c.id) editHours({id:c.id,staff_id:c.staff_id,staff:c.name,what:'Group class '+x.start+' to '+x.end,kind:'class',slot:x.start,day:x.day,in_at:c.in_at,out_at:c.out_at,note:c.note});
+  else editHours(null,{staff_id:c.staff_id,staff:c.name,what:'Group class '+x.start+' to '+x.end,kind:'class',slot:x.start,day:x.day,time:x.start}); }
 function cbGrid(list,now){
   if(!list.length) return h('div',{class:'panel empty'},'No group classes this day.');
   var names={}; list.forEach(function(x){ x.coaches.forEach(function(c){ names[c.staff_id]=c.name; }); });
