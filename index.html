@@ -1284,6 +1284,7 @@ function ratesSettings(){
   if(!r) return section('Room prices',null,h('div',{class:'panel empty'},'Loading.'));
   var none=S.rooms.filter(function(x){ return x.active!==false&&!rateGroup(x.id); });
   return [section('Room prices',mgr?h('div',{class:'row'},btn('Add price group',function(){ editRateGroup(); },'small'),btn('Add season',function(){ editSeason(); },'small')):null,h('div',null,
+      h('p',{class:'row sub'},'Guests book online at ',h('a',{href:'book.html',target:'_blank',rel:'noopener'},'the Book your stay page'),' ',btn('Copy link',function(){ copyText(location.origin+location.pathname.replace(/[^/]*$/,'')+'book.html','Booking page link copied.'); },'small')),
       h('p',{class:'sub'},'Rooms with the same prices go in one group. Each group has a price per night for each season. New stays and the availability check use these prices.'),
       table([{label:'Price group',cell:function(g){ return mgr?linkBtn(g.name,function(){ editRateGroup(g); }):h('b',null,g.name); }},
         {label:'Rooms',cell:function(g){ return h('span',{class:'wrap'},(g.rooms||[]).map(function(id){ return nameOf('rooms',id); }).join(', ')); }}]
@@ -1624,7 +1625,7 @@ function checkOutStay(st){
 }
 function stayCard(st,day){
   var g=byId('customers',st.customer_id)||{}, total=billTotal(st), meal=mealPlanOf(st.customer_id,day), acts=[];
-  var status=st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
+  var status=st.hold_until&&st.status==='booked'?chip('Website, waiting for card payment','warn'):st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
   if(st.status==='booked') acts.push(btn('Check in',function(){ setStay(st,{status:'in'},(g.name||'Guest')+' checked in.'); },'primary small'));
   if(meal&&st.status==='in') acts.push(btn('Meal served',function(){ mealServed(st,meal); },'primary small'));
   if(!st.settled) acts.push(btn('Add to bill',function(){ addCharge(st); },'small'));

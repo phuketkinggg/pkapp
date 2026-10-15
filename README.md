@@ -6,6 +6,7 @@ One app for Phuket King Muay Thai and Pangea: the customer app, the coach, house
 
 - `index.html` is the whole app: one page, plain JavaScript, no build step. GitHub Pages serves it.
 - `vendor/` holds the three libraries the app uses (Supabase, QR codes, QR scanning), pinned to exact versions and served from this site, not from a CDN.
+- `book.html` is the public "Book your stay" page: dates, the resort map with free rooms, season prices, card payment through Stripe. It talks only to the `book` server function, which never returns guest details.
 - `sw.js` keeps the app installable and opens the last copy with no signal. Data is never cached.
 - `supabase/functions/` are the server functions: MotoPress sync, Stripe card payments and webhook, app access for staff and customers, and the stay welcome email.
 - Database: Supabase project `jijnshwduhgegacfvpkh` (Singapore).

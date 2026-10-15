@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
       try { cfg = JSON.parse(row?.value ?? "{}"); } catch { /* keep empty */ }
       if (!cfg.auto || !cfg.auto_since) return json({ ok: true, skipped: "automatic emails are off" });
       const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
-      const { data: list } = await admin.from("stays").select("id").is("welcome_sent_at", null).in("status", ["booked", "in"])
+      const { data: list } = await admin.from("stays").select("id").is("welcome_sent_at", null).is("hold_until", null).in("status", ["booked", "in"])
         .gte("check_out", today).gte("created_at", cfg.auto_since).order("created_at").limit(15);
       let sent = 0; const skipped: string[] = [];
       for (const st of list ?? []) {
