@@ -132,7 +132,7 @@ footer{background:#0d0f13;color:#C9CDD5;padding:60px 0 110px;font-size:15px}
 footer .cols{display:grid;gap:28px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
 footer h4{font:500 13px var(--font);letter-spacing:.2em;text-transform:uppercase;color:#fff;margin:0 0 12px}
 footer a{display:block;text-decoration:none;padding:3px 0;opacity:.8}footer a:hover{opacity:1;color:#fff}
-footer .flogo{width:180px;margin-bottom:14px}
+footer .flogo{width:72px;height:72px;border-radius:8px;margin-bottom:14px}
 footer .small{margin-top:36px;font-size:13px;opacity:.55}
 
 /* phone bar */

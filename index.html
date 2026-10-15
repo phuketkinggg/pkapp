@@ -3733,6 +3733,7 @@ function vSettings(){
     me.role==='manager'?ppSettings():null,
     me.role==='manager'?welcomeSection():null,
     promoSection(),
+    webPhotosSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
       {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
@@ -4385,6 +4386,49 @@ function editPromo(idx){
     h('label',{class:'chk'},on,' Show it on the desk screen'),err,
     h('div',{class:'factions'},idx!=null?btn('Remove',function(){ list.splice(idx,1); savePromos(list).then(function(){ close(); toast('Removed.'); },function(e){ err.textContent=errText(e); err.hidden=false; }); },'danger'):h('span'),
       h('div',{class:'row'},btn('Cancel',close),saveB))));
+}
+/* Website photos: every photo spot on the Phuket King website (list in pk/photos.js). Manager swaps one, the site picks it up within a minute. */
+var WEBP={list:null,photos:null,busy:null,err:''};
+function loadWebPhotos(){
+  var need=window.PK_PHOTOS?Promise.resolve():new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src='pk/photos.js'; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); });
+  return need.then(function(){ WEBP.list=window.PK_PHOTOS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
+    .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.err=''; schedule(); })
+    .catch(function(){ WEBP.err='The website photos could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; schedule(); });
+}
+function shrinkPhoto(f,mx){ return new Promise(function(ok,bad){ createImageBitmap(f).then(function(img){ var k=Math.min(1,mx/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(function(b){ b?ok(b):bad({plain:true,message:'Could not read the photo.'}); },'image/jpeg',0.82); },function(){ bad({plain:true,message:'Could not read that photo. Try a JPG or PNG.'}); }); }); }
+function webPhotoChange(s){
+  var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+    WEBP.busy=s.id; schedule(); toast('Uploading the photo.');
+    shrinkPhoto(f,/wide/.test(s.label)?2400:1400).then(function(blob){ var path='site/'+s.id+'-'+Date.now()+'.jpg';
+      return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); })
+    .then(function(url){ return sb.rpc('site_photo_save',{p_slot:s.id,p_url:url}).then(function(r){ if(r.error) throw r.error; WEBP.photos=r.data||{}; }); })
+    .then(function(){ toast('Photo changed. The website shows it within a minute.'); },function(e){ toast(errText(e)); })
+    .then(function(){ WEBP.busy=null; schedule(); }); }});
+  document.body.appendChild(inp); inp.click();
+}
+function webPhotoReset(s){
+  run(sb.rpc('site_photo_save',{p_slot:s.id,p_url:null}).then(function(r){ if(r.error) throw r.error; WEBP.photos=r.data||{}; }),'Back to the original photo.');
+}
+function webPhotosSection(){
+  if(!me||me.role!=='manager') return null;
+  if(!WEBP.photos){ if(!WEBP.loading){ WEBP.loading=true; loadWebPhotos().then(function(){ WEBP.loading=false; }); } return section('Website photos',null,h('div',{class:'panel empty'},'Loading the website photos.')); }
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html'}, list=WEBP.list||[];
+  return section('Website photos',null,h('div',null,
+    h('p',{class:'sub'},'Every photo on the Phuket King website. Tap Change photo and pick one from your phone. The website shows it within a minute. Landscape photos work best for the big wide spots.'),
+    WEBP.err?h('p',{class:'ferr'},WEBP.err):null,
+    Object.keys(pages).map(function(pg){ var items=list.filter(function(s){ return s.page===pg; }); if(!items.length) return null;
+      return h('div',{style:'margin:18px 0 6px'},
+        h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},pg+' page'),h('a',{href:pages[pg],target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
+        h('div',{style:'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:10px'},items.map(function(s){
+          var cur=WEBP.photos[s.id], busy=WEBP.busy===s.id;
+          return h('div',{class:'panel',style:'padding:0;overflow:hidden;display:flex;flex-direction:column'},
+            h('img',{src:cur||s.src,alt:s.label,loading:'lazy',style:'width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#222'}),
+            h('div',{style:'padding:10px;display:flex;flex-direction:column;gap:8px;flex:1'},
+              h('div',{style:'font-weight:600;font-size:14px;line-height:1.3'},s.label),
+              cur?chip('Changed','ok'):h('span',{class:'sub',style:'font-size:13px'},'Original photo'),
+              h('div',{class:'row',style:'margin-top:auto'},btn(busy?'Uploading.':'Change photo',function(){ if(!WEBP.busy) webPhotoChange(s); },'small'),
+                cur&&!busy?btn('Use original',function(){ webPhotoReset(s); },'small'):null))); })));
+    })));
 }
 function promoSection(){
   if(!PROMOS){ loadPromos().catch(function(){}); return null; }
