@@ -1420,10 +1420,17 @@ function mealServed(st,p){
   run(sb.rpc('check_in',{p_customer:st.customer_id,p_purchase:p.id,p_class:null,p_facility:MEAL}).then(must).then(function(){ return Promise.all([reload('purchases'),reload('checkin_days')]); }),'Meal ticked off for '+nameOf('customers',st.customer_id)+'.');
 }
 /* everything the guest bought around the stay that is not on the room bill itself: packages, privates, extras */
+/* which stay a purchase belongs to: the one it is tied to, or else the first stay that has not ended by the day it was bought
+   (bought ahead for a stay counts, up to 120 days before arrival). The stay bill and the customer page use the same rule. */
+function stayOfPurchase(p){
+  if(p.stay_id) return p.stay_id;
+  var sts=(S.stays||[]).filter(function(x){ return x.customer_id===p.customer_id&&x.status!=='cancelled'&&x.check_out>=p.purchased_on&&addDays(x.check_in,-120)<=p.purchased_on; })
+    .sort(function(a,b){ return a.check_in<b.check_in?-1:1; });
+  return sts.length?sts[0].id:null;
+}
 function stayExtras(st){
-  var from=addDays(st.check_in,-14), to=st.check_out;
   var ps=S.purchases.filter(function(p){ return p.customer_id===st.customer_id&&!p.cancelled&&!(p.stay_id===st.id&&p.package_name==='Stay: group Muay Thai included')&&p.method!=='room'
-    &&(p.stay_id===st.id||(p.purchased_on>=from&&p.purchased_on<=to)); });
+    &&stayOfPurchase(p)===st.id; });
   var pv=S.privates.filter(function(x){ return x.customer_id===st.customer_id&&!x.purchase_id&&x.method!=='room'&&x.status!=='cancelled'&&x.status!=='requested'&&Number(x.price_thb)>0&&x.date>=st.check_in&&x.date<=st.check_out; });
   var rows=ps.map(function(p){ var price=Number(p.price_thb)||0, owe=owedOf(p); return {day:p.purchased_on,what:p.package_name,price:price,paid:price-owe,owe:owe}; })
     .concat(pv.map(function(x){ var price=Number(x.price_thb)||0; return {day:x.date,what:'Private '+fmtDate(x.date)+' '+(x.time||''),price:price,paid:x.paid?price:0,owe:x.paid?0:price}; }));
@@ -3323,7 +3330,7 @@ function vCustomers(){
   var c=ui.customerId?byId('customers',ui.customerId):null;
   if(c){
     if(c.seen_at===null) ackCustomer(c.id);
-    var ps=S.purchases.filter(function(p){return p.customer_id===c.id;}).sort(function(a,b){return a.purchased_on<b.purchased_on?1:-1;});
+    var ps=S.purchases.filter(function(p){return p.customer_id===c.id&&!(p.cancelled&&p.stay_id&&p.package_name==='Stay: group Muay Thai included');}).sort(function(a,b){return a.purchased_on<b.purchased_on?1:-1;});
     var visits=[]; S.checkin_days.forEach(function(d){ (d.entries||[]).forEach(function(e){ if(e.customer_id===c.id) visits.push({day:d.id,e:e}); }); });
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
@@ -3347,7 +3354,7 @@ function vCustomers(){
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
         {label:'Price',num:true,cell:function(p){return thb(p.price_thb);}},
-        {label:'Paid',cell:function(p){ var ow=owedOf(p); return !ow?chip('Paid','ok'):Number(p.paid_thb)>0?chip('Paid '+thb(p.paid_thb)+', owes '+thb(ow),'warn'):chip(p.ordered_in_app?'App order, not paid':'Owes '+thb(ow),'warn');}},
+        {label:'Paid',cell:function(p){ var ow=owedOf(p); if(p.cancelled&&!(Number(p.paid_thb)>0)) return h('span',{class:'sub'},'Nothing paid'); return !ow?chip('Paid','ok'):Number(p.paid_thb)>0?chip('Paid '+thb(p.paid_thb)+', owes '+thb(ow),'warn'):chip(p.ordered_in_app?'App order, not paid':'Owes '+thb(ow),'warn');}},
         {label:'Visits left',num:true,cell:function(p){return p.covers&&!p.covers.length?'':p.class_limit?left(p)+' of '+p.class_limit:'Unlimited';}},
         {label:'Runs',cell:function(p){return p.covers&&!p.covers.length?'':p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
         {label:'Status',cell:function(p){return p.refunded_at?chip('Refunded'+(p.refund_thb?' '+thb(p.refund_thb):''),'bad'):p.covers&&!p.covers.length?(p.cancelled?chip('Cancelled','bad'):chip('Extra')):stateChip(stateOf(p,day));}},
