@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://jijnshwduhgegacfvpkh.supabase.co; object-src 'none'; base-uri 'self'">
+<meta name="robots" content="noindex">
+<title>Prices | Phuket King Muay Thai, Kathu, Phuket</title>
+<meta name="description" content="Muay Thai prices in Kathu, Phuket: single classes, weekly and monthly passes, private lessons, recovery, Fitness Zone, yoga and DTV visa training packages.">
+<link rel="icon" type="image/png" href="../icons/favicon-48.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html"><img src="../icons/icon-192.png" alt="" width="38" height="38">Phuket King</a>
+  <button class="menu" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="index.html#training">Training</a><a href="prices.html" aria-current="page">Prices</a><a href="index.html#schedule">Schedule</a><a href="index.html#coaches">Coaches</a><a href="../book.html">Stay</a><a href="#dtv">DTV Visa</a>
+    <a class="btn gold" href="#training">Book training</a>
+  </nav>
+</div></header>
+
+<main>
+<section class="hero" style="padding-bottom:48px"><div class="wrap">
+  <div class="eyebrow">Prices</div>
+  <h1>Simple <span class="gold">prices.</span></h1>
+  <p class="lead">Every price, nothing hidden. Group classes need no booking: buy a pass, check in at the desk, train. Staying at Pangea? Group Muay Thai is already included when you book your room with us.</p>
+</div></section>
+
+<div class="wrap">
+  <nav class="tabs" aria-label="Price sections" id="tabs"></nav>
+  <div id="groups"><p class="sub" style="margin:40px 0">Loading prices.</p></div>
+  <section class="group" id="stay"><div class="eyebrow">Stay</div><h2>Train and stay</h2>
+    <p>Lakeside bungalows next to the gym, with group Muay Thai included. Add meals, recovery and privates when you book.</p>
+    <a class="btn gold" href="../book.html">See free rooms and prices</a></section>
+  <p class="sub" style="margin:40px 0 80px">Prices in Thai baht. Local resident and Thai prices are available at the desk. Questions? <a data-wa="Hi Phuket King, I have a question about prices.">WhatsApp us</a>.</p>
+</div>
+</main>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div><h4>Phuket King</h4><a href="index.html#training">Training</a><a href="prices.html">Prices</a><a href="index.html#schedule">Schedule</a><a href="index.html#coaches">Coaches</a><a href="../book.html">Stay at Pangea</a><a href="#dtv">DTV Visa</a></div>
+    <div><h4>More</h4><a href="https://www.phuketking.com/shop/">Shop</a><a href="https://www.phuketking.com/blog/">Blog</a><a href="../">The Phuket King app</a></div>
+    <div><h4>Contact</h4><a href="mailto:hello@phuketking.com">hello@phuketking.com</a><a href="tel:+66615155947">+66 61 515 5947</a><a data-wa="Hi Phuket King, I have a question.">WhatsApp</a></div>
+  </div>
+  <p class="small">© <span id="year">2026</span> Phuket King Muay Thai, Kathu, Phuket.</p>
+</div></footer>
+<div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn gold" href="#training">Book training</a></div>
+
+<script src="site.js"></script>
+<script>
+(function(){
+'use strict';
+var G=[
+  {id:'training',title:'Muay Thai classes',note:'Group classes for every level, six days a week. Unlimited passes cover every group class while they run.',test:function(p){ return /^Training Only/i.test(p.name); },short:function(n){ return n.replace(/^Training Only,\s*/i,''); }},
+  {id:'recovery',title:'Training and recovery',note:'Muay Thai classes plus the spa: sauna, steam room and ice bath.',test:function(p){ return /^Training \+ Recovery/i.test(p.name); },short:function(n){ return n.replace(/^Training \+ Recovery,\s*/i,''); }},
+  {id:'privates',title:'Private lessons',note:'One to one with a coach for an hour. Packs are valid for six months and are for the person who bought them.',test:function(p){ return p.covers.indexOf('Privates')>=0&&p.visits; },short:function(n){ return n.replace(/^Private,\s*/i,''); }},
+  {id:'kids',title:'Kids',note:'Monthly kids classes.',test:function(p){ return p.covers.indexOf('Kids')>=0; },short:function(n){ return n.replace(/^Kids monthly,\s*/i,'Monthly, '); }},
+  {id:'fitness',title:'Fitness Zone',note:'Weights, machines and open gym.',test:function(p){ return /^Fitness Zone/i.test(p.name); },short:function(n){ return n.replace(/^Fitness Zone,?\s*/i,''); }},
+  {id:'spa',title:'Recovery and spa',note:'Sauna, steam room, ice bath and relax zone.',test:function(p){ return /^Spa Access/i.test(p.name); },short:function(n){ return n.replace(/^Spa Access,\s*/i,''); }},
+  {id:'yoga',title:'Yoga',note:'Gentle yoga, mindful flow and mobility.',test:function(p){ return /^Yoga/i.test(p.name); },short:function(n){ return n.replace(/^Yoga,\s*/i,''); }},
+  {id:'dtv',title:'DTV visa training',note:'Training packages for the 5 year Destination Thailand Visa (DTV). One group class a week for the length of the package. Ask us about the visa paperwork.',test:function(p){ return /^DTV/i.test(p.name); },short:function(n){ return n.replace(/^DTV\s*/i,''); }}
+];
+// Tidy names for the page: "3 Month" to "3 Months", "1 time" to "1 Visit", capital first letter
+function tidy(n){ n=n.replace(/^Full spa\s+/i,'').replace(/\b1 time\b/i,'1 Visit').replace(/\b(\d+) month\b/ig,function(m,k){ return k+(k==='1'?' Month':' Months'); }).replace(/\b(\d+) months\b/ig,'$1 Months').replace(/\b10 times\b/i,'10 Visits').replace(/\bweek\b/,'Week'); return n.charAt(0).toUpperCase()+n.slice(1); }
+function span(d){ return {7:'7 days',30:'30 days',90:'3 months',91:'3 months',180:'6 months',182:'6 months',274:'9 months',365:'12 months'}[d]||d+' days'; }
+function detail(p){
+  var bits=[];
+  if(p.visits===1) bits.push('1 visit');
+  else if(p.visits) bits.push(p.visits+(p.covers.indexOf('Privates')>=0?' sessions':' visits')+(p.per_week?', '+p.per_week+' a week':''));
+  else if(p.days===1) bits.push('All day');
+  else if(p.days) bits.push('Unlimited for '+span(p.days));
+  if(p.visits&&p.days&&p.days>1) bits.push('use within '+span(p.days));
+  if(p.covers.indexOf('Fitness zone')>=0&&p.covers.indexOf('Muay Thai')>=0) bits.push('Fitness Zone included');
+  else if(p.fz) bits.push('add Fitness Zone for '+PK.thb(p.fz));
+  return bits.join(', ');
+}
+function per(p){ if(p.visits>1) return PK.thb(Math.round(p.price/p.visits))+' a session'; if(p.days>1&&!p.visits) return PK.thb(Math.round(p.price/p.days))+' a day'; return ''; }
+PK.data().then(function(d){
+  var used={}, box=document.getElementById('groups'), tabs=document.getElementById('tabs'); box.innerHTML='';
+  G.forEach(function(g){
+    var list=d.packages.filter(function(p){ return !used[p.name]&&g.test(p); }); list.forEach(function(p){ used[p.name]=1; });
+    if(!list.length) return;
+    var a=PK.el('a',null,g.title); a.href='#'+g.id; tabs.appendChild(a);
+    var s=PK.el('section','group'); s.id=g.id;
+    s.innerHTML='<h2>'+PK.esc(g.title)+'</h2><p>'+PK.esc(g.note)+'</p>';
+    var t=PK.el('table','ptable'); t.innerHTML='<thead><tr><th>Package</th><th>Price</th><th></th></tr></thead>';
+    var tb=document.createElement('tbody');
+    list.forEach(function(p){ var tr=document.createElement('tr');
+      tr.innerHTML='<td><b>'+PK.esc(tidy(g.short(p.name)))+'</b><div class="per">'+PK.esc(detail(p))+'</div></td><td><div class="p">'+PK.thb(p.price)+'</div><div class="per">'+per(p)+'</div></td>';
+      var td=PK.el('td','go'), b=PK.el('a','btn','Book'); b.href=PK.wa('Hi Phuket King, I would like to book '+p.name+' ('+PK.thb(p.price)+').'); b.target='_blank'; b.rel='noopener'; td.appendChild(b); tr.appendChild(td); tb.appendChild(tr); });
+    t.appendChild(tb); s.appendChild(t); box.appendChild(s);
+  });
+  var st=PK.el('a',null,'Stay'); st.href='#stay'; tabs.appendChild(st);
+  if(location.hash){ var e=document.querySelector(location.hash); if(e) setTimeout(function(){ e.scrollIntoView(); },50); }
+}).catch(function(){ document.getElementById('groups').innerHTML='<p class="err" style="margin:40px 0">Prices could not load. WhatsApp us and we will send them.</p>'; });
+})();
+</script>
+</body>
+</html>
