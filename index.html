@@ -313,7 +313,7 @@ tfoot td{font-weight:600;border-top:1px solid var(--line)}
 .tgood{color:var(--ok);font-weight:700}.tbad{color:var(--bad);font-weight:700}
 .cbcell{font-size:13px;line-height:1.35;white-space:nowrap}.cbbtn{all:unset;cursor:pointer;display:block}.cbbtn:focus-visible{outline:2px solid var(--ok);outline-offset:2px}.btn.hide{visibility:hidden}
 .cblist{display:flex;flex-direction:column;gap:8px;margin:8px 0;max-height:50vh;overflow:auto}.cbname{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
-.kmore{display:grid;gap:10px;margin-top:14px}.kbig.kalt{background:var(--sunken)}
+.kmore{display:grid;gap:10px;margin-top:14px}.kstart{grid-template-columns:1fr 1fr;margin:0 0 14px}@media (max-width:560px){.kstart{grid-template-columns:1fr}}.kbig.kon{outline:3px solid var(--gold)}.kbig.kalt{background:var(--sunken)}
 .avbox{max-width:640px}.avout{margin-top:10px}.avgroup{border:1px solid var(--line,#ddd);border-radius:12px;padding:10px 12px;margin:8px 0}.avhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .rmapwrap{margin:8px 0}.rmap{position:relative;overflow:hidden;aspect-ratio:4 / 3;max-height:70vh;border-radius:12px;background:var(--sunken);touch-action:none;user-select:none;cursor:grab}
 .rmap.editing{cursor:crosshair}.rmapin{position:absolute;left:0;top:0;transform-origin:0 0;width:100%}.rmapin img{display:block;width:100%;height:auto;pointer-events:auto}
@@ -4380,7 +4380,7 @@ function enterKiosk(){
   clearInterval(kRefresh); kRefresh=setInterval(function(){ if(ui.tab==='kiosk'&&!ui.kc&&!ui.kdone) loadAll().catch(function(){}); },60000);
   schedule();
 }
-function kReset(){ try{ if($dlg.open) $dlg.close(); }catch(e){} ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr=''; schedule(); }
+function kReset(){ try{ if($dlg.open) $dlg.close(); }catch(e){} ui.kintent=null; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr=''; schedule(); }
 function kIdle(ms){ clearTimeout(kTimer); kTimer=setTimeout(kReset,ms); }
 document.addEventListener('pointerdown',function(){ if(ui.tab==='kiosk'&&(ui.kc||ui.kq)&&!ui.kdone) kIdle(30000); },true);
 function exitKiosk(){
@@ -4515,13 +4515,17 @@ function vKiosk(){
   var q=String(ui.kq||'').trim().toLowerCase();
   var list=all.filter(function(o){ return !q||String(o.c.name||'').toLowerCase().split(/\s+/).some(function(w){ return w.indexOf(q)===0; })||String(o.c.name||'').toLowerCase().indexOf(q)===0; });
   list.sort(function(a,b){ return a.label.toLowerCase()<b.label.toLowerCase()?-1:1; });
-  var search=h('input',{id:'kq',class:'ksearch',type:'search',autocomplete:'off',placeholder:'Type your name to check in',value:ui.kq||'','aria-label':'Type your name',oninput:function(ev){ ui.kq=ev.target.value; if(ev.target.value) kIdle(45000); schedule(); }});
+  var search=h('input',{id:'kq',class:'ksearch',type:'search',autocomplete:'off',placeholder:ui.kintent==='buy'?'Type your name to buy a package':ui.kintent==='private'?'Type your name to book a private':'Type your name to check in',value:ui.kq||'','aria-label':'Type your name',oninput:function(ev){ ui.kq=ev.target.value; if(ev.target.value) kIdle(45000); schedule(); }});
   /* names stay hidden until at least 2 letters are typed, and only a few matches show */
   var shown=q.length>=2?list.slice(0,6):[];
   return [head,search,
-    q.length>=2?(shown.length?h('div',{class:'kgrid'},shown.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ ui.kc=o.c.id; ui.kq=''; ui.kerr=''; kIdle(30000); schedule(); }},o.label); }))
+    q.length>=2?(shown.length?h('div',{class:'kgrid'},shown.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ var it=ui.kintent; ui.kc=o.c.id; ui.kq=''; ui.kerr=''; ui.kintent=null; kIdle(30000); schedule(); if(it) setTimeout(function(){ if(it==='buy') kBuy(o.c); else kPrivate(o.c); },50); }},o.label); }))
       :h('div',{class:'panel empty'},'Nobody with that name. See the front desk to sign up.'))
     :q.length===1?h('p',{class:'sub'},'Keep typing your name.'):null,
+    !q?h('div',{class:'kmore kstart'},
+      h('button',{type:'button',class:'kbig kalt'+(ui.kintent==='private'?' kon':''),onclick:function(){ ui.kintent=ui.kintent==='private'?null:'private'; kIdle(60000); schedule(); setTimeout(function(){ var e=document.getElementById('kq'); if(e) e.focus(); },30); }},h('span',null,'Book a private'),h('span',{class:'chip'},'Now or later')),
+      h('button',{type:'button',class:'kbig kalt'+(ui.kintent==='buy'?' kon':''),onclick:function(){ ui.kintent=ui.kintent==='buy'?null:'buy'; kIdle(60000); schedule(); setTimeout(function(){ var e=document.getElementById('kq'); if(e) e.focus(); },30); }},h('span',null,'Buy a package'),h('span',{class:'chip'},'Card, QR or desk'))):null,
+    ui.kintent&&!q?h('p',{class:'sub'},'Now type your name above and tap it.'):null,
     !q?promoBoard():null,foot];
 }
 function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','actions','customers','shop','kitchen']:['today','shop','kitchen','stays','actions','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
