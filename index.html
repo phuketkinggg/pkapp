@@ -314,6 +314,7 @@ tfoot td{font-weight:600;border-top:1px solid var(--line)}
 .cbcell{font-size:13px;line-height:1.35;white-space:nowrap}.cbbtn{all:unset;cursor:pointer;display:block}.cbbtn:focus-visible{outline:2px solid var(--ok);outline-offset:2px}.btn.hide{visibility:hidden}
 .cblist{display:flex;flex-direction:column;gap:8px;margin:8px 0;max-height:50vh;overflow:auto}.cbname{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
 .kmore{display:grid;gap:10px;margin-top:14px}.kbig.kalt{background:var(--sunken)}
+.avbox{max-width:640px}.avout{margin-top:10px}.avgroup{border:1px solid var(--line,#ddd);border-radius:12px;padding:10px 12px;margin:8px 0}.avhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .newcu{font-size:12px;font-weight:600;color:var(--ok);margin-left:6px;white-space:nowrap}
 .chip.warn{background:var(--warn-bg);color:var(--warn)}
 .chip.bad{background:var(--bad-bg);color:var(--bad)}
@@ -1220,20 +1221,120 @@ function roomDue(st){ return (Number(st.room_price_thb)||0)-(Number(st.room_paid
 function billTotal(st){ return extrasTotal(st)+roomDue(st)-(Number(st.app_paid_thb)||0); }
 function nights(st){ return Math.round((parseYmd(st.check_out)-parseYmd(st.check_in))/86400000); }
 function mealPlanOf(cid,day){ return S.purchases.filter(function(p){ return p.customer_id===cid&&isMealOnly(p)&&!p.cancelled&&!unpaidOrder(p)&&stateOf(p,day).ok; })[0]||null; }
+/* ---------- room prices: rooms grouped by price, a price per season, seasons by dates of the year ---------- */
+var RATES=null;
+function loadRates(){ return sb.rpc('room_rates_get').then(must).then(function(d){ d=d||{}; RATES={base:d.base||'low',seasons:Array.isArray(d.seasons)?d.seasons:[],groups:Array.isArray(d.groups)?d.groups:[]}; schedule(); return RATES; }); }
+function needRates(){ if(!RATES&&!ui.ratesAsked){ ui.ratesAsked=true; loadRates().catch(function(){ ui.ratesAsked=false; }); } return RATES; }
+function saveRates(r){ return sb.rpc('room_rates_save',{p:r}).then(must).then(function(){ RATES=r; schedule(); }); }
+function rateId(){ return Math.random().toString(36).slice(2,9); }
+function mdText(md){ if(!md) return ''; var d=parseYmd('2026-'+md); return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+function inRange(md,r){ var a=r.from,b=r.to; if(!a||!b) return false; return a<=b?(md>=a&&md<=b):(md>=a||md<=b); }
+function seasonOf(day){ if(!RATES) return null; var md=day.slice(5), hit=null;
+  RATES.seasons.forEach(function(se){ if(se.id!==RATES.base&&(se.ranges||[]).some(function(r){ return inRange(md,r); })) hit=se; });
+  return hit||RATES.seasons.filter(function(se){ return se.id===RATES.base; })[0]||RATES.seasons[0]||null; }
+function rateGroup(roomId){ return RATES?RATES.groups.filter(function(g){ return (g.rooms||[]).indexOf(roomId)>=0; })[0]||null:null; }
+function roomQuote(roomId,from,to){
+  var g=rateGroup(roomId); if(!g||!from||!to||to<=from) return null;
+  var q={group:g,nights:[],total:0,missing:[]};
+  for(var d=from;d<to;d=addDays(d,1)){ var se=seasonOf(d), v=se&&g.prices?g.prices[se.id]:null, n=v===''||v==null?NaN:Number(v);
+    if(isNaN(n)){ if(se&&q.missing.indexOf(se.name)<0) q.missing.push(se.name); } else q.total+=n; q.nights.push({day:d,season:se?se.name:'',price:n}); }
+  return q;
+}
+function quoteText(q){ if(!q) return ''; if(q.missing.length) return 'No '+q.missing.join(' or ')+' price set for '+q.group.name+'.';
+  var by=[]; q.nights.forEach(function(n){ var l=by.filter(function(x){ return x.s===n.season&&x.p===n.price; })[0]; if(l) l.n++; else by.push({s:n.season,p:n.price,n:1}); });
+  return q.group.name+': '+by.map(function(x){ return x.n+' night'+(x.n===1?'':'s')+' '+x.s+' at '+thb(x.p); }).join(', ')+' = '+thb(q.total)+'.'; }
+function editSeason(se){
+  var r=RATES, isNew=!se; se=se||{id:rateId(),name:'',ranges:[]};
+  var vals={name:se.name,base:r.base===se.id}; for(var i=0;i<4;i++){ var x=(se.ranges||[])[i]; vals['f'+i]=x&&x.from?'2026-'+x.from:''; vals['t'+i]=x&&x.to?'2026-'+x.to:''; }
+  var fields=[{key:'name',label:'Season name',required:true,hint:'For example Low, High, Peak, Christmas.'},
+    {key:'base',label:'Use this season for every date not in another season',type:'checkbox'}];
+  for(var j=0;j<4;j++) fields.push({key:'f'+j,label:'Dates '+(j+1)+', from',type:'date',hint:j===0?'The year does not matter: the same dates are used every year. A range can cross New Year, for example 20 Dec to 10 Jan.':null},{key:'t'+j,label:'Dates '+(j+1)+', to',type:'date'});
+  openForm({title:isNew?'Add a season':'Edit '+se.name,values:vals,fields:fields,doneMsg:'Season saved.',
+    onSave:function(v){ var ranges=[]; for(var k=0;k<4;k++){ var a=v['f'+k], b=v['t'+k]; if(!a&&!b) continue; if(!a||!b) return 'Dates '+(k+1)+' needs both a from and a to date.'; ranges.push({from:a.slice(5),to:b.slice(5)}); }
+      if(!v.base&&!ranges.length&&r.base!==se.id) return 'Add the dates for this season, or tick that it is for every other date.';
+      var n=JSON.parse(JSON.stringify(r)), cur={id:se.id,name:v.name,ranges:ranges}, at=n.seasons.map(function(x){ return x.id; }).indexOf(se.id);
+      if(at<0) n.seasons.push(cur); else n.seasons[at]=cur; if(v.base) n.base=se.id; else if(n.base===se.id){ return 'One season has to be for every other date. Tick it on another season first.'; }
+      return saveRates(n); },
+    onDelete:isNew?null:function(){ if(r.base===se.id) return Promise.reject({message:'This is the season for every other date. Make another season that one first.'});
+      var n=JSON.parse(JSON.stringify(r)); n.seasons=n.seasons.filter(function(x){ return x.id!==se.id; }); n.groups.forEach(function(g){ if(g.prices) delete g.prices[se.id]; }); return saveRates(n); }});
+}
+function editRateGroup(g){
+  var r=RATES, isNew=!g; g=g||{id:rateId(),name:'',rooms:[],prices:{}};
+  var rooms=S.rooms.filter(function(x){ return x.active!==false||(g.rooms||[]).indexOf(x.id)>=0; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
+  var vals={name:g.name,rooms:g.rooms||[],note:g.note||''}; r.seasons.forEach(function(se){ vals['p_'+se.id]=g.prices&&g.prices[se.id]!=null?g.prices[se.id]:''; });
+  var fields=[{key:'name',label:'Price group name',required:true,hint:'For example Mango Grove 3 and 4.'},
+    {key:'rooms',label:'Rooms in this group',type:'checks',options:rooms.map(function(x){ var o=rateGroup(x.id); return [x.id,x.name+(o&&o.id!==g.id?' (now in '+o.name+')':'')]; }),hint:'A room can be in one group. Ticking a room here takes it out of its other group.'}]
+    .concat(r.seasons.map(function(se){ return {key:'p_'+se.id,label:se.name+' price per night (THB)',type:'number'}; }))
+    .concat([{key:'note',label:'Note',hint:'Optional. For example: sleeps 2, lake view.'}]);
+  openForm({title:isNew?'Add a price group':'Edit '+g.name,values:vals,fields:fields,doneMsg:'Prices saved.',
+    onSave:function(v){ if(!(v.rooms||[]).length) return 'Tick the rooms in this group.';
+      var n=JSON.parse(JSON.stringify(r)), prices={}; r.seasons.forEach(function(se){ var x=v['p_'+se.id]; if(x!=null&&x!=='') prices[se.id]=Math.round(Number(x)); });
+      n.groups.forEach(function(o){ if(o.id!==g.id) o.rooms=(o.rooms||[]).filter(function(id){ return v.rooms.indexOf(id)<0; }); });
+      var cur={id:g.id,name:v.name,rooms:v.rooms,prices:prices,note:v.note||''}, at=n.groups.map(function(x){ return x.id; }).indexOf(g.id);
+      if(at<0) n.groups.push(cur); else n.groups[at]=cur; return saveRates(n); },
+    onDelete:isNew?null:function(){ var n=JSON.parse(JSON.stringify(r)); n.groups=n.groups.filter(function(x){ return x.id!==g.id; }); return saveRates(n); }});
+}
+function ratesSettings(){
+  var r=needRates(), mgr=me&&me.role==='manager';
+  if(!r) return section('Room prices',null,h('div',{class:'panel empty'},'Loading.'));
+  var none=S.rooms.filter(function(x){ return x.active!==false&&!rateGroup(x.id); });
+  return [section('Room prices',mgr?h('div',{class:'row'},btn('Add price group',function(){ editRateGroup(); },'small'),btn('Add season',function(){ editSeason(); },'small')):null,h('div',null,
+      h('p',{class:'sub'},'Rooms with the same prices go in one group. Each group has a price per night for each season. New stays and the availability check use these prices.'),
+      table([{label:'Price group',cell:function(g){ return mgr?linkBtn(g.name,function(){ editRateGroup(g); }):h('b',null,g.name); }},
+        {label:'Rooms',cell:function(g){ return h('span',{class:'wrap'},(g.rooms||[]).map(function(id){ return nameOf('rooms',id); }).join(', ')); }}]
+        .concat(r.seasons.map(function(se){ return {label:se.name,num:true,cell:function(g){ var v=g.prices&&g.prices[se.id]; return v==null||v===''?chip('Not set','warn'):thb(v); }}; })),
+        r.groups,'No price groups yet. Add one, for example Mango Grove 3 and 4, and tick its rooms.'),
+      none.length?h('p',{class:'sub'},chip('Not in a price group','warn'),' '+none.map(function(x){ return x.name; }).join(', ')):null)),
+    section('Seasons',null,table([
+      {label:'Season',cell:function(se){ return mgr?linkBtn(se.name,function(){ editSeason(se); }):h('b',null,se.name); }},
+      {label:'Dates every year',cell:function(se){ return se.id===r.base?h('span',null,'Every date not in another season',(se.ranges||[]).length?' (and '+se.ranges.map(function(x){ return mdText(x.from)+' to '+mdText(x.to); }).join(', ')+')':''):
+        (se.ranges||[]).length?se.ranges.map(function(x){ return mdText(x.from)+' to '+mdText(x.to); }).join(', '):chip('No dates yet','warn'); }},
+      {label:'Today',cell:function(se){ var t=seasonOf(ymd(new Date())); return t&&t.id===se.id?chip('Now','ok'):''; }}],r.seasons,''))];
+}
+/* which rooms are free for some dates, with the price for each */
+function availability(pre){
+  needRates(); pre=pre||{};
+  var day=ymd(new Date()), a=h('input',{id:'av-in',type:'date',value:pre.from||day}), b=h('input',{id:'av-out',type:'date',value:pre.to||addDays(day,3)}), out=h('div',{class:'avout'});
+  function show(){
+    var from=a.value, to=b.value; if(!from||!to||to<=from){ out.replaceChildren(h('p',{class:'ferr'},'The leaving date must be after the arrival date.')); return; }
+    var n=Math.round((parseYmd(to)-parseYmd(from))/864e5);
+    var rooms=S.rooms.filter(function(x){ return x.active!==false; }).sort(function(x,y){ return (x.sort||0)-(y.sort||0); });
+    function clash(rm){ return S.stays.filter(function(st){ return st.room_id===rm.id&&st.status!=='cancelled'&&st.status!=='out'&&st.check_in<to&&st.check_out>from; }); }
+    var free=rooms.filter(function(rm){ return !clash(rm).length; }), taken=rooms.filter(function(rm){ return clash(rm).length; });
+    var groups=(RATES?RATES.groups:[]).concat([{id:'_none',name:'No price group',rooms:[]}]);
+    var blocks=groups.map(function(g){ var rs=free.filter(function(rm){ var gg=rateGroup(rm.id); return g.id==='_none'?!gg:(gg&&gg.id===g.id); }); if(!rs.length) return null;
+      var q=g.id==='_none'?null:roomQuote(rs[0].id,from,to);
+      return h('div',{class:'avgroup'},h('div',{class:'avhead'},h('b',null,g.name),q&&!q.missing.length?h('span',null,thb(q.total)+' for '+n+' night'+(n===1?'':'s')):null),
+        q?h('p',{class:'sub'},quoteText(q)):null,
+        h('div',{class:'row wrap'},rs.map(function(rm){ return btn('Book '+rm.name,function(){ $dlg.close(); var qq=roomQuote(rm.id,from,to); editStay({room_id:rm.id,check_in:from,check_out:to,room_price_thb:qq&&!qq.missing.length?qq.total:null}); },'small'); }))); }).filter(Boolean);
+    out.replaceChildren(h('div',null,h('p',null,h('b',null,free.length+' of '+rooms.length+' rooms free'),' from '+fmtDate(from)+' to '+fmtDate(to)+', '+n+' night'+(n===1?'':'s')+(RATES?'. Season: '+Array.from(new Set(Array.from({length:n},function(_,i){ var se=seasonOf(addDays(from,i)); return se?se.name:''; }))).join(', '):'')+'.'),
+      blocks.length?blocks:h('div',{class:'kerr'},'No rooms free for all of those nights.'),
+      taken.length?h('p',{class:'sub'},'Taken: '+taken.map(function(rm){ var c=clash(rm)[0]; return rm.name+' ('+nameOf('customers',c.customer_id)+', '+fmtDate(c.check_in)+' to '+fmtDate(c.check_out)+')'; }).join('; ')+'.'):null));
+  }
+  a.onchange=function(){ if(b.value<=a.value) b.value=addDays(a.value,1); show(); }; b.onchange=show;
+  shopDlg(h('div',{class:'billbox avbox'},h('h2',null,'Check availability'),h('div',{class:'fgrid'},field('av-in','Arrives',a),field('av-out','Leaves',b)),out,
+    h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
+  if(RATES) show(); else loadRates().then(show,show);
+}
 function editStay(st){
   st=st||{}; var day=ymd(new Date());
   var rooms=S.rooms.filter(function(r){ return r.active!==false||r.id===st.room_id; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
   if(!rooms.length){ toast('Add your rooms first, in Settings.'); return; }
-  var cs=sortBy(S.customers,'name');
+  var cs=sortBy(S.customers,'name'); needRates();
+  var typed=!!st.id;
+  function autoPrice(set,get){ if(st.id) return; var q=roomQuote(get('room_id'),get('check_in'),get('check_out')); set('rate_note',q?quoteText(q):(RATES?'This room is not in a price group yet. Set it in Settings, Room prices.':''));
+    if(!typed&&q&&!q.missing.length) set('room_price_thb',q.total); }
+  if(!st.id){ var r0=st.room_id||rooms[0].id, i0=st.check_in||day, o0=st.check_out||addDays(i0,1), q0=roomQuote(r0,i0,o0); st=Object.assign({},st,{rate_note:q0?quoteText(q0):''}); if(st.room_price_thb==null&&q0&&!q0.missing.length) st.room_price_thb=q0.total; }
   var fields=[
     {key:'customer_id',label:'Guest',type:'select',options:[['','New guest, type the name below']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),def:''},
     {key:'new_name',label:'New guest name',hint:'Only if the guest is not in the list above.'},
     {key:'new_email',label:'New guest email',type:'email',hint:'Optional. With an email they can use the app and see their room bill.'},
-    {key:'room_id',label:'Room',type:'select',options:rooms.map(function(r){ return [r.id,r.name]; }),def:rooms[0].id},
-    {key:'check_in',label:'Arrives',type:'date',required:true,def:day},
-    {key:'check_out',label:'Leaves',type:'date',required:true,def:addDays(day,1)},
+    {key:'room_id',label:'Room',type:'select',options:rooms.map(function(r){ return [r.id,r.name]; }),def:rooms[0].id,onChange:function(v,set,get){ autoPrice(set,get); }},
+    {key:'check_in',label:'Arrives',type:'date',required:true,def:day,onChange:function(v,set,get){ if(get('check_out')<=v) set('check_out',addDays(v,1)); autoPrice(set,get); }},
+    {key:'check_out',label:'Leaves',type:'date',required:true,def:addDays(day,1),onChange:function(v,set,get){ autoPrice(set,get); }},
+    {key:'rate_note',label:'Season price',readonly:true,hide:!!st.id},
     {key:'source_id',label:'Booked through',type:'select',options:opts(sortBy(S.sources,'name'),'Direct or walk-in'),def:''},
-    {key:'room_price_thb',label:'Room price for the whole stay (THB)',type:'number',
+    {key:'room_price_thb',label:'Room price for the whole stay (THB)',type:'number',onChange:function(){ typed=true; },
       hint:st.mp_price!=null&&Number(st.mp_price)!==Number(st.room_price_thb)?'MotoPress shows '+thb(Math.round(Number(st.mp_price)))+'. The price here is the one on the bill.':
         /^mphb:/.test(String(st.external_id||''))?'Filled in from MotoPress. Type a different price and the app keeps yours.':'The price the guest agreed. Leave empty if the room is free or paid elsewhere.'},
     {key:'room_paid_thb',label:'Room money already paid (THB)',type:'number',def:0,hint:'Deposit or online payment. Leave 0 if they pay at the desk.'},
@@ -1376,19 +1477,21 @@ function openBill(st,msg,thenOut){
 }
 /* stay longer: same price per night, or a new price for the extra nights */
 function extendStay(st){
-  var n=nights(st), rate=st.room_price_thb!=null&&n>0?Math.round(Number(st.room_price_thb)/n):null;
+  var n=nights(st), rate=st.room_price_thb!=null&&n>0?Math.round(Number(st.room_price_thb)/n):null; needRates();
   openForm({title:'Extend stay',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+'. Now '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+n+' night'+(n===1?'':'s')+(st.room_price_thb!=null?', '+thb(st.room_price_thb):'')+'.',
     saveLabel:'Extend',doneMsg:'Stay extended.',values:{check_out:addDays(st.check_out,1),how:rate!=null?'same':'new',rate:''},
     fields:[{key:'check_out',label:'New leaving date',type:'date',required:true},
-      {key:'how',label:'Price for the extra nights',type:'select',options:(rate!=null?[['same','Keep the same price, '+thb(rate)+' a night']]:[]).concat([['new','New price per night']]),
+      {key:'how',label:'Price for the extra nights',type:'select',options:(rate!=null?[['same','Keep the same price, '+thb(rate)+' a night']]:[]).concat(rateGroup(st.room_id)?[['season','Season price for the extra nights']]:[]).concat([['new','New price per night']]),
         onChange:function(v,set,get,o,show){ show('rate',v==='new'); }},
       {key:'rate',label:'New price per night (THB)',type:'number',hide:rate!=null,hint:'Only for the extra nights. The nights already booked keep their price.'}],
     onSave:function(v){
       if(!v.check_out||v.check_out<=st.check_out) return 'Pick a leaving date after '+fmtDate(st.check_out)+'.';
       var clash=S.stays.filter(function(o){ return o.id!==st.id&&o.room_id===st.room_id&&o.status!=='cancelled'&&o.check_in<v.check_out&&o.check_out>st.check_out; })[0];
       if(clash) return nameOf('rooms',st.room_id)+' is booked from '+fmtDate(clash.check_in)+' by '+nameOf('customers',clash.customer_id)+'. Extend to '+fmtDate(clash.check_in)+' at most, or move one of them to another room.';
-      var r=v.how==='same'?rate:Math.round(Number(v.rate)); if(r==null||isNaN(r)||r<0) return 'Type the price per night.';
-      var extra=Math.round((parseYmd(v.check_out)-parseYmd(st.check_out))/864e5), price=(Number(st.room_price_thb)||0)+extra*r;
+      var extra=Math.round((parseYmd(v.check_out)-parseYmd(st.check_out))/864e5), r, add;
+      if(v.how==='season'){ var q=roomQuote(st.room_id,st.check_out,v.check_out); if(!q||q.missing.length) return q?quoteText(q):'This room has no season prices.'; add=q.total; r=Math.round(add/extra); }
+      else { r=v.how==='same'?rate:Math.round(Number(v.rate)); if(r==null||isNaN(r)||r<0) return 'Type the price per night.'; add=extra*r; }
+      var price=(Number(st.room_price_thb)||0)+add;
       var patch={check_out:v.check_out,room_price_thb:price,room_price_manual:true}, mp=/^mphb:/.test(String(st.external_id||'')), note='';
       if(st.ical_feed){ patch.dates_locked=true; note=' Extend it on '+(nameOf('sources',st.source_id)||'the booking site')+' too, so the room stays closed there.'; }
       var first=!mp?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'change',stay_id:st.id,room_id:st.room_id,check_in:st.check_in,check_out:v.check_out}}).then(function(res){
@@ -1625,7 +1728,7 @@ function vStays(){
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   var view=ui.stayView||'calendar';
   var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
-  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine(),me&&me.role==='resort'?noticesBox():null];
+  var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Check availability',function(){ availability(); }),btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine(),me&&me.role==='resort'?noticesBox():null];
   if(view==='calendar') return head.concat(vCalendar());
   return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
@@ -3544,6 +3647,7 @@ function vSettings(){
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
       {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
       {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
+    ratesSettings(),
     section('Booking sources',btn('Add source',function(){ editSource(); },'small'),table([
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
