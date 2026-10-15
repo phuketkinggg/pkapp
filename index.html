@@ -315,6 +315,11 @@ tfoot td{font-weight:600;border-top:1px solid var(--line)}
 .cblist{display:flex;flex-direction:column;gap:8px;margin:8px 0;max-height:50vh;overflow:auto}.cbname{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
 .kmore{display:grid;gap:10px;margin-top:14px}.kbig.kalt{background:var(--sunken)}
 .avbox{max-width:640px}.avout{margin-top:10px}.avgroup{border:1px solid var(--line,#ddd);border-radius:12px;padding:10px 12px;margin:8px 0}.avhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.rmapwrap{margin:8px 0}.rmap{position:relative;overflow:hidden;height:min(60vh,520px);border-radius:12px;background:var(--sunken);touch-action:none;user-select:none;cursor:grab}
+.rmap.editing{cursor:crosshair}.rmapin{position:absolute;left:0;top:0;transform-origin:0 0;width:100%}.rmapin img{display:block;width:100%;height:auto;pointer-events:auto}
+.rpin{position:absolute;transform:translate(-50%,-50%) scale(var(--inv,1));min-width:30px;height:30px;padding:0 8px;border-radius:15px;border:2px solid #fff;font:700 12px var(--body);color:#fff;background:#556;box-shadow:0 2px 6px rgba(0,0,0,.45);cursor:pointer;white-space:nowrap}
+.rpin.free{background:#1F8A4C}.rpin.taken{background:#B3261E}.rpin.sel{background:#C98500;outline:3px solid #fff}.rpin.mini{position:static;display:inline-block;transform:none;min-width:14px;height:14px;padding:0;border-radius:7px;vertical-align:middle;cursor:default}
+.rmapctl{display:flex;gap:6px}.rmapkey{display:flex;align-items:center;gap:6px;font-size:13px}.avcard{border:1px solid var(--line,#ddd);border-radius:12px;padding:10px 12px;margin:8px 0;display:flex;flex-direction:column;gap:6px}
 .newcu{font-size:12px;font-weight:600;color:var(--ok);margin-left:6px;white-space:nowrap}
 .chip.warn{background:var(--warn-bg);color:var(--warn)}
 .chip.bad{background:var(--bad-bg);color:var(--bad)}
@@ -1223,7 +1228,7 @@ function nights(st){ return Math.round((parseYmd(st.check_out)-parseYmd(st.check
 function mealPlanOf(cid,day){ return S.purchases.filter(function(p){ return p.customer_id===cid&&isMealOnly(p)&&!p.cancelled&&!unpaidOrder(p)&&stateOf(p,day).ok; })[0]||null; }
 /* ---------- room prices: rooms grouped by price, a price per season, seasons by dates of the year ---------- */
 var RATES=null;
-function loadRates(){ return sb.rpc('room_rates_get').then(must).then(function(d){ d=d||{}; RATES={base:d.base||'low',seasons:Array.isArray(d.seasons)?d.seasons:[],groups:Array.isArray(d.groups)?d.groups:[]}; schedule(); return RATES; }); }
+function loadRates(){ return sb.rpc('room_rates_get').then(must).then(function(d){ d=d||{}; RATES={base:d.base||'low',seasons:Array.isArray(d.seasons)?d.seasons:[],groups:Array.isArray(d.groups)?d.groups:[],map:d.map&&typeof d.map==='object'?d.map:{}}; schedule(); return RATES; }); }
 function needRates(){ if(!RATES&&!ui.ratesAsked){ ui.ratesAsked=true; loadRates().catch(function(){ ui.ratesAsked=false; }); } return RATES; }
 function saveRates(r){ return sb.rpc('room_rates_save',{p:r}).then(must).then(function(){ RATES=r; schedule(); }); }
 function rateId(){ return Math.random().toString(36).slice(2,9); }
@@ -1291,6 +1296,58 @@ function ratesSettings(){
         (se.ranges||[]).length?se.ranges.map(function(x){ return mdText(x.from)+' to '+mdText(x.to); }).join(', '):chip('No dates yet','warn'); }},
       {label:'Today',cell:function(se){ var t=seasonOf(ymd(new Date())); return t&&t.id===se.id?chip('Now','ok'):''; }}],r.seasons,''))];
 }
+/* ---------- resort map: an aerial photo with a dot on each room, green free, red taken. Pinch, drag or use + and - to zoom. ---------- */
+function mapView(o){
+  var m=RATES&&RATES.map; if(!m||!m.img) return null;
+  var sc=1, tx=0, ty=0, pts={}, start=null, moved=false;
+  var img=h('img',{src:m.img,alt:'Aerial view of the resort',draggable:'false'}), inner=h('div',{class:'rmapin'},img), box=h('div',{class:'rmap'+(o.edit?' editing':'')},inner);
+  var pins=[];
+  function apply(){ var w=box.clientWidth, hh=box.clientHeight, iw=inner.offsetWidth*sc, ih=inner.offsetHeight*sc;
+    tx=Math.min(0,Math.max(w-iw,tx)); ty=Math.min(0,Math.max(hh-ih,ty)); if(iw<w) tx=(w-iw)/2; if(ih<hh) ty=(hh-ih)/2;
+    inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'; inner.style.setProperty('--inv',String(1/sc)); }
+  function zoomAt(f,cx,cy){ var ns=Math.min(6,Math.max(1,sc*f)); tx=cx-(cx-tx)*ns/sc; ty=cy-(cy-ty)*ns/sc; sc=ns; apply(); }
+  function drawPins(){ pins.forEach(function(p){ p.remove(); }); pins=[];
+    Object.keys(m.pins||{}).forEach(function(rid){ var pp=m.pins[rid], rm=byId('rooms',rid); if(!rm||rm.active===false) return;
+      var st=o.status?o.status(rid):'none', short=String(rm.name).replace(/^Mango Grove /,'MG ').replace(/^Lake View /,'LV ').replace(/ \(single\)$/,'');
+      var b=h('button',{type:'button',class:'rpin '+st+(o.selected===rid?' sel':''),style:'left:'+(pp.x*100)+'%;top:'+(pp.y*100)+'%','aria-label':rm.name+(st==='free'?', free':st==='taken'?', taken':'')},h('span',null,short));
+      b.addEventListener('click',function(ev){ ev.stopPropagation(); if(!moved&&o.onPick) o.onPick(rid); });
+      inner.appendChild(b); pins.push(b); }); }
+  box.addEventListener('pointerdown',function(ev){ pts[ev.pointerId]={x:ev.clientX,y:ev.clientY}; moved=false; start={tx:tx,ty:ty,x:ev.clientX,y:ev.clientY,sc:sc,d:null}; var k=Object.keys(pts); if(k.length===2){ var a=pts[k[0]],b2=pts[k[1]]; start.d=Math.hypot(a.x-b2.x,a.y-b2.y); start.mid={x:(a.x+b2.x)/2,y:(a.y+b2.y)/2}; } });
+  box.addEventListener('pointermove',function(ev){ if(!pts[ev.pointerId]||!start) return; pts[ev.pointerId]={x:ev.clientX,y:ev.clientY}; var k=Object.keys(pts), r=box.getBoundingClientRect();
+    if(k.length===2&&start.d){ var a=pts[k[0]],b2=pts[k[1]], d=Math.hypot(a.x-b2.x,a.y-b2.y); zoomAt((start.sc*d/start.d)/sc,start.mid.x-r.left,start.mid.y-r.top); moved=true; return; }
+    var dx=ev.clientX-start.x, dy=ev.clientY-start.y; if(Math.abs(dx)+Math.abs(dy)>6) moved=true; if(moved&&sc>1){ tx=start.tx+dx; ty=start.ty+dy; apply(); } });
+  function up(ev){ var was=!!pts[ev.pointerId]; delete pts[ev.pointerId]; if(!Object.keys(pts).length) start=null;
+    if(was&&!moved&&o.edit&&o.onPlace&&ev.target===img){ var r=img.getBoundingClientRect(); o.onPlace(Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))); } }
+  box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
+  box.addEventListener('wheel',function(ev){ ev.preventDefault(); var r=box.getBoundingClientRect(); zoomAt(ev.deltaY<0?1.2:1/1.2,ev.clientX-r.left,ev.clientY-r.top); },{passive:false});
+  img.addEventListener('load',function(){ apply(); });
+  drawPins(); setTimeout(apply,0);
+  var ctr=h('div',{class:'rmapctl'},h('button',{type:'button',class:'btn small','aria-label':'Zoom in',onclick:function(){ zoomAt(1.5,box.clientWidth/2,box.clientHeight/2); }},'+'),
+    h('button',{type:'button',class:'btn small','aria-label':'Zoom out',onclick:function(){ zoomAt(1/1.5,box.clientWidth/2,box.clientHeight/2); }},'−'),
+    h('button',{type:'button',class:'btn small',onclick:function(){ sc=1; tx=0; ty=0; apply(); }},'Whole map'));
+  var legend=o.status?h('div',{class:'rmapkey'},h('span',{class:'rpin free mini'}),' Free ',h('span',{class:'rpin taken mini'}),' Taken'):null;
+  return h('div',{class:'rmapwrap'},box,h('div',{class:'row'},ctr,legend));
+}
+function mapSettings(){
+  var r=needRates(), mgr=me&&me.role==='manager'; if(!r) return null;
+  var m=r.map||{}, rooms=S.rooms.filter(function(x){ return x.active!==false; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
+  if(!ui.mapRoom||!byId('rooms',ui.mapRoom)) ui.mapRoom=rooms[0]&&rooms[0].id;
+  var file=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=file.files[0]; if(!f) return; toast('Uploading the map.');
+    var big=function(fl){ return new Promise(function(ok,bad){ createImageBitmap(fl).then(function(img){ var mx=2400, k=Math.min(1,mx/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(function(b){ b?ok(b):bad({message:'Could not read the photo.'}); },'image/jpeg',0.82); },function(){ bad({message:'Could not read the photo.'}); }); }); };
+    big(f).then(function(blob){ var path='map/resort-'+Date.now()+'.jpg'; return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(res){ if(res.error) throw res.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); })
+      .then(function(url){ var n=JSON.parse(JSON.stringify(RATES)); n.map=Object.assign({},n.map||{},{img:url,pins:(n.map&&n.map.pins)||{}}); return saveRates(n); }).then(function(){ toast('Map saved. Now place each room on it.'); },function(e){ toast(errText(e)); }); }});
+  var placed=Object.keys(m.pins||{}), notPlaced=rooms.filter(function(x){ return placed.indexOf(x.id)<0; });
+  var sel=h('select',{id:'map-room','aria-label':'Room to place',onchange:function(ev){ ui.mapRoom=ev.target.value; schedule(); }},rooms.map(function(x){ var o=h('option',{value:x.id},x.name+(placed.indexOf(x.id)<0?' (not placed yet)':'')); if(x.id===ui.mapRoom) o.selected=true; return o; }));
+  var view=m.img?mapView({edit:mgr,selected:ui.mapRoom,status:function(rid){ return rid===ui.mapRoom?'sel':'none'; },
+    onPlace:function(x,y){ if(!ui.mapRoom) return; var n=JSON.parse(JSON.stringify(RATES)); n.map.pins=n.map.pins||{}; n.map.pins[ui.mapRoom]={x:Math.round(x*1000)/1000,y:Math.round(y*1000)/1000};
+      var nxt=notPlaced.filter(function(z){ return z.id!==ui.mapRoom; })[0]; run(saveRates(n).then(function(){ if(nxt) ui.mapRoom=nxt.id; schedule(); }),nameOf('rooms',ui.mapRoom)+' placed.'); },
+    onPick:function(rid){ ui.mapRoom=rid; schedule(); }}):null;
+  return section('Resort map',mgr?h('div',{class:'row'},btn(m.img?'Change the photo':'Upload aerial photo',function(){ file.click(); },'small'),file):null,
+    m.img?h('div',null,h('p',{class:'sub'},mgr?'Pick a room, then tap where it is on the photo. Tap again to move it. Guests see free rooms green and taken rooms red when they check dates.':'Where each room is.'),
+        mgr?h('div',{class:'row'},h('label',{for:'map-room',class:'sub'},'Room to place'),sel,m.pins&&m.pins[ui.mapRoom]&&mgr?btn('Take off the map',function(){ var n=JSON.parse(JSON.stringify(RATES)); delete n.map.pins[ui.mapRoom]; run(saveRates(n),'Taken off the map.'); },'small'):null):null,
+        view,notPlaced.length?h('p',{class:'sub'},chip('Not on the map yet','warn'),' '+notPlaced.map(function(x){ return x.name; }).join(', ')):null)
+      :h('div',{class:'panel empty'},'No map yet. Upload an aerial photo of the resort: a drone photo, or a screenshot of Google Maps in satellite view. Then place each room on it.'));
+}
 /* which rooms are free for some dates, with the price for each */
 function availability(pre){
   needRates(); pre=pre||{};
@@ -1307,7 +1364,13 @@ function availability(pre){
       return h('div',{class:'avgroup'},h('div',{class:'avhead'},h('b',null,g.name),q&&!q.missing.length?h('span',null,thb(q.total)+' for '+n+' night'+(n===1?'':'s')):null),
         q?h('p',{class:'sub'},quoteText(q)):null,
         h('div',{class:'row wrap'},rs.map(function(rm){ return btn('Book '+rm.name,function(){ $dlg.close(); var qq=roomQuote(rm.id,from,to); editStay({room_id:rm.id,check_in:from,check_out:to,room_price_thb:qq&&!qq.missing.length?qq.total:null}); },'small'); }))); }).filter(Boolean);
-    out.replaceChildren(h('div',null,h('p',null,h('b',null,free.length+' of '+rooms.length+' rooms free'),' from '+fmtDate(from)+' to '+fmtDate(to)+', '+n+' night'+(n===1?'':'s')+(RATES?'. Season: '+Array.from(new Set(Array.from({length:n},function(_,i){ var se=seasonOf(addDays(from,i)); return se?se.name:''; }))).join(', '):'')+'.'),
+    var card=h('div',{class:'avcard',hidden:true});
+    function pickRoom(rid){ var rm=byId('rooms',rid), c=clash(rm), g=rateGroup(rid), q=roomQuote(rid,from,to);
+      card.hidden=false; card.replaceChildren(h('b',null,rm.name),g?h('div',{class:'sub'},g.name+(g.note?'. '+g.note:'')):null,
+        c.length?h('p',{class:'tbad'},'Taken: '+nameOf('customers',c[0].customer_id)+', '+fmtDate(c[0].check_in)+' to '+fmtDate(c[0].check_out)+'.')
+          :h('div',{class:'row'},h('span',null,q?(q.missing.length?quoteText(q):thb(q.total)+' for '+n+' night'+(n===1?'':'s')):'No price group'),btn('Book '+rm.name,function(){ $dlg.close(); editStay({room_id:rm.id,check_in:from,check_out:to,room_price_thb:q&&!q.missing.length?q.total:null}); },'primary small'))); }
+    var mv=mapView({status:function(rid){ var rm=byId('rooms',rid); return rm&&clash(rm).length?'taken':'free'; },onPick:pickRoom});
+    out.replaceChildren(h('div',null,mv,card,h('p',null,h('b',null,free.length+' of '+rooms.length+' rooms free'),' from '+fmtDate(from)+' to '+fmtDate(to)+', '+n+' night'+(n===1?'':'s')+(RATES?'. Season: '+Array.from(new Set(Array.from({length:n},function(_,i){ var se=seasonOf(addDays(from,i)); return se?se.name:''; }))).join(', '):'')+'.'),
       blocks.length?blocks:h('div',{class:'kerr'},'No rooms free for all of those nights.'),
       taken.length?h('p',{class:'sub'},'Taken: '+taken.map(function(rm){ var c=clash(rm)[0]; return rm.name+' ('+nameOf('customers',c.customer_id)+', '+fmtDate(c.check_in)+' to '+fmtDate(c.check_out)+')'; }).join('; ')+'.'):null));
   }
@@ -3655,6 +3718,7 @@ function vSettings(){
       {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
       {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
     ratesSettings(),
+    mapSettings(),
     section('Booking sources',btn('Add source',function(){ editSource(); },'small'),table([
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
