@@ -20,11 +20,14 @@ const isDay = (d: unknown) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.tes
 
 type Season = { id: string; name: string; ranges?: { from: string; to: string }[] };
 type Group = { id: string; name: string; rooms: string[]; prices: Record<string, number>; note?: string };
-type Rates = { base: string; seasons: Season[]; groups: Group[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
+type Opt = { id: string; name: string; price: number; limit?: number };
+type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; max?: number; unit?: string; note?: string };
+type Rates = { base: string; seasons: Season[]; groups: Group[]; extras?: Extra[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
+type Item = { name: string; price: number; covers: string[]; limit?: number | null; days?: number | null; starts?: string | null; expires?: string | null };
 
 async function rates(): Promise<Rates> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "room_rates").maybeSingle();
-  try { const r = JSON.parse(data?.value ?? "{}"); return { base: r.base || "low", seasons: r.seasons || [], groups: r.groups || [], map: r.map || {} }; }
+  try { const r = JSON.parse(data?.value ?? "{}"); return { base: r.base || "low", seasons: r.seasons || [], groups: r.groups || [], extras: r.extras || [], map: r.map || {} }; }
   catch { return { base: "low", seasons: [], groups: [] }; }
 }
 function inRange(md: string, r: { from: string; to: string }) { const a = r.from, b = r.to; if (!a || !b) return false; return a <= b ? md >= a && md <= b : md >= a || md <= b; }
@@ -55,8 +58,31 @@ function checkDates(from: unknown, to: unknown) {
   if (f > addDays(today(), 540)) return "We take bookings up to 18 months ahead.";
   return null;
 }
+// what the guest picked on the page, priced here from the settings, never from the page
+function extraItems(R: Rates, picks: unknown, from: string, to: string): Item[] {
+  const nights = Math.round((Date.parse(to) - Date.parse(from)) / 864e5), out: Item[] = [];
+  if (!Array.isArray(picks)) return out;
+  for (const p of picks.slice(0, 20) as Record<string, unknown>[]) {
+    const e = (R.extras || []).find((x) => x.id === p.id && !(x as { off?: boolean }).off); if (!e) continue;
+    const covers = e.covers || [];
+    if (e.kind === "pick") {
+      const o = (e.options || []).find((x) => x.id === p.option); if (!o) continue;
+      out.push({ name: `${e.name}, ${o.name}`, price: o.price, covers, limit: o.limit ?? null, starts: from, expires: addDays(to, 30) });
+    } else if (e.kind === "day") {
+      const days = Math.max(1, Math.min(nights, Math.round(Number(p.days) || nights)));
+      const per = e.tiers?.length ? (e.tiers.find((t) => days <= t.max) ?? e.tiers[e.tiers.length - 1]).price : Number(e.price || 0);
+      const add = p.addon && e.addon ? e.addon.price : 0;
+      out.push({ name: `${e.name}${add ? ", " + e.addon!.name : ""}, ${days} day${days === 1 ? "" : "s"}`, price: (per + add) * days, covers,
+        limit: e.per_day ? e.per_day * days : null, days, starts: from, expires: addDays(from, days - 1) });
+    } else {
+      const q = Math.max(1, Math.min(e.max || 10, Math.round(Number(p.qty) || 1)));
+      out.push({ name: `${e.name}${e.unit ? " (" + e.unit + ")" : ""}${q > 1 ? " x " + q : ""}`, price: Number(e.price || 0) * q, covers, starts: from, expires: addDays(to, 30) });
+    }
+  }
+  return out.filter((i) => i.price > 0);
+}
 async function takenRooms(from: string, to: string) {
-  await admin.from("stays").update({ status: "cancelled", hold_until: null }).lt("hold_until", new Date().toISOString()).eq("status", "booked").eq("app_paid_thb", 0);
+  await admin.rpc("web_holds_cleanup");
   const { data } = await admin.from("stays").select("room_id").not("status", "in", "(cancelled,out)").lt("check_in", to).gt("check_out", from);
   return new Set((data ?? []).map((s) => s.room_id));
 }
@@ -68,16 +94,18 @@ function backUrl(u: unknown): string {
   } catch { /* fall through */ }
   return PAGE;
 }
-async function stripeSession(amount: number, what: string, stayId: string, email: string, back: string) {
+async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string) {
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1&ref=" + stayId);
   p.set("cancel_url", back + "?paid=0&ref=" + stayId);
   p.set("expires_at", String(Math.floor(Date.now() / 1000) + 30 * 60 + 30));
-  p.set("line_items[0][quantity]", "1");
-  p.set("line_items[0][price_data][currency]", "thb");
-  p.set("line_items[0][price_data][unit_amount]", String(Math.round(amount * 100)));
-  p.set("line_items[0][price_data][product_data][name]", what.slice(0, 120));
+  lines.forEach((l, i) => {
+    p.set(`line_items[${i}][quantity]`, "1");
+    p.set(`line_items[${i}][price_data][currency]`, "thb");
+    p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(l.amount * 100)));
+    p.set(`line_items[${i}][price_data][product_data][name]`, l.name.slice(0, 120));
+  });
   p.set("payment_method_types[0]", "card");
   p.set("customer_email", email);
   for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
@@ -103,6 +131,7 @@ Deno.serve(async (req) => {
         seasons: R.seasons.map((s) => ({ id: s.id, name: s.name, ranges: s.ranges || [], base: s.id === R.base })),
         groups: R.groups.map((g) => ({ id: g.id, name: g.name, note: g.note || "", prices: g.prices })),
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
+        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
       });
     }
@@ -126,15 +155,20 @@ Deno.serve(async (req) => {
       const g = R.groups.find((x) => x.rooms.includes(roomId)); if (!g) return json({ error: "That room can not be booked online." });
       const q = quote(R, g, from, to); if (q.missing || !(q.total >= 20)) return json({ error: "That room has no price for those dates. Message us." });
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
+      const items = extraItems(R, body.extras, from, to), total = q.total + items.reduce((t, i) => t + i.price, 0);
+      await admin.rpc("web_holds_cleanup");
       const { data, error } = await admin.rpc("web_reserve", { p_room: roomId, p_from: from, p_to: to, p_price: q.total, p_name: String(body.name ?? ""), p_email: String(body.email ?? ""),
         p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: String(body.note ?? "").slice(0, 400) });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
       try {
-        const url = await stripeSession(q.total, `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, stayId, (data as { email: string }).email, backUrl(body.back));
-        return json({ url, stay_id: stayId, total: q.total });
+        if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
+        const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
+        const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back));
+        return json({ url, stay_id: stayId, total });
       } catch (e) {
         await admin.from("stays").update({ status: "cancelled", hold_until: null, notes: "Website booking, card payment could not start." }).eq("id", stayId);
+        await admin.from("purchases").update({ cancelled: true }).eq("for_stay", stayId).eq("ordered_in_app", true);
         return json({ error: "Card payment could not start. Try again, or message us. " + (e as Error).message });
       }
     }

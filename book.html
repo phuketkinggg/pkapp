@@ -53,6 +53,12 @@ textarea{min-height:70px}
 .chip:not(.full):not(.on){border-color:var(--ok);color:var(--ok);background:transparent}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.chip.full{opacity:.5;cursor:default;text-decoration:line-through}
 .sum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
 .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media (max-width:640px){.form{grid-template-columns:1fr}}.form .wide{grid-column:1/-1}
+.extras{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.ex{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.ex.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}.ex h3{margin:0;font:700 19px/1.15 var(--display);text-transform:uppercase}
+.exrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.exrow input[type=number]{width:80px;min-height:40px}.exrow label{flex-direction:row;align-items:center;gap:6px;font-weight:500}
+.exrow input[type=checkbox]{width:20px;height:20px;min-height:0}.step{display:flex;align-items:center;gap:6px}.step .btn{min-height:40px;width:44px;padding:0}
+.step b{min-width:24px;text-align:center}.exprice{font-weight:700}.totals{display:grid;gap:4px;margin:6px 0}.totals div{display:flex;justify-content:space-between;gap:10px}
 .done{text-align:center;padding:30px 16px}.done .big{font:700 40px var(--display);text-transform:uppercase}
 footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);font-size:14px}
 </style>
@@ -82,6 +88,12 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
     <div class="groups" id="groups"></div>
   </section>
 
+  <section class="card" id="step-extras" hidden>
+    <h2>Add to your stay</h2>
+    <p class="sub">Optional. Group Muay Thai classes are already included. Everything here is paid together with the room.</p>
+    <div class="extras" id="extras"></div>
+  </section>
+
   <section class="card" id="step-guest" hidden>
     <h2>Your details</h2>
     <div class="sum" id="chosen"></div>
@@ -104,7 +116,7 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
 (function(){
 'use strict';
 var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/book', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
-var INFO=null, Q=null, pick=null;
+var INFO=null, Q=null, pick=null, EX={};
 function $(id){ return document.getElementById(id); }
 function el(tag,attrs){ var e=document.createElement(tag); if(attrs) for(var k in attrs){ if(k==='text') e.textContent=attrs[k]; else if(k==='cls') e.className=attrs[k]; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),attrs[k]); else e.setAttribute(k,attrs[k]); }
   for(var i=2;i<arguments.length;i++){ var c=arguments[i]; if(c==null) continue; (Array.isArray(c)?c:[c]).forEach(function(x){ if(x!=null) e.appendChild(typeof x==='string'?document.createTextNode(x):x); }); } return e; }
@@ -162,16 +174,45 @@ function render(){
       el('div',{cls:'rooms'},rs.map(function(r){ var rr=room(r.id); return el('button',{type:'button',cls:'chip'+(r.state!=='free'?' full':'')+(pick&&pick.id===r.id?' on':''),disabled:r.state!=='free'?'':null,onclick:function(){ choose(r.id); }},short(rr?rr.name:'Room')); })),
       q?el('button',{type:'button',cls:'btn'+(chosen?' primary':''),onclick:function(){ choose(chosen?pick.id:q.id); }},chosen?'Chosen: '+short(room(pick.id).name):'Choose this room'):null)); });
 }
+function exPrice(e,sel){ if(!sel) return 0; var n=Q.nights;
+  if(e.kind==='pick'){ var o=(e.options||[]).filter(function(x){ return x.id===sel.option; })[0]; return o?o.price:0; }
+  if(e.kind==='day'){ if(!sel.on) return 0; var d=Math.max(1,Math.min(n,Math.round(Number(sel.days)||n))), per=e.tiers&&e.tiers.length?((e.tiers.filter(function(t){ return d<=t.max; })[0]||e.tiers[e.tiers.length-1]).price):Number(e.price||0);
+    return (per+(sel.addon&&e.addon?e.addon.price:0))*d; }
+  return (Number(sel.qty)||0)*Number(e.price||0); }
+function exTotal(){ return (INFO.extras||[]).reduce(function(t,e){ return t+exPrice(e,EX[e.id]); },0); }
+function renderExtras(){
+  var box=$('extras'); box.innerHTML=''; var n=Q.nights;
+  (INFO.extras||[]).forEach(function(e){ var sel=EX[e.id]||(EX[e.id]={}), price=exPrice(e,sel), on=price>0, body=[];
+    if(e.kind==='pick'){ body.push(el('div',{cls:'exrow'},[el('button',{type:'button',cls:'chip'+(!sel.option?' on':''),onclick:function(){ sel.option=null; changed(); }},'None')].concat((e.options||[]).map(function(o){
+        return el('button',{type:'button',cls:'chip'+(sel.option===o.id?' on':''),onclick:function(){ sel.option=o.id; changed(); }},o.name+', '+thb(o.price)); })))); }
+    else if(e.kind==='day'){ if(sel.days==null) sel.days=n;
+      var per=e.tiers&&e.tiers.length?e.tiers.map(function(t,i){ var lo=i?e.tiers[i-1].max+1:1; return (t.max>=999?lo+'+ days':lo+' to '+t.max+' days')+' '+thb(t.price); }).join(', ')+' a day':thb(e.price)+' a day';
+      var cb=el('input',{type:'checkbox','aria-label':'Add '+e.name}); cb.checked=!!sel.on; cb.onchange=function(){ sel.on=cb.checked; changed(); };
+      var dn=el('input',{type:'number',min:'1',max:String(n),value:String(sel.days),'aria-label':'Days'}); dn.onchange=function(){ sel.days=Math.max(1,Math.min(n,Math.round(Number(dn.value)||n))); sel.on=true; changed(); };
+      body.push(el('div',{cls:'sub'},per));
+      body.push(el('div',{cls:'exrow'},el('label',null,cb,'Add'),el('label',null,'for',dn,'day'+(n===1?'':'s'))));
+      if(e.addon){ var ad=el('input',{type:'checkbox'}); ad.checked=!!sel.addon; ad.onchange=function(){ sel.addon=ad.checked; if(ad.checked) sel.on=true; changed(); }; body.push(el('div',{cls:'exrow'},el('label',null,ad,e.addon.name+', +'+thb(e.addon.price)+' a day'))); } }
+    else { var q=Number(sel.qty)||0;
+      body.push(el('div',{cls:'exrow'},el('span',{cls:'sub'},thb(e.price)+(e.unit?' '+e.unit:' each')),el('div',{cls:'step'},el('button',{type:'button',cls:'btn','aria-label':'Less',onclick:function(){ sel.qty=Math.max(0,q-1); changed(); }},'−'),el('b',null,String(q)),el('button',{type:'button',cls:'btn','aria-label':'More',onclick:function(){ sel.qty=Math.min(e.max||10,q+1); changed(); }},'+')))); }
+    box.appendChild(el('div',{cls:'ex'+(on?' on':'')},el('div',{cls:'exrow',style:'justify-content:space-between'},el('h3',null,e.name),on?el('span',{cls:'exprice'},thb(price)):null),e.note?el('div',{cls:'sub'},e.note):null,body)); });
+}
+function changed(){ renderExtras(); summary(); }
+function summary(){
+  if(!pick) return; var r=Q.rooms.filter(function(x){ return x.id===pick.id; })[0], g=group(r.group), rr=room(pick.id), ex=exTotal(), tot=r.total+ex;
+  var lines=[el('div',null,el('span',null,'Room, '+Q.nights+' night'+(Q.nights===1?'':'s')),el('span',null,thb(r.total)))];
+  (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name),el('span',null,thb(pr)))); });
+  lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
+  $('chosen').innerHTML='';
+  $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines)));
+  $('pay').textContent='Pay '+thb(tot)+' by card'; pick.total=tot;
+}
 function choose(rid){
   var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r||r.state!=='free') return;
   pick={id:rid,total:r.total,from:Q.from,to:Q.to}; render();
-  var g=group(r.group), rr=room(rid);
-  $('chosen').innerHTML=''; $('chosen').appendChild(el('div',null,el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+', '+Q.nights+' night'+(Q.nights===1?'':'s')+'. Group Muay Thai classes included for one guest.')));
-  $('chosen').appendChild(el('div',{cls:'price'},thb(r.total)));
-  $('pay').textContent='Pay '+thb(r.total)+' by card';
-  show('step-guest',true); setTimeout(function(){ $('step-guest').scrollIntoView({behavior:'smooth',block:'start'}); },50);
+  show('step-extras',!!(INFO.extras||[]).length); renderExtras(); summary();
+  show('step-guest',true); setTimeout(function(){ $((INFO.extras||[]).length?'step-extras':'step-guest').scrollIntoView({behavior:'smooth',block:'start'}); },50);
 }
-$('dates').addEventListener('submit',function(e){ e.preventDefault(); var f=$('from').value,t=$('to').value; $('derr').hidden=true; pick=null; show('step-guest',false);
+$('dates').addEventListener('submit',function(e){ e.preventDefault(); var f=$('from').value,t=$('to').value; $('derr').hidden=true; pick=null; EX={}; show('step-guest',false); show('step-extras',false);
   if(!f||!t){ $('derr').textContent='Pick both dates.'; $('derr').hidden=false; return; }
   call({mode:'quote',from:f,to:t}).then(function(d){ Q=d; show('step-rooms',true); render(); $('step-rooms').scrollIntoView({behavior:'smooth',block:'start'}); try{ history.replaceState(null,'','?from='+f+'&to='+t); }catch(x){} })
     .catch(function(x){ $('derr').textContent=x.message; $('derr').hidden=false; }); });
@@ -181,13 +222,13 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
   b.disabled=true; b.textContent='Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),back:location.origin+location.pathname})
+  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
     .then(function(d){ location.href=d.url; })
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+thb(pick.total)+' by card'; err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
 
 function afterPay(ref,paid){
-  ['step-dates','step-rooms','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
+  ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
   var box=$('step-done'), tries=0;
   function draw(s){ box.innerHTML='';
     if(s&&s.paid){ box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); return; }
