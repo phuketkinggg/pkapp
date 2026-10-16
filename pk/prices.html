@@ -23,16 +23,16 @@
 
 <main>
 <section class="hero short" data-photo-bg="prices_hero" style="background-image:url(https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/prices_hero.webp)"><div class="wrap">
-  <div class="eyebrow">Prices</div>
-  <h1><em>Simple</em> prices.</h1><span class="rule"></span>
-  <p class="lead">Every price, nothing hidden. Group classes need no booking: buy a pass, check in at the desk, train. Staying at Pangea? Group Muay Thai is already included when you book your room with us.</p>
+  <div class="eyebrow" data-text="prices_t01">Prices</div>
+  <h1 data-text="prices_t02"><em>Simple</em> prices.</h1><span class="rule"></span>
+  <p class="lead" data-text="prices_t03">Every price, nothing hidden. Group classes need no booking: buy a pass, check in at the desk, train. Staying at Pangea? Group Muay Thai is already included when you book your room with us.</p>
 </div></section>
 
 <div class="light-sec"><div class="wrap" style="padding-bottom:1px">
   <nav class="tabs" aria-label="Price sections" id="tabs"></nav>
   <div id="groups"><p class="sub" style="margin:40px 0">Loading prices.</p></div>
-  <section class="group" id="stay"><div class="eyebrow">Stay</div><h2>Train and stay</h2><span class="rule"></span>
-    <p>Lakeside bungalows next to the gym, with group Muay Thai included. Add meals, recovery and privates when you book.</p>
+  <section class="group" id="stay"><div class="eyebrow" data-text="prices_t04">Stay</div><h2 data-text="prices_t05">Train and stay</h2><span class="rule"></span>
+    <p data-text="prices_t06">Lakeside bungalows next to the gym, with group Muay Thai included. Add meals, recovery and privates when you book.</p>
     <a class="btn red" href="../book.html">See free rooms and prices</a></section>
   <p class="sub" style="margin:40px 0 80px">Prices in Thai baht. Local resident and Thai prices are available at the desk. Questions? <a data-wa="Hi Phuket King, I have a question about prices.">WhatsApp us</a>.</p>
 </div></div>
@@ -84,9 +84,9 @@ PK.data().then(function(d){
   G.forEach(function(g){
     var list=d.packages.filter(function(p){ return !used[p.name]&&g.test(p); }); list.forEach(function(p){ used[p.name]=1; });
     if(!list.length) return;
-    var a=PK.el('a',null,g.title); a.href='#'+g.id; tabs.appendChild(a);
+    var a=PK.el('a',null,PK.esc(PK.txt(d,'prices_'+g.id+'_title',g.title).replace(/\*/g,''))); a.href='#'+g.id; tabs.appendChild(a);
     var s=PK.el('section','group'); s.id=g.id;
-    s.innerHTML='<h2>'+PK.esc(g.title)+'</h2><span class="rule"></span><p>'+PK.esc(g.note)+'</p>';
+    s.innerHTML='<h2>'+PK.rich(PK.txt(d,'prices_'+g.id+'_title',g.title))+'</h2><span class="rule"></span><p>'+PK.rich(PK.txt(d,'prices_'+g.id+'_note',g.note))+'</p>';
     var t=PK.el('table','ptable'); t.innerHTML='<thead><tr><th>Package</th><th>Price</th><th></th></tr></thead>';
     var tb=document.createElement('tbody');
     list.forEach(function(p){ var tr=document.createElement('tr');

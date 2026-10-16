@@ -608,7 +608,7 @@ function openForm(spec){
       var fs=h('fieldset',{class:'field checks'},h('legend',null,f.label),h('div',{class:'checkgrid'},labels),f.hint?h('small',null,f.hint):null); rowEls[f.key]=fs; if(f.hide) fs.hidden=true; return fs;
     }
     if(f.type==='select') el=h('select',{id:id},f.options.map(function(o){return h('option',{value:o[0]},o[1]);}));
-    else if(f.type==='textarea') el=h('textarea',{id:id,rows:'3'});
+    else if(f.type==='textarea') el=h('textarea',{id:id,rows:String(f.rows||3)});
     else if(f.type==='checkbox') el=h('input',{id:id,type:'checkbox'});
     else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:f.autocomplete||'off',readonly:f.readonly?'':null});
     inputs[f.key]=el;
@@ -3734,6 +3734,7 @@ function vSettings(){
     me.role==='manager'?welcomeSection():null,
     promoSection(),
     webPhotosSection(),
+    webTextSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
       {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
@@ -4389,11 +4390,34 @@ function editPromo(idx){
 }
 /* Website photos: every photo spot on the Phuket King website (list in pk/photos.js). Manager swaps one, the site picks it up within a minute. */
 var WEBP={list:null,photos:null,busy:null,err:''};
+function webScript(src,has){ return has()?Promise.resolve():new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=src; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); }); }
 function loadWebPhotos(){
-  var need=window.PK_PHOTOS?Promise.resolve():new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src='pk/photos.js'; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); });
-  return need.then(function(){ WEBP.list=window.PK_PHOTOS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
-    .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.err=''; schedule(); })
-    .catch(function(){ WEBP.err='The website photos could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; schedule(); });
+  return Promise.all([webScript('pk/photos.js',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js',function(){ return !!window.PK_TEXTS; })])
+    .then(function(){ WEBP.list=window.PK_PHOTOS||[]; WEBP.tlist=window.PK_TEXTS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
+    .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.texts=(d&&d.texts)||{}; WEBP.err=''; schedule(); })
+    .catch(function(){ WEBP.err='The website photos and text could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; WEBP.texts=WEBP.texts||{}; schedule(); });
+}
+function webTextEdit(t){
+  var cur=WEBP.texts[t.id], hint=(/^List/.test(t.label)?'One item on each line. ':t.multi?'Press Enter for a new line. ':'')+'Put *stars* around words to highlight them.';
+  openForm({title:'Website text',note:t.page+' page, '+t.label.split(':')[0].toLowerCase()+'.',values:{text:cur||t.text},fields:[
+      {key:'text',label:'Text',type:t.multi?'textarea':'text',rows:t.multi?(t.text.length>220?8:5):3,required:true,hint:hint+' Original: '+t.text.replace(/\n/g,' / ')}],
+    needMsg:'Write something, or tap Use original.',saveLabel:'Save to website',doneMsg:'Saved. The website shows it within a minute.',
+    extraBtn:cur?['Use original',function(){ $dlg.close(); run(sb.rpc('site_text_save',{p_key:t.id,p_text:null}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; }),'Back to the original text.'); }]:null,
+    onSave:function(v){ if(v.text.length>3000) return 'That is too long. Keep it under 3000 letters.';
+      return sb.rpc('site_text_save',{p_key:t.id,p_text:v.text===t.text?null:v.text}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; schedule(); }); }});
+}
+function webTextSection(){
+  if(!me||me.role!=='manager'||!WEBP.photos) return null;
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
+  return section('Website text',null,h('div',null,
+    h('p',{class:'sub'},'Every heading and paragraph on the Phuket King website. Tap one to rewrite it. The website shows the change within a minute. Put *stars* around a word to highlight it.'),
+    Object.keys(pages).map(function(pg){ var items=list.filter(function(t){ return t.page===pg; }); if(!items.length) return null;
+      return h('div',{style:'margin:18px 0 6px'},
+        h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},pg+' page'),h('a',{href:pages[pg],target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
+        table([{label:'Where',cell:function(t){ return linkBtn(t.label.split(':')[0],function(){ webTextEdit(t); }); }},
+          {label:'Text',cell:function(t){ var v=tx[t.id]||t.text; return h('span',{style:'display:block;max-width:520px;white-space:pre-line'},v.length>160?v.slice(0,158)+'...':v); }},
+          {label:'',cell:function(t){ return tx[t.id]?chip('Changed','ok'):null; }}],items,''));
+    })));
 }
 function shrinkPhoto(f,mx){ return new Promise(function(ok,bad){ createImageBitmap(f).then(function(img){ var k=Math.min(1,mx/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(function(b){ b?ok(b):bad({plain:true,message:'Could not read the photo.'}); },'image/jpeg',0.82); },function(){ bad({plain:true,message:'Could not read that photo. Try a JPG or PNG.'}); }); }); }
 function webPhotoChange(s){

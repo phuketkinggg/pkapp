@@ -88,7 +88,7 @@ section.band{padding:clamp(60px,9vw,110px) 0}
 .ticks li{display:flex;gap:12px;align-items:baseline}
 .ticks li::before{content:"";flex:none;width:10px;height:10px;background:var(--red);transform:rotate(45deg) translateY(-1px)}
 .motto{font:600 clamp(22px,3.4vw,34px)/1.25 var(--font);letter-spacing:.06em;text-transform:uppercase}
-.motto span{color:var(--red)}
+.motto span,.motto em{color:var(--red);font-style:normal}
 
 /* today */
 .today{display:grid;gap:10px}

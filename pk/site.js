@@ -18,7 +18,15 @@ if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open')
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
 var y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
-// photos the manager has changed in the app (Settings > Website photos)
+// text and photos the manager has changed in the app (Settings > Website text, Website photos)
+// text format: *stars* highlight, a new line is a line break, in lists each line is one item
+PK.rich=function(t,list){ var e=function(x){ return PK.esc(x).replace(/\*([^*\n]+)\*/g,'<em>$1</em>'); };
+  return list?String(t).split('\n').filter(function(l){ return l.trim(); }).map(function(l){ return '<li>'+e(l.trim())+'</li>'; }).join(''):e(String(t).trim()).replace(/\n/g,'<br>'); };
+PK.txt=function(d,k,def){ var t=d&&d.texts&&d.texts[k]; return typeof t==='string'&&t.trim()?t:def; };
+PK.data().then(function(d){ var tx=(d&&d.texts)||{};
+  Object.keys(tx).forEach(function(k){ if(!/^[a-z0-9_]+$/.test(k)||typeof tx[k]!=='string'||!tx[k].trim()) return;
+    document.querySelectorAll('[data-text="'+k+'"]').forEach(function(e){ e.innerHTML=PK.rich(tx[k],e.tagName==='UL'); }); });
+},function(){});
 PK.data().then(function(d){ var ph=(d&&d.photos)||{}, ok=/^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\/storage\/v1\/object\/public\/promos\/site\//;
   Object.keys(ph).forEach(function(k){ var u=ph[k]; if(!/^[a-z0-9_]+$/.test(k)||typeof u!=='string'||!ok.test(u)) return;
     document.querySelectorAll('[data-photo="'+k+'"]').forEach(function(e){ e.src=u; });
