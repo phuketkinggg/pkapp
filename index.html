@@ -1845,7 +1845,16 @@ var HKT={
     mbTitle:function(r){ return 'Mini bar, '+r; },mbNote:'How many of each was used? It goes on the guest\'s room bill.',mbSave:'Add to bill',mbDone:'Added to the room bill.',
     mbNone:'Enter how many of at least one item.',mbEmpty:'No mini bar items yet. A manager adds them in Settings.',
     isTitle:function(r){ return 'Problem in '+r; },isNote:'Something broken or not working. The manager sees it straight away.',isLabel:'What is wrong',isSave:'Report',isDone:'Reported.',
-    cancel:'Cancel',need:'Please fill this in.',noGuest:'Nobody is staying in this room right now, so there is no bill to add it to. Tell the front desk.',other:'Burmese'},
+    cancel:'Cancel',need:'Please fill this in.',noGuest:'Nobody is staying in this room right now, so there is no bill to add it to. Tell the front desk.',other:'Burmese',
+    light:'Light clean',fullc:'Full change',deep:'Deep clean',
+    lightDo:'Tidy up, empty the bins, make the bed, wipe the bathroom, sweep',fullDo:'Light clean plus fresh sheets and fresh towels',deepDo:'Clean everything for the next guest: sheets, towels, bathroom, floors, fridge, under the bed',
+    deepMid:'Long stay: mid-stay deep clean today',deepAfter:'Deep clean after the guest leaves',noDue:'No clean due today',
+    doneK:function(k){ return 'Done: '+k; },doneMsg:function(r,k){ return r+': '+k+' done.'; },doneToday:function(k){ return k+' done today'; },
+    otherClean:'Other clean',otherTitle:function(r){ return 'Clean done in '+r; },whichClean:'Which clean did you do?',save:'Save',
+    nightOf:function(k,n){ return 'Night '+k+' of '+n; },nextFull:function(d){ return d===1?'Full change tomorrow':'Next full change in '+d+' days'; },
+    reqBtn:'Guest request',reqTitle:function(r){ return 'Guest request, '+r; },reqKind:'What does the guest want?',reqExtra:'An extra clean today',reqSkip:'No clean today',reqTowels:'More towels',reqOther:'Something else',reqQty:'How many towels',reqNote:'What do they need?',reqSave:'Add',reqDone:'Added.',reqNeedNote:'Write what the guest asked for.',
+    rqExtra:'Guest asked for a clean today',rqSkip:'Guest said no clean today',rqTowels:function(q){ return 'Guest wants '+q+' more towel'+(q>1?'s':''); },rqOther:'Guest asked: ',fromApp:' (guest app)',
+    rqDoneBtn:'Done',rqDoneMsg:'Done.',skipChip:'No clean today',reqChip:'Guest request'},
   my:{rooms:'အခန်းများ',loading:'အခန်းများ ဖွင့်နေသည်။',toClean:function(n){ return 'သန့်ရှင်းရန် '+n+' ခန်း'; },allClean:'အခန်းအားလုံး သန့်ရှင်းပြီး',
     nowArriving:'ဧည့်သည်ရောက်မည်၊ ယခု သန့်ရှင်းပါ',full:'အပြည့်အစုံ သန့်ရှင်းရန်',leavingChip:'ဧည့်သည် ယနေ့ ထွက်မည်',daily:'နေ့စဉ် သန့်ရှင်းရေး',cleanedToday:'ယနေ့ သန့်ရှင်းပြီး',clean:'သန့်ရှင်းသည်',
     arriving:'ဧည့်သည် ယနေ့ ရောက်မည်',leaving:'ဧည့်သည် ယနေ့ ထွက်မည်',staying:'ဧည့်သည် တည်းခိုနေသည်',empty:'အခန်းလွတ်',
@@ -1854,7 +1863,16 @@ var HKT={
     mbTitle:function(r){ return 'မီနီဘား - '+r; },mbNote:'ပစ္စည်းတစ်ခုစီ ဘယ်နှခု သုံးသလဲ။ ဧည့်သည်၏ အခန်းဘေလ်ထဲ ထည့်ပါမည်။',mbSave:'ဘေလ်ထဲ ထည့်ရန်',mbDone:'အခန်းဘေလ်ထဲ ထည့်ပြီးပါပြီ။',
     mbNone:'အနည်းဆုံး ပစ္စည်းတစ်ခု၏ အရေအတွက် ထည့်ပါ။',mbEmpty:'မီနီဘား ပစ္စည်း မရှိသေးပါ။ မန်နေဂျာကို ပြောပါ။',
     isTitle:function(r){ return r+' တွင် ပြဿနာ'; },isNote:'ပျက်နေသော သို့မဟုတ် အလုပ်မလုပ်သော အရာ။ မန်နေဂျာ ချက်ချင်း မြင်ရပါမည်။',isLabel:'ဘာဖြစ်နေသလဲ',isSave:'ပို့ရန်',isDone:'ပို့ပြီးပါပြီ။',
-    cancel:'မလုပ်တော့ပါ',need:'ဖြည့်ပေးပါ။',noGuest:'ယခု ဤအခန်းတွင် ဧည့်သည် မရှိပါ။ ရှေ့ကောင်တာကို ပြောပါ။',other:'English'}
+    cancel:'မလုပ်တော့ပါ',need:'ဖြည့်ပေးပါ။',noGuest:'ယခု ဤအခန်းတွင် ဧည့်သည် မရှိပါ။ ရှေ့ကောင်တာကို ပြောပါ။',other:'English',
+    light:'အပေါ့စား သန့်ရှင်းရေး',fullc:'အိပ်ယာခင်း တဘက် အသစ်လဲ',deep:'အပြည့်အစုံ သန့်ရှင်းရေး',
+    lightDo:'ရှင်းလင်း၊ အမှိုက်ပုံး သွန်၊ အိပ်ယာ ပြင်၊ ရေချိုးခန်း သုတ်၊ တံမြက်လှည်း',fullDo:'အပေါ့စား သန့်ရှင်းရေး နှင့် အိပ်ယာခင်း တဘက် အသစ် လဲပါ',deepDo:'နောက်ဧည့်သည်အတွက် အားလုံး သန့်ရှင်းပါ - အိပ်ယာခင်း၊ တဘက်၊ ရေချိုးခန်း၊ ကြမ်းပြင်၊ ရေခဲသေတ္တာ၊ ကုတင်အောက်',
+    deepMid:'ကြာရှည်တည်းခိုသူ - ယနေ့ အပြည့်အစုံ သန့်ရှင်းပါ',deepAfter:'ဧည့်သည် ထွက်ပြီးနောက် အပြည့်အစုံ သန့်ရှင်းပါ',noDue:'ယနေ့ သန့်ရှင်းရန် မလိုပါ',
+    doneK:function(k){ return 'ပြီးပြီ - '+k; },doneMsg:function(r,k){ return r+' - '+k+' ပြီးပါပြီ။'; },doneToday:function(k){ return 'ယနေ့ '+k+' ပြီးပြီ'; },
+    otherClean:'အခြား သန့်ရှင်းရေး',otherTitle:function(r){ return r+' တွင် သန့်ရှင်းပြီး'; },whichClean:'ဘယ်လို သန့်ရှင်းရေး လုပ်ခဲ့သလဲ',save:'သိမ်းရန်',
+    nightOf:function(k,n){ return 'ည '+n+' ညအနက် '+k+' ည'; },nextFull:function(d){ return d===1?'မနက်ဖြန် အိပ်ယာခင်း တဘက် လဲရန်':d+' ရက်အကြာ အိပ်ယာခင်း တဘက် လဲရန်'; },
+    reqBtn:'ဧည့်သည် တောင်းဆိုချက်',reqTitle:function(r){ return 'ဧည့်သည် တောင်းဆိုချက် - '+r; },reqKind:'ဧည့်သည် ဘာလိုချင်သလဲ',reqExtra:'ယနေ့ ထပ်မံ သန့်ရှင်းပေးရန်',reqSkip:'ယနေ့ သန့်ရှင်းရန် မလို',reqTowels:'တဘက် ထပ်လို',reqOther:'အခြား',reqQty:'တဘက် ဘယ်နှစ်ထည်',reqNote:'ဘာလိုသလဲ',reqSave:'ထည့်ရန်',reqDone:'ထည့်ပြီးပါပြီ။',reqNeedNote:'ဧည့်သည် တောင်းဆိုသည်ကို ရေးပါ။',
+    rqExtra:'ဧည့်သည်က ယနေ့ သန့်ရှင်းပေးရန် တောင်းဆိုသည်',rqSkip:'ဧည့်သည်က ယနေ့ သန့်ရှင်းရန် မလိုဟု ပြောသည်',rqTowels:function(q){ return 'ဧည့်သည်က တဘက် '+q+' ထည် ထပ်လိုသည်'; },rqOther:'ဧည့်သည် တောင်းဆိုချက် - ',fromApp:' (ဧည့်သည် app)',
+    rqDoneBtn:'ပြီးပြီ',rqDoneMsg:'ပြီးပါပြီ။',skipChip:'ယနေ့ မသန့်ရှင်းရ',reqChip:'ဧည့်သည် တောင်းဆိုချက်'}
 };
 function hkLang(){ return pref('pk_lang')==='my'&&me&&me.role==='housekeeping'?'my':'en'; }
 function T(k){ return HKT[hkLang()][k]; }
@@ -1863,13 +1881,46 @@ function hkErr(e){ var m=(e&&e.message)||''; if(hkLang()==='my'&&/Nobody is stay
 function setHkLang(l){ pref('pk_lang',l==='my'?'my':null); document.body.classList.toggle('lang-my',l==='my'); document.documentElement.lang=l==='my'?'my':'en'; TABS=[['hk',T('rooms')],['clock',K('tab')]]; schedule(); }
 function loadHK(){ lastLoad=Date.now(); return sb.rpc('housekeeping_home').then(function(res){ HK=must(res); schedule(); }); }
 function hkDo(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return (me&&me.role==='housekeeping'?loadHK():reloadHKDesk()).then(function(){ return d; }); }); }
-function hkState(r){
-  if(r.needs_full) return {rank:r.arriving?0:1,chip:chip(T(r.arriving?'nowArriving':'full'),'bad')};
-  if(r.leaving&&!r.cleaned_today) return {rank:3,chip:chip(T('leavingChip'),'warn')};
-  if(r.occupied&&!r.cleaned_today) return {rank:2,chip:chip(T('daily'),'warn')};
-  if(r.cleaned_today) return {rank:5,chip:chip(T('cleanedToday'),'ok')};
-  return {rank:4,chip:chip(T('clean'),'ok')};
+var HK_RANK={light:1,full:2,deep:3}, HK_NAME={light:'light',full:'fullc',deep:'deep'};
+/* what clean the room needs today, from the cleaning rules (set in the database) and the guest's requests */
+function hkTask(r){
+  var reqs=r.requests||[], skip=reqs.some(function(q){ return q.kind==='no_clean'; }), extra=reqs.some(function(q){ return q.kind==='extra_clean'; });
+  var other=reqs.filter(function(q){ return q.kind==='towels'||q.kind==='other'; });
+  var kind=null, why=null;
+  if(r.needs_full){ kind='deep'; why='checkout'; }
+  else if(r.leaving&&r.done_rank_today<3){ kind='deep'; why='after'; }
+  else if(r.plan){ kind=r.plan; why=r.plan==='deep'?'mid':'plan'; }
+  if(extra&&(!kind||HK_RANK[kind]<1)&&why!=='after'){ kind='light'; why='guest'; }
+  if(skip&&why!=='checkout'&&why!=='after'){ kind=null; why='skip'; }
+  var done=!!kind&&r.done_rank_today>=HK_RANK[kind];
+  return {kind:kind,why:why,done:done,skip:skip,other:other};
 }
+function hkState(r){
+  var t=hkTask(r);
+  if(r.needs_full) return {rank:r.arriving?0:1,chip:chip(T(r.arriving?'nowArriving':'full'),'bad')};
+  if(t.other.length) return {rank:2,chip:chip(T('reqChip'),'bad')};
+  if(t.kind&&!t.done&&t.why!=='after') return {rank:2,chip:chip(T(HK_NAME[t.kind]),t.kind==='light'?'warn':'bad')};
+  if(t.why==='after') return {rank:3,chip:chip(T('leavingChip'),'warn')};
+  if(t.skip) return {rank:4,chip:chip(T('skipChip'))};
+  if(r.cleaned_today) return {rank:5,chip:chip(T('cleanedToday'),'ok')};
+  return {rank:4,chip:chip(T(r.occupied?'noDue':'clean'),'ok')};
+}
+function hkDone(r,kind){ run(hkDo('hk_clean_done',{p_room:r.id,p_kind:kind}),T('doneMsg')(r.name,T(HK_NAME[kind]))); }
+function hkOtherClean(r){
+  openForm({title:T('otherTitle')(r.name),saveLabel:T('save'),cancelLabel:T('cancel'),doneMsg:T('markedClean')(r.name),fields:[
+    {key:'kind',label:T('whichClean'),type:'select',def:'light',options:[['light',T('light')],['full',T('fullc')],['deep',T('deep')]]}],
+    onSave:function(v){ return hkDo('hk_clean_done',{p_room:r.id,p_kind:v.kind}); }});
+}
+function hkRequest(r){
+  openForm({title:T('reqTitle')(r.name),saveLabel:T('reqSave'),cancelLabel:T('cancel'),doneMsg:T('reqDone'),fields:[
+    {key:'kind',label:T('reqKind'),type:'select',def:'towels',options:[['towels',T('reqTowels')],['extra_clean',T('reqExtra')],['no_clean',T('reqSkip')],['other',T('reqOther')]],
+      onChange:function(k,set,get,so,show){ show('qty',k==='towels'); show('note',k==='other'); }},
+    {key:'qty',label:T('reqQty'),type:'number',def:1},{key:'note',label:T('reqNote'),hide:true}],
+    onSave:function(v){ if(v.kind==='other'&&!v.note) return T('reqNeedNote');
+      return hkDo('hk_request_add',{p_room:r.id,p_kind:v.kind,p_qty:v.kind==='towels'?Math.max(1,Math.round(Number(v.qty)||1)):null,p_note:v.kind==='other'?v.note:null}); }});
+}
+function hkReqText(q){ var t=q.kind==='extra_clean'?T('rqExtra'):q.kind==='no_clean'?T('rqSkip'):q.kind==='towels'?T('rqTowels')(q.qty||1):T('rqOther')+(q.note||'');
+  return t+(q.source==='guest'?T('fromApp'):'')+', '+q.at; }
 function hkMinibar(r){
   var MB=(me&&me.role==='housekeeping'?HK:HKD)||HK||HKD;
   if(!MB.items.length){ toast(T('mbEmpty')); return; }
@@ -1890,15 +1941,28 @@ function hkCard(r,staffView){
   var st=hkState(r), bits=[];
   bits.push(T(r.arriving?'arriving':r.leaving?'leaving':r.occupied?'staying':'empty'));
   bits.push(r.last_cleaned?T('lastCleaned')+' '+hkDate(r.last_cleaned.slice(0,10))+' '+r.last_cleaned.slice(11):T('never'));
-  var again=r.cleaned_today&&!r.needs_full;
-  var acts=[btn(T(again?'cleanedAgain':'cleaned'),function(){ run(hkDo('hk_cleaned',{p_room:r.id}),T('markedClean')(r.name)); },again?'small':'primary small')];
+  var t=hkTask(r), acts=[];
+  if(r.stay_nights&&r.stay_night_no) bits.push(T('nightOf')(r.stay_night_no,r.stay_nights));
+  if(t.kind&&!t.done){
+    bits.unshift(T(HK_NAME[t.kind])+': '+T(t.kind+'Do')); if(t.why==='mid') bits.unshift(T('deepMid'));
+    if(t.why==='after') bits.unshift(T('deepAfter'));
+    acts.push(btn(T('doneK')(T(HK_NAME[t.kind])),function(){ hkDone(r,t.kind); },'primary small'));
+  } else if(t.done) bits.unshift(T('doneToday')(T(HK_NAME[t.kind])));
+  else if(t.skip) bits.unshift(T('rqSkip'));
+  else if(r.occupied) bits.unshift(T('noDue'));
+  if(r.next_full&&!(t.kind&&t.kind!=='light'&&!t.done)) bits.push(T('nextFull')(r.next_full));
+  acts.push(btn(T('otherClean'),function(){ hkOtherClean(r); },'small'));
+  if(r.guest_in||r.occupied) acts.push(btn(T('reqBtn'),function(){ hkRequest(r); },'small'));
   if(!staffView&&r.guest_in) acts.push(btn(T('minibar'),function(){ hkMinibar(r); },'small'));
   if(!staffView&&r.guest_in&&!r.minibar_today) acts.push(btn(T('mbOk'),function(){ run(hkDo('hk_minibar_ok',{p_room:r.id}),T('mbOkDone')); },'small'));
   if(r.minibar_today) bits.push(T('mbChecked'));
   if(!staffView) acts.push(btn(SU('supplies'),function(){ suppliesDlg(r); },'small'));
   if(!staffView) acts.push(btn(T('problem'),function(){ hkIssue(r); },'small'));
   var sep=hkLang()==='my'?'။ ':'. ';
-  return {when:r.name,right:st.chip,note:bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),act:acts};
+  var reqEls=(r.requests||[]).map(function(q){ var closeIt=q.kind==='towels'||q.kind==='other';
+    return h('div',{class:'row',style:'align-items:center;gap:8px;margin-top:6px'},chip(hkReqText(q),q.kind==='no_clean'?null:'bad'),
+      closeIt?btn(T('rqDoneBtn'),function(){ run(hkDo('hk_request_close',{p_id:q.id,p_status:'done'}),T('rqDoneMsg')); },'small'):null); });
+  return {when:r.name,right:st.chip,note:h('span',null,bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),reqEls),act:acts};
 }
 function vHK(){
   if(!HK) return [h('div',{class:'panel empty'},T('loading'))];
@@ -4046,7 +4110,7 @@ function scanQR(prompt,onText){
       e&&e.message==='load'?'Could not load the scanner. Check your connection and try again.':'Could not open the camera. Use your normal camera app to scan the poster.';
   });
 }
-function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public')]).then(function(r){ CU=must(r[0]); if(CU){ CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; } schedule(); }); }
+function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status')]).then(function(r){ CU=must(r[0]); if(CU){ CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
 function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
 function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
 function cuWd(){ return (parseYmd(CU.today).getDay()+6)%7; }
@@ -4158,6 +4222,31 @@ function cuStay(){
   if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card',function(){ stripePay('stay',st.id); },'small'):null]:null});
   return section('Your stay',null,cards(items,''));
 }
+/* the guest's room cleaning: what is planned today, and asking for an extra clean, no clean, towels or something else */
+function cuHkSend(kind,qty,note,msg){ return sb.rpc('guest_hk_request',{p_kind:kind,p_qty:qty||null,p_note:note||null}).then(must).then(function(d){ CU.hk=d; schedule(); toast(msg); }); }
+function cuHkAsk(kind){
+  if(kind==='towels') return openForm({title:'More towels',saveLabel:'Ask for towels',doneMsg:'Asked. Housekeeping will bring them.',fields:[{key:'qty',label:'How many towels',type:'select',def:'1',options:[['1','1'],['2','2'],['3','3'],['4','4']]}],
+    onSave:function(v){ return sb.rpc('guest_hk_request',{p_kind:'towels',p_qty:Number(v.qty),p_note:null}).then(must).then(function(d){ CU.hk=d; schedule(); }); }});
+  if(kind==='other') return openForm({title:'Ask housekeeping',saveLabel:'Send',doneMsg:'Sent to housekeeping.',fields:[{key:'note',label:'What do you need?',type:'textarea',required:true,hint:'For example: an extra pillow, more toilet paper, or clean after 2pm.'}],
+    onSave:function(v){ if(v.note.length>300) return 'Please keep it shorter.'; return sb.rpc('guest_hk_request',{p_kind:'other',p_qty:null,p_note:v.note}).then(must).then(function(d){ CU.hk=d; schedule(); }); }});
+  run(cuHkSend(kind,null,null,kind==='no_clean'?'Got it. We will not clean your room today.':'Got it. Housekeeping will clean your room today.'));
+}
+function cuHk(){
+  var k=CU.hk; if(!k) return null;
+  var names={light:'A light clean today (tidy, bins, bed, bathroom).',full:'Fresh sheets and towels today, with a light clean.',deep:'A full deep clean today.'};
+  var reqs=k.requests||[], skip=reqs.some(function(q){ return q.kind==='no_clean'&&q.status==='open'; }), extra=reqs.some(function(q){ return q.kind==='extra_clean'; });
+  var today=k.cleaned_today?'Your room has been cleaned today.':skip?'No clean today, as you asked.':extra?'Housekeeping will clean your room today, as you asked.':k.plan?names[k.plan]:'No clean planned today. Ask below if you would like one.';
+  var lines=[{when:'Today',title:today,note:k.next_full?(k.next_full===1?'Fresh sheets and towels tomorrow.':'Fresh sheets and towels in '+k.next_full+' days.'):null}];
+  reqs.filter(function(q){ return q.kind==='towels'||q.kind==='other'; }).forEach(function(q){
+    lines.push({when:q.kind==='towels'?q.qty+' more towel'+(q.qty>1?'s':''):'You asked',title:q.kind==='other'?q.note:null,right:q.status==='done'?chip('Done','ok'):chip('Asked'),
+      act:q.status==='open'&&q.source==='guest'?btn('Cancel',function(){ run(sb.rpc('guest_hk_cancel',{p_id:q.id}).then(must).then(function(d){ CU.hk=d; schedule(); }),'Cancelled.'); },'small'):null}); });
+  return section('Room cleaning, '+k.room,null,h('div',null,cards(lines,''),
+    h('div',{class:'row',style:'margin-top:10px'},
+      !k.cleaned_today&&(!k.plan||skip)&&!extra?btn('Clean my room today',function(){ cuHkAsk('extra_clean'); },'small'):null,
+      !k.cleaned_today&&!skip&&(k.plan||extra)?btn('No clean today, thanks',function(){ cuHkAsk('no_clean'); },'small'):null,
+      btn('More towels',function(){ cuHkAsk('towels'); },'small'),
+      btn('Something else',function(){ cuHkAsk('other'); },'small'))));
+}
 function vCHome(){
   var day=CU.today, wd=cuWd(), first=String(CU.me.name||'').split(' ')[0];
   var waiting=CU.purchases.filter(function(p){ return !cuUsable(p); });
@@ -4170,6 +4259,7 @@ function vCHome(){
     CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('customer',null); },'small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
+    cuHk(),
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
     section('My packages',btn('Buy a package',function(){ go('c_buy'); },'small'),cards(live.map(pkgCard),'No active package yet. Order one here and pay at the front desk.')),
     nextP?section('Next private',btn('All privates',function(){ go('c_pt'); },'small'),cards([ptCard(nextP,true)],'')):null,
