@@ -3869,7 +3869,7 @@ function toRow(col,body,isSet){
   m.w.forEach(function(k){
     var has=Object.prototype.hasOwnProperty.call(body,k), v=body[k];
     if(!has||v===undefined){ if(isSet&&m.clear&&m.clear.indexOf(k)>=0) row[m.r[k]||k]=null; return; }
-    if(v===''||(Array.isArray(v)&&!v.length&&k!=='covers')) v=null;
+    if(v===''||(Array.isArray(v)&&!v.length&&k!=='covers'&&k!=='tags')) v=null;
     if(k==='covers'&&v==null) return;
     row[m.r[k]||k]=v;
   });
