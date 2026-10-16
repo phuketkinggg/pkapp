@@ -713,29 +713,32 @@ function sellPackage(c){
   var group=c.price_group||'standard';
   var list=sortBy(S.packages.filter(function(p){return p.active!==false&&canBuy(p,group);}),'name');
   if(!list.length){ toast('Add a package first, in Packages.'); return; }
-  function qtyDef(pk){ return pk.qty_default||5; }
-  function total(pk,fz,q){ var t=tiersFor(pk,group), base=t?(tierUnit(t,q||1)||0)*(q||1):Number(priceFor(pk,group))||0; return (base+(fz?Number(addonFor(pk,group))||0:0))||null; }
-  function reprice(set,get,show){ var pk=byId('packages',get('package_id')); if(!pk) return; var t=tiersFor(pk,group);
-    if(show){ show('qty',!!t); show('tiernote',!!t); }
-    if(t){ var q=get('qty'); if(!q){ q=qtyDef(pk); set('qty',q); } set('tiernote',tiersLine(t,pk.qty_unit)+'. '+q+' x '+thb(tierUnit(t,q))); }
-    set('price_thb',total(pk,get('fz'),t?get('qty'):1)); set('paid_now',get('price_thb')); }
-  var t0=tiersFor(list[0],group), q0=t0?qtyDef(list[0]):null;
-  openForm({title:'Sell a package to '+c.name+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:{price_thb:total(list[0],false,q0||1),paid_now:total(list[0],false,q0||1),qty:q0,tiernote:t0?tiersLine(t0,list[0].qty_unit)+'. '+q0+' x '+thb(tierUnit(t0,q0)):''},fields:[
+  function qtyDef(pk){ return perPriv(pk)?10:(pk.qty_default||5); }
+  // a single private sold as a package (no session count of its own): choose how many privates
+  function perPriv(pk){ return !!pk&&!tiersFor(pk,group)&&(pk.covers||[]).indexOf('Privates')>=0&&!(pk.class_limit>1); }
+  function total(pk,fz,q){ var t=tiersFor(pk,group), base=t?(tierUnit(t,q||1)||0)*(q||1):(Number(priceFor(pk,group))||0)*(perPriv(pk)?(q||1):1); return (base+(fz?Number(addonFor(pk,group))||0:0))||null; }
+  function reprice(set,get,show){ var pk=byId('packages',get('package_id')); if(!pk) return; var t=tiersFor(pk,group), pp=perPriv(pk);
+    if(show){ show('qty',!!t||pp); show('tiernote',!!t||pp); }
+    if(t||pp){ var q=get('qty'); if(!q){ q=qtyDef(pk); set('qty',q); } set('tiernote',t?tiersLine(t,pk.qty_unit)+'. '+q+' x '+thb(tierUnit(t,q)):q+' privates x '+thb(priceFor(pk,group))); }
+    set('price_thb',total(pk,get('fz'),t||pp?get('qty'):1)); set('paid_now',get('method')==='later'?0:get('price_thb')); }
+  var t0=tiersFor(list[0],group), p0=perPriv(list[0]), q0=t0||p0?qtyDef(list[0]):null;
+  openForm({title:'Sell a package to '+c.name+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:{price_thb:total(list[0],false,q0||1),paid_now:total(list[0],false,q0||1),qty:q0,tiernote:t0?tiersLine(t0,list[0].qty_unit)+'. '+q0+' x '+thb(tierUnit(t0,q0)):p0?q0+' privates x '+thb(priceFor(list[0],group)):''},fields:[
     {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get,o,show){ set('qty',null); reprice(set,get,show); }},
-    {key:'qty',label:'How many (sessions, or days for a day pass)',type:'number',hide:!t0,onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
-    {key:'tiernote',label:'Price for each',hide:!t0,readonly:true},
+    {key:'qty',label:'How many (privates, sessions, or days for a day pass)',type:'number',hide:!(t0||p0),onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
+    {key:'tiernote',label:'Price for each',hide:!(t0||p0),readonly:true},
     {key:'fz',label:'Add Fitness Zone access (the add-on price set on the package)',type:'checkbox',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
-    {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set){ set('paid_now',v); }},
+    {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set,get){ set('paid_now',get('method')==='later'?0:v); }},
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
-    {key:'paid_now',label:'Amount paid now (THB)',type:'number',hint:'If they pay part now, type what they paid. The rest shows as owed and they pay it later with Take payment.'},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat(PAYLINK),hint:'Stripe card link and PromptPay QR show the payment straight after you tap Record sale.'}],
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(PAYOPTS,PAYLINK),hint:'Not paid yet: the package works straight away and the full price shows as owed until they pay with Take payment. Stripe card link and PromptPay QR show the payment straight after you tap Record sale.',
+      onChange:function(v,set,get,o,show){ show('paid_now',v!=='later'); set('paid_now',v==='later'?0:get('price_thb')); }},
+    {key:'paid_now',label:'Amount paid now (THB)',type:'number',hint:'If they pay part now, type what they paid. The rest shows as owed and they pay it later with Take payment.'}],
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
       var paidNow=v.paid_now==null?Number(v.price_thb)||0:Math.round(v.paid_now); if(paidNow<0||paidNow>Number(v.price_thb)) return 'The amount paid now must be between 0 and the price.';
-      var tt=tiersFor(pk,group), q=tt?Math.round(v.qty||0):null; if(tt&&(q<1||q>200)) return 'Type how many, 1 to 200.';
-      var byDay=tt&&pk.qty_unit==='days', lim=tt&&!byDay?q:(byDay?null:pk.class_limit||null), nm=pk.name+(tt?', '+q+(byDay?(q===1?' day':' days'):pk.covers&&pk.covers.indexOf('Privates')>=0?' sessions':' visits'):'');
+      var tt=tiersFor(pk,group), pp=perPriv(pk), q=tt||pp?Math.round(v.qty||0):null; if((tt||pp)&&(q<1||q>200)) return 'Type how many, 1 to 200.'; if(v.method==='later') paidNow=0;
+      var byDay=tt&&pk.qty_unit==='days', lim=(tt&&!byDay)||pp?q:(byDay?null:pk.class_limit||null), nm=pp?(q===1?pk.name:'Private Muay Thai, '+q+' sessions'):pk.name+(tt?', '+q+(byDay?(q===1?' day':' days'):pk.covers&&pk.covers.indexOf('Privates')>=0?' sessions':' visits'):'');
       if(v.fz&&addonFor(pk,group)==null) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
       var covers=pk.covers?pk.covers.slice():null; if(v.fz&&covers) ['Fitness zone','Open gym'].forEach(function(f){ if(covers.indexOf(f)<0) covers.push(f); });
-      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':''),price_thb:v.price_thb,price_group:group,paid:false,paid_thb:paidNow,method:v.method,purchased_on:v.purchased_on,
+      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':''),price_thb:v.price_thb,price_group:group,paid:false,paid_thb:paidNow,method:v.method==='later'?null:v.method,purchased_on:v.purchased_on,
         covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:byDay?q:(pk.duration_days||null),
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
@@ -744,7 +747,7 @@ function sellPackage(c){
       return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must).then(function(d){ return reload('purchases').then(function(){ return d.id; }); }).then(function(id){
         if(v.method==='stripe') return setTimeout(function(){ stripePay('purchase',id,nm); },300);
         if(v.method==='qr') return setTimeout(function(){ promptPayAmount(c,linkAmt,nm); },300);
-        var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast('Sold. '+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
+        var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast((v.method==='later'?'Added, not paid yet. ':'Sold. ')+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
 }
 function editPurchase(p){
   var pp=isPrivatePack(p), booked=pp?packUsed(p)-(Number(p.used_before)||0):0;
