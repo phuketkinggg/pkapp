@@ -495,7 +495,7 @@ window.PK_TEXTS=[{
 "id": "prices_dtv_note",
 "page": "Prices",
 "label": "Section DTV visa training: text",
-"text": "Training packages for the 5 year Destination Thailand Visa (DTV). One group class a week for the length of the package. Ask us about the visa paperwork.",
+"text": "Courses for the 5 year Destination Thailand Visa (DTV). Every course comes with the gym paperwork and invitation letter for your application at no extra charge, and Phuket King is recognised by the Sports Authority of Thailand. Lite courses are one group class per calendar week. The visa decision rests with the embassy, so we cannot guarantee it, and DTV courses are non-refundable once the paperwork is issued.",
 "multi": true},{
 "id": "prices_t04",
 "page": "Prices",
@@ -511,5 +511,30 @@ window.PK_TEXTS=[{
 "page": "Prices",
 "label": "Text: Lakeside bungalows next to the gym, with...",
 "text": "Lakeside bungalows next to the gym, with group Muay Thai included. Add meals, recovery and privates when you book.",
+"multi": true},{
+"id": "stay_t01",
+"page": "Stay",
+"label": "Main heading: Book your stay",
+"text": "Book your stay",
+"multi": false},{
+"id": "stay_t02",
+"page": "Stay",
+"label": "Text: Lakeside bungalows in Kathu, Phuket, next...",
+"text": "Lakeside bungalows in Kathu, Phuket, next to the gym. Pick your dates, choose your room on the map, and pay by card.",
+"multi": true},{
+"id": "stay_t03",
+"page": "Stay",
+"label": "Heading: Your home by the lake",
+"text": "Your home by the lake",
+"multi": false},{
+"id": "stay_t04",
+"page": "Stay",
+"label": "Text: Pangea Resort is a quiet lakeside resort in...",
+"text": "Pangea Resort is a quiet lakeside resort in Kathu, one minute's walk from the Phuket King ring. Eleven air-conditioned bungalows sit in two areas, Mango Grove and Lake View, each with a comfortable bed, an en-suite bathroom and its own outdoor space. No taxis and no commute: wake up, walk to class, and come back to the lake. Pangea Cafe cooks healthy meals on site, the ice baths and herbal sauna are next door, and group Muay Thai is included with every stay.",
+"multi": true},{
+"id": "stay_t05",
+"page": "Stay",
+"label": "List (one line each): One minute walk to the gym / Air...",
+"text": "One minute walk to the gym\nAir conditioning and en-suite bathroom\nYour own outdoor space\nGroup Muay Thai included\nHealthy food at Pangea Cafe\nIce baths and herbal sauna",
 "multi": true}
 ];

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co; connect-src https://jijnshwduhgegacfvpkh.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co; connect-src https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Book your stay, Pangea Resort Phuket</title>
 <meta name="description" content="Book a lakeside bungalow at Pangea Resort, Kathu, Phuket, home of Phuket King Muay Thai. See which rooms are free on the map and pay securely by card.">
@@ -60,16 +60,60 @@ textarea{min-height:70px}
 .exrow input[type=checkbox]{width:20px;height:20px;min-height:0}.step{display:flex;align-items:center;gap:6px}.step .btn{min-height:40px;width:44px;padding:0}
 .step b{min-width:24px;text-align:center}.exprice{font-weight:700}.totals{display:grid;gap:4px;margin:6px 0}.totals div{display:flex;justify-content:space-between;gap:10px}
 .done{text-align:center;padding:30px 16px}.done .big{font:700 40px var(--display);text-transform:uppercase}
+/* Phuket King menu bar */
+.pkt{position:sticky;top:0;z-index:50;background:rgba(10,12,16,.95);color:#fff;border-bottom:1px solid rgba(255,255,255,.06)}
+.pkt .pin{max-width:1160px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:14px;height:68px}
+.pkt .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff}
+.pkt .logo img{width:42px;height:42px;border-radius:6px}.pkt .logo img.wm{width:auto;height:30px;border-radius:0}
+.pkt .nav{display:flex;gap:2px;margin-left:auto;align-items:center}
+.pkt .nav a{color:#fff;text-decoration:none;font:500 14px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;opacity:.85}
+.pkt .nav a:hover,.pkt .nav a[aria-current=page]{opacity:1;box-shadow:inset 0 -2px 0 #D8001B}
+.pkt .nav .cta{background:#D8001B;border-radius:4px;margin-left:8px;opacity:1;box-shadow:none!important}
+.pkt .menu{display:none;margin-left:auto;background:none;border:1.5px solid rgba(255,255,255,.6);border-radius:4px;color:#fff;font:500 13px var(--body);letter-spacing:.14em;text-transform:uppercase;padding:9px 14px;cursor:pointer}
+@media (max-width:960px){.pkt .menu{display:block}.pkt .nav{display:none;position:absolute;left:0;right:0;top:68px;background:#0d0f13;flex-direction:column;align-items:stretch;padding:8px 16px 20px;gap:0}
+  .pkt .nav.open{display:flex}.pkt .nav a{padding:15px 2px;font-size:16px;border-bottom:1px solid #2a2f38;box-shadow:none!important}.pkt .nav .cta{margin:14px 0 0;text-align:center;border:0}}
+@media (max-width:380px){.pkt .logo img.wm{height:24px}}
+/* about the resort, gallery, video */
+.ticks{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.ticks li{display:flex;gap:10px;align-items:baseline}.ticks li::before{content:"";flex:none;width:9px;height:9px;background:var(--gold);transform:rotate(45deg)}
+.gallery{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:16px}
+.gallery button{padding:0;border:0;border-radius:10px;overflow:hidden;cursor:zoom-in;background:var(--sunken);aspect-ratio:4/3}
+.gallery img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}.gallery button:hover img{transform:scale(1.04)}
+.gallery button:first-child{grid-column:span 2;grid-row:span 2}
+@media (max-width:640px){.gallery{grid-template-columns:repeat(2,1fr)}}
+.video{margin-top:16px;border-radius:14px;overflow:hidden;aspect-ratio:16/9;background:#000}.video iframe{width:100%;height:100%;border:0;display:block}
+dialog.lb{padding:0;border:0;background:rgba(0,0,0,.92);max-width:100vw;max-height:100vh;width:100vw;height:100vh;color:#fff}
+dialog.lb::backdrop{background:rgba(0,0,0,.9)}
+.lb .wrapi{position:absolute;inset:56px 12px 70px;display:flex;align-items:center;justify-content:center}.lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+.lb .cap{position:absolute;left:0;right:0;bottom:22px;text-align:center;font-size:15px;padding:0 70px}
+.lb button{position:absolute;background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:999px;width:46px;height:46px;font:600 22px var(--body);cursor:pointer}
+.lb .x{top:10px;right:12px}.lb .pv{left:10px;bottom:12px}.lb .nx{right:10px;bottom:12px}
+@media (prefers-reduced-motion:reduce){.gallery img{transition:none}}
 footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
+<header class="pkt"><div class="pin">
+  <a class="logo" href="pk/index.html" aria-label="Phuket King Muay Thai, home"><img src="icons/icon-192.png" alt="" width="42" height="42"><img class="wm" src="pk/img/wordmark.png" alt="Phuket King Muay Thai" width="170" height="30"></a>
+  <button class="menu" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="pk/about.html">About</a><a href="pk/index.html#training">Training</a><a href="pk/prices.html">Prices</a><a href="pk/index.html#schedule">Schedule</a><a href="pk/index.html#coaches">Coaches</a><a href="book.html" aria-current="page">Stay</a><a href="pk/prices.html#dtv">DTV Visa</a>
+    <a class="cta" href="pk/prices.html">Book training</a>
+  </nav>
+</div></header>
 <header class="hero"><div class="in">
   <div class="brand">PANGEA RESORT · PHUKET KING MUAY THAI</div>
-  <h1>Book your stay</h1>
-  <p>Lakeside bungalows in Kathu, Phuket, next to the gym. Pick your dates, choose your room on the map, and pay by card.</p>
+  <h1 data-text="stay_t01">Book your stay</h1>
+  <p data-text="stay_t02">Lakeside bungalows in Kathu, Phuket, next to the gym. Pick your dates, choose your room on the map, and pay by card.</p>
 </div></header>
 <main>
+  <section class="card" id="about-stay">
+    <h2 data-text="stay_t03">Your home by the lake</h2>
+    <p data-text="stay_t04">Pangea Resort is a quiet lakeside resort in Kathu, one minute's walk from the Phuket King ring. Eleven air-conditioned bungalows sit in two areas, Mango Grove and Lake View, each with a comfortable bed, an en-suite bathroom and its own outdoor space. No taxis and no commute: wake up, walk to class, and come back to the lake. Pangea Cafe cooks healthy meals on site, the ice baths and herbal sauna are next door, and group Muay Thai is included with every stay.</p>
+    <ul class="ticks" data-text="stay_t05"><li>One minute walk to the gym</li><li>Air conditioning and en-suite bathroom</li><li>Your own outdoor space</li><li>Group Muay Thai included</li><li>Healthy food at Pangea Cafe</li><li>Ice baths and herbal sauna</li></ul>
+    <div class="gallery" id="gallery" aria-label="Photos of the resort"></div>
+    <div class="video" id="video" hidden></div>
+  </section>
   <section class="card" id="step-dates">
     <h2>When are you coming?</h2>
     <form class="dates" id="dates" novalidate>
@@ -244,6 +288,41 @@ if(qp.get('ref')&&/^[0-9a-f-]{36}$/.test(qp.get('ref'))){ afterPay(qp.get('ref')
 call({mode:'info'}).then(function(d){ INFO=d; seasonLine();
   var f=qp.get('from'), t=qp.get('to'); if(f&&t&&!qp.get('ref')){ $('from').value=f; $('to').value=t; $('dates').requestSubmit(); } })
   .catch(function(){ $('derr').textContent='Booking is not available right now. Email hello@phuketking.com.'; $('derr').hidden=false; });
+})();
+</script>
+<script src="pk/site.js?v=9"></script>
+<script>
+/* resort photos and video tour: managed in the app, Settings > Website photos > Stay page gallery */
+(function(){
+'use strict';
+var DEF=[['stay_g1.jpg','The bungalows'],['stay_g2.webp','A bungalow bedroom'],['stay_g3.jpg','Inside a bungalow'],['stay_g4.jpg','Inside a bungalow'],['stay_g5.jpg','Around the resort'],['stay_g6.jpg','The lake']]
+  .map(function(x){ return {url:'https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/'+x[0],caption:x[1]}; });
+var OK=/^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\/storage\/v1\/object\/public\/promos\/site\//;
+function ytId(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
+function draw(list,video){
+  var g=document.getElementById('gallery'); g.innerHTML='';
+  list=list.filter(function(p){ return p&&OK.test(p.url||''); });
+  var lb=null, at=0;
+  function open(i){ at=i; if(!lb){ lb=document.createElement('dialog'); lb.className='lb'; lb.setAttribute('aria-label','Photo');
+      lb.innerHTML='<div class="wrapi"><img alt=""></div><div class="cap"></div><button type="button" class="x" aria-label="Close">×</button><button type="button" class="pv" aria-label="Previous photo">‹</button><button type="button" class="nx" aria-label="Next photo">›</button>';
+      document.body.appendChild(lb);
+      lb.querySelector('.x').onclick=function(){ lb.close(); };
+      lb.querySelector('.pv').onclick=function(){ open((at-1+list.length)%list.length); };
+      lb.querySelector('.nx').onclick=function(){ open((at+1)%list.length); };
+      lb.addEventListener('click',function(e){ if(e.target===lb||e.target.className==='wrapi') lb.close(); });
+      lb.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft') open((at-1+list.length)%list.length); if(e.key==='ArrowRight') open((at+1)%list.length); }); }
+    var p=list[i]; lb.querySelector('img').src=p.url; lb.querySelector('img').alt=p.caption||'Pangea Resort'; lb.querySelector('.cap').textContent=p.caption||'';
+    lb.querySelector('.pv').hidden=lb.querySelector('.nx').hidden=list.length<2;
+    if(!lb.open) lb.showModal(); }
+  list.forEach(function(p,i){ var b=document.createElement('button'); b.type='button'; b.setAttribute('aria-label','Open photo: '+(p.caption||'Pangea Resort'));
+    var im=document.createElement('img'); im.src=p.url; im.alt=p.caption||'Pangea Resort'; im.loading=i<3?'eager':'lazy'; b.appendChild(im); b.onclick=function(){ open(i); }; g.appendChild(b); });
+  g.hidden=!list.length;
+  var v=document.getElementById('video'), id=ytId(video);
+  if(id){ v.innerHTML=''; var f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?rel=0'; f.title='Video tour of Pangea Resort'; f.loading='lazy';
+    f.setAttribute('allow','accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen'); f.setAttribute('allowfullscreen',''); v.appendChild(f); v.hidden=false; } else v.hidden=true;
+}
+draw(DEF,'');
+if(window.PK) PK.data().then(function(d){ var ga=(d&&d.gallery)||{}; if(Array.isArray(ga.stay)) draw(ga.stay,ga.stay_video); else draw(DEF,ga.stay_video); },function(){});
 })();
 </script>
 </body>

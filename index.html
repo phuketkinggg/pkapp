@@ -4394,7 +4394,7 @@ function webScript(src,has){ return has()?Promise.resolve():new Promise(function
 function loadWebPhotos(){
   return Promise.all([webScript('pk/photos.js',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js',function(){ return !!window.PK_TEXTS; })])
     .then(function(){ WEBP.list=window.PK_PHOTOS||[]; WEBP.tlist=window.PK_TEXTS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
-    .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.texts=(d&&d.texts)||{}; WEBP.err=''; schedule(); })
+    .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.texts=(d&&d.texts)||{}; WEBP.gallery=(d&&d.gallery)||{}; WEBP.err=''; schedule(); })
     .catch(function(){ WEBP.err='The website photos and text could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; WEBP.texts=WEBP.texts||{}; schedule(); });
 }
 function webTextEdit(t){
@@ -4408,7 +4408,7 @@ function webTextEdit(t){
 }
 function webTextSection(){
   if(!me||me.role!=='manager'||!WEBP.photos) return null;
-  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',Stay:'book.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
   return section('Website text',null,h('div',null,
     h('p',{class:'sub'},'Every heading and paragraph on the Phuket King website. Tap one to rewrite it. The website shows the change within a minute. Put *stars* around a word to highlight it.'),
     Object.keys(pages).map(function(pg){ var items=list.filter(function(t){ return t.page===pg; }); if(!items.length) return null;
@@ -4433,6 +4433,50 @@ function webPhotoChange(s){
 function webPhotoReset(s){
   run(sb.rpc('site_photo_save',{p_slot:s.id,p_url:null}).then(function(r){ if(r.error) throw r.error; WEBP.photos=r.data||{}; }),'Back to the original photo.');
 }
+function webGallery(){ var g=WEBP.gallery||{}; return {stay:Array.isArray(g.stay)?g.stay.slice():[],stay_video:g.stay_video||''}; }
+function saveGallery(g){ return sb.rpc('site_gallery_save',{p:g}).then(function(r){ if(r.error) throw r.error; WEBP.gallery=r.data||g; schedule(); }); }
+function galleryAdd(){
+  var inp=h('input',{type:'file',accept:'image/*',multiple:true,hidden:true,onchange:function(){ var files=[].slice.call(inp.files||[]); inp.remove(); if(!files.length) return;
+    var g=webGallery(); if(g.stay.length+files.length>40){ toast('That is a lot of photos. Keep the gallery to 40 or fewer.'); return; }
+    WEBP.busy='gallery'; schedule(); toast(files.length>1?'Uploading '+files.length+' photos.':'Uploading the photo.');
+    var added=[];
+    files.reduce(function(pr,f,i){ return pr.then(function(){ return shrinkPhoto(f,1800).then(function(blob){ var path='site/stay-'+Date.now()+'-'+i+'.jpg';
+        return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; added.push({url:sb.storage.from('promos').getPublicUrl(path).data.publicUrl,caption:''}); }); }); }); },Promise.resolve())
+      .then(function(){ g.stay=g.stay.concat(added); return saveGallery(g); })
+      .then(function(){ toast(added.length>1?added.length+' photos added. The website shows them within a minute.':'Photo added. The website shows it within a minute.'); },
+        function(e){ if(added.length){ g.stay=g.stay.concat(added.filter(function(a){ return g.stay.indexOf(a)<0; })); saveGallery(g).catch(function(){}); } toast(errText(e)); })
+      .then(function(){ WEBP.busy=null; schedule(); }); }});
+  document.body.appendChild(inp); inp.click();
+}
+function galleryEdit(i){
+  var g=webGallery(), p=g.stay[i]; if(!p) return;
+  openForm({title:'Stay page photo',values:{caption:p.caption||''},fields:[{key:'caption',label:'Caption',hint:'Shown under the photo when a guest opens it. For example: Mango Grove 3, the terrace.'}],
+    saveLabel:'Save',doneMsg:'Saved.',extraBtn:['Remove photo',function(){ $dlg.close(); g.stay.splice(i,1); run(saveGallery(g),'Photo removed from the website.'); }],
+    onSave:function(v){ if(v.caption.length>140) return 'Keep the caption short.'; g.stay[i]=Object.assign({},p,{caption:v.caption}); return saveGallery(g); }});
+}
+function galleryMove(i,d){ var g=webGallery(), j=i+d; if(j<0||j>=g.stay.length) return; var t=g.stay[i]; g.stay[i]=g.stay[j]; g.stay[j]=t; run(saveGallery(g)); }
+function galleryVideo(){
+  var g=webGallery();
+  openForm({title:'Video tour',note:'Put the video on YouTube (your Phuket King channel is fine, it can be unlisted), then paste its link here. It shows under the photos on the stay page.',
+    values:{url:g.stay_video},fields:[{key:'url',label:'YouTube link',hint:'Like https://youtu.be/abc123 or https://www.youtube.com/watch?v=abc123. Leave empty for no video.'}],
+    saveLabel:'Save',doneMsg:'Saved. The website shows it within a minute.',
+    onSave:function(v){ var u=v.url.trim(); if(u&&!/^https:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/)[A-Za-z0-9_-]{6,20}/.test(u)) return 'That needs to be a YouTube link, starting with https://youtu.be/ or https://www.youtube.com/';
+      g.stay_video=u; return saveGallery(g); }});
+}
+function staySection(){
+  var g=webGallery(), busy=WEBP.busy==='gallery';
+  return h('div',{style:'margin:18px 0 6px'},
+    h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},'Stay page gallery'),h('a',{href:'book.html',target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
+    h('p',{class:'sub'},'The resort photos on the Book your stay page. Add as many as you like, tap a photo to give it a caption or remove it. The first photo shows biggest.'),
+    h('div',{class:'row'},btn(busy?'Uploading.':'Add photos',function(){ if(!WEBP.busy) galleryAdd(); },'primary small'),btn(g.stay_video?'Change video tour':'Add video tour',galleryVideo,'small'),
+      g.stay_video?h('a',{href:g.stay_video,target:'_blank',rel:'noopener',class:'sub'},'Watch the video'):null),
+    g.stay.length?h('div',{style:'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px'},g.stay.map(function(p,i){
+      return h('div',{class:'panel',style:'padding:0;overflow:hidden;display:flex;flex-direction:column'},
+        h('button',{type:'button',style:'padding:0;border:0;background:#222;cursor:pointer','aria-label':'Edit photo '+(i+1),onclick:function(){ galleryEdit(i); }},h('img',{src:p.url,alt:p.caption||'Photo '+(i+1),loading:'lazy',style:'width:100%;aspect-ratio:4/3;object-fit:cover;display:block'})),
+        h('div',{style:'padding:8px;display:flex;flex-direction:column;gap:6px;flex:1'},h('span',{class:'sub',style:'font-size:13px'},(i+1)+'. '+(p.caption||'No caption')),
+          h('div',{class:'row',style:'margin-top:auto;gap:4px'},i>0?btn('Move up',function(){ galleryMove(i,-1); },'small'):null,btn('Edit',function(){ galleryEdit(i); },'small')))); }))
+      :h('div',{class:'panel empty',style:'margin-top:12px'},'No photos yet. Tap Add photos.'));
+}
 function webPhotosSection(){
   if(!me||me.role!=='manager') return null;
   if(!WEBP.photos){ if(!WEBP.loading){ WEBP.loading=true; loadWebPhotos().then(function(){ WEBP.loading=false; }); } return section('Website photos',null,h('div',{class:'panel empty'},'Loading the website photos.')); }
@@ -4452,7 +4496,7 @@ function webPhotosSection(){
               cur?chip('Changed','ok'):h('span',{class:'sub',style:'font-size:13px'},'Original photo'),
               h('div',{class:'row',style:'margin-top:auto'},btn(busy?'Uploading.':'Change photo',function(){ if(!WEBP.busy) webPhotoChange(s); },'small'),
                 cur&&!busy?btn('Use original',function(){ webPhotoReset(s); },'small'):null))); })));
-    })));
+    }),staySection()));
 }
 function promoSection(){
   if(!PROMOS){ loadPromos().catch(function(){}); return null; }

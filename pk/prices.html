@@ -62,23 +62,24 @@ var G=[
   {id:'fitness',title:'Fitness Zone',note:'Weights, machines and open gym.',test:function(p){ return /^Fitness Zone/i.test(p.name); },short:function(n){ return n.replace(/^Fitness Zone,?\s*/i,''); }},
   {id:'spa',title:'Recovery and spa',note:'Sauna, steam room, ice bath and relax zone.',test:function(p){ return /^Spa Access/i.test(p.name); },short:function(n){ return n.replace(/^Spa Access,\s*/i,''); }},
   {id:'yoga',title:'Yoga',note:'Gentle yoga, mindful flow and mobility.',test:function(p){ return /^Yoga/i.test(p.name); },short:function(n){ return n.replace(/^Yoga,\s*/i,''); }},
-  {id:'dtv',title:'DTV visa training',note:'Training packages for the 5 year Destination Thailand Visa (DTV). One group class a week for the length of the package. Ask us about the visa paperwork.',test:function(p){ return /^DTV/i.test(p.name); },short:function(n){ return n.replace(/^DTV\s*/i,''); }}
+  {id:'dtv',title:'DTV visa training',note:'Courses for the 5 year Destination Thailand Visa (DTV). Every course comes with the gym paperwork and invitation letter for your application at no extra charge, and Phuket King is recognised by the Sports Authority of Thailand. Lite courses are one group class per calendar week. The visa decision rests with the embassy, so we cannot guarantee it, and DTV courses are non-refundable once the paperwork is issued.',test:function(p){ return /^DTV/i.test(p.name); },short:function(n){ return n.replace(/^DTV\s*/i,''); }}
 ];
 // Tidy names for the page: "3 Month" to "3 Months", "1 time" to "1 Visit", capital first letter
 function tidy(n){ n=n.replace(/^Full spa\s+/i,'').replace(/\b1 time\b/i,'1 Visit').replace(/\b(\d+) month\b/ig,function(m,k){ return k+(k==='1'?' Month':' Months'); }).replace(/\b(\d+) months\b/ig,'$1 Months').replace(/\b10 times\b/i,'10 Visits').replace(/\bweek\b/,'Week'); return n.charAt(0).toUpperCase()+n.slice(1); }
-function span(d){ return {7:'7 days',30:'30 days',90:'3 months',91:'3 months',180:'6 months',182:'6 months',274:'9 months',365:'12 months'}[d]||d+' days'; }
+function span(d){ return {7:'7 days',30:'30 days',90:'3 months',91:'3 months',180:'6 months',182:'6 months',274:'9 months',365:'12 months',1826:'5 years'}[d]||d+' days'; }
 function detail(p){
   var bits=[];
-  if(p.visits===1) bits.push('1 visit');
+  if(p.per_week&&p.days) bits.push(p.per_week+' group class a week for '+span(p.days));
+  else if(p.visits===1) bits.push('1 visit');
   else if(p.visits) bits.push(p.visits+(p.covers.indexOf('Privates')>=0?' sessions':' visits')+(p.per_week?', '+p.per_week+' a week':''));
   else if(p.days===1) bits.push('All day');
   else if(p.days) bits.push('Unlimited for '+span(p.days));
-  if(p.visits&&p.days&&p.days>1) bits.push('use within '+span(p.days));
+  if(p.visits&&p.days&&p.days>1&&!p.per_week) bits.push('use within '+span(p.days));
   if(p.covers.indexOf('Fitness zone')>=0&&p.covers.indexOf('Muay Thai')>=0) bits.push('Fitness Zone included');
   else if(p.fz) bits.push('add Fitness Zone for '+PK.thb(p.fz));
   return bits.join(', ');
 }
-function per(p){ if(p.visits>1) return PK.thb(Math.round(p.price/p.visits))+' a session'; if(p.days>1&&!p.visits) return PK.thb(Math.round(p.price/p.days))+' a day'; return ''; }
+function per(p){ if(p.per_week) return ''; if(p.visits>1) return PK.thb(Math.round(p.price/p.visits))+' a session'; if(p.days>1&&!p.visits) return PK.thb(Math.round(p.price/p.days))+' a day'; return ''; }
 PK.data().then(function(d){
   var used={}, box=document.getElementById('groups'), tabs=document.getElementById('tabs'); box.innerHTML='';
   G.forEach(function(g){
