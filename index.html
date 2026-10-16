@@ -2438,7 +2438,7 @@ function cbGrid(list,now){
 }
 function coachBoardToday(){
   if(!me||me.role!=='manager') return null;
-  var t=ymd(new Date()), x=cbGet(t,t); if(!x.d) return null;
+  var t=ymd(new Date()), x=cbGet(t,t); if(!x.d||!Array.isArray(x.d.sessions)) return null;
   var list=x.d.sessions.filter(function(s2){ return s2.day===t; }); if(!list.length) return null;
   return section('Coaches, group classes today',btn('All days',function(){ ui.tab='hours'; schedule(); },'small'),cbGrid(list,Date.now()));
 }
@@ -3613,28 +3613,72 @@ function vStaff(){
       {label:'',cell:function(x){return x.status==='requested'?btn('Approve',function(){ if(guard()) run(db.doc('holidays/'+x.id).update({status:'approved'}),'Holiday approved.'); },'primary small'):'';}}],
       hol,'No holidays coming up. A coach on approved holiday cannot be booked for privates on those days.'))];
 }
+/* commission: finished privates wait in "Not paid yet" until a manager marks them paid. Each payment is saved as a batch with a copy of every private in it. */
+var PAYOUTS=null;
+function loadPayouts(){ return sb.from('commission_payouts').select('*').order('paid_on',{ascending:false}).order('created_at',{ascending:false}).limit(300).then(function(r){ PAYOUTS=r.error?[]:(r.data||[]); schedule(); }); }
+function payCommission(coachId,rows){
+  var day=ymd(new Date()), list=coachId?rows.filter(function(r){ return r.id===coachId; }):rows;
+  var n=list.reduce(function(t,r){ return t+r.n; },0), share=list.reduce(function(t,r){ return t+r.share; },0);
+  openForm({title:coachId?'Paid: '+nameOf('staff',coachId):'Mark all coaches paid',
+    note:(coachId?'':list.map(function(r){ return nameOf('staff',r.id)+' '+thb(r.share); }).join(', ')+'. ')+n+' private'+(n===1?'':'s')+', '+thb(share)+' to '+(coachId?'the coach':'the coaches')+'. This saves the payment and starts a new commission list.',
+    values:{paid_on:day,upto:day},saveLabel:'Paid',doneMsg:'Saved as paid. A new commission list has started.',fields:[
+      {key:'paid_on',label:'Paid on',type:'date',required:true},
+      {key:'upto',label:'Includes privates up to',type:'date',required:true,hint:'Finished privates on or before this day go in this payment. Later ones stay for next time.'},
+      {key:'note',label:'Note',hint:'Optional. For example: cash, or bank transfer.'}],
+    onSave:function(v){ return sb.rpc('commission_pay',{p_coach:coachId||null,p_upto:v.upto,p_paid_on:v.paid_on,p_note:v.note||null}).then(must).then(function(){ return Promise.all([loadPayouts(),reload('privates')]); }); }});
+}
+function payoutView(po){
+  var lines=po.lines||[], close=function(){ $dlg.close(); };
+  var box=h('div',{class:'billbox'},h('h2',null,nameOf('staff',po.coach_id)+', paid '+fmtDate(po.paid_on)),
+    h('p',{class:'sub'},po.n+' private'+(po.n===1?'':'s')+' up to '+fmtDate(po.upto)+'. Received '+thb(po.received_thb)+', coach paid '+thb(po.share_thb)+', gym kept '+thb(po.received_thb-po.share_thb)+'.'+(po.note?' Note: '+po.note:'')),
+    po.undone_at?h('p',null,chip('This payment was undone '+fmtDate(po.undone_at.slice(0,10)),'warn')):null,
+    table([{label:'Date',cell:function(l){ return fmtDate(l.date)+(l.time?' '+l.time:''); }},{label:'Customer',cell:function(l){ return l.customer; }},{label:'Paid with',cell:function(l){ return l.pay||''; }},
+      {label:'Received',num:true,cell:function(l){ return thb(l.price); }},{label:'Coach',num:true,cell:function(l){ return thb(l.share); }}],lines,'',['Total','','',thb(po.received_thb),thb(po.share_thb)]),
+    h('div',{class:'factions'},po.undone_at||!(me&&me.role==='manager')?h('span'):h('button',{type:'button',class:'btn danger',onclick:function(){ close(); confirmUndo(po); }},'Undo this payment'),
+      h('div',{class:'row'},btn('Close',close,'primary'))));
+  $dlg.replaceChildren(box);
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function confirmUndo(po){
+  openForm({title:'Undo this payment?',note:'The '+po.n+' privates go back into Not paid yet for '+nameOf('staff',po.coach_id)+'. The record stays in the history, marked undone.',fields:[],saveLabel:'Undo payment',doneMsg:'Payment undone.',
+    onSave:function(){ return sb.rpc('commission_undo',{p_id:po.id}).then(must).then(function(){ return Promise.all([loadPayouts(),reload('privates')]); }); }});
+}
 function vCommission(){
-  var m=ui.month, done=[], pending=0;
-  S.privates.forEach(function(p){ if(!p.date||p.date.slice(0,7)!==m) return; if(p.status==='done') done.push(p); else if(p.status==='confirmed') pending++; });
-  var by={}; done.forEach(function(p){ var r=by[p.coach_id]||(by[p.coach_id]={id:p.coach_id,n:0,got:0,share:0}); r.n++; r.got+=Number(p.price_thb)||0; r.share+=coachShare(p.price_thb,p.coach_pct); });
+  if(PAYOUTS===null&&!ui.poAsked){ ui.poAsked=true; loadPayouts().catch(function(){}); }
+  var day=ymd(new Date()), m=ui.month;
+  var open=S.privates.filter(function(p){ return p.status==='done'&&!p.refunded_at&&!p.payout_id&&p.coach_id; });
+  var late=S.privates.filter(function(p){ return p.status==='confirmed'&&p.date&&p.date<day; }).length;
+  var by={}; open.forEach(function(p){ var r=by[p.coach_id]||(by[p.coach_id]={id:p.coach_id,n:0,got:0,share:0,from:p.date}); r.n++; r.got+=Number(p.price_thb)||0; r.share+=coachShare(p.price_thb,p.coach_pct); if(p.date<r.from) r.from=p.date; });
   var rows=Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return b.share-a.share;});
   var T=rows.reduce(function(t,r){ t.n+=r.n; t.got+=r.got; t.share+=r.share; return t; },{n:0,got:0,share:0});
-  return [pageHead('Commission','Privates marked done, by coach, and package sales by source.',h('input',{id:'month',type:'month',value:m,'aria-label':'Month',onchange:function(ev){ if(ev.target.value){ ui.month=ev.target.value; schedule(); } }})),
-    pending?h('div',{class:'row'},chip(pending+' confirmed this month, not yet marked done','warn')):null,
-    table([
+  var mgr=me&&me.role==='manager', paid=(PAYOUTS||[]);
+  return [pageHead('Commission','Finished privates by coach. Mark them paid when you pay the coach, and a new list starts.'),
+    late?h('div',{class:'row'},chip(late+' past private'+(late===1?'':'s')+' still confirmed, not marked done. Mark them done so they count.','warn')):null,
+    section('Not paid yet',mgr&&rows.length>1?btn('Mark all paid',function(){ payCommission(null,rows); },'primary small'):null,table([
       {label:'Coach',cell:function(r){return nameOf('staff',r.id);}},
+      {label:'Since',cell:function(r){return fmtDate(r.from);}},
       {label:'Privates',num:true,cell:function(r){return r.n;}},
       {label:'You received',num:true,cell:function(r){return thb(r.got);}},
-      {label:'Coach is paid',num:true,cell:function(r){return thb(r.share);}},
-      {label:'Gym keeps',num:true,cell:function(r){return thb(r.got-r.share);}}],
-      rows,'No privates marked done in this month yet. Mark a private done and it shows here.',['Total',T.n,thb(T.got),thb(T.share),thb(T.got-T.share)]),
-    done.length?section('Each private',null,table([
+      {label:'Coach is paid',num:true,cell:function(r){return h('b',null,thb(r.share));}},
+      {label:'Gym keeps',num:true,cell:function(r){return thb(r.got-r.share);}},
+      {label:'',cell:function(r){ return mgr?btn('Paid',function(){ payCommission(r.id,rows); },'primary small'):null; }}],
+      rows,'Nothing waiting. Finished privates show here until you mark them paid.',['Total','',T.n,thb(T.got),thb(T.share),thb(T.got-T.share),''])),
+    open.length?section('Each private not paid yet',null,table([
       {label:'Date',cell:function(p){return fmtDate(p.date);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Received',num:true,cell:function(p){return thb(p.price_thb);}},
-      {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],sortBy(done,'date','time'),'')):null,
+      {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}}],sortBy(open,'date','time'),'')):null,
+    section('Paid commission',null,PAYOUTS===null?h('div',{class:'panel empty'},'Loading.'):table([
+      {label:'Paid on',cell:function(po){ return linkBtn(fmtDate(po.paid_on),function(){ payoutView(po); }); }},
+      {label:'Coach',cell:function(po){ return nameOf('staff',po.coach_id); }},
+      {label:'Privates',cell:function(po){ var l=po.lines||[]; return po.n+(l.length?', '+fmtDate(l[0].date)+(l.length>1?' to '+fmtDate(l[l.length-1].date):''):''); }},
+      {label:'Coach paid',num:true,cell:function(po){ return thb(po.share_thb); }},
+      {label:'Gym kept',num:true,cell:function(po){ return thb(po.received_thb-po.share_thb); }},
+      {label:'',cell:function(po){ return po.undone_at?chip('Undone'):h('span',{class:'row'},po.note?h('span',{class:'sub'},po.note):null,btn('View',function(){ payoutView(po); },'small')); }}],
+      paid,'No commission paid in the app yet. When you mark a coach paid, the payment is saved here.')),
+    h('div',{class:'row',style:'margin-top:24px;align-items:center'},h('label',{for:'month',class:'sub'},'Package sales for'),h('input',{id:'month',type:'month',value:m,onchange:function(ev){ if(ev.target.value){ ui.month=ev.target.value; schedule(); } }})),
     sourceSales(m)];
 }
 function sourceSales(m){
