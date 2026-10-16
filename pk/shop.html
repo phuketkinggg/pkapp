@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co; connect-src https://jijnshwduhgegacfvpkh.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="robots" content="noindex">
+<title>Shop | Phuket King Muay Thai, Kathu, Phuket</title>
+<meta name="description" content="Muay Thai gloves, shorts, wraps and gear, plus protein and supplements. Order online and collect at Phuket King Muay Thai in Kathu, Phuket.">
+<meta property="og:title" content="Phuket King shop: Muay Thai gear and supplements">
+<meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
+<link rel="icon" type="image/png" href="../icons/favicon-48.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
+<link rel="stylesheet" href="site.css?v=10">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" aria-label="Phuket King Muay Thai, home"><img src="../icons/icon-192.png" alt="" width="46" height="46"><img class="wm" src="img/wordmark.png" alt="Phuket King Muay Thai" width="181" height="32"></a>
+  <button class="menu" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="about.html">About</a><a href="index.html#training">Training</a><a href="prices.html">Prices</a><a href="index.html#schedule">Schedule</a><a href="../book.html">Stay</a><a href="dtv.html">DTV Visa</a><a href="shop.html" aria-current="page">Shop</a><a href="blog.html">Blog</a>
+    <a class="btn red" href="prices.html">Book training</a>
+  </nav>
+</div></header>
+
+<main>
+<section class="hero short" data-photo-bg="shop_hero" style="background-image:url(https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_fighters.jpg)"><div class="wrap">
+  <div class="eyebrow" data-text="shop_t01">Shop</div>
+  <h1 data-text="shop_t02"><em>Gear</em> up.</h1><span class="rule"></span>
+  <p class="lead" data-text="shop_t03">Muay Thai gear, protein and supplements. Order here and collect at the gym reception. Pay by card now, or when you collect.</p>
+</div></section>
+
+<section class="band light-sec shopband"><div class="wrap">
+  <div id="paidbox" hidden></div>
+  <div class="shopbar">
+    <nav class="tabs" id="cats" aria-label="Shop sections"></nav>
+    <input id="q" type="search" placeholder="Search the shop" aria-label="Search the shop">
+  </div>
+  <div id="shop"><p class="sub">Loading the shop.</p></div>
+</div></section>
+</main>
+
+<div class="basketbar" id="basketbar" hidden><button type="button" class="btn red" id="openBasket">Basket</button></div>
+<dialog class="basket" id="basket" aria-label="Your basket">
+  <div class="bhead"><h2>Your basket</h2><button type="button" class="x" id="closeBasket" aria-label="Close">×</button></div>
+  <div id="lines"></div>
+  <form id="checkout" novalidate>
+    <h3>Your details</h3>
+    <label>Name<input id="c-name" autocomplete="name" required maxlength="80"></label>
+    <label>Email<input id="c-email" type="email" autocomplete="email" required maxlength="120"></label>
+    <label>Phone or WhatsApp<input id="c-phone" type="tel" autocomplete="tel" maxlength="30"></label>
+    <label>Note<input id="c-note" maxlength="250" placeholder="Sizes, colours, when you will collect"></label>
+    <fieldset class="paypick"><legend>How do you want to pay?</legend>
+      <label><input type="radio" name="pay" value="card" checked> Card now</label>
+      <label><input type="radio" name="pay" value="pickup"> When I collect at the gym</label>
+    </fieldset>
+    <p class="sub">Collect from the Phuket King reception in Kathu.</p>
+    <p class="err" id="cerr" role="alert" hidden></p>
+    <button class="btn red" type="submit" id="placeBtn">Place order</button>
+  </form>
+</dialog>
+
+<footer><div class="wrap">
+  <div class="cols">
+    <div><img class="flogo" src="../icons/icon-192.png" alt="Phuket King Muay Thai" loading="lazy"><p style="margin:0;opacity:.75">Work hard. Fight easy. Recover properly. Live fully.</p></div>
+    <div><h4>Phuket King</h4><a href="about.html">About us</a><a href="index.html#training">Training</a><a href="prices.html">Prices</a><a href="index.html#schedule">Schedule</a><a href="index.html#coaches">Coaches</a><a href="../book.html">Stay at Pangea</a><a href="dtv.html">DTV Visa</a></div>
+    <div><h4>More</h4><a href="shop.html">Shop</a><a href="blog.html">Blog</a><a href="../">The Phuket King app</a></div>
+    <div><h4>Contact</h4><a href="mailto:hello@phuketking.com">hello@phuketking.com</a><a href="tel:+66615155947">+66 61 515 5947</a><a data-wa="Hi Phuket King, I have a question.">WhatsApp</a><a href="https://www.instagram.com/phuketking" target="_blank" rel="noopener">Instagram</a><a href="https://www.facebook.com/phuketkingmuaythai/" target="_blank" rel="noopener">Facebook</a><a href="https://www.youtube.com/@PhuketKing" target="_blank" rel="noopener">YouTube</a></div>
+  </div>
+  <p class="small">© <span id="year">2026</span> Phuket King Muay Thai, Kathu, Phuket.</p>
+</div></footer>
+<div class="dock"><a class="btn light" data-wa="Hi Phuket King, I have a question about the shop.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
+<script src="photos.js?v=10"></script>
+<script src="site.js?v=10"></script>
+<script>
+(function(){
+'use strict';
+var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/webshop', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
+var D=null, cat='', BK=[];
+function $(id){ return document.getElementById(id); }
+function call(b){ return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify(b)}).then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); return d; }); }
+function load(){ try{ BK=JSON.parse(localStorage.getItem('pk_basket')||'[]')||[]; }catch(e){ BK=[]; } }
+function keep(){ try{ localStorage.setItem('pk_basket',JSON.stringify(BK)); }catch(e){} }
+function prod(id){ return (D.products||[]).filter(function(p){ return p.id===id; })[0]; }
+function total(){ return BK.reduce(function(t,l){ var p=prod(l.id); return t+(p?p.price*l.qty:0); },0); }
+function count(){ return BK.reduce(function(t,l){ return t+l.qty; },0); }
+function add(p){ var l=BK.filter(function(x){ return x.id===p.id; })[0]; if(l) l.qty=Math.min(20,l.qty+1); else BK.push({id:p.id,qty:1}); keep(); bar(); flash(p.name+' added to your basket.'); }
+function flash(t){ var f=$('flash'); if(!f){ f=PK.el('div','flash'); f.id='flash'; f.setAttribute('role','status'); document.body.appendChild(f); } f.textContent=t; f.classList.add('on'); clearTimeout(flash.t); flash.t=setTimeout(function(){ f.classList.remove('on'); },1800); }
+function bar(){ BK=BK.filter(function(l){ return prod(l.id); }); var n=count(); $('basketbar').hidden=!n; $('openBasket').textContent='Basket: '+n+' item'+(n===1?'':'s')+', '+PK.thb(total()); }
+function opt(p){ return p.grp&&p.name.indexOf(p.grp)===0?p.name.slice(p.grp.length).replace(/^[\s,:\-]+/,'')||p.name:p.name; }
+function groups(list){ var out=[], by={}; list.forEach(function(p){ var k=p.grp?('g:'+p.grp.toLowerCase()):('p:'+p.id); if(!by[k]){ by[k]={name:p.grp||p.name,items:[]}; out.push(by[k]); } by[k].items.push(p); }); return out; }
+function draw(){
+  var q=$('q').value.trim().toLowerCase(), box=$('shop'); box.innerHTML='';
+  var list=(D.products||[]).filter(function(p){ return (!cat||p.category_id===cat)&&(!q||(p.name+' '+(p.description||'')).toLowerCase().indexOf(q)>=0); });
+  if(!list.length){ box.innerHTML='<p class="sub">Nothing found. Try another word, or <a data-wa="Hi Phuket King, do you have '+PK.esc(q)+'?">ask us on WhatsApp</a>.</p>'; box.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; }); return; }
+  var grid=PK.el('div','pgrid');
+  groups(list).forEach(function(g){
+    var first=g.items.filter(function(p){ return p.image; })[0]||g.items[0], prices=g.items.map(function(p){ return p.price; });
+    var lo=Math.min.apply(null,prices), hi=Math.max.apply(null,prices), all=g.items.every(function(p){ return p.sold_out; });
+    var c=PK.el('div','pcard'+(all?' out':''));
+    c.innerHTML=(first.image?'<img src="'+PK.esc(first.image)+'" alt="" loading="lazy">':'<div class="noimg"></div>')+'<div class="in"><h3>'+PK.esc(g.name)+'</h3>'+(first.description?'<p>'+PK.esc(first.description)+'</p>':'')+'<div class="pp">'+(lo===hi?PK.thb(lo):'From '+PK.thb(lo))+'</div></div>';
+    var acts=PK.el('div','acts');
+    if(g.items.length===1){ var p=g.items[0], b=PK.el('button','btn red',p.sold_out?'Sold out':'Add to basket'); b.type='button'; b.disabled=!!p.sold_out; b.onclick=function(){ add(p); }; acts.appendChild(b); }
+    else { var sel=document.createElement('select'); sel.setAttribute('aria-label','Choose '+g.name);
+      g.items.forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=opt(p)+(lo===hi?'':', '+PK.thb(p.price))+(p.sold_out?' (sold out)':''); o.disabled=!!p.sold_out; sel.appendChild(o); });
+      var firstOk=g.items.filter(function(p){ return !p.sold_out; })[0]; if(firstOk) sel.value=firstOk.id;
+      var b2=PK.el('button','btn red',all?'Sold out':'Add'); b2.type='button'; b2.disabled=all; b2.onclick=function(){ add(prod(sel.value)); };
+      acts.appendChild(sel); acts.appendChild(b2); }
+    c.querySelector('.in').appendChild(acts); grid.appendChild(c); });
+  box.appendChild(grid);
+}
+function tabs(){ var t=$('cats'); t.innerHTML='';
+  [{id:'',name:'Everything'}].concat(D.categories||[]).forEach(function(c){ var a=PK.el('a',null,PK.esc(c.name)); a.href='#'; if(c.id===cat) a.setAttribute('aria-current','true'); a.onclick=function(e){ e.preventDefault(); cat=c.id; tabs(); draw(); }; t.appendChild(a); }); }
+function lines(){ var box=$('lines'); box.innerHTML='';
+  if(!BK.length){ box.innerHTML='<p class="sub">Your basket is empty.</p>'; $('checkout').hidden=true; return; }
+  $('checkout').hidden=false;
+  BK.forEach(function(l){ var p=prod(l.id); if(!p) return; var r=PK.el('div','bline');
+    r.innerHTML='<div><b>'+PK.esc(p.name)+'</b><div class="sub">'+PK.thb(p.price)+' each</div></div>';
+    var st=PK.el('div','step'), m=PK.el('button','btn','−'), n=PK.el('b',null,String(l.qty)), pl=PK.el('button','btn','+');
+    m.type=pl.type='button'; m.setAttribute('aria-label','One less '+p.name); pl.setAttribute('aria-label','One more '+p.name);
+    m.onclick=function(){ l.qty--; if(l.qty<1) BK.splice(BK.indexOf(l),1); keep(); bar(); lines(); };
+    pl.onclick=function(){ l.qty=Math.min(20,l.qty+1); keep(); bar(); lines(); };
+    st.appendChild(m); st.appendChild(n); st.appendChild(pl); r.appendChild(st); box.appendChild(r); });
+  box.appendChild(PK.el('div','btotal','<span>Total</span><b>'+PK.thb(total())+'</b>'));
+}
+$('openBasket').onclick=function(){ lines(); $('basket').showModal(); };
+$('closeBasket').onclick=function(){ $('basket').close(); };
+$('q').addEventListener('input',function(){ draw(); });
+$('checkout').addEventListener('submit',function(e){ e.preventDefault();
+  var err=$('cerr'), btn=$('placeBtn'), pay=(document.querySelector('input[name=pay]:checked')||{}).value||'card';
+  var name=$('c-name').value.trim(), email=$('c-email').value.trim();
+  if(!name){ err.textContent='Type your name.'; err.hidden=false; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type a real email address.'; err.hidden=false; return; }
+  err.hidden=true; btn.disabled=true; btn.textContent=pay==='card'?'Opening card payment':'Placing your order';
+  call({mode:'order',pay:pay,name:name,email:email,phone:$('c-phone').value.trim(),note:$('c-note').value.trim(),items:BK.map(function(l){ return {product_id:l.id,qty:l.qty}; }),back:location.origin+location.pathname})
+    .then(function(r){ if(r.url){ BK=[]; keep(); location.href=r.url; return; }
+      BK=[]; keep(); bar(); $('basket').close(); done('<h2>Order #'+r.number+' placed</h2><p>Thank you. Collect it at the Phuket King reception and pay '+PK.thb(r.total)+' when you pick it up. Questions? WhatsApp us.</p>'); })
+    .catch(function(x){ err.textContent=x.message; err.hidden=false; btn.disabled=false; btn.textContent='Place order'; });
+});
+function done(html){ var b=$('paidbox'); b.innerHTML=html; b.hidden=false; b.scrollIntoView({behavior:'smooth',block:'center'}); }
+// back from card payment
+var qs=new URLSearchParams(location.search), ref=qs.get('ref');
+if(ref&&/^[0-9a-f-]{36}$/.test(ref)){
+  if(qs.get('paid')==='0') done('<h2>Payment not finished</h2><p>Your card was not charged. Add the items again to try once more, or choose pay when you collect.</p>');
+  else { var tries=0; (function poll(){ call({mode:'status',ref:ref}).then(function(s){
+      if(s.paid) done('<h2>Paid, thank you</h2><p>Order #'+s.number+', '+PK.thb(s.total)+'. Collect it at the Phuket King reception in Kathu.</p>');
+      else if(++tries<8) setTimeout(poll,2500); else done('<h2>Payment received?</h2><p>We could not confirm order #'+s.number+' yet. If your card was charged it will show shortly. Questions? WhatsApp us.</p>'); }).catch(function(){}); })(); }
+}
+load();
+call({mode:'list'}).then(function(d){ D=d; tabs(); draw(); bar(); }).catch(function(){ $('shop').innerHTML='<p class="err">The shop could not load. Please try again in a moment, or WhatsApp us.</p>'; });
+})();
+</script>
+</body>
+</html>

@@ -536,5 +536,320 @@ window.PK_TEXTS=[{
 "page": "Stay",
 "label": "List (one line each): One minute walk to the gym / Air...",
 "text": "One minute walk to the gym\nAir conditioning and en-suite bathroom\nYour own outdoor space\nGroup Muay Thai included\nHealthy food at Pangea Cafe\nIce baths and herbal sauna",
+"multi": true},{
+"id": "dtv_t01",
+"page": "DTV",
+"label": "Small label: No extra charge for paperwork",
+"text": "No extra charge for paperwork",
+"multi": false},{
+"id": "dtv_t02",
+"page": "DTV",
+"label": "Main heading: 5 year DTV visa.",
+"text": "*5 year* DTV visa.",
+"multi": false},{
+"id": "dtv_t03",
+"page": "DTV",
+"label": "Text: Train Muay Thai in Phuket and stay up to...",
+"text": "Train Muay Thai in Phuket and stay up to 180 days a visit for 5 years. Buy any DTV course and we prepare all the gym paperwork for your application, free.",
+"multi": true},{
+"id": "dtv_t04",
+"page": "DTV",
+"label": "Small label: About the DTV",
+"text": "About the DTV",
+"multi": false},{
+"id": "dtv_t05",
+"page": "DTV",
+"label": "Heading: A Muay Thai visa for 5 years",
+"text": "A Muay Thai visa for 5 years",
+"multi": false},{
+"id": "dtv_t06",
+"page": "DTV",
+"label": "Text: The Destination Thailand Visa (DTV) was...",
+"text": "The Destination Thailand Visa (DTV) was introduced in summer 2024. It lets you stay in Thailand for 5 years with multiple entries, up to 180 days each visit, and you can get it by enrolling with an eligible Muay Thai gym.",
+"multi": true},{
+"id": "dtv_t07",
+"page": "DTV",
+"label": "Text: Phuket King Muay Thai is recognised by the...",
+"text": "Phuket King Muay Thai is recognised by the Sports Authority of Thailand with a 5 star rating and is fully eligible to support your application. We provide all the gym paperwork and an official invitation letter with every DTV course, at no extra charge.",
+"multi": true},{
+"id": "dtv_t08",
+"page": "DTV",
+"label": "Small label: How it works",
+"text": "How it works",
+"multi": false},{
+"id": "dtv_t09",
+"page": "DTV",
+"label": "Step: Buy your course",
+"text": "Buy your course",
+"multi": false},{
+"id": "dtv_t10",
+"page": "DTV",
+"label": "Text: Pick a DTV course below and pay. Message us...",
+"text": "Pick a DTV course below and pay. Message us if you are not sure which one fits.",
+"multi": true},{
+"id": "dtv_t11",
+"page": "DTV",
+"label": "Step: Request your paperwork",
+"text": "Request your paperwork",
+"multi": false},{
+"id": "dtv_t12",
+"page": "DTV",
+"label": "Text: Email or WhatsApp us with your passport...",
+"text": "Email or WhatsApp us with your passport details and the embassy you will apply through.",
+"multi": true},{
+"id": "dtv_t13",
+"page": "DTV",
+"label": "Step: Get your documents",
+"text": "Get your documents",
+"multi": false},{
+"id": "dtv_t14",
+"page": "DTV",
+"label": "Text: We prepare and send everything within 1...",
+"text": "We prepare and send everything within 1 working day, free of charge.",
+"multi": true},{
+"id": "dtv_t15",
+"page": "DTV",
+"label": "Step: Apply from home",
+"text": "Apply from home",
+"multi": false},{
+"id": "dtv_t16",
+"page": "DTV",
+"label": "Text: Apply online through the Thai embassy in...",
+"text": "Apply online through the Thai embassy in your country of residence. It usually takes 3 to 14 days.",
+"multi": true},{
+"id": "dtv_t17",
+"page": "DTV",
+"label": "Small label: Courses",
+"text": "Courses",
+"multi": false},{
+"id": "dtv_t18",
+"page": "DTV",
+"label": "Heading: DTV courses and prices",
+"text": "DTV courses and prices",
+"multi": false},{
+"id": "dtv_t19",
+"page": "DTV",
+"label": "Text: Every course includes the DTV paperwork....",
+"text": "Every course includes the DTV paperwork. Lite courses are one group class per calendar week and do not include open gym or the Fitness Zone. Unlimited courses include every group class and the Fitness Zone.",
+"multi": true},{
+"id": "dtv_t20",
+"page": "DTV",
+"label": "Small label: What you need",
+"text": "What you need",
+"multi": false},{
+"id": "dtv_t21",
+"page": "DTV",
+"label": "Heading: Documents for your application",
+"text": "Documents for your application",
+"multi": false},{
+"id": "dtv_t22",
+"page": "DTV",
+"label": "Text: Check exactly what your embassy asks for...",
+"text": "Check exactly what your embassy asks for before you apply. Most embassies now ask for a police check, and you must apply from your country of residence, before you travel.",
+"multi": true},{
+"id": "dtv_t23",
+"page": "DTV",
+"label": "Title: From you",
+"text": "From you",
+"multi": false},{
+"id": "dtv_t24",
+"page": "DTV",
+"label": "List (one line each): Passport valid for at least 6 months / A...",
+"text": "Passport valid for at least 6 months\nA valid police check from your country\nPassport photo taken in the last 6 months, white background\nProof you live outside Thailand, like a residence permit\nProof of at least 500,000 THB in funds (any currency): bank statements, payslips or a sponsor letter\nThe online visa form, completed and signed\nProof you paid the visa fee",
+"multi": true},{
+"id": "dtv_t25",
+"page": "DTV",
+"label": "Title: From Phuket King, free",
+"text": "From Phuket King, free",
+"multi": false},{
+"id": "dtv_t26",
+"page": "DTV",
+"label": "List (one line each): Receipt for your course / Gym registration...",
+"text": "Receipt for your course\nGym registration card\nGym owner's ID card\nInvitation letter to train with us for the length of your course\nSports Authority of Thailand certificate\nTraining schedule",
+"multi": true},{
+"id": "dtv_t27",
+"page": "DTV",
+"label": "Title: Good to know",
+"text": "Good to know",
+"multi": false},{
+"id": "dtv_t28",
+"page": "DTV",
+"label": "List (one line each): Most Thai embassies use an online...",
+"text": "Most Thai embassies use an online application\nYou must submit it from outside Thailand\nApply from your country of residence\nProcessing usually takes 3 to 14 days\nThe visa is decided by the embassy, not by us",
+"multi": true},{
+"id": "dtv_t29",
+"page": "DTV",
+"label": "Small label: Questions",
+"text": "Questions",
+"multi": false},{
+"id": "dtv_t30",
+"page": "DTV",
+"label": "Heading: DTV questions and answers",
+"text": "DTV questions and answers",
+"multi": false},{
+"id": "dtv_t31",
+"page": "DTV",
+"label": "Title: What is the DTV visa?",
+"text": "What is the DTV visa?",
+"multi": false},{
+"id": "dtv_t32",
+"page": "DTV",
+"label": "Text: The Destination Thailand Visa (DTV) lets...",
+"text": "The Destination Thailand Visa (DTV) lets you stay in Thailand for 5 years with multiple entries. Each visit allows a stay of up to 180 days. One way to get it is by enrolling on a course with an eligible Muay Thai gym, which is known as the soft power or Muay Thai route.",
+"multi": true},{
+"id": "dtv_t33",
+"page": "DTV",
+"label": "Title: Is Phuket King eligible?",
+"text": "Is Phuket King eligible?",
+"multi": false},{
+"id": "dtv_t34",
+"page": "DTV",
+"label": "Text: Yes. Phuket King Muay Thai is recognised by...",
+"text": "Yes. Phuket King Muay Thai is recognised by the Sports Authority of Thailand with a 5 star rating and is fully eligible to support your DTV application.",
+"multi": true},{
+"id": "dtv_t35",
+"page": "DTV",
+"label": "Title: Do you charge for the paperwork?",
+"text": "Do you charge for the paperwork?",
+"multi": false},{
+"id": "dtv_t36",
+"page": "DTV",
+"label": "Text: No. We provide all the gym paperwork and an...",
+"text": "No. We provide all the gym paperwork and an official invitation letter with any DTV course, at no extra charge. There is no separate paperwork fee.",
+"multi": true},{
+"id": "dtv_t37",
+"page": "DTV",
+"label": "Title: How do I get my paperwork?",
+"text": "How do I get my paperwork?",
+"multi": false},{
+"id": "dtv_t38",
+"page": "DTV",
+"label": "Text: Once you have bought your course, email or...",
+"text": "Once you have bought your course, email or WhatsApp us asking for your paperwork. Tell us which embassy you will apply through and send your passport details. We prepare everything and send it to you within 1 working day, and guide you through the process.",
+"multi": true},{
+"id": "dtv_t39",
+"page": "DTV",
+"label": "Title: Where do I apply?",
+"text": "Where do I apply?",
+"multi": false},{
+"id": "dtv_t40",
+"page": "DTV",
+"label": "Text: The rules now require you to apply in your...",
+"text": "The rules now require you to apply in your country of residence, so you need to get the DTV before you leave home. Most Thai embassies use an online application, but it must be submitted from outside Thailand. Check the exact paperwork your embassy asks for before you apply.",
+"multi": true},{
+"id": "dtv_t41",
+"page": "DTV",
+"label": "Title: Do I need a police check?",
+"text": "Do I need a police check?",
+"multi": false},{
+"id": "dtv_t42",
+"page": "DTV",
+"label": "Text: Most embassies now ask for a valid police...",
+"text": "Most embassies now ask for a valid police check with your application. Check the exact requirement for your country.",
+"multi": true},{
+"id": "dtv_t43",
+"page": "DTV",
+"label": "Title: How much money do I need to show?",
+"text": "How much money do I need to show?",
+"multi": false},{
+"id": "dtv_t44",
+"page": "DTV",
+"label": "Text: At least 500,000 THB, in any currency. You...",
+"text": "At least 500,000 THB, in any currency. You can show this with bank statements, payslips or a sponsorship letter.",
+"multi": true},{
+"id": "dtv_t45",
+"page": "DTV",
+"label": "Title: How long does it take?",
+"text": "How long does it take?",
+"multi": false},{
+"id": "dtv_t46",
+"page": "DTV",
+"label": "Text: Processing time depends on the embassy....",
+"text": "Processing time depends on the embassy. Between 3 and 14 days is usual.",
+"multi": true},{
+"id": "dtv_t47",
+"page": "DTV",
+"label": "Title: What is the difference between Lite and...",
+"text": "What is the difference between Lite and Unlimited?",
+"multi": false},{
+"id": "dtv_t48",
+"page": "DTV",
+"label": "Text: Lite courses include one group class per...",
+"text": "Lite courses include one group class per calendar week, and do not include open gym, the Fitness Zone or the weights area. Unlimited courses include every group class and the Fitness Zone. If your DTV is approved on a Lite course, you can upgrade to Unlimited by paying the difference.",
+"multi": true},{
+"id": "dtv_t49",
+"page": "DTV",
+"label": "Title: Is my course refundable if my DTV...",
+"text": "Is my course refundable if my DTV application is rejected?",
+"multi": false},{
+"id": "dtv_t50",
+"page": "DTV",
+"label": "Text: Phuket King sells genuine Muay Thai...",
+"text": "Phuket King sells genuine Muay Thai courses. We do not sell visas or paperwork. After you enrol, we provide the supporting documents that confirm your course at no extra charge. You make your own DTV application, and the final decision rests entirely with the Thai embassy or consulate. Once your course is registered and the documents have been issued, the course is non-refundable.",
+"multi": true},{
+"id": "dtv_t51",
+"page": "DTV",
+"label": "Text: We cannot track how documents are used once...",
+"text": "We cannot track how documents are used once they leave us, and an applicant may reapply later, use another embassy, or attend the course on a future visit. We have also been advised that selling paperwork, or making refunds depend on a visa decision, can look as if the paperwork is the real product, and that providers working this way may face extra checks that could affect applications connected to them. Keeping the course and the visa clearly separate protects the credibility of Phuket King and of the documents supporting your application.",
+"multi": true},{
+"id": "dtv_t52",
+"page": "DTV",
+"label": "Title: How can I reduce my risk?",
+"text": "How can I reduce my risk?",
+"multi": false},{
+"id": "dtv_t53",
+"page": "DTV",
+"label": "Text: Start with the 6 Month Lite course, one...",
+"text": "Start with the 6 Month Lite course, one group class a week, for a smaller first payment. If your DTV is approved, upgrade to the 6 Month Unlimited course by paying the difference. If your application is rejected after buying an Unlimited course, we can let you use the course across up to three separate visits, subject to our course and booking conditions.",
+"multi": true},{
+"id": "dtv_t54",
+"page": "DTV",
+"label": "Title: Can you guarantee my visa?",
+"text": "Can you guarantee my visa?",
+"multi": false},{
+"id": "dtv_t55",
+"page": "DTV",
+"label": "Text: No. The visa is awarded at the discretion...",
+"text": "No. The visa is awarded at the discretion of each embassy. What we guarantee is a genuine course, authentic supporting documents, no separate paperwork fee, and an honest, transparent process. We support you every step of the way.",
+"multi": true},{
+"id": "dtv_t56",
+"page": "DTV",
+"label": "Title: Can I stay at the gym while I train?",
+"text": "Can I stay at the gym while I train?",
+"multi": false},{
+"id": "dtv_t57",
+"page": "DTV",
+"label": "Text: Yes. Pangea Resort has lakeside bungalows...",
+"text": "Yes. Pangea Resort has lakeside bungalows one minute from the gym, for short and long stays, with special 6 month DTV packages. Message us for details.",
+"multi": true},{
+"id": "blog_t01",
+"page": "Blog",
+"label": "Small label: Blog",
+"text": "Blog",
+"multi": false},{
+"id": "blog_t02",
+"page": "Blog",
+"label": "Main heading: Notes from the gym.",
+"text": "*Notes* from the gym.",
+"multi": false},{
+"id": "blog_t03",
+"page": "Blog",
+"label": "Text: Training tips, the DTV visa explained, and...",
+"text": "Training tips, the DTV visa explained, and life at Phuket King.",
+"multi": true},{
+"id": "shop_t01",
+"page": "Shop",
+"label": "Small label: Shop",
+"text": "Shop",
+"multi": false},{
+"id": "shop_t02",
+"page": "Shop",
+"label": "Main heading: Gear up.",
+"text": "*Gear* up.",
+"multi": false},{
+"id": "shop_t03",
+"page": "Shop",
+"label": "Text: Muay Thai gear, protein and supplements....",
+"text": "Muay Thai gear, protein and supplements. Order here and collect at the gym reception. Pay by card now, or when you collect.",
 "multi": true}
 ];

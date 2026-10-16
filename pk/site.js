@@ -11,7 +11,28 @@ window.PK={
   esc:function(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); },
   // Monday is day 0 in the app
   weekday:function(){ return (new Date(Date.now()+7*3600e3).getUTCDay()+6)%7; },
-  nowHM:function(){ return new Date(Date.now()+7*3600e3).toISOString().slice(11,16); }
+  nowHM:function(){ return new Date(Date.now()+7*3600e3).toISOString().slice(11,16); },
+  // read published blog posts (public, read only)
+  rest:function(path){ return fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/'+path,{headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i'}}).then(function(r){ if(!r.ok) throw new Error('load'); return r.json(); }); },
+  date:function(d){ return d?new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}):''; },
+  // blog text to HTML. Everything is escaped first, so only these simple marks become formatting:
+  // ## heading, ### small heading, - list, 1. numbered list, > quote, ![caption](photo link), **bold**, *italic*, [text](link)
+  md:function(text){
+    var esc=window.PK.esc, okUrl=function(u){ return /^(https:\/\/|mailto:|\/|#|[a-z0-9-]+\.html)/i.test(u)?u:null; };
+    function inl(t){ return esc(t).replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,a,u){ u=okUrl(u.replace(/&amp;/g,'&')); if(!u) return a; var ext=/^https:/.test(u)&&u.indexOf('phuketking')<0; return '<a href="'+esc(u)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+a+'</a>'; })
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*\n]+)\*/g,'<em>$1</em>').replace(/\n/g,'<br>'); }
+    return String(text||'').replace(/\r/g,'').split(/\n\s*\n/).map(function(b){ b=b.trim(); if(!b) return '';
+      var m;
+      if((m=b.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))){ var u=okUrl(m[2]); return u?'<figure><img src="'+esc(u)+'" alt="'+esc(m[1])+'" loading="lazy">'+(m[1]?'<figcaption>'+esc(m[1])+'</figcaption>':'')+'</figure>':''; }
+      if(/^### /.test(b)) return '<h3>'+inl(b.slice(4))+'</h3>';
+      if(/^## /.test(b)) return '<h2>'+inl(b.slice(3))+'</h2>';
+      if(/^# /.test(b)) return '<h2>'+inl(b.slice(2))+'</h2>';
+      var lines=b.split('\n');
+      if(lines.every(function(l){ return /^[-*] /.test(l); })) return '<ul>'+lines.map(function(l){ return '<li>'+inl(l.slice(2))+'</li>'; }).join('')+'</ul>';
+      if(lines.every(function(l){ return /^\d+[.)] /.test(l); })) return '<ol>'+lines.map(function(l){ return '<li>'+inl(l.replace(/^\d+[.)] /,''))+'</li>'; }).join('')+'</ol>';
+      if(/^> /.test(b)) return '<blockquote>'+inl(b.replace(/^> ?/gm,''))+'</blockquote>';
+      return '<p>'+inl(b)+'</p>'; }).join('');
+  }
 };
 var b=document.querySelector('.menu'), n=document.querySelector('.nav');
 if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open'); b.setAttribute('aria-expanded',o?'true':'false'); b.textContent=o?'Close':'Menu'; });

@@ -1051,14 +1051,14 @@ function claimsSection(){
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
 /* new things the desk should know about: app sign ups, first app sign ins, packages sold, stays booked */
-var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad']};
+var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad']};
 function seesNotices(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
 function loadNotices(){ if(!seesNotices()) return Promise.resolve(); return sb.rpc('notices_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(NOTI); NOTI=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
 setInterval(function(){ if(allReady&&seesNotices()&&!CU&&document.visibilityState!=='hidden') loadNotices(); },30000);
 function noticeDone(id){ NOTI=(NOTI||[]).filter(function(n){ return id&&n.id!==id; }); schedule(); run(sb.rpc('notice_done',{p_id:id||null}).then(must).then(loadNotices)); }
 function noticeOpen(n){
   if(n.kind==='stay'){ var st=byId('stays',n.ref_id); noticeDone(n.id); if(st){ if(me.role==='resort'){ ui.tab='stays'; schedule(); } editStay(st); } else if(n.customer_id) openCustomer(n.customer_id); return; }
-  if(n.kind==='package'||n.kind==='refund') noticeDone(n.id);
+  if(n.kind==='package'||n.kind==='refund'||n.kind==='shop') noticeDone(n.id);
   if(n.customer_id) openCustomer(n.customer_id);
 }
 function noticesBox(kinds){
@@ -2757,7 +2757,7 @@ function pinDlg(){
 function editProduct(p){
   p=p||{}; var cats=SHOP.categories||[];
   openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku,open_price:!!p.open_price,grp:p.grp,
-    locations:p.locations&&p.locations.length?p.locations:(SHOP.locations||[]).map(function(l){ return l.id; }),track_stock:!!p.track_stock,low_stock:p.low_stock},fields:[
+    locations:p.locations&&p.locations.length?p.locations:(SHOP.locations||[]).map(function(l){ return l.id; }),track_stock:!!p.track_stock,low_stock:p.low_stock,on_web:!!p.on_web},fields:[
     {key:'name',label:'Name',required:true},
     {key:'category_id',label:'Category',type:'select',options:[['','No category']].concat(cats.map(function(c){ return [c.id,c.name]; }))},
     {key:'price',label:'Price (THB)',type:'number',required:true},
@@ -2767,13 +2767,21 @@ function editProduct(p){
     {key:'low_stock',label:'Warn when stock is at or below',type:'number',hint:'For example 5. Leave empty to warn only at 0.'},
     {key:'kitchen',label:'Goes to the kitchen screen',type:'checkbox'},
     {key:'in_app',label:'Guests and members can order it in the app',type:'checkbox'},
+    {key:'on_web',label:'Show in the website shop',type:'checkbox'},
     {key:'active',label:'On sale',type:'checkbox'},
     {key:'open_price',label:'Price typed in at the till each time',type:'checkbox'},
     {key:'grp',label:'Group',hint:'Products with the same group share one button on the till, for sizes and flavours. For example: Training shirt.'},
     {key:'sort',label:'Order on the till',type:'number'},
-    {key:'description',label:'Description for the app menu',type:'textarea'},
+    {key:'description',label:'Description for the app menu and website shop',type:'textarea'},
     {key:'sku',label:'Code or barcode',hint:'Optional.'}],
-    onSave:function(v){ return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v)}).then(must).then(loadShop); }});
+    onSave:function(v){ return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v,{image_url:img||null})}).then(must).then(loadShop); }});
+  // product photo, shown in the website shop
+  var img=p.image_url||null, desc=document.getElementById('f-description'); if(!desc) return;
+  var pic=h('img',{alt:'',style:'width:90px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(img?'':';display:none'),src:img||''});
+  var rm=btn('Remove photo',function(){ img=null; pic.style.display='none'; rm.hidden=true; },'small'); rm.hidden=!img;
+  var row=h('div',{class:'field'},h('label',null,'Photo for the website shop'),h('div',{class:'row',style:'align-items:center'},pic,
+    btn(img?'Change photo':'Add photo',function(){ var b=this; blogPhoto(function(u){ img=u; pic.src=u; pic.style.display=''; rm.hidden=false; b.textContent='Change photo'; }); },'small'),rm));
+  desc.parentNode.parentNode.insertBefore(row,desc.parentNode);
 }
 function editCategory(c){
   c=c||{};
@@ -3843,6 +3851,7 @@ function vSettings(){
     promoSection(),
     webPhotosSection(),
     webTextSection(),
+    blogSection(),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
       {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
@@ -4542,7 +4551,7 @@ function webTextEdit(t){
 }
 function webTextSection(){
   if(!me||me.role!=='manager'||!WEBP.photos) return null;
-  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',Stay:'book.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',DTV:'pk/dtv.html',Shop:'pk/shop.html',Blog:'pk/blog.html',Stay:'book.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
   return section('Website text',null,h('div',null,
     h('p',{class:'sub'},'Every heading and paragraph on the Phuket King website. Tap one to rewrite it. The website shows the change within a minute. Put *stars* around a word to highlight it.'),
     Object.keys(pages).map(function(pg){ var items=list.filter(function(t){ return t.page===pg; }); if(!items.length) return null;
@@ -4614,7 +4623,7 @@ function staySection(){
 function webPhotosSection(){
   if(!me||me.role!=='manager') return null;
   if(!WEBP.photos){ if(!WEBP.loading){ WEBP.loading=true; loadWebPhotos().then(function(){ WEBP.loading=false; }); } return section('Website photos',null,h('div',{class:'panel empty'},'Loading the website photos.')); }
-  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html'}, list=WEBP.list||[];
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',DTV:'pk/dtv.html',Shop:'pk/shop.html',Blog:'pk/blog.html'}, list=WEBP.list||[];
   return section('Website photos',null,h('div',null,
     h('p',{class:'sub'},'Every photo on the Phuket King website. Tap Change photo and pick one from your phone. The website shows it within a minute. Landscape photos work best for the big wide spots.'),
     WEBP.err?h('p',{class:'ferr'},WEBP.err):null,
@@ -4631,6 +4640,50 @@ function webPhotosSection(){
               h('div',{class:'row',style:'margin-top:auto'},btn(busy?'Uploading.':'Change photo',function(){ if(!WEBP.busy) webPhotoChange(s); },'small'),
                 cur&&!busy?btn('Use original',function(){ webPhotoReset(s); },'small'):null))); })));
     }),staySection()));
+}
+/* blog: posts for the website, written here. Simple marks: ## heading, - list, **bold**, [link](https://...), photos with the Add photo button */
+var BLOG=null;
+function loadBlog(){ return sb.from('blog_posts').select('id,slug,title,excerpt,body,cover_url,status,published_at,source,updated_at').order('published_at',{ascending:false,nullsFirst:true}).then(function(r){ BLOG=r.error?[]:(r.data||[]); schedule(); }); }
+function blogSlug(t){ return String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,110)||'post'; }
+function blogPhoto(done){
+  var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return; toast('Uploading the photo.');
+    shrinkPhoto(f,1800).then(function(blob){ var path='blog/app/'+Date.now()+'.jpg';
+      return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; done(sb.storage.from('promos').getPublicUrl(path).data.publicUrl); toast('Photo added.'); }); }).catch(function(e){ toast(errText(e)); }); }});
+  document.body.appendChild(inp); inp.click();
+}
+function editPost(p){
+  p=p||{status:'draft',body:'',published_at:ymd(new Date())};
+  var cover=p.cover_url||null;
+  openForm({title:p.id?'Edit post':'New blog post',values:{title:p.title||'',slug:p.slug||'',excerpt:p.excerpt||'',body:p.body||'',status:p.status,published_at:p.published_at||ymd(new Date())},
+    note:'Write like a message. A blank line starts a new paragraph. ## at the start makes a heading, - makes a list, **word** is bold, [text](https://link) is a link. Use Add photo to put a photo in the text.',
+    saveLabel:'Save',doneMsg:'Saved.',fields:[
+      {key:'title',label:'Title',required:true,onChange:function(v,set,get){ if(!p.id) set('slug',blogSlug(v)); },live:true},
+      {key:'slug',label:'Web address',hint:'The end of the link, like post.html?p=this-part. Small letters, numbers and dashes only. Changing it on an old post breaks links people have saved.'},
+      {key:'excerpt',label:'Short summary',type:'textarea',hint:'One or two sentences. Shows on the blog page and on Google.'},
+      {key:'body',label:'The post',type:'textarea',rows:18,required:true},
+      {key:'status',label:'Show on the website',type:'select',options:[['draft','Not yet (draft)'],['published','Yes, published']]},
+      {key:'published_at',label:'Date shown on the post',type:'date'}],
+    onSave:function(v){
+      var slug=blogSlug(v.slug||v.title); if(v.title.length>200) return 'Keep the title under 200 letters.'; if(v.excerpt.length>400) return 'Keep the summary under 400 letters.';
+      var row={title:v.title,slug:slug,excerpt:v.excerpt||null,body:v.body,status:v.status,published_at:v.published_at||null,cover_url:cover};
+      var q=p.id?sb.from('blog_posts').update(row).eq('id',p.id):sb.from('blog_posts').insert(row);
+      return q.select('id').then(function(r){ if(r.error){ if(/duplicate|unique/i.test(r.error.message)) throw {plain:true,message:'Another post already uses that web address. Change it a little.'}; throw r.error; } return loadBlog(); }); }});
+  // extra controls: cover photo and photos inside the text
+  var body=document.getElementById('f-body'); if(!body) return;
+  var coverImg=h('img',{alt:'',style:'width:120px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;background:#222'+(cover?'':';display:none'),src:cover||''});
+  var bar=h('div',{class:'row',style:'margin:6px 0 10px;align-items:center'},coverImg,
+    btn(cover?'Change cover photo':'Add cover photo',function(){ var b=this; blogPhoto(function(u){ cover=u; coverImg.src=u; coverImg.style.display=''; b.textContent='Change cover photo'; }); },'small'),
+    btn('Add photo into the text',function(){ blogPhoto(function(u){ var at=body.selectionStart||body.value.length, cap=''; body.value=body.value.slice(0,at)+'\n\n!['+cap+']('+u+')\n\n'+body.value.slice(at); body.focus(); }); },'small'));
+  body.parentNode.insertBefore(bar,body);
+}
+function blogSection(){
+  if(!me||me.role!=='manager') return null;
+  if(BLOG===null){ if(!ui.blogAsked){ ui.blogAsked=true; loadBlog().catch(function(){}); } return section('Blog',null,h('div',{class:'panel empty'},'Loading posts.')); }
+  return section('Blog',h('div',{class:'row'},h('a',{href:'pk/blog.html',target:'_blank',rel:'noopener',class:'sub'},'Open the blog'),btn('New post',function(){ editPost(); },'primary small')),
+    table([{label:'Post',cell:function(p){ return linkBtn(p.title,function(){ editPost(p); }); }},
+      {label:'Date',cell:function(p){ return p.published_at?fmtDate(p.published_at):''; }},
+      {label:'',cell:function(p){ return h('span',{class:'row'},p.status==='published'?chip('On the website','ok'):chip('Draft'),p.status==='published'?h('a',{href:'pk/post.html?p='+encodeURIComponent(p.slug),target:'_blank',rel:'noopener',class:'sub'},'View'):null); }}],
+      BLOG,'No posts yet. Tap New post.'));
 }
 function promoSection(){
   if(!PROMOS){ loadPromos().catch(function(){}); return null; }
