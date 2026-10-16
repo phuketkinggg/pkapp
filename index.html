@@ -4219,11 +4219,11 @@ function cuCheckIn(t){
   }).then(function(){ cuBusy=false; });
 }
 function cuPrivToday(){
-  var day=CU.today, list=(CU.privates||[]).filter(function(p){ return p.date===day&&(p.status==='confirmed'||p.status==='done'); });
+  var day=CU.today, list=(CU.privates||[]).filter(function(p){ return p.date===day&&(p.status==='confirmed'||p.status==='done'||p.status==='requested'); });
   if(!list.length) return null;
   return h('div',{class:'panel checkin'},h('div',{class:'pad'},h('b',null,'Your private today'),h('p',{class:'sub'},liveCode()?'Tap I am here when you arrive, so the team knows you came.':'At the gym, scan the QR code at the front desk, then tap I am here.')),
     list.map(function(p){ return h('div',{class:'hit'},h('span',null,(p.time||'')+(p.coach?' with '+p.coach:'')),
-      p.arrived_at?chip('Checked in '+bkkTime(p.arrived_at),'ok'):liveCode()?btn('I am here',function(){ cuPrivArrived(p); },'primary'):btn('Scan to check in',scanCheckIn,'small')); }));
+      p.arrived_at?chip('Checked in '+bkkTime(p.arrived_at),'ok'):p.status==='requested'?chip('Not confirmed yet, see the front desk','warn'):liveCode()?btn('I am here',function(){ cuPrivArrived(p); },'primary'):btn('Scan to check in',scanCheckIn,'small')); }));
 }
 function cuPrivArrived(p){
   var code=liveCode(); if(!code){ forgetCode(); toast('Scan the QR code at the front desk again.'); schedule(); return; }
@@ -4747,6 +4747,17 @@ function kCheckIn(c,t){
     kIdle(5000); return Promise.all([reload('checkin_days'),reload('purchases')]);
   }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; schedule(); }).then(function(){ ui.kbusy=false; schedule(); });
 }
+/* desk mode: privates booked for today show at the top, so the customer can check in for them */
+function kPrivToday(c,day){ return sortBy(S.privates.filter(function(x){ return x.customer_id===c.id&&x.date===day&&x.status!=='cancelled'; }),'time'); }
+function kPrivHere(c,x){
+  if(ui.kbusy||x.arrived_at||x.status==='requested') return; ui.kbusy=true; ui.kerr='';
+  var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
+  sb.from('privates').update({arrived_at:new Date().toISOString(),arrived_by:'customer'}).eq('id',x.id).select('id').then(must).then(function(d){
+    if(!d||!d.length) throw {message:'That did not work. See the front desk.'};
+    ui.kdone={name:String(c.name||'').split(' ')[0],what:'Private'+(x.time?' '+x.time:'')+who,pack:x.purchase_id?'From your pack':x.method==='room'?'On your room bill':x.paid?'Paid':'Pay at the front desk'};
+    kIdle(5000); return reload('privates');
+  }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; }).then(function(){ ui.kbusy=false; schedule(); });
+}
 /* desk mode: a customer books a private for now, or buys a package and picks how to pay */
 function kStay(c,day){ return (S.stays||[]).filter(function(st){ return st.customer_id===c.id&&stayOn(st,day)&&!st.settled; })[0]||null; }
 function kPrivate(c){
@@ -4826,13 +4837,18 @@ function vKiosk(){
     h('div',{class:'cnote'},ui.kdone.kind==='buy'?ui.kdone.name+', thank you. '+ui.kdone.pack:ui.kdone.name+', enjoy your session. '+ui.kdone.pack+'.'),h('div',null,h('button',{type:'button',class:'btn primary',onclick:kReset},'Done'))),foot];
   if(ui.kc){
     var c=byId('customers',ui.kc); if(!c){ kReset(); return [head]; }
-    var ts=kTargets(c,day);
+    var ts=kTargets(c,day), pv=kPrivToday(c,day);
     var more=h('div',{class:'kmore'},h('button',{type:'button',class:'kbig kalt',onclick:function(){ kPrivate(c); }},h('span',null,'Book a private'),h('span',{class:'chip'},'Now or later')),
       h('button',{type:'button',class:'kbig kalt',onclick:function(){ kBuy(c); }},h('span',null,'Buy a package'),h('span',{class:'chip'},'Buy')));
-    return [head,ui.kerr?h('div',{class:'kerr',role:'alert'},ui.kerr):null,
-      ts.length?h('div',{class:'klist'},h('p',{class:'sub'},'Tap what you are here for.'),ts.map(function(t){
+    var pvRows=pv.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'', wait=x.status==='requested';
+      return h('button',{type:'button',class:'kbig',disabled:wait||x.arrived_at||ui.kbusy?true:null,onclick:function(){ kPrivHere(c,x); }},
+        h('span',{class:'row'},x.time?h('span',{class:'ktime'},x.time):null,h('span',null,'Private'+who)),
+        x.arrived_at?chip('Checked in','ok'):wait?chip('Not confirmed yet, see the front desk','warn'):h('span',{class:'chip ok'},'Check in')); });
+    var rows=pvRows.concat(ts.map(function(t){
         return h('button',{type:'button',class:'kbig',disabled:t.done||ui.kbusy?true:null,onclick:function(){ kCheckIn(c,t); }},
-          h('span',{class:'row'},t.time?h('span',{class:'ktime'},t.time):null,h('span',null,t.label)),t.done?chip('Checked in','ok'):h('span',{class:'chip ok'},'Check in')); }))
+          h('span',{class:'row'},t.time?h('span',{class:'ktime'},t.time):null,h('span',null,t.label)),t.done?chip('Checked in','ok'):h('span',{class:'chip ok'},'Check in')); }));
+    return [head,ui.kerr?h('div',{class:'kerr',role:'alert'},ui.kerr):null,
+      rows.length?h('div',{class:'klist'},h('p',{class:'sub'},'Tap what you are here for.'),rows)
       :h('div',{class:'panel empty'},'Nothing to check in for right now on a package. Buy one below, or book a private.'),more,foot];
   }
   var all=S.customers.filter(function(c){ return !c.is_agency&&!(c.tags||[]).some(function(t){ return t==='ota'; }); })
