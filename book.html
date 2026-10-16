@@ -66,11 +66,11 @@ textarea{min-height:70px}
 .pkt .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff}
 .pkt .logo img{width:42px;height:42px;border-radius:6px}.pkt .logo img.wm{width:auto;height:30px;border-radius:0}
 .pkt .nav{display:flex;gap:2px;margin-left:auto;align-items:center}
-.pkt .nav a{color:#fff;text-decoration:none;font:500 14px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;opacity:.85}
+.pkt .nav a{white-space:nowrap;color:#fff;text-decoration:none;font:500 14px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;opacity:.85}
 .pkt .nav a:hover,.pkt .nav a[aria-current=page]{opacity:1;box-shadow:inset 0 -2px 0 #D8001B}
 .pkt .nav .cta{background:#D8001B;border-radius:4px;margin-left:8px;opacity:1;box-shadow:none!important}
 .pkt .menu{display:none;margin-left:auto;background:none;border:1.5px solid rgba(255,255,255,.6);border-radius:4px;color:#fff;font:500 13px var(--body);letter-spacing:.14em;text-transform:uppercase;padding:9px 14px;cursor:pointer}
-@media (max-width:960px){.pkt .menu{display:block}.pkt .nav{display:none;position:absolute;left:0;right:0;top:68px;background:#0d0f13;flex-direction:column;align-items:stretch;padding:8px 16px 20px;gap:0}
+@media (max-width:1120px){.pkt .menu{display:block}.pkt .nav{display:none;position:absolute;left:0;right:0;top:68px;background:#0d0f13;flex-direction:column;align-items:stretch;padding:8px 16px 20px;gap:0}
   .pkt .nav.open{display:flex}.pkt .nav a{padding:15px 2px;font-size:16px;border-bottom:1px solid #2a2f38;box-shadow:none!important}.pkt .nav .cta{margin:14px 0 0;text-align:center;border:0}}
 @media (max-width:380px){.pkt .logo img.wm{height:24px}}
 /* about the resort, gallery, video */
@@ -290,7 +290,7 @@ call({mode:'info'}).then(function(d){ INFO=d; seasonLine();
   .catch(function(){ $('derr').textContent='Booking is not available right now. Email hello@phuketking.com.'; $('derr').hidden=false; });
 })();
 </script>
-<script src="pk/site.js?v=10"></script>
+<script src="pk/site.js?v=11"></script>
 <script>
 /* resort photos and video tour: managed in the app, Settings > Website photos > Stay page gallery */
 (function(){

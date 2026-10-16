@@ -11,7 +11,7 @@
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
 <link rel="icon" type="image/png" href="../icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=10">
+<link rel="stylesheet" href="site.css?v=11">
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -48,8 +48,8 @@
   <p class="small">© <span id="year">2026</span> Phuket King Muay Thai, Kathu, Phuket.</p>
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
-<script src="photos.js?v=10"></script>
-<script src="site.js?v=10"></script>
+<script src="photos.js?v=11"></script>
+<script src="site.js?v=11"></script>
 <script>
 (function(){
 'use strict';
@@ -62,6 +62,7 @@ else PK.rest('blog_posts?select=slug,title,excerpt,body,cover_url,published_at&s
   document.title=p.title+' | Phuket King Muay Thai';
   var md=document.querySelector('meta[name=description]'); if(md&&p.excerpt) md.setAttribute('content',p.excerpt);
   box.innerHTML='<span class="num">'+PK.esc(PK.date(p.published_at))+'</span><h1>'+PK.esc(p.title)+'</h1><span class="rule"></span>'+(p.cover_url?'<img class="cover" src="'+PK.esc(p.cover_url)+'" alt="">':'')+'<div class="prose">'+PK.md(p.body)+'</div>';
+  if(p.cover_url){ var f=box.querySelector('.prose figure img'); if(f&&f.getAttribute('src')===p.cover_url) f.parentNode.remove(); }
   var ld=document.createElement('script'); ld.type='application/ld+json'; ld.textContent=JSON.stringify({'@context':'https://schema.org','@type':'BlogPosting',headline:p.title,datePublished:p.published_at,image:p.cover_url||undefined,description:p.excerpt||undefined,author:{'@type':'Organization',name:'Phuket King Muay Thai'}}); document.head.appendChild(ld);
 }).catch(function(){ box.innerHTML='<p class="err">This post could not load. Please try again in a moment.</p>'; });
 PK.rest('blog_posts?select=slug,title,cover_url,published_at&status=eq.published&order=published_at.desc&limit=4').then(function(list){
