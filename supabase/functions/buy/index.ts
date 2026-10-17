@@ -1,4 +1,4 @@
-// Buy a training package on the website, paid by card or PromptPay QR through Stripe. No sign in.
+// Buy a training package or an online course on the website, paid by card or PromptPay QR through Stripe. No sign in.
 // order:  checks the package and price in the database (the page never sets the price), then makes the Stripe page
 // pp:     PromptPay straight to the gym bank account: returns the gym QR; the buyer taps I have paid (claim) and the desk confirms
 // status: after paying, the page asks if the payment went through (package name and start date only)
@@ -15,16 +15,18 @@ const isId = (x: unknown) => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)
 function backUrl(u: unknown): string {
   try {
     const x = new URL(String(u ?? ""));
-    if (x.origin === "https://phuketkinggg.github.io" && x.pathname.startsWith("/pkapp")) return x.origin + x.pathname;
-    if (["https://phuketking.com", "https://www.phuketking.com", "https://new.phuketking.com", "https://test.phuketking.com", "https://app.phuketking.com", "https://phuketking-site.pages.dev"].includes(x.origin)) return x.origin + x.pathname;
+    const c = x.searchParams.get("c"), keep = c && /^[a-z0-9-]{1,80}$/.test(c) ? "?c=" + c : "";
+    if (x.origin === "https://phuketkinggg.github.io" && x.pathname.startsWith("/pkapp")) return x.origin + x.pathname + keep;
+    if (["https://phuketking.com", "https://www.phuketking.com", "https://new.phuketking.com", "https://test.phuketking.com", "https://app.phuketking.com", "https://phuketking-site.pages.dev"].includes(x.origin)) return x.origin + x.pathname + keep;
   } catch { /* fall through */ }
   return PAGE;
 }
 async function session(o: { id: string; amount: number; what: string; email: string }, back: string, promptpay: boolean) {
   const p = new URLSearchParams();
   p.set("mode", "payment");
-  p.set("success_url", back + "?paid=1&ref=" + o.id);
-  p.set("cancel_url", back + "?paid=0&ref=" + o.id);
+  const j0 = back.includes("?") ? "&" : "?";
+  p.set("success_url", back + j0 + "paid=1&ref=" + o.id);
+  p.set("cancel_url", back + j0 + "paid=0&ref=" + o.id);
   p.set("line_items[0][quantity]", "1");
   p.set("line_items[0][price_data][currency]", "thb");
   p.set("line_items[0][price_data][unit_amount]", String(Math.round(o.amount * 100)));
@@ -49,8 +51,8 @@ Deno.serve(async (req) => {
     if (b.mode === "order") {
       const pp = b.pay === "pp";
       if (!pp && !KEY) return json({ error: "Card payment is not set up yet. Choose PromptPay or WhatsApp us." });
-      if (!isId(b.package_id)) return json({ error: "Choose a package." });
-      const { data, error } = await admin.rpc("web_pkg_order", { p: { package_id: b.package_id, name: String(b.name ?? "").slice(0, 80), email: String(b.email ?? "").slice(0, 120),
+      if (!isId(b.package_id) && !isId(b.course_id)) return json({ error: "Choose a package." });
+      const { data, error } = await admin.rpc("web_pkg_order", { p: { package_id: isId(b.package_id) ? b.package_id : null, course_id: isId(b.course_id) ? b.course_id : null, name: String(b.name ?? "").slice(0, 80), email: String(b.email ?? "").slice(0, 120),
         phone: String(b.phone ?? "").slice(0, 30), start_on: String(b.start_on ?? "").slice(0, 10), note: String(b.note ?? "").slice(0, 300) } });
       if (error) return json({ error: error.message });
       const o = data as { id: string; amount: number; what: string; email: string };

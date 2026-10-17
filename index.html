@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Phuket King</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -432,6 +432,19 @@ body.cuview #view button:not(.pvexit){opacity:.75}
 .pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
 .pthumb img{width:100%;height:100%;object-fit:cover;display:block}.ptag{position:absolute;left:4px;top:4px;background:var(--gold);color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px}
 .pacts{position:absolute;right:4px;bottom:4px;display:flex;gap:4px}.pacts button{width:28px;height:28px;border-radius:14px;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;cursor:pointer;padding:0}
+.crsgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.crscard{display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);color:inherit;font:inherit;cursor:pointer}
+.crscard img,.crsnoimg{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#1c1f26}.crsnoimg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px}
+.crscard .in{padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.crscover{width:100%;max-width:720px;aspect-ratio:16/9;object-fit:cover;border-radius:12px;display:block;margin:8px 0 14px}
+.lessonlist{padding:0}.lrow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.lrow:last-child{border-bottom:0}.lrow.locked{opacity:.65}.lnum{flex:none;width:32px;height:32px;border-radius:16px;background:var(--sunken);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+.lt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lesson{display:flex;flex-direction:column;gap:14px}.lvideo{position:relative;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}.lvideo iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.ltext{line-height:1.6}.ltext h3{margin:14px 0 4px}.ltext p{margin:0 0 10px}
+.lfiles{display:flex;flex-direction:column;gap:8px}.lfile{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:inherit;background:var(--surface)}
+.lfiles.edit .lfile a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.lficon{flex:none;font-size:11px;font-weight:700;background:var(--gold);color:#fff;border-radius:6px;padding:4px 6px}
+.crslock{border-left:4px solid var(--gold)}
 </style>
 </head>
 <body>
@@ -530,7 +543,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -2300,6 +2313,147 @@ function pushOff(){
 if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.type==='open-chat'&&/^[0-9a-f-]{36}$/.test(d.chat||'')){ ui.tab='chat'; ui.openChatId=d.chat; CHAT.list=null; chatRefresh(); schedule(); } });
 setInterval(function(){ if(isDeskRole()&&allReady&&ui.tab==='chat'&&document.visibilityState!=='hidden') loadWebChat(); },60000);
 
+
+/* ---------- online courses: videos (YouTube unlisted) and learning materials. Managers build them, members learn in the Learn tab ---------- */
+var SITE_URL='https://new.phuketking.com';
+var CRS={list:null,view:null,lesson:null,busy:false};
+function ytId(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
+function ytFrame(u){ var id=ytId(u); if(!id) return null; return h('div',{class:'lvideo'},h('iframe',{src:'https://www.youtube-nocookie.com/embed/'+id+'?rel=0&modestbranding=1',title:'Lesson video',allow:'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen',allowfullscreen:'',loading:'lazy'})); }
+/* lesson text: a blank line starts a paragraph, ## heading, - list, **bold**, links [text](https://...) */
+function lessonText(t){ var box=h('div',{class:'ltext'});
+  function inl(str,el){ var re=/(\*\*[^*]+\*\*|\[[^\]]+\]\(https:\/\/[^)\s]+\))/g, last=0, m;
+    while((m=re.exec(str))){ if(m.index>last) el.appendChild(document.createTextNode(str.slice(last,m.index)));
+      if(m[0].charAt(0)==='*') el.appendChild(h('b',null,m[0].slice(2,-2))); else { var mm=m[0].match(/^\[([^\]]+)\]\((.+)\)$/); el.appendChild(h('a',{href:mm[2],target:'_blank',rel:'noopener'},mm[1])); }
+      last=re.lastIndex; } if(last<str.length) el.appendChild(document.createTextNode(str.slice(last))); return el; }
+  String(t||'').replace(/\r/g,'').split(/\n\s*\n/).forEach(function(b){ b=b.trim(); if(!b) return; var lines=b.split('\n');
+    if(/^#{1,3} /.test(b)) box.appendChild(inl(b.replace(/^#{1,3} /,''),h('h3')));
+    else if(lines.every(function(l){ return /^[-*] /.test(l); })) box.appendChild(h('ul',null,lines.map(function(l){ return inl(l.slice(2),h('li')); })));
+    else if(lines.every(function(l){ return /^\d+[.)] /.test(l); })) box.appendChild(h('ol',null,lines.map(function(l){ return inl(l.replace(/^\d+[.)] /,''),h('li')); })));
+    else { var pp=h('p'); lines.forEach(function(l,i){ if(i) pp.appendChild(h('br')); inl(l,pp); }); box.appendChild(pp); } });
+  return box; }
+function crsLoad(){ CRS.busy=true; return sb.rpc('course_list_mine').then(must).then(function(d){ CRS.list=d; CRS.busy=false; schedule(); }).catch(function(e){ CRS.busy=false; CRS.err=errText(e); schedule(); }); }
+function crsOpen(id,lessonId){ return sb.rpc('course_view',{p_course:id}).then(must).then(function(d){ CRS.view=d; CRS.lesson=lessonId||null; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
+function crsPrice(c){ return !c.price?'Free':thb(c.price)+(c.members_free?', or free with a membership':''); }
+function crsBuyUrl(c){ return SITE_URL+'/course?c='+encodeURIComponent(c.slug); }
+function fileList(files){ if(!files||!files.length) return null;
+  return h('div',{class:'lfiles'},h('b',null,'Learning materials'),files.map(function(f){ return h('a',{class:'lfile',href:f.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(f.url)?'PDF':/\.(jpe?g|png|webp)(\?|$)/i.test(f.url)?'IMG':'FILE'),f.name||'File'); })); }
+
+/* member: Learn tab */
+function vLearn(){
+  var mgr=me&&me.role==='manager';
+  if(CRS.view) return crsCourseView(false);
+  if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Learn',''),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
+  var list=CRS.list.filter(function(c){ return mgr||true; });
+  return [pageHead('Learn','Video lessons and guides from the Phuket King coaches. Watch anywhere, then practise in class.'),
+    list.length?h('div',{class:'crsgrid'},list.map(function(c){
+      return h('button',{type:'button',class:'crscard',onclick:function(){ crsOpen(c.id); }},
+        c.cover?h('img',{src:c.cover,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),
+        h('div',{class:'in'},h('b',null,c.title),c.summary?h('span',{class:'sub'},c.summary):null,
+          h('div',{class:'row'},chip(c.count+' lesson'+(c.count===1?'':'s')),c.open?(c.done?chip(c.done+' of '+c.count+' done','ok'):chip('Open','ok')):chip('Locked','warn'))));
+    })):h('div',{class:'panel empty'},'No courses yet. Check back soon.')];
+}
+function crsCourseView(asMgr){
+  var c=CRS.view, L=c.lessons||[], cur=CRS.lesson?L.filter(function(l){ return l.id===CRS.lesson; })[0]:null;
+  var back=btn('Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small');
+  if(cur){ var i=L.indexOf(cur), nxt=L[i+1];
+    return [h('div',{class:'row'},back),pageHead(cur.title,c.title+', lesson '+(i+1)+' of '+L.length+(cur.minutes?', '+cur.minutes+' min':'')),
+      cur.open?h('div',{class:'panel pad lesson'},ytFrame(cur.video),cur.body?lessonText(cur.body):null,fileList(cur.files),
+        !cur.video&&!cur.body&&!(cur.files||[]).length?h('p',{class:'sub'},'Nothing in this lesson yet.'):null):crsLocked(c),
+      cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ sb.rpc('course_done',{p_lesson:cur.id,p_done:!cur.done}).then(must).then(function(){ cur.done=!cur.done; schedule(); }).catch(function(e){ toast(errText(e)); }); },cur.done?'small':'primary'),
+        nxt?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
+  }
+  var done=L.filter(function(l){ return l.done; }).length;
+  return [h('div',{class:'row'},back),pageHead(c.title,c.summary||''),
+    c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
+    c.about?h('div',{class:'panel pad'},lessonText(c.about)):null,
+    c.open?(me.role==='customer'&&L.length?h('p',{class:'sub'},done+' of '+L.length+' lessons done.'):null):crsLocked(c),
+    section('Lessons',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
+      return h('button',{type:'button',class:'lrow'+(l.open?'':' locked'),onclick:function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }},
+        h('span',{class:'lnum'},l.done?'✓':String(i+1)),h('span',{class:'lt'},h('b',null,l.title),h('small',{class:'sub'},[l.has_video?'Video':null,l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · '))),
+        l.open?(l.free&&!c.open?chip('Free preview','ok'):null):chip('Locked','warn')); })):h('div',{class:'panel empty'},'No lessons yet.'))];
+}
+function crsLocked(c){
+  return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
+    h('p',{class:'sub'},c.members_free&&c.price?'It is included free with any active Phuket King package. Or buy the course on its own for '+thb(c.price)+'.':c.members_free?'It is included free with any active Phuket King package.':'Buy the course for '+thb(c.price)+' to unlock every lesson.'),
+    h('div',{class:'row'},c.price?h('a',{class:'btn primary',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'Buy the course, '+thb(c.price)):null,
+      c.members_free?btn('See packages',function(){ CRS.view=null; ui.tab='c_buy'; schedule(); },'small'):null),
+    c.price?h('p',{class:'sub'},'Use the same email as your app account when you buy, then come back here.'):null);
+}
+
+/* manager: course builder */
+function vCourses(){
+  if(CRS.edit) return crsEditView();
+  if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Courses',''),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
+  return [pageHead('Courses','Online courses: YouTube videos (unlisted) and learning materials. Members watch them in the app, in the Learn tab. The website shows each course with its free lessons.',btn('New course',function(){ editCourse(); },'primary')),
+    table([{label:'Course',cell:function(c){ return linkBtn(c.title,function(){ crsEdit(c.id); }); }},
+      {label:'Lessons',num:true,cell:function(c){ return String(c.count); }},
+      {label:'Price',cell:function(c){ return crsPrice(c); }},
+      {label:'',cell:function(c){ return h('span',{class:'row'},c.status==='published'||c.status==null?chip('On the website','ok'):chip('Draft'),h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'Website')); }}],
+      CRS.list,'No courses yet. Tap New course.'),
+    h('p',{class:'sub narrow'},'How to add a video: upload it to YouTube as Unlisted (not Public), copy the share link, and paste it into the lesson. Unlisted videos do not show in YouTube search.')];
+}
+function crsEdit(id){ return sb.rpc('course_view',{p_course:id}).then(must).then(function(d){ CRS.edit=d; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
+function crsSlug(t){ return String(t||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60); }
+function editCourse(c){ c=c||{status:'draft',members_free:true};
+  var cover=c.cover||null;
+  openForm({title:c.id?'Edit course':'New course',values:{title:c.title||'',slug:c.slug||'',summary:c.summary||'',about:c.about||'',price:c.price,members_free:c.members_free!==false,status:c.status||'draft',sort:c.sort||0},
+    fields:[{key:'title',label:'Course name',required:true,live:true,onChange:function(v,set){ if(!c.id) set('slug',crsSlug(v)); }},
+      {key:'slug',label:'Short name for the web address',required:true,hint:'Small letters and dashes, for example: kicking-fundamentals.'},
+      {key:'summary',label:'One line about it',hint:'Shown on the course card.'},
+      {key:'about',label:'About this course',type:'textarea',rows:6,hint:'What they will learn and who it is for. A blank line starts a new paragraph, - makes a list.'},
+      {key:'price',label:'Price (THB)',type:'number',hint:'Leave empty or 0 for a free course.'},
+      {key:'members_free',label:'Free for members with an active package',type:'checkbox'},
+      {key:'status',label:'Show it',type:'select',options:[['draft','Draft (only managers see it)'],['published','On the website and in the app']]},
+      {key:'sort',label:'Order',type:'number'}],
+    onSave:function(v){ var sl=crsSlug(v.slug); if(!sl) return 'Add a short name for the web address.';
+      return sb.rpc('course_save',{p:{id:c.id||null,title:v.title,slug:sl,summary:v.summary,about:v.about,price:v.price,members_free:v.members_free,status:v.status,sort:v.sort,cover_url:cover}}).then(must)
+        .then(function(id){ CRS.list=null; return crsEdit(id); }); }});
+  var anchor=document.getElementById('f-summary'); if(!anchor) return;
+  var pic=h('img',{alt:'',style:'width:160px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(cover?'':';display:none'),src:cover||''});
+  var rm=btn('Remove',function(){ cover=null; pic.style.display='none'; rm.hidden=true; },'small'); rm.hidden=!cover;
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Cover photo'),h('div',{class:'row',style:'align-items:center'},pic,
+    btn(cover?'Change photo':'Add photo',function(){ var b=this; blogPhoto(function(u){ cover=u; pic.src=u; pic.style.display=''; rm.hidden=false; b.textContent='Change photo'; }); },'small'),rm)),anchor.parentNode);
+}
+function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
+  return [h('div',{class:'row'},btn('All courses',function(){ CRS.edit=null; CRS.list=null; schedule(); },'small')),
+    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),
+      h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
+    c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
+    section('Lessons ('+L.length+')',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
+      return h('div',{class:'lrow'},h('span',{class:'lnum'},String(i+1)),h('span',{class:'lt'},linkBtn(l.title,function(){ editLesson(c,l); }),
+          h('small',{class:'sub'},[l.has_video?'Video':'No video',l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · '))),
+        h('span',{class:'row',style:'flex-wrap:nowrap'},l.free?chip('Free preview','ok'):null,
+          i>0?btn('↑',function(){ crsMove(c,l,-1); },'small'):null,i<L.length-1?btn('↓',function(){ crsMove(c,l,1); },'small'):null)); })):h('div',{class:'panel empty'},'No lessons yet. Tap Add lesson.')),
+    h('p',{class:'sub narrow'},'Free preview lessons can be watched by anyone on the website. The rest unlock when someone buys the course'+(c.members_free?', or for anyone with an active package':'')+'.')];
+}
+function crsMove(c,l,d){ sb.rpc('course_lesson_move',{p_lesson:l.id,p_dir:d}).then(must).then(function(){ return crsEdit(c.id); }).catch(function(e){ toast(errText(e)); }); }
+function editLesson(c,l){ l=l||{};
+  var files=(l.files||[]).slice();
+  openForm({title:l.id?'Edit lesson':'New lesson',values:{title:l.title||'',video_url:l.video||'',minutes:l.minutes,free:!!l.free,body:l.body||''},
+    fields:[{key:'title',label:'Lesson name',required:true},
+      {key:'video_url',label:'YouTube link',hint:'Upload to YouTube as Unlisted, then paste the share link here. Leave empty for a lesson without video.'},
+      {key:'minutes',label:'Length (minutes)',type:'number'},
+      {key:'free',label:'Free preview (anyone can watch it on the website)',type:'checkbox'},
+      {key:'body',label:'Notes for the lesson',type:'textarea',rows:10,hint:'Key points, drills, homework. A blank line starts a new paragraph, ## makes a heading, - makes a list, **word** is bold.'}],
+    onSave:function(v){ if(v.video_url&&!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...';
+      return sb.rpc('course_lesson_save',{p:{id:l.id||null,course_id:c.id,title:v.title,video_url:v.video_url||null,minutes:v.minutes,free:v.free,body:v.body,files:files}}).then(must).then(function(){ return crsEdit(c.id); }); },
+    onDelete:l.id?function(){ return sb.rpc('course_lesson_remove',{p_lesson:l.id}).then(must).then(function(){ return crsEdit(c.id); }); }:null});
+  var anchor=document.getElementById('f-body'); if(!anchor) return;
+  var list=h('div',{class:'lfiles edit'}), addB=btn('Add files',function(){ addFiles(); },'small'), busy=0;
+  function draw(){ list.replaceChildren.apply(list,files.map(function(f,i){ return h('div',{class:'lfile'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(f.url)?'PDF':'FILE'),h('a',{href:f.url,target:'_blank',rel:'noopener'},f.name),
+      h('button',{type:'button',class:'btn small','aria-label':'Remove '+f.name,onclick:function(){ files.splice(i,1); draw(); }},'Remove')); }));
+    addB.textContent=busy?'Uploading '+busy+'...':'Add files'; addB.disabled=!!busy||files.length>=20; }
+  function addFiles(){ var inp=h('input',{type:'file',multiple:true,accept:'.pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt',hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[],0,20-files.length); inp.remove(); if(!fs.length) return; busy=fs.length; draw();
+      fs.reduce(function(pr,f){ return pr.then(function(){ if(f.size>25*1024*1024){ toast(f.name+' is over 25 MB.'); busy--; draw(); return; }
+        var safe=f.name.toLowerCase().replace(/[^a-z0-9.]+/g,'-').replace(/^-+/,'').slice(-60)||'file', rnd=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+        var path='course/'+rnd+'-'+safe;
+        return sb.storage.from('promos').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error; files.push({name:f.name.slice(0,140),url:sb.storage.from('promos').getPublicUrl(path).data.publicUrl}); })
+          .catch(function(e){ toast(errText(e)); }).then(function(){ busy--; draw(); }); }); },Promise.resolve()); }});
+    document.body.appendChild(inp); inp.click(); }
+  draw();
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Learning materials (PDFs, worksheets, photos)'),list,h('div',{class:'row'},addB),h('small',null,'Up to 20 files, 25 MB each. Only people who can open the lesson see them.')),anchor.parentNode.nextSibling);
+}
+
 /* ---------- fights: for coaches, the front desk and managers ---------- */
 var FIGHTS=null;
 var FTX={
@@ -3977,7 +4131,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -4199,7 +4353,7 @@ function cards(items,emptyMsg){
 
 /* ---------- customer app ---------- */
 var CU=null, cuCode=null, cuAt=0, cuDone=null, cuBusy=false;
-var CTABS=[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates']];
+var CTABS=[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates'],['c_learn','Learn']];
 (function(){
   /* the QR poster opens the app with ?c=code. Keep it for 20 minutes so it survives signing in. */
   try{
