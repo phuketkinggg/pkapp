@@ -46,7 +46,8 @@ def main():
         (shutil.copytree if os.path.isdir(s) else shutil.copy2)(s, os.path.join(OUT, a))
     # site.css points at ../icons and ../img
     css = os.path.join(OUT, "site.css")
-    open(css, "w", encoding="utf-8").write(open(css, encoding="utf-8").read().replace("../icons/", "icons/").replace("../img/", "img/"))
+    txt = open(css, encoding="utf-8").read().replace("../icons/", "icons/").replace("../img/", "img/")
+    open(css, "w", encoding="utf-8").write(txt)
     book = open(os.path.join(ROOT, "book.html"), encoding="utf-8").read()
     open(os.path.join(OUT, "book.html"), "w", encoding="utf-8").write(finish(fix_book(book)))
     os.makedirs(os.path.join(OUT, "icons"))
