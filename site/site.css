@@ -218,3 +218,10 @@ dialog.basket::backdrop{background:rgba(0,0,0,.6)}
 .flash.on{opacity:1;transform:translateX(-50%)}
 @media (prefers-reduced-motion:reduce){.flash{transition:none}}
 [data-reviews-section][hidden]{display:none!important}
+.buyinfo{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));padding:28px 0 4px}
+.buyinfo>div{background:#fff;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:6px;padding:14px 16px}
+.buyinfo b{display:block;font-size:16px;margin-bottom:4px}.buyinfo span{color:var(--muted);font-size:15px}
+.basket .note{background:var(--cream);border-radius:6px;padding:12px 14px;font-size:15px}
+.basket input[type=date]{font:inherit}
+.ptable td.go .btn{min-width:84px}
+.basket .sub{color:var(--muted)}

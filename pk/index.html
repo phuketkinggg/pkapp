@@ -12,7 +12,7 @@
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
 <link rel="icon" type="image/png" href="../icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=11">
+<link rel="stylesheet" href="site.css?v=12">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"SportsActivityLocation","name":"Phuket King Muay Thai","url":"https://www.phuketking.com/","email":"hello@phuketking.com","telephone":"+66615155947","address":{"@type":"PostalAddress","addressLocality":"Kathu","addressRegion":"Phuket","addressCountry":"TH"}}</script>
 </head>
 <body>
@@ -143,7 +143,7 @@ PK.data().then(function(d){
     var t=PK.el('div','tile'+(x[3]?' pop':''));
     t.innerHTML=(x[3]?'<span class="tag">Best value</span>':'')+'<h3>'+PK.esc(x[1])+'</h3><p>'+PK.esc(x[2])+'</p><div class="price">'+PK.thb(p.price)+'</div>'+
       (p.visits>1?'<p class="sub">'+PK.thb(Math.round(p.price/p.visits))+' a session</p>':p.days>1?'<p class="sub">'+PK.thb(Math.round(p.price/p.days))+' a day</p>':'');
-    var a=PK.el('a','btn'+(x[3]?' red':' light'),'Book'); a.href=PK.wa('Hi Phuket King, I would like to book '+p.name+' ('+PK.thb(p.price)+').'); a.target='_blank'; a.rel='noopener'; t.appendChild(a); box.appendChild(t); });
+    var a=PK.el('a','btn'+(x[3]?' red':' light'),'Book'); a.textContent='Buy'; a.href=p.id?'prices.html?buy='+p.id:PK.wa('Hi Phuket King, I would like to book '+p.name+' ('+PK.thb(p.price)+').'); t.appendChild(a); box.appendChild(t); });
   var wd=PK.weekday(), now=PK.nowHM(), list=d.classes.filter(function(c){ return c.day===wd&&!c.off; }), box2=document.getElementById('today');
   if(!list.length){ var nx=null; for(var i=1;i<7&&!nx;i++){ var dd=(wd+i)%7, l=d.classes.filter(function(c){ return c.day===dd&&!c.off; }); if(l.length) nx={day:dd,c:l[0]}; }
     box2.innerHTML='<div class="cls"><div>No classes today.'+(nx?' Next: '+DAYS[nx.day]+' '+nx.c.time+', '+PK.esc(nx.c.title)+'.':'')+'</div></div>'; }

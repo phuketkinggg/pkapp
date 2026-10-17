@@ -497,6 +497,36 @@ window.PK_TEXTS=[{
 "label": "Section DTV visa training: text",
 "text": "Courses for the 5 year Destination Thailand Visa (DTV). Every course comes with the gym paperwork and invitation letter for your application at no extra charge, and Phuket King is recognised by the Sports Authority of Thailand. Lite courses are one group class per calendar week. The visa decision rests with the embassy, so we cannot guarantee it, and DTV courses are non-refundable once the paperwork is issued.",
 "multi": true},{
+"id": "prices_buy1",
+"page": "Prices",
+"label": "Buy online: heading",
+"text": "Buy online, pay by card or QR",
+"multi": false},{
+"id": "prices_buy2",
+"page": "Prices",
+"label": "Buy online: text",
+"text": "Every package can be bought here. Pay by card or Thai QR (PromptPay) on the secure Stripe page.",
+"multi": true},{
+"id": "prices_buy3",
+"page": "Prices",
+"label": "Group classes: heading",
+"text": "Group classes: just turn up",
+"multi": false},{
+"id": "prices_buy4",
+"page": "Prices",
+"label": "Group classes: text",
+"text": "No booking needed. Your package starts automatically from your first class.",
+"multi": true},{
+"id": "prices_buy5",
+"page": "Prices",
+"label": "Choose the start: heading",
+"text": "Other packages: you choose the start",
+"multi": false},{
+"id": "prices_buy6",
+"page": "Prices",
+"label": "Choose the start: text",
+"text": "For privates and kids monthly, pick the day you want to start when you buy.",
+"multi": true},{
 "id": "prices_t04",
 "page": "Prices",
 "label": "Small label: Stay",
