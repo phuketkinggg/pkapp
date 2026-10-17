@@ -90,7 +90,7 @@ function backUrl(u: unknown): string {
   try {
     const x = new URL(String(u ?? ""));
     if (x.origin === "https://phuketkinggg.github.io" && x.pathname.startsWith("/pkapp")) return x.origin + x.pathname;
-    if (["https://app.phuketking.com", "https://phuketking.com", "https://www.phuketking.com", "https://test.phuketking.com"].includes(x.origin)) return x.origin + x.pathname;
+    if (["https://app.phuketking.com", "https://phuketking.com", "https://www.phuketking.com", "https://new.phuketking.com", "https://test.phuketking.com"].includes(x.origin)) return x.origin + x.pathname;
   } catch { /* fall through */ }
   return PAGE;
 }
