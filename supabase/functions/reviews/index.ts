@@ -4,11 +4,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-const KEY = (Deno.env.get("GOOGLE_PLACES_KEY") ?? "").trim();
 const QUERY = "Phuket King Muay Thai, Kathu, Phuket";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "public, max-age=1800" } });
+const json = (b: unknown, keep = true) => new Response(JSON.stringify(b), { headers: { ...cors, "Content-Type": "application/json", "Cache-Control": keep ? "public, max-age=1800" : "no-store" } });
 let mem: { at: number; data: unknown } | null = null;
+const key = () => (Deno.env.get("GOOGLE_PLACES_KEY") ?? "").trim();
 
 async function getSetting(k: string) { const { data } = await admin.from("app_settings").select("value,updated_at").eq("key", k).maybeSingle(); return data; }
 async function setSetting(k: string, v: unknown) { await admin.from("app_settings").upsert({ key: k, value: JSON.stringify(v), updated_at: new Date().toISOString() }); }
@@ -17,7 +17,7 @@ async function placeId(): Promise<string> {
   const s = await getSetting("google_place");
   if (s?.value) { try { const v = JSON.parse(s.value); if (v.id) return v.id; } catch { /* look it up again */ } }
   const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress" },
+    method: "POST", headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key(), "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress" },
     body: JSON.stringify({ textQuery: QUERY, languageCode: "en" }),
   });
   const j = await r.json();
@@ -30,7 +30,7 @@ async function placeId(): Promise<string> {
 async function fresh() {
   const id = await placeId();
   const r = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(id)}?languageCode=en`, {
-    headers: { "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": "displayName,rating,userRatingCount,googleMapsUri,reviews" },
+    headers: { "X-Goog-Api-Key": key(), "X-Goog-FieldMask": "displayName,rating,userRatingCount,googleMapsUri,reviews" },
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j?.error?.message ?? "Google said " + r.status);
@@ -49,7 +49,7 @@ async function fresh() {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (!KEY) return json({ configured: false });
+  if (!key()) return json({ configured: false }, false);
   if (mem && Date.now() - mem.at < 30 * 60e3) return json(mem.data);
   try {
     const s = await getSetting("google_reviews");
@@ -64,6 +64,6 @@ Deno.serve(async (req) => {
   } catch (e) {
     const s = await getSetting("google_reviews").catch(() => null);
     if (s?.value) { try { return json(JSON.parse(s.value)); } catch { /* fall through */ } }
-    return json({ configured: true, error: (e as Error).message, reviews: [] });
+    return json({ configured: true, error: (e as Error).message, reviews: [] }, false);
   }
 });
