@@ -41,7 +41,7 @@ textarea{min-height:70px}
 .rmap{position:relative;overflow:hidden;aspect-ratio:4/3;max-height:72vh;border-radius:14px;background:var(--sunken);touch-action:none;user-select:none;cursor:grab}
 .rmapin{position:absolute;left:0;top:0;transform-origin:0 0;width:100%}.rmapin img{display:block;width:100%;height:auto}
 .rpin{position:absolute;transform:translate(-50%,-50%) scale(var(--inv,1));min-width:28px;height:28px;padding:0 8px;border-radius:14px;border:2px solid #fff;font:700 12px var(--body);color:#fff;background:var(--off);box-shadow:0 2px 6px rgba(0,0,0,.45);cursor:pointer;white-space:nowrap}
-.rpin.free{background:var(--ok)}.rpin.taken{background:var(--bad);cursor:default}.rpin.sel{background:#C98500;outline:3px solid #fff}
+.rpin.idle{background:#2b2f36}.rpin.free{background:var(--ok)}.rpin.taken{background:var(--bad);cursor:default}.rpin.sel{background:#C98500;outline:3px solid #fff}
 .key{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:14px;margin:8px 0}.dot{display:inline-block;width:12px;height:12px;border-radius:6px;margin-right:5px;vertical-align:-1px}
 .ctl{display:flex;gap:6px}.ctl .btn{min-height:38px;padding:6px 12px}
 .groups{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
@@ -81,7 +81,11 @@ textarea{min-height:70px}
 .gallery img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}.gallery button:hover img{transform:scale(1.04)}
 .gallery button:first-child{grid-column:span 2;grid-row:span 2}
 @media (max-width:640px){.gallery{grid-template-columns:repeat(2,1fr)}}
-.video{margin-top:16px;border-radius:14px;overflow:hidden;aspect-ratio:16/9;background:#000}.video iframe{width:100%;height:100%;border:0;display:block}
+.video{margin-top:16px;border-radius:14px;overflow:hidden;aspect-ratio:16/9;background:#000}
+.vph{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;color:#fff;padding:20px;background:radial-gradient(circle at 50% 40%,#2b2f36,#0a0c10)}
+.vph .ring{width:76px;height:76px;border-radius:50%;border:2px solid rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font:700 20px var(--display)}
+.vph b{font:700 22px var(--display);text-transform:uppercase;letter-spacing:.04em}.vph span{opacity:.7;font-size:14px}
+#map{margin-top:14px}.video iframe{width:100%;height:100%;border:0;display:block}
 dialog.lb{padding:0;border:0;background:rgba(0,0,0,.92);max-width:100vw;max-height:100vh;width:100vw;height:100vh;color:#fff}
 dialog.lb::backdrop{background:rgba(0,0,0,.9)}
 .lb .wrapi{position:absolute;inset:56px 12px 70px;display:flex;align-items:center;justify-content:center}.lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
@@ -104,31 +108,25 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
 <header class="hero"><div class="in">
   <div class="brand">PANGEA RESORT · PHUKET KING MUAY THAI</div>
   <h1 data-text="stay_t01">Book your stay</h1>
-  <p data-text="stay_t02">Lakeside bungalows in Kathu, Phuket, next to the gym. Pick your dates, choose your room on the map, and pay by card.</p>
+  <p data-text="stay_t02">Lakeside bungalows in Kathu, Phuket, next to the gym. Type your dates, see which bungalows are free on the map, and pay by card.</p>
 </div></header>
 <main>
-  <section class="card" id="about-stay">
-    <h2 data-text="stay_t03">Your home by the lake</h2>
-    <p data-text="stay_t04">Pangea Resort is a quiet lakeside resort in Kathu, one minute's walk from the Phuket King ring. Eleven air-conditioned bungalows sit in two areas, Mango Grove and Lake View, each with a comfortable bed, an en-suite bathroom and its own outdoor space. No taxis and no commute: wake up, walk to class, and come back to the lake. Pangea Cafe cooks healthy meals on site, the ice baths and herbal sauna are next door, and group Muay Thai is included with every stay.</p>
-    <ul class="ticks" data-text="stay_t05"><li>One minute walk to the gym</li><li>Air conditioning and en-suite bathroom</li><li>Your own outdoor space</li><li>Group Muay Thai included</li><li>Healthy food at Pangea Cafe</li><li>Ice baths and herbal sauna</li></ul>
-    <div class="gallery" id="gallery" aria-label="Photos of the resort"></div>
-    <div class="video" id="video" hidden></div>
-  </section>
   <section class="card" id="step-dates">
-    <h2>When are you coming?</h2>
+    <h2>Pick your dates, pick your room</h2>
+    <p class="sub">Type your dates and the map shows which bungalows are free (green) and taken (red). Tap a green room to book it.</p>
     <form class="dates" id="dates" novalidate>
       <label>Arrive<input type="date" id="from" required></label>
       <label>Leave<input type="date" id="to" required></label>
-      <button class="btn primary go" type="submit">See rooms</button>
+      <button class="btn primary go" type="submit">Show free rooms</button>
     </form>
     <p class="sub" id="seasons"></p>
     <p class="err" id="derr" role="alert" hidden></p>
+    <div id="map"></div>
+    <p id="rinfo" aria-live="polite"></p>
   </section>
 
   <section class="card" id="step-rooms" hidden>
-    <h2>Choose your room</h2>
-    <p id="rinfo"></p>
-    <div id="map"></div>
+    <h2>Rooms and prices</h2>
     <div class="groups" id="groups"></div>
   </section>
 
@@ -154,6 +152,17 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
   </section>
 
   <section class="card done" id="step-done" hidden aria-live="polite"></section>
+  <section class="card" id="tour">
+    <h2>Take the tour</h2>
+    <p class="sub">Walk around the resort before you arrive. On a phone, move it around to look in every direction.</p>
+    <div class="video" id="video"><div class="vph"><div class="ring">360°</div><b>Video tour coming soon</b><span>Drone and 360 video of the bungalows, the lake and the gym.</span></div></div>
+  </section>
+  <section class="card" id="about-stay">
+    <h2 data-text="stay_t03">Your home by the lake</h2>
+    <p data-text="stay_t04">Pangea Resort is a quiet lakeside resort in Kathu, one minute's walk from the Phuket King ring. Eleven air-conditioned bungalows sit in two areas, Mango Grove and Lake View, each with a comfortable bed, an en-suite bathroom and its own outdoor space. No taxis and no commute: wake up, walk to class, and come back to the lake. Pangea Cafe cooks healthy meals on site, the ice baths and herbal sauna are next door, and group Muay Thai is included with every stay.</p>
+    <ul class="ticks" data-text="stay_t05"><li>One minute walk to the gym</li><li>Air conditioning and en-suite bathroom</li><li>Your own outdoor space</li><li>Group Muay Thai included</li><li>Healthy food at Pangea Cafe</li><li>Ice baths and herbal sauna</li></ul>
+    <div class="gallery" id="gallery" aria-label="Photos of the resort"></div>
+  </section>
 </main>
 <footer>Pangea Resort, Kathu, Phuket. Questions before you book: <a href="mailto:hello@phuketking.com">hello@phuketking.com</a>. Card payments are handled by Stripe. We never see your card number.</footer>
 <script>
@@ -174,17 +183,18 @@ function room(id){ return (INFO.rooms||[]).filter(function(r){ return r.id===id;
 function group(id){ return (INFO.groups||[]).filter(function(g){ return g.id===id; })[0]; }
 function short(n){ return String(n).replace(/^Mango Grove /,'MG ').replace(/^Lake View /,'LV ').replace(/ \(single\)$/,''); }
 
-/* map: drag, pinch or + and - to zoom */
-function mapView(state,onPick){
+/* map: drag, pinch or + and - to zoom. Built once; pins recolour when the dates change */
+var MAP=null;
+function mapView(onPick){
   var m=INFO.map; if(!m||!m.img) return null;
-  var sc=1,tx=0,ty=0,pts={},st=null,moved=false;
+  var sc=1,tx=0,ty=0,pts={},st=null,moved=false,pins={};
   var img=el('img',{src:m.img,alt:'Aerial photo of Pangea Resort with the rooms marked',draggable:'false'}), inner=el('div',{cls:'rmapin'},img), box=el('div',{cls:'rmap'},inner);
   function apply(){ var w=box.clientWidth,h=box.clientHeight,iw=inner.offsetWidth*sc,ih=inner.offsetHeight*sc; tx=Math.min(0,Math.max(w-iw,tx)); ty=Math.min(0,Math.max(h-ih,ty)); if(iw<w) tx=(w-iw)/2; if(ih<h) ty=(h-ih)/2;
     inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'; inner.style.setProperty('--inv',String(1/sc)); }
   function zoomAt(f,cx,cy){ var ns=Math.min(6,Math.max(1,sc*f)); tx=cx-(cx-tx)*ns/sc; ty=cy-(cy-ty)*ns/sc; sc=ns; apply(); }
-  Object.keys(m.pins||{}).forEach(function(rid){ var r=room(rid); if(!r) return; var s=state(rid), p=m.pins[rid];
-    var b=el('button',{type:'button',cls:'rpin '+s,style:'left:'+(p.x*100)+'%;top:'+(p.y*100)+'%','aria-label':r.name+', '+(s==='free'?'free':s==='taken'?'taken':s==='sel'?'your choice':'not available online')},el('span',null,short(r.name)));
-    b.addEventListener('click',function(e){ e.stopPropagation(); if(!moved&&s!=='taken'&&s!=='off') onPick(rid); }); inner.appendChild(b); });
+  Object.keys(m.pins||{}).forEach(function(rid){ var r=room(rid); if(!r) return; var p=m.pins[rid];
+    var b=el('button',{type:'button',cls:'rpin idle',style:'left:'+(p.x*100)+'%;top:'+(p.y*100)+'%'},el('span',null,short(r.name))); b._s='idle'; b._name=r.name;
+    b.addEventListener('click',function(e){ e.stopPropagation(); if(!moved) onPick(rid,b._s); }); inner.appendChild(b); pins[rid]=b; });
   box.addEventListener('pointerdown',function(e){ pts[e.pointerId]={x:e.clientX,y:e.clientY}; moved=false; st={tx:tx,ty:ty,x:e.clientX,y:e.clientY,sc:sc,d:null}; var k=Object.keys(pts); if(k.length===2){ var a=pts[k[0]],b=pts[k[1]]; st.d=Math.hypot(a.x-b.x,a.y-b.y); st.mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; } });
   box.addEventListener('pointermove',function(e){ if(!pts[e.pointerId]||!st) return; pts[e.pointerId]={x:e.clientX,y:e.clientY}; var k=Object.keys(pts), r=box.getBoundingClientRect();
     if(k.length===2&&st.d){ var a=pts[k[0]],b=pts[k[1]]; zoomAt((st.sc*Math.hypot(a.x-b.x,a.y-b.y)/st.d)/sc,st.mid.x-r.left,st.mid.y-r.top); moved=true; return; }
@@ -193,9 +203,19 @@ function mapView(state,onPick){
   box.addEventListener('pointerup',up); box.addEventListener('pointercancel',up);
   box.addEventListener('wheel',function(e){ e.preventDefault(); var r=box.getBoundingClientRect(); zoomAt(e.deltaY<0?1.2:1/1.2,e.clientX-r.left,e.clientY-r.top); },{passive:false});
   img.addEventListener('load',function(){ if(img.naturalWidth) box.style.aspectRatio=img.naturalWidth+' / '+img.naturalHeight; apply(); }); setTimeout(apply,0);
-  return el('div',null,box,el('div',{cls:'key'},el('div',{cls:'ctl'},el('button',{type:'button',cls:'btn','aria-label':'Zoom in',onclick:function(){ zoomAt(1.5,box.clientWidth/2,box.clientHeight/2); }},'+'),el('button',{type:'button',cls:'btn','aria-label':'Zoom out',onclick:function(){ zoomAt(1/1.5,box.clientWidth/2,box.clientHeight/2); }},'−')),
-    el('span',null,el('span',{cls:'dot',style:'background:var(--ok)'}),'Free'),el('span',null,el('span',{cls:'dot',style:'background:var(--bad)'}),'Taken'),el('span',null,el('span',{cls:'dot',style:'background:#C98500'}),'Your choice'),el('span',{cls:'sub'},'Tap a green room. Pinch or use + to zoom.')));
+  var hint=el('span',{cls:'sub'},'Type your dates to see which rooms are free.');
+  var node=el('div',null,box,el('div',{cls:'key'},el('div',{cls:'ctl'},el('button',{type:'button',cls:'btn','aria-label':'Zoom in',onclick:function(){ zoomAt(1.5,box.clientWidth/2,box.clientHeight/2); }},'+'),el('button',{type:'button',cls:'btn','aria-label':'Zoom out',onclick:function(){ zoomAt(1/1.5,box.clientWidth/2,box.clientHeight/2); }},'−')),
+    el('span',null,el('span',{cls:'dot',style:'background:var(--ok)'}),'Free'),el('span',null,el('span',{cls:'dot',style:'background:var(--bad)'}),'Taken'),el('span',null,el('span',{cls:'dot',style:'background:#C98500'}),'Your choice'),hint));
+  function update(state,msg){ Object.keys(pins).forEach(function(rid){ var b=pins[rid], s=state(rid); b._s=s; b.className='rpin '+s;
+      b.setAttribute('aria-label',b._name+', '+(s==='free'?'free, tap to choose':s==='taken'?'taken for your dates':s==='sel'?'your choice':s==='idle'?'type your dates first':'not available online')); });
+    hint.textContent=msg; }
+  return {node:node,update:update};
 }
+function paintMap(){ if(!MAP) return;
+  if(!Q){ MAP.update(function(){ return 'idle'; },'Type your dates to see which rooms are free.'); return; }
+  MAP.update(function(rid){ var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r) return 'off'; return pick&&pick.id===rid?'sel':(r.state==='free'?'free':r.state==='off'?'off':'taken'); },'Tap a green room. Pinch or use + to zoom.'); }
+function mapPick(rid,s){ if(s==='idle'){ $('derr').textContent='Type your arrive and leave dates first, then tap a green room.'; $('derr').hidden=false; $($('from').value?'to':'from').focus(); return; }
+  if(s==='free'||s==='sel') choose(rid); }
 
 function seasonLine(){ var s=(INFO.seasons||[]).filter(function(x){ return !x.base&&(x.ranges||[]).length; });
   $('seasons').textContent=s.length?'Prices change with the season: '+s.map(function(x){ return x.name+' '+x.ranges.map(function(r){ return md(r.from)+' to '+md(r.to); }).join(' and '); }).join('. ')+'. Other dates are '+((INFO.seasons.filter(function(x){ return x.base; })[0]||{}).name||'Low')+' season.':''; }
@@ -204,8 +224,7 @@ function render(){
   var byG={}; Q.rooms.forEach(function(r){ if(r.state==='off'||!r.group) return; (byG[r.group]=byG[r.group]||[]).push(r); });
   var free=Q.rooms.filter(function(r){ return r.state==='free'; }).length;
   $('rinfo').textContent=free?(free+' room'+(free===1?'':'s')+' free from '+fmt(Q.from)+' to '+fmt(Q.to)+', '+Q.nights+' night'+(Q.nights===1?'':'s')+'.'):'Sorry, every room is taken for those dates. Try other dates.';
-  var mapBox=$('map'); mapBox.innerHTML='';
-  var mv=mapView(function(rid){ var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r) return 'off'; return pick&&pick.id===rid?'sel':r.state; },function(rid){ choose(rid); }); if(mv) mapBox.appendChild(mv);
+  paintMap();
   var gs=$('groups'); gs.innerHTML='';
   (INFO.groups||[]).forEach(function(g){ var rs=byG[g.id]||[], fr=rs.filter(function(r){ return r.state==='free'; }); if(!rs.length) return;
     var q=fr[0], parts=[];
@@ -256,11 +275,18 @@ function choose(rid){
   show('step-extras',!!(INFO.extras||[]).length); renderExtras(); summary();
   show('step-guest',true); setTimeout(function(){ $((INFO.extras||[]).length?'step-extras':'step-guest').scrollIntoView({behavior:'smooth',block:'start'}); },50);
 }
-$('dates').addEventListener('submit',function(e){ e.preventDefault(); var f=$('from').value,t=$('to').value; $('derr').hidden=true; pick=null; EX={}; show('step-guest',false); show('step-extras',false);
-  if(!f||!t){ $('derr').textContent='Pick both dates.'; $('derr').hidden=false; return; }
-  call({mode:'quote',from:f,to:t}).then(function(d){ Q=d; show('step-rooms',true); render(); $('step-rooms').scrollIntoView({behavior:'smooth',block:'start'}); try{ history.replaceState(null,'','?from='+f+'&to='+t); }catch(x){} })
-    .catch(function(x){ $('derr').textContent=x.message; $('derr').hidden=false; }); });
-$('from').addEventListener('change',function(){ if(!$('to').value||$('to').value<=$('from').value) $('to').value=addDays($('from').value,3); $('to').min=addDays($('from').value,1); });
+var asked=0;
+function quote(scroll){ var f=$('from').value,t=$('to').value; $('derr').hidden=true;
+  if(!f||!t){ if(scroll){ $('derr').textContent='Pick both dates.'; $('derr').hidden=false; } return; }
+  if(t<=f){ $('derr').textContent='Your leave date must be after your arrive date.'; $('derr').hidden=false; return; }
+  if(Q&&Q.from===f&&Q.to===t&&!scroll) return;
+  pick=null; EX={}; show('step-guest',false); show('step-extras',false);
+  var my=++asked; $('rinfo').textContent='Checking which rooms are free.';
+  call({mode:'quote',from:f,to:t}).then(function(d){ if(my!==asked) return; Q=d; show('step-rooms',true); render(); if(scroll) $('map').scrollIntoView({behavior:'smooth',block:'start'}); try{ history.replaceState(null,'','?from='+f+'&to='+t); }catch(x){} })
+    .catch(function(x){ if(my!==asked) return; Q=null; paintMap(); $('rinfo').textContent=''; show('step-rooms',false); $('derr').textContent=x.message; $('derr').hidden=false; }); }
+$('dates').addEventListener('submit',function(e){ e.preventDefault(); quote(true); });
+$('from').addEventListener('change',function(){ if($('from').value){ if(!$('to').value||$('to').value<=$('from').value) $('to').value=addDays($('from').value,3); $('to').min=addDays($('from').value,1); } quote(false); });
+$('to').addEventListener('change',function(){ quote(false); });
 $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('pay'), err=$('gerr'); err.hidden=true;
   var name=$('g-name').value.trim(), email=$('g-email').value.trim();
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
@@ -285,7 +311,7 @@ function afterPay(ref,paid){
 var qp=new URLSearchParams(location.search), today=new Date(Date.now()+7*3600e3).toISOString().slice(0,10);
 $('from').min=today; $('to').min=addDays(today,1);
 if(qp.get('ref')&&/^[0-9a-f-]{36}$/.test(qp.get('ref'))){ afterPay(qp.get('ref'),qp.get('paid')==='1'); }
-call({mode:'info'}).then(function(d){ INFO=d; seasonLine();
+call({mode:'info'}).then(function(d){ INFO=d; seasonLine(); MAP=mapView(mapPick); if(MAP){ $('map').appendChild(MAP.node); paintMap(); }
   var f=qp.get('from'), t=qp.get('to'); if(f&&t&&!qp.get('ref')){ $('from').value=f; $('to').value=t; $('dates').requestSubmit(); } })
   .catch(function(){ $('derr').textContent='Booking is not available right now. Email hello@phuketking.com.'; $('derr').hidden=false; });
 })();
@@ -318,8 +344,8 @@ function draw(list,video){
     var im=document.createElement('img'); im.src=p.url; im.alt=p.caption||'Pangea Resort'; im.loading=i<3?'eager':'lazy'; b.appendChild(im); b.onclick=function(){ open(i); }; g.appendChild(b); });
   g.hidden=!list.length;
   var v=document.getElementById('video'), id=ytId(video);
-  if(id){ v.innerHTML=''; var f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?rel=0'; f.title='Video tour of Pangea Resort'; f.loading='lazy';
-    f.setAttribute('allow','accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen'); f.setAttribute('allowfullscreen',''); v.appendChild(f); v.hidden=false; } else v.hidden=true;
+  if(id){ v.innerHTML=''; var f=document.createElement('iframe'); f.src='https://www.youtube-nocookie.com/embed/'+id+'?rel=0'; f.title='Video tour of Pangea Resort'; f.setAttribute('allow','accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen; xr-spatial-tracking'); f.loading='lazy';
+    f.setAttribute('allowfullscreen',''); v.appendChild(f); }
 }
 draw(DEF,'');
 if(window.PK) PK.data().then(function(d){ var ga=(d&&d.gallery)||{}; if(Array.isArray(ga.stay)) draw(ga.stay,ga.stay_video); else draw(DEF,ga.stay_video); },function(){});

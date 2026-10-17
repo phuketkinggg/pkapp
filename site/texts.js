@@ -520,7 +520,7 @@ window.PK_TEXTS=[{
 "id": "stay_t02",
 "page": "Stay",
 "label": "Text: Lakeside bungalows in Kathu, Phuket, next...",
-"text": "Lakeside bungalows in Kathu, Phuket, next to the gym. Pick your dates, choose your room on the map, and pay by card.",
+"text": "Lakeside bungalows in Kathu, Phuket, next to the gym. Type your dates, see which bungalows are free on the map, and pay by card.",
 "multi": true},{
 "id": "stay_t03",
 "page": "Stay",
