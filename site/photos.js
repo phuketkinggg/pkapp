@@ -31,7 +31,13 @@ var L=[
   ['about_strip1','About','Photo strip 1','about_strip1.webp'],
   ['about_strip2','About','Photo strip 2','about_strip2.webp'],
   ['about_strip3','About','Photo strip 3','about_strip3.jpg'],
-  ['about_strip4','About','Photo strip 4','about_strip4.webp']
+  ['about_strip4','About','Photo strip 4','about_strip4.webp'],
+  ['wellness_hero','Wellness','Top of the page (big, wide)','wellness_hero.jpg'],
+  ['wellness_yoga','Wellness','Yoga','wellness_yoga.jpg'],
+  ['wellness_steam','Wellness','Herbal steam room','wellness_steam.webp'],
+  ['wellness_sauna','Wellness','Dry sauna','wellness_sauna.webp'],
+  ['wellness_ice','Wellness','Ice bath','wellness_ice.webp'],
+  ['wellness_redlight','Wellness','Red light therapy','wellness_redlight.webp']
 ];
 window.PK_PHOTOS=L.map(function(x){ return {id:x[0],page:x[1],label:x[2],src:B+x[3]}; });
 })();

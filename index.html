@@ -4624,7 +4624,7 @@ function editPromo(idx){
 var WEBP={list:null,photos:null,busy:null,err:''};
 function webScript(src,has){ return has()?Promise.resolve():new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=src; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); }); }
 function loadWebPhotos(){
-  return Promise.all([webScript('pk/photos.js',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js',function(){ return !!window.PK_TEXTS; })])
+  return Promise.all([webScript('pk/photos.js?v=12',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js?v=12',function(){ return !!window.PK_TEXTS; })])
     .then(function(){ WEBP.list=window.PK_PHOTOS||[]; WEBP.tlist=window.PK_TEXTS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
     .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.texts=(d&&d.texts)||{}; WEBP.gallery=(d&&d.gallery)||{}; WEBP.err=''; schedule(); })
     .catch(function(){ WEBP.err='The website photos and text could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; WEBP.texts=WEBP.texts||{}; schedule(); });
@@ -4640,7 +4640,7 @@ function webTextEdit(t){
 }
 function webTextSection(){
   if(!me||me.role!=='manager'||!WEBP.photos) return null;
-  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',DTV:'pk/dtv.html',Shop:'pk/shop.html',Blog:'pk/blog.html',Stay:'book.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',DTV:'pk/dtv.html',Shop:'pk/shop.html',Blog:'pk/blog.html',Stay:'book.html',Wellness:'pk/wellness.html'}, list=WEBP.tlist||[], tx=WEBP.texts||{};
   return section('Website text',null,h('div',null,
     h('p',{class:'sub'},'Every heading and paragraph on the Phuket King website. Tap one to rewrite it. The website shows the change within a minute. Put *stars* around a word to highlight it.'),
     Object.keys(pages).map(function(pg){ var items=list.filter(function(t){ return t.page===pg; }); if(!items.length) return null;
@@ -4712,7 +4712,7 @@ function staySection(){
 function webPhotosSection(){
   if(!me||me.role!=='manager') return null;
   if(!WEBP.photos){ if(!WEBP.loading){ WEBP.loading=true; loadWebPhotos().then(function(){ WEBP.loading=false; }); } return section('Website photos',null,h('div',{class:'panel empty'},'Loading the website photos.')); }
-  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',DTV:'pk/dtv.html',Shop:'pk/shop.html',Blog:'pk/blog.html'}, list=WEBP.list||[];
+  var pages={Home:'pk/index.html',Prices:'pk/prices.html',About:'pk/about.html',DTV:'pk/dtv.html',Shop:'pk/shop.html',Blog:'pk/blog.html',Wellness:'pk/wellness.html'}, list=WEBP.list||[];
   return section('Website photos',null,h('div',null,
     h('p',{class:'sub'},'Every photo on the Phuket King website. Tap Change photo and pick one from your phone. The website shows it within a minute. Landscape photos work best for the big wide spots.'),
     WEBP.err?h('p',{class:'ferr'},WEBP.err):null,
