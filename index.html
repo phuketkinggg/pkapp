@@ -475,9 +475,19 @@ function coverReason(p,target){
   if(p.covers==null) return null;
   if(target.kind==='facility') return p.covers.indexOf(target.name)>=0?null:'does not include '+target.name;
   if(p.covers.indexOf(target.discipline)<0) return 'does not include '+target.discipline+' classes';
-  if(p.times&&p.times.length&&p.times.indexOf(target.time)<0) return 'only covers the '+p.times.join(' and ')+' classes';
+  if(!timesOk(p.times,target.day,target.time)) return 'only covers '+timesText(p.times);
   return null;
 }
+/* class times a package covers. "08:00" means that time on any day, "Sat 16:30" means only that day at that time. Empty means every class. */
+var DAY3=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function timesOk(times,day,time){ if(!times||!times.length) return true; if(times.indexOf(time)>=0) return true;
+  if(day==null||day==='') return times.some(function(t){ return t.slice(-5)===time; });
+  return times.indexOf(DAY3[Number(day)]+' '+time)>=0; }
+function timesText(times){ if(!times||!times.length) return 'every class';
+  var any=times.filter(function(t){ return t.length===5; }).sort(), by={};
+  times.filter(function(t){ return t.length>5; }).forEach(function(t){ var d=t.slice(0,3); (by[d]=by[d]||[]).push(t.slice(-5)); });
+  var days=DAY3.filter(function(d){ return by[d]; }).map(function(d){ return d+' '+by[d].sort().join(' and '); });
+  return (any.length?'the '+any.join(' and ')+' classes'+(days.length?' every day':''):'')+(any.length&&days.length?', plus ':'')+(days.length?days.join('; '):''); }
 function coversClasses(p){ if(p.covers==null) return true; return p.covers.some(function(c){return FACILITIES.indexOf(c)<0&&c!=='Privates'&&c!==MEAL;}); }
 function countsVisit(p,target){ return target.kind==='class'||!coversClasses(p); }
 function canCheckIn(p,st,target,classToday){
@@ -641,9 +651,12 @@ function opts(list,blank){ var o=list.map(function(d){return [d.id,d.name||'Unna
 function coaches(){ return sortBy(S.staff.filter(function(s){return s.role==='coach'&&s.active!==false;}),'name'); }
 
 function editPackage(p){ p=p||{};
-  var seen={}; S.classes.forEach(function(c){ if(c.time) seen[c.time]=1; }); (p.times||[]).forEach(function(t){ seen[t]=1; });
-  var timeOpts=Object.keys(seen).sort();
-  p=Object.assign({},p,{tiers_txt:tiersText(p.tiers),tiers_local_txt:tiersText(p.tiers_local)});
+  // every class slot in the timetable, as "Sat 16:30"; a plain "16:30" in the package ticks that time on every day it runs
+  var slot={}; S.classes.forEach(function(c){ if(c.time&&c.day!=null) slot[DAY3[Number(c.day)]+' '+c.time]={d:Number(c.day),t:c.time,k:(slot[DAY3[Number(c.day)]+' '+c.time]||{}).k||c.title}; });
+  (p.times||[]).forEach(function(t){ if(t.length>5&&!slot[t]) slot[t]={d:DAY3.indexOf(t.slice(0,3)),t:t.slice(-5),k:'not in the timetable now'}; });
+  var slotKeys=Object.keys(slot).sort(function(a,b){ return slot[a].d-slot[b].d||(slot[a].t<slot[b].t?-1:1); });
+  var ticked=[]; (p.times||[]).forEach(function(t){ if(t.length>5) ticked.push(t); else slotKeys.forEach(function(k){ if(slot[k].t===t) ticked.push(k); }); });
+  p=Object.assign({},p,{times:ticked,tiers_txt:tiersText(p.tiers),tiers_local_txt:tiersText(p.tiers_local)});
   openForm({title:p.id?'Edit package':'New package',values:p,fields:[
     {key:'name',label:'Name',required:true},
     {key:'price_thb',label:'Standard price (THB)',type:'number',hint:'Leave empty if you use the price per amount below.'},
@@ -653,7 +666,7 @@ function editPackage(p){ p=p||{};
     {key:'addon_fz_thb',label:'Fitness Zone add-on price (THB)',type:'number',hint:'Extra charge to add the Fitness Zone when selling. Leave empty if it cannot be added.'},
     {key:'addon_fz_local_thb',label:'Fitness Zone add-on, local and Thai price (THB)',type:'number',hint:'Leave empty to charge the standard add-on.'},
     {key:'covers',label:'What this package covers',type:'checks',required:true,def:['Muay Thai'],options:DISCIPLINES.map(function(d){return [d,d+' classes'];}).concat(FACILITIES.map(function(f){return [f,f];})).concat([[MEAL,'Cafe meals (meal plan)']]).concat([['Privates','Private sessions (a pack)']])},
-    {key:'times',label:'Only these class times',type:'checks',options:timeOpts.map(function(t){return [t,t];}),hint:'Tick none to allow every class time.'},
+    {key:'times',label:'Only these classes (day by day)',type:'checks',options:slotKeys.map(function(k){ var x=slot[k]; return [k,k+', '+String(x.k).split(',')[0]]; }),hint:'Tick the exact classes they can come to, for example 08:00 and 18:30 on weekdays and 16:30 on Saturday. Tick none to allow every class.'},
     {key:'tiers_txt',label:'Price per amount (customer picks how many)',hint:'For packs bought by the amount, like privates. Write it as 1:900, 5:800, 10:700, 20:650. That means 1 to 4 are 900 each, 5 to 9 are 800 each, 10 to 19 are 700 each, 20 or more are 650 each. Leave empty for a fixed package.'},
     {key:'tiers_local_txt',label:'Price per amount, local and Thai',hint:'Same format. Leave empty and they pay the standard amounts.'},
     {key:'qty_unit',label:'The amount is',type:'select',def:'visits',options:[['visits','Number of sessions or visits'],['days','Number of days (unlimited classes for those days)']],hint:'Only for price per amount. Days: 1:400, 7:358 means 1 to 6 days are 400 a day, 7 or more are 358 a day.'},
@@ -666,6 +679,11 @@ function editPackage(p){ p=p||{};
     {key:'active',label:'On sale now',type:'checkbox',def:true},
     {key:'notes',label:'Notes',type:'textarea'}],
     onSave:function(v){ var t,tl; try{ t=parseTiers(v.tiers_txt); tl=parseTiers(v.tiers_local_txt); }catch(e){ return e.message; }
+      // a time ticked on every day it runs is kept as just the time, so it also covers that class on days added later
+      var pick=v.times||[], out=[], done={};
+      pick.forEach(function(k){ var tm=slot[k].t; if(done[tm]) return; var all=slotKeys.filter(function(x){ return slot[x].t===tm; });
+        if(all.every(function(x){ return pick.indexOf(x)>=0; })){ out.push(tm); done[tm]=1; } else out.push(k); });
+      v.times=out.length?out:null;
       if(tl&&!t) return 'Add the standard price per amount too.';
       if(v.price_thb==null&&!t) return 'Add a standard price, or a price per amount.';
       var body=Object.assign({},p,v,{tiers:t,tiers_local:tl,qty_default:t?v.qty_default:null,qty_unit:t?(v.qty_unit||'visits'):'visits'}); delete body.tiers_txt; delete body.tiers_local_txt;
@@ -3478,7 +3496,7 @@ function vToday(){
   var q=ui.q.trim().toLowerCase(), hits=[];
   if(q) hits=sortBy(S.customers.filter(function(c){ return !c.is_agency&&[c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
   var search=h('input',{id:'q',class:'search',type:'search',placeholder:'Type a name, email or phone',value:ui.q,'aria-label':'Find a customer to check in',oninput:function(ev){ ui.q=ev.target.value; schedule(); }});
-  var targets=todays.map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
+  var targets=todays.map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
     .concat(FACILITIES.map(function(f){ return {key:'f:'+f,kind:'facility',name:f,label:f}; }));
   if(ui.targetAuto||!targets.some(function(t){return t.key===ui.target;})){
     var cut=shiftTime(timeNow(),-45), cls=targets.filter(function(t){return t.kind==='class';});
@@ -3628,7 +3646,7 @@ function vPackages(){
       {label:'Thai',num:true,cell:function(p){return thb(p.price_thai_thb);}},
       {label:'For',cell:function(p){return p.audience==='thai'?chip('Thai only','warn'):p.audience==='local'?chip('Local and Thai','warn'):'';}},
       {label:'+ Fitness Zone',num:true,cell:function(p){return (p.addon_fz_thb!=null?'+'+thb(p.addon_fz_thb):'')+(p.addon_fz_local_thb!=null?' (local +'+Number(p.addon_fz_local_thb).toLocaleString('en-US')+')':'');}},
-      {label:'Covers',cell:function(p){return h('span',{class:'wrap'},(p.covers||['Everything']).join(', ')+(p.times&&p.times.length?' ('+p.times.join(' and ')+' only)':''));}},
+      {label:'Covers',cell:function(p){return h('span',{class:'wrap'},(p.covers||['Everything']).join(', ')+(p.times&&p.times.length?' (only '+timesText(p.times)+')':''));}},
       {label:'Visits',num:true,cell:function(p){return p.class_limit||'Unlimited';}},
       {label:'Per week',num:true,cell:function(p){return p.per_week_limit||'No limit';}},
       {label:'Valid for',num:true,cell:function(p){return p.duration_days?p.duration_days+' days':'No expiry';}},
@@ -4248,7 +4266,7 @@ function cuTargets(){
   var out=[];
   CU.classes.forEach(function(c){
     if(Number(c.day)!==wd||classOff(c,CU.today)) return;
-    var t={kind:'class',id:c.id,discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title};
+    var t={kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title};
     t.done=mine.some(function(e){ return e.class_id===c.id; });
     if(!t.done&&c.time&&c.time<cut) t.label+=' (earlier today)';
     t.ok=usable(t); out.push(t); });
@@ -4327,7 +4345,7 @@ function pkgCard(p){
   if(p.per_week_limit) bits.push((p.used_week||0)+' of '+p.per_week_limit+' used this week');
   if(p.expires_on) bits.push((st.status==='expired'?'Ended ':'Valid until ')+fmtDate(p.expires_on));
   else if(!p.starts_on) bits.push('Starts on your first visit'+(p.start_by?', start by '+fmtDate(p.start_by):''));
-  if(p.times&&p.times.length) bits.push('Only the '+p.times.join(' and ')+' classes');
+  if(p.times&&p.times.length) bits.push('Only '+timesText(p.times));
   var c=st.status==='active'?chip('Active','ok'):st.status==='not_started'?chip('Ready to use','ok'):st.status==='week_limit'?chip('Weekly limit reached','warn'):chip(st.label,'bad');
   return {when:p.package_name,right:c,note:bits.join('. ')};
 }
@@ -4406,7 +4424,7 @@ function vCClasses(){
   for(var i=0;i<7;i++){ (function(d,isToday,dd){
     var rows=CU.classes.filter(function(c){ return Number(c.day)===d; }); if(!rows.length) return;
     out.push(section(DAYS[d]+(isToday?', today':''),null,cards(rows.map(function(c){
-      var cov=!ps.length||ps.some(function(p){ return !coverReason(p,{kind:'class',discipline:c.discipline,time:c.time||''}); });
+      var cov=!ps.length||ps.some(function(p){ return !coverReason(p,{kind:'class',day:Number(c.day),discipline:c.discipline,time:c.time||''}); });
       var off=classOff(c,addDays(CU.today,dd));
       return {when:c.time||'Time to be set',title:c.title,note:off?offText(c):[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:off?chip('Off this time','bad'):cov?null:chip('Not in your package')}; }),'')));
   })((wd+i)%7,i===0,i); }
@@ -4425,7 +4443,7 @@ function pkgDetail(k){
   if(k.duration_days) b.push('valid '+pkgDays(k.duration_days)+(k.clock==='purchase'?' from the day you pay':' from your first visit'));
   if(k.start_within_days) b.push('start within '+pkgDays(k.start_within_days));
   var s=b.join(', ')+'.';
-  if(k.times&&k.times.length) s+=' Only the '+k.times.join(' and ')+' classes.';
+  if(k.times&&k.times.length) s+=' Only '+timesText(k.times)+'.';
   var inc=(k.covers||[]).filter(function(c){ return c!=='Privates'; }); if(inc.length) s+=' Includes '+inc.join(', ')+'.';
   if(k.addon_thb!=null) s+=' Fitness Zone can be added for '+thb(k.addon_thb)+'.';
   return s;
@@ -4797,7 +4815,7 @@ function kTargets(c,day){
   var wd=(parseYmd(day).getDay()+6)%7, cut=shiftTime(timeNow(),-120), entries=entriesOf(day).filter(function(e){ return e.customer_id===c.id; });
   var classToday=entries.some(function(e){ return !!e.class_id; });
   var ps=S.purchases.filter(function(p){ return p.customer_id===c.id&&kUsable(p,day); });
-  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,ymd(new Date())); }),'time').map(function(k){ return {kind:'class',id:k.id,discipline:k.discipline,time:k.time||'',label:k.title}; })
+  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,ymd(new Date())); }),'time').map(function(k){ return {kind:'class',id:k.id,day:Number(k.day),discipline:k.discipline,time:k.time||'',label:k.title}; })
     .concat(FACILITIES.map(function(f){ return {kind:'facility',name:f,time:'',label:f}; }));
   var out=[];
   ts.forEach(function(t){
