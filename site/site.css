@@ -217,3 +217,4 @@ dialog.basket::backdrop{background:rgba(0,0,0,.6)}
 .flash{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#111;color:#fff;padding:10px 16px;border-radius:6px;font-size:15px;opacity:0;transition:.25s;z-index:70;pointer-events:none;max-width:90vw}
 .flash.on{opacity:1;transform:translateX(-50%)}
 @media (prefers-reduced-motion:reduce){.flash{transition:none}}
+[data-reviews-section][hidden]{display:none!important}

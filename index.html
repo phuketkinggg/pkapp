@@ -2092,7 +2092,7 @@ function chatTime(at){
 }
 function chatItem(c){
   return h('button',{type:'button',class:'chatitem'+(c.unread>0&&c.in_chat?' unread':''),onclick:function(){ openChat(c); }},
-    h('div',{class:'chatrow'},h('b',null,c.title),h('span',{class:'sub'},c.last?chatTime(c.last.at):'')),
+    h('div',{class:'chatrow'},h('b',null,c.title),h('span',{class:'sub'},c.kind==='web'&&c.visitor&&c.visitor.here?h('span',{class:'chip ok'},'On the website now'):null,' ',c.last?chatTime(c.last.at):'')),
     h('div',{class:'chatrow'},h('span',{class:'sub chatprev'},c.last?(c.last.who+': '+c.last.body):M('empty')),
       c.unread>0&&c.in_chat?h('span',{class:'chatbadge'},String(c.unread)):null));
 }
@@ -2108,7 +2108,9 @@ function vChat(){
     acts.push(btn(M('cust'),function(){ chatPick('customer'); },'small'));
     if(mgr) acts.push(btn('New group',function(){ chatGroup(); },'primary small'));
   }
+  if(ui.openChatId){ var oc=CHAT.list.filter(function(x){ return x.id===ui.openChatId; })[0]; ui.openChatId=null; if(oc) setTimeout(function(){ openChat(oc); },30); }
   return [pageHead(M('tab'),cust?'Talk to the front desk or your private coach. The Phuket King team can see these chats.':mgr?'Your chats first. As a manager you can also read every other chat below.':''),
+    webChatBox(),
     h('div',{class:'row'},acts),
     mine.length?h('div',{class:'panel chatlist'},mine.map(chatItem)):h('div',{class:'panel empty'},M('none')),
     mgr&&others.length?section('Other chats you can read',null,h('div',{class:'panel chatlist'},others.map(chatItem))):null];
@@ -2167,6 +2169,7 @@ function openChat(c){
   var head=h('div',{class:'chathead'},btn(M('back'),closeChat,'small'),
     h('div',{class:'chattitle'},h('b',null,c.title||'Chat'),
       c.kind==='group'?h('span',{class:'sub'},(c.members||[]).map(function(m){ return m.name; }).join(', ')):
+      c.kind==='web'?webVisitorLine(c):
       !c.in_chat&&mgr?h('span',{class:'sub'},'You are reading this as a manager.'):null),
     mgr&&c.kind==='group'?btn('Edit',function(){ chatGroup(c); },'small'):h('span'));
   var wrap=h('div',{class:'chatwrap'},h('div',{class:'chatbox'},head,msgs,
@@ -2209,6 +2212,71 @@ function closeChat(){
   clearInterval(CHAT.poll); if(CHAT.open.wrap.parentNode) CHAT.open.wrap.parentNode.removeChild(CHAT.open.wrap);
   document.body.classList.remove('chatting'); CHAT.open=null; chatRefresh();
 }
+
+/* ---------- website live chat: visitors on the website chat with the desk. Hours and phone notifications. ---------- */
+var WEBCHAT=null;
+function isDeskRole(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
+function webVisitorLine(c){
+  var v=c.visitor||{}, ct=(v.contact||'').trim(), link=null;
+  if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ct)) link=h('a',{href:'mailto:'+ct},ct);
+  else if(/^\+?[0-9][0-9 ()-]{6,}$/.test(ct)){ var d=ct.replace(/[^0-9]/g,''); if(/^0/.test(d)) d='66'+d.slice(1); link=h('a',{href:'https://wa.me/'+d,target:'_blank',rel:'noopener'},ct+' (WhatsApp)'); }
+  return h('span',{class:'sub'},'Website visitor'+(v.page?', on '+v.page:'')+'. ',ct?h('span',null,'Contact: ',link||ct):'No contact left yet.',v.here?' On the website now.':' Left the website, reply on WhatsApp or email if they do not answer.');
+}
+function loadWebChat(){ if(!isDeskRole()) return Promise.resolve(); return sb.rpc('web_chat_settings').then(function(r){ if(!r.error){ WEBCHAT=r.data; schedule(); } },function(){}); }
+function webChatBox(){
+  if(!isDeskRole()) return null;
+  if(!WEBCHAT){ if(!ui.webChatAsked){ ui.webChatAsked=true; loadWebChat(); pushState(); } return null; }
+  var mgr=me.role==='manager';
+  return h('div',{class:'panel',style:'padding:12px 14px;margin-bottom:12px'},
+    h('div',{class:'chatrow'},h('b',null,'Website chat'),chip(WEBCHAT.online?'Online now':'Away',WEBCHAT.online?'ok':'')),
+    h('p',{class:'sub',style:'margin:6px 0'},!WEBCHAT.on?'Switched off: the website asks visitors to leave their WhatsApp or email.':'Online '+WEBCHAT.from+' to '+WEBCHAT.to+' (Thailand time). Outside these hours the website asks visitors to leave their WhatsApp or email.'),
+    h('div',{class:'row'},
+      mgr?btn('Chat hours',webChatHours,'small'):null,
+      pushBtn()));
+}
+function webChatHours(){
+  openForm({title:'Website chat hours',saveLabel:'Save',doneMsg:'Chat hours saved.',
+    fields:[{key:'on',label:'Live chat on the website',type:'select',def:WEBCHAT.on?'1':'0',options:[['1','On during the hours below'],['0','Off (always asks for WhatsApp or email)']]},
+      {key:'from',label:'Online from',type:'time',def:WEBCHAT.from||'08:00',required:true},
+      {key:'to',label:'Online until',type:'time',def:WEBCHAT.to||'20:00',required:true,hint:'Same time in both boxes means online all day.'}],
+    onSave:function(v){ return sb.rpc('web_chat_settings_save',{p_on:v.on==='1',p_from:String(v.from).slice(0,5),p_to:String(v.to).slice(0,5)}).then(must).then(function(d){ WEBCHAT=d; schedule(); }); }});
+}
+/* phone notifications (web push). iPhone: only after "Add to Home Screen" and opening the app from there. */
+var PUSH={can:'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window,on:null,busy:false};
+function b64u(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; var r=atob(s), a=new Uint8Array(r.length); for(var i=0;i<r.length;i++) a[i]=r.charCodeAt(i); return a; }
+function pushState(){
+  if(!PUSH.can) return;
+  setTimeout(function(){ if(PUSH.on===null){ PUSH.on=false; schedule(); } },4000);
+  navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
+    if(!sub){ PUSH.on=false; schedule(); return; }
+    return sb.rpc('push_sub_status',{p_endpoint:sub.endpoint}).then(function(r){ PUSH.on=!r.error&&!!r.data; schedule(); });
+  }).catch(function(){ PUSH.on=false; schedule(); });
+}
+function pushBtn(){
+  if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'For chat notifications on iPhone: Share, Add to Home Screen, then open the app from the home screen.':'This browser cannot show notifications.');
+  if(PUSH.on===null) return null;
+  return PUSH.on?btn('Notifications on this phone: ON',pushOff,'small'):btn('Turn on notifications on this phone',pushOn,'primary small');
+}
+function pushOn(){
+  if(PUSH.busy) return; PUSH.busy=true;
+  Notification.requestPermission().then(function(p){
+    if(p!=='granted') throw new Error('Notifications are blocked. Allow them for this app in your phone settings, then try again.');
+    return sb.rpc('push_public_key').then(must);
+  }).then(function(k){
+    if(!k) throw new Error('Notifications are not ready yet. Try again in a minute.');
+    return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(old){ return old||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k)}); }); });
+  }).then(function(sub){ var j=sub.toJSON(); return sb.rpc('push_sub_save',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}).then(must); })
+  .then(function(){ PUSH.on=true; toast('Done. This phone gets a notification for every website chat message.'); })
+  .catch(function(e){ toast(errText(e)); }).then(function(){ PUSH.busy=false; schedule(); });
+}
+function pushOff(){
+  navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
+    if(!sub) return; return sb.rpc('push_sub_off',{p_endpoint:sub.endpoint}).then(function(){ return sub.unsubscribe(); });
+  }).then(function(){ PUSH.on=false; toast('Notifications off on this phone.'); schedule(); }).catch(function(e){ toast(errText(e)); });
+}
+/* tapping a notification opens that chat */
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.type==='open-chat'&&/^[0-9a-f-]{36}$/.test(d.chat||'')){ ui.tab='chat'; ui.openChatId=d.chat; CHAT.list=null; chatRefresh(); schedule(); } });
+setInterval(function(){ if(isDeskRole()&&allReady&&ui.tab==='chat'&&document.visibilityState!=='hidden') loadWebChat(); },60000);
 
 /* ---------- fights: for coaches, the front desk and managers ---------- */
 var FIGHTS=null;
@@ -5078,12 +5146,13 @@ function enter(user){
     me=row; db=makeDb();
     TABS=staffTabs(row);
     if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
-    if(!TABS.some(function(t){return t[0]===ui.tab;})) ui.tab=TABS[0][0];
+    if(!TABS.some(function(t){return t[0]===ui.tab;})&&!(ui.tab==='chat'&&ui.openChatId)) ui.tab=TABS[0][0];
     return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });
   }).catch(function(e){ noDb('The gym database could not be reached. '+((e&&e.message)||'')+' Reload the page to try again.'); });
 }
 
 var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
+(function(){ var m=start.match(/^chat=([0-9a-f-]{36})$/); if(m){ ui.tab='chat'; ui.openChatId=m[1]; try{ history.replaceState(null,'',location.pathname+'#chat'); }catch(e){} } })();
 if(!window.supabase||!window.supabase.createClient){
   noDb('The app could not load fully. Check your connection and reload the page.');
 } else {

@@ -36,6 +36,8 @@ textarea{min-height:70px}
 .btn{font:600 16px var(--body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 18px;min-height:46px;cursor:pointer}
 .btn.primary{background:var(--btn);color:var(--btnfg);border-color:var(--btn)}
 .btn:disabled{opacity:.55;cursor:default}
+a.btn{display:inline-flex;align-items:center;text-decoration:none}
+[data-reviews-section][hidden]{display:none!important}
 .sub{color:var(--muted);font-size:14px}
 .err{color:var(--bad);font-weight:600}
 .rmap{position:relative;overflow:hidden;aspect-ratio:4/3;max-height:72vh;border-radius:14px;background:var(--sunken);touch-action:none;user-select:none;cursor:grab}
@@ -156,6 +158,10 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
     <h2>Take the tour</h2>
     <p class="sub">Walk around the resort before you arrive. On a phone, move it around to look in every direction.</p>
     <div class="video" id="video"><div class="vph"><div class="ring">360°</div><b>Video tour coming soon</b><span>Drone and 360 video of the bungalows, the lake and the gym.</span></div></div>
+  </section>
+  <section class="card" id="reviews" data-reviews-section hidden>
+    <h2>What our guests say</h2>
+    <div data-reviews="3" data-btn="btn primary" data-btn2="btn"></div>
   </section>
   <section class="card" id="about-stay">
     <h2 data-text="stay_t03">Your home by the lake</h2>
@@ -317,6 +323,8 @@ call({mode:'info'}).then(function(d){ INFO=d; seasonLine(); MAP=mapView(mapPick)
 })();
 </script>
 <script src="site.js?v=11"></script>
+<script src="chat.js?v=1" defer></script>
+<script src="reviews.js?v=1" defer></script>
 <script>
 /* resort photos and video tour: managed in the app, Settings > Website photos > Stay page gallery */
 (function(){
