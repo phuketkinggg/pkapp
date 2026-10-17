@@ -15,8 +15,8 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--live" in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html"]
-ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "photos.js", "texts.js", "img"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html"]
+ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
     html = html.replace('href="../book.html"', 'href="book.html"')
@@ -74,7 +74,7 @@ def main():
         open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\n" % DOMAIN)
     else:
         open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nDisallow: /\n")
-    urls = ["/", "/about", "/prices", "/wellness", "/dtv", "/book", "/shop", "/blog"] + ["/post?p=" + s for s in slugs]
+    urls = ["/", "/about", "/prices", "/wellness", "/courses", "/dtv", "/book", "/shop", "/blog"] + ["/post?p=" + s for s in slugs]
     open(os.path.join(OUT, "sitemap.xml"), "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + "".join("  <url><loc>%s%s</loc></url>\n" % (DOMAIN, u.replace("&", "&amp;")) for u in urls) + "</urlset>\n")
     print("site/ built", "(live, Google allowed)" if LIVE else "(test, hidden from Google)", len(r), "forwards")

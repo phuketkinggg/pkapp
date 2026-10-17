@@ -1133,5 +1133,23 @@ window.PK_TEXTS=[{
 "page": "Wellness",
 "label": "Heading: Before you start",
 "text": "Before you start",
-"multi": false}
+"multi": false},
+{
+"id": "courses_t01",
+"page": "Courses",
+"label": "Small heading: Online courses",
+"text": "Online courses",
+"multi": false},
+{
+"id": "courses_t02",
+"page": "Courses",
+"label": "Main heading: Learn anywhere.",
+"text": "*Learn* anywhere.",
+"multi": false},
+{
+"id": "courses_t03",
+"page": "Courses",
+"label": "Text: Video lessons, drills and notes...",
+"text": "Video lessons, drills and notes from the Phuket King coaches. Watch the free lessons here, then unlock the full course in the Phuket King app. Members with an active package get most courses free.",
+"multi": true}
 ];

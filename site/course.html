@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co https://i.ytimg.com; connect-src https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'">
+<meta name="robots" content="noindex">
+<title>Online Course | Phuket King Muay Thai</title>
+<meta name="description" content="An online Muay Thai course from the Phuket King coaches.">
+<link rel="icon" type="image/png" href="icons/favicon-48.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
+<link rel="stylesheet" href="site.css?v=16">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="logo" href="index.html" aria-label="Phuket King Muay Thai, home"><img src="icons/icon-192.png" alt="" width="46" height="46"><img class="wm" src="img/wordmark.png" alt="Phuket King Muay Thai" width="181" height="32"></a>
+  <button class="menu" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+  <nav class="nav" id="nav" aria-label="Main">
+    <a href="about.html">About</a><a href="index.html#training">Training</a><a href="prices.html">Prices</a><a href="index.html#schedule">Schedule</a><a href="book.html">Stay</a><a href="wellness.html">Wellness</a><a href="courses.html" aria-current="page">Courses</a><a href="dtv.html">DTV Visa</a><a href="shop.html">Shop</a><a href="blog.html">Blog</a>
+    <a class="btn red" href="prices.html">Book training</a>
+  </nav>
+</div></header>
+
+<main>
+<section class="hero short" id="chero"><div class="wrap">
+  <div class="eyebrow"><a href="courses.html" style="color:inherit">Online courses</a></div>
+  <h1 id="ctitle">Loading</h1><span class="rule"></span>
+  <p class="lead" id="csum"></p>
+  <div class="cbuybox" id="cbox"></div>
+</div></section>
+<section class="band light-sec"><div class="wrap cpage">
+  <div id="cabout" class="prose"></div>
+  <h2 style="margin-top:10px">Lessons</h2><span class="rule"></span>
+  <div id="clessons" class="clessons"></div>
+</div></section>
+</main>
+<footer><div class="wrap">
+  <div class="cols">
+    <div><img class="flogo" src="icons/icon-192.png" alt="Phuket King Muay Thai" loading="lazy"><p style="margin:0;opacity:.75">Work hard. Fight easy. Recover properly. Live fully.</p></div>
+    <div><h4>Phuket King</h4><a href="about.html">About us</a><a href="index.html#training">Training</a><a href="prices.html">Prices</a><a href="index.html#schedule">Schedule</a><a href="index.html#coaches">Coaches</a><a href="wellness.html">Wellness and recovery</a><a href="book.html">Stay at Pangea</a><a href="dtv.html">DTV Visa</a></div>
+    <div><h4>More</h4><a href="courses.html">Online courses</a><a href="shop.html">Shop</a><a href="blog.html">Blog</a><a href="https://app.phuketking.com/">The Phuket King app</a></div>
+    <div><h4>Contact</h4><a href="mailto:hello@phuketking.com">hello@phuketking.com</a><a href="tel:+66615155947">+66 61 515 5947</a><a data-wa="Hi Phuket King, I have a question.">WhatsApp</a><a href="https://www.instagram.com/phuketking" target="_blank" rel="noopener">Instagram</a><a href="https://www.facebook.com/phuketkingmuaythai/" target="_blank" rel="noopener">Facebook</a><a href="https://www.youtube.com/@PhuketKing" target="_blank" rel="noopener">YouTube</a></div>
+  </div>
+  <p class="small">© <span id="year">2026</span> Phuket King Muay Thai, Kathu, Phuket.</p>
+</div></footer>
+<div class="dock"><a class="btn light" data-wa="Hi Phuket King, I have a question about the online courses.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
+<script src="photos.js?v=13"></script>
+<script src="site.js?v=11"></script>
+<script src="chat.js?v=1" defer></script>
+<script src="qrcode.js?v=1"></script>
+<script src="checkout.js?v=1"></script>
+<script>
+(function(){
+'use strict';
+
+function ytId(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
+function mins(c){ return c.minutes?(c.minutes>=60?Math.floor(c.minutes/60)+' h '+(c.minutes%60?c.minutes%60+' min':''):c.minutes+' min'):''; }
+function priceLine(c){ return !c.price?'Free':PK.thb(c.price)+(c.members_free?' · free with membership':''); }
+
+var APP='https://app.phuketking.com/#c_learn', slug=new URLSearchParams(location.search).get('c')||'';
+function $(id){ return document.getElementById(id); }
+if(!/^[a-z0-9-]{1,80}$/.test(slug)){ location.replace('courses.html'); return; }
+PK.rest('rpc/course_public?p_slug='+encodeURIComponent(slug)).then(function(list){ var c=list&&list[0];
+  if(!c){ $('ctitle').textContent='Course not found'; $('csum').innerHTML='<a href="courses.html">See all courses</a>'; return; }
+  document.title=c.title+' | Phuket King Muay Thai online course';
+  var md=document.querySelector('meta[name=description]'); if(md&&c.summary) md.setAttribute('content',c.summary);
+  if(c.cover) $('chero').style.backgroundImage='url("'+c.cover.replace(/["\\]/g,'')+'")'; else $('chero').classList.add('nocover');
+  $('ctitle').textContent=c.title; $('csum').textContent=c.summary||'';
+  var free=(c.lessons||[]).filter(function(l){ return l.free; }).length;
+  var box=$('cbox'); box.innerHTML='<div class="cfacts"><span>'+c.count+' lesson'+(c.count===1?'':'s')+'</span>'+(mins(c)?'<span>'+mins(c)+'</span>':'')+(free&&c.price?'<span>'+free+' free preview'+(free===1?'':'s')+'</span>':'')+'</div>';
+  if(c.price){ var b=PK.el('button','btn red','Buy the course, '+PK.thb(c.price)); b.type='button'; b.onclick=function(){ PKBuy.open(c); }; box.appendChild(b);
+    var a=PK.el('a','btn light',c.members_free?'Members: open in the app':'Already bought it? Open the app'); a.href=APP; a.target='_blank'; a.rel='noopener'; box.appendChild(a);
+    if(c.members_free) box.appendChild(PK.el('p','sub','Free with any active Phuket King package. Sign in to the app with your email and open the Learn tab.')); }
+  else { var a2=PK.el('a','btn red','Free course: watch below'); a2.href='#clessons'; box.appendChild(a2); }
+  if(c.about) $('cabout').innerHTML=PK.md(c.about);
+  var L=$('clessons'); L.innerHTML='';
+  (c.lessons||[]).forEach(function(l,i){ var d=document.createElement('details'); d.className='clesson'+(l.free?'':' locked');
+    var meta=[l.has_video?'Video':null,l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · ');
+    d.innerHTML='<summary><span class="cn">'+(i+1)+'</span><span class="ct"><b>'+PK.esc(l.title)+'</b><small>'+PK.esc(meta)+'</small></span>'+(l.free?(c.price?'<span class="ctag free">Free preview</span>':''):'<span class="ctag">🔒 Locked</span>')+'</summary>';
+    var body=PK.el('div','cbody');
+    if(l.free){ var id=ytId(l.video); if(id) body.innerHTML='<div class="cvid"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" title="'+PK.esc(l.title)+'" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>';
+      if(l.body) body.insertAdjacentHTML('beforeend','<div class="prose">'+PK.md(l.body)+'</div>');
+      if(l.files&&l.files.length) body.insertAdjacentHTML('beforeend','<div class="cfiles"><b>Learning materials</b>'+l.files.map(function(f){ return /^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\//.test(f.url)?'<a href="'+PK.esc(f.url)+'" target="_blank" rel="noopener">'+PK.esc(f.name||'File')+'</a>':''; }).join('')+'</div>'); }
+    else body.innerHTML='<p class="sub">This lesson unlocks when you buy the course'+(c.members_free?', or free in the app with an active Phuket King package':'')+'.</p>';
+    d.appendChild(body); L.appendChild(d); });
+  if(!(c.lessons||[]).length) L.innerHTML='<p class="sub">Lessons are coming soon.</p>';
+  var firstFree=L.querySelector('details:not(.locked)'); if(firstFree) firstFree.open=true;
+}).catch(function(){ $('ctitle').textContent='Course could not load'; });
+})();
+</script>
+</body>
+</html>

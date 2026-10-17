@@ -32,6 +32,7 @@ var L=[
   ['about_strip2','About','Photo strip 2','about_strip2.webp'],
   ['about_strip3','About','Photo strip 3','about_strip3.jpg'],
   ['about_strip4','About','Photo strip 4','about_strip4.webp'],
+  ['courses_hero','Courses','Top of the courses page (big, wide)','about_train.webp'],
   ['wellness_hero','Wellness','Top of the page (big, wide)','wellness_hero.jpg'],
   ['wellness_yoga','Wellness','Yoga','wellness_yoga.jpg'],
   ['wellness_steam','Wellness','Herbal steam room','wellness_steam.webp'],
