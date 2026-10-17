@@ -11,7 +11,7 @@
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=14">
+<link rel="stylesheet" href="site.css?v=15">
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -99,17 +99,36 @@ function draw(){
     var first=g.items.filter(function(p){ return p.image; })[0]||g.items[0], prices=g.items.map(function(p){ return p.price; });
     var lo=Math.min.apply(null,prices), hi=Math.max.apply(null,prices), all=g.items.every(function(p){ return p.sold_out; });
     var c=PK.el('div','pcard'+(all?' out':''));
-    c.innerHTML=(first.image?'<img src="'+PK.esc(first.image)+'" alt="" loading="lazy">':'<div class="noimg"></div>')+'<div class="in"><h3>'+PK.esc(g.name)+'</h3>'+(first.description?'<p>'+PK.esc(first.description)+'</p>':'')+'<div class="pp">'+(lo===hi?PK.thb(lo):'From '+PK.thb(lo))+'</div></div>';
+    var pics=[]; g.items.forEach(function(p){ (p.images&&p.images.length?p.images:(p.image?[p.image]:[])).forEach(function(u){ if(pics.indexOf(u)<0) pics.push(u); }); });
+    c.innerHTML=(pics.length?'<button type="button" class="pimg" aria-label="See photos of '+PK.esc(g.name)+'"><img src="'+PK.esc(first.image||pics[0])+'" alt="'+PK.esc(g.name)+'" loading="lazy">'+(pics.length>1?'<span class="pcount">'+pics.length+' photos</span>':'')+'</button>':'<div class="noimg"></div>')+'<div class="in"><h3>'+PK.esc(g.name)+'</h3>'+(first.description?'<p>'+PK.esc(first.description)+'</p>':'')+'<div class="pp">'+(lo===hi?PK.thb(lo):'From '+PK.thb(lo))+'</div></div>';
+    if(pics.length) (function(pics,name){ c.querySelector('.pimg').onclick=function(){ viewer(pics,name,pics.indexOf(c.querySelector('.pimg img').getAttribute('src'))); }; })(pics,g.name);
     var acts=PK.el('div','acts');
     if(g.items.length===1){ var p=g.items[0], b=PK.el('button','btn red',p.sold_out?'Sold out':'Add to basket'); b.type='button'; b.disabled=!!p.sold_out; b.onclick=function(){ add(p); }; acts.appendChild(b); }
     else { var sel=document.createElement('select'); sel.setAttribute('aria-label','Choose '+g.name);
       g.items.forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=opt(p)+(lo===hi?'':', '+PK.thb(p.price))+(p.sold_out?' (sold out)':''); o.disabled=!!p.sold_out; sel.appendChild(o); });
       var firstOk=g.items.filter(function(p){ return !p.sold_out; })[0]; if(firstOk) sel.value=firstOk.id;
+      (function(sel,c){ sel.onchange=function(){ var v=prod(sel.value), im=c.querySelector('.pimg img'); if(v&&im&&(v.image||(v.images&&v.images[0]))) im.src=v.image||v.images[0]; }; })(sel,c);
       var b2=PK.el('button','btn red',all?'Sold out':'Add'); b2.type='button'; b2.disabled=all; b2.onclick=function(){ add(prod(sel.value)); };
       acts.appendChild(sel); acts.appendChild(b2); }
     c.querySelector('.in').appendChild(acts); grid.appendChild(c); });
   box.appendChild(grid);
 }
+/* photo viewer: tap a product photo to see all its photos */
+var VW=null, VA=[], VI=0;
+function viewer(list,name,at){ VA=list; VI=Math.max(0,at||0);
+  if(!VW){ VW=document.createElement('dialog'); VW.className='pview'; VW.setAttribute('aria-label','Product photos');
+    VW.innerHTML='<div class="vimg"><img alt=""></div><div class="vcap"></div><button type="button" class="vx" aria-label="Close">×</button><button type="button" class="vp" aria-label="Previous photo">‹</button><button type="button" class="vn" aria-label="Next photo">›</button>';
+    document.body.appendChild(VW);
+    VW.querySelector('.vx').onclick=function(){ VW.close(); };
+    VW.querySelector('.vp').onclick=function(){ VI=(VI-1+VA.length)%VA.length; paintV(); };
+    VW.querySelector('.vn').onclick=function(){ VI=(VI+1)%VA.length; paintV(); };
+    VW.addEventListener('click',function(e){ if(e.target===VW||e.target.className==='vimg') VW.close(); });
+    VW.addEventListener('keydown',function(e){ if(e.key==='ArrowLeft') VW.querySelector('.vp').click(); if(e.key==='ArrowRight') VW.querySelector('.vn').click(); });
+    var sx=null; VW.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true}); VW.addEventListener('touchend',function(e){ if(sx==null) return; var dx=e.changedTouches[0].clientX-sx; sx=null; if(Math.abs(dx)>40) VW.querySelector(dx<0?'.vn':'.vp').click(); }); }
+  VW.dataset.name=name; paintV(); if(!VW.open) VW.showModal(); }
+function paintV(){ var im=VW.querySelector('img'); im.src=VA[VI]; im.alt=VW.dataset.name+', photo '+(VI+1);
+  VW.querySelector('.vcap').textContent=VW.dataset.name+(VA.length>1?'  ·  '+(VI+1)+' of '+VA.length:'');
+  VW.querySelector('.vp').hidden=VW.querySelector('.vn').hidden=VA.length<2; }
 function tabs(){ var t=$('cats'); t.innerHTML='';
   [{id:'',name:'Everything'}].concat(D.categories||[]).forEach(function(c){ var a=PK.el('a',null,PK.esc(c.name)); a.href='#'; if(c.id===cat) a.setAttribute('aria-current','true'); a.onclick=function(e){ e.preventDefault(); cat=c.id; tabs(); draw(); }; t.appendChild(a); }); }
 function lines(){ var box=$('lines'); box.innerHTML='';

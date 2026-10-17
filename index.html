@@ -428,6 +428,10 @@ body.lang-my .btn{min-height:44px}
 body.cuview #view button:not(.pvexit),body.cuview #view input,body.cuview #view select,body.cuview #view textarea,body.cuview #view a{pointer-events:none}
 body.cuview #view button:not(.pvexit){opacity:.75}
 .pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
+.pstrip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
+.pthumb img{width:100%;height:100%;object-fit:cover;display:block}.ptag{position:absolute;left:4px;top:4px;background:var(--gold);color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px}
+.pacts{position:absolute;right:4px;bottom:4px;display:flex;gap:4px}.pacts button{width:28px;height:28px;border-radius:14px;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;cursor:pointer;padding:0}
 </style>
 </head>
 <body>
@@ -2863,13 +2867,24 @@ function editProduct(p){
     {key:'sort',label:'Order on the till',type:'number'},
     {key:'description',label:'Description for the app menu and website shop',type:'textarea'},
     {key:'sku',label:'Code or barcode',hint:'Optional.'}],
-    onSave:function(v){ return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v,{image_url:img||null})}).then(must).then(loadShop); }});
-  // product photo, shown in the website shop
-  var img=p.image_url||null, desc=document.getElementById('f-description'); if(!desc) return;
-  var pic=h('img',{alt:'',style:'width:90px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(img?'':';display:none'),src:img||''});
-  var rm=btn('Remove photo',function(){ img=null; pic.style.display='none'; rm.hidden=true; },'small'); rm.hidden=!img;
-  var row=h('div',{class:'field'},h('label',null,'Photo for the website shop'),h('div',{class:'row',style:'align-items:center'},pic,
-    btn(img?'Change photo':'Add photo',function(){ var b=this; blogPhoto(function(u){ img=u; pic.src=u; pic.style.display=''; rm.hidden=false; b.textContent='Change photo'; }); },'small'),rm));
+    onSave:function(v){ return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v,{image_url:imgs[0]||null})}).then(must)
+      .then(function(id){ return sb.rpc('shop_product_images_save',{p_id:id||p.id,p_images:imgs}).then(must); }).then(loadShop); }});
+  // product photos for the website shop and the app: add several, the first one is the main photo
+  var imgs=(p.images&&p.images.length?p.images:(p.image_url?[p.image_url]:[])).slice(), desc=document.getElementById('f-description'); if(!desc) return;
+  var strip=h('div',{class:'pstrip'}), addB=btn('Add photos',function(){ addPhotos(); },'small'), busy=0;
+  function draw(){ strip.replaceChildren.apply(strip,imgs.map(function(u,i){
+      return h('div',{class:'pthumb'+(i===0?' main':'')},h('img',{src:u,alt:'Product photo '+(i+1)}),i===0?h('span',{class:'ptag'},'Main'):null,
+        h('div',{class:'pacts'},i>0?h('button',{type:'button',title:'Make this the main photo','aria-label':'Make photo '+(i+1)+' the main photo',onclick:function(){ imgs.unshift(imgs.splice(i,1)[0]); draw(); }},'★'):null,
+          h('button',{type:'button',title:'Remove','aria-label':'Remove photo '+(i+1),onclick:function(){ imgs.splice(i,1); draw(); }},'×'))); }));
+    addB.textContent=busy?'Uploading '+busy+'...':imgs.length?'Add more photos':'Add photos'; addB.disabled=!!busy||imgs.length>=10; }
+  function addPhotos(){ var inp=h('input',{type:'file',accept:'image/*',multiple:true,hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[],0,10-imgs.length); inp.remove(); if(!fs.length) return;
+      busy=fs.length; draw();
+      fs.reduce(function(pr,f,k){ return pr.then(function(){ return shrinkPhoto(f,1600).then(function(blob){ var path='shop/'+Date.now()+'-'+k+'.jpg';
+          return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; imgs.push(sb.storage.from('promos').getPublicUrl(path).data.publicUrl); }); })
+        .catch(function(e){ toast(errText(e)); }).then(function(){ busy--; draw(); }); }); },Promise.resolve()); }});
+    document.body.appendChild(inp); inp.click(); }
+  draw();
+  var row=h('div',{class:'field'},h('label',null,'Photos (website shop and app)'),strip,h('div',{class:'row'},addB),h('small',null,'Add up to 10. The first photo is the main one: tap ★ to make another photo the main one.'));
   desc.parentNode.parentNode.insertBefore(row,desc.parentNode);
 }
 function editCategory(c){
@@ -2884,7 +2899,7 @@ function vProducts(){
   return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
     section('Categories',null,cats.length?h('div',{class:'row wrap'},cats.map(function(c){ return btn(c.name+(c.active?'':' (hidden)'),function(){ editCategory(c); },'small'); })):h('div',{class:'panel empty'},'No categories yet.')),
     section('All products',null,table([
-      {label:'Product',cell:function(p){ return linkBtn(p.name,function(){ editProduct(p); }); }},
+      {label:'Product',cell:function(p){ return h('span',{class:'row',style:'flex-wrap:nowrap;gap:8px'},p.image_url?h('img',{src:p.image_url,alt:'',loading:'lazy',style:'width:36px;height:36px;object-fit:cover;border-radius:6px;flex:none'}):null,linkBtn(p.name,function(){ editProduct(p); })); }},
       {label:'Group',cell:function(p){ return p.grp||''; }},
       {label:'Category',cell:function(p){ return cname(p.category_id); }},
       {label:'Price',num:true,cell:function(p){ return p.open_price?'Typed in':thb(p.price); }},

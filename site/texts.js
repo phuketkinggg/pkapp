@@ -898,7 +898,7 @@ window.PK_TEXTS=[{
 "id": "well_t33",
 "page": "Wellness",
 "label": "Text: Yoga, a herbal steam room, a dry sauna, ice ...",
-"text": "Yoga, a herbal steam room, a dry sauna, ice baths and red light therapy, a few steps from the ring. Here is how to use each one, what it does for you, and how it helps your Muay Thai.",
+"text": "Yoga, a herbal steam room, a dry sauna and ice baths, a few steps from the ring, with red light therapy coming soon. Here is how to use each one, what it does for you, and how it helps your Muay Thai.",
 "multi": true},
 {
 "id": "well_t01",
@@ -1048,7 +1048,7 @@ window.PK_TEXTS=[{
 "id": "well_t25",
 "page": "Wellness",
 "label": "Heading: Red light therapy",
-"text": "Red light therapy",
+"text": "Red light therapy, coming soon",
 "multi": false},
 {
 "id": "well_t26",
@@ -1060,7 +1060,7 @@ window.PK_TEXTS=[{
 "id": "well_t27",
 "page": "Wellness",
 "label": "Text: You sit or stand in front of a panel of red ...",
-"text": "You sit or stand in front of a panel of red and near infrared light. It is warm, quiet and relaxing. Research is still growing, but early studies suggest it may help muscle recovery and skin.",
+"text": "Coming soon to Phuket King. You sit or stand in front of a panel of red and near infrared light. It is warm, quiet and relaxing. Research is still growing, but early studies suggest it may help muscle recovery and skin.",
 "multi": true},
 {
 "id": "well_t28",
@@ -1102,7 +1102,7 @@ window.PK_TEXTS=[{
 "id": "well_route",
 "page": "Wellness",
 "label": "Steps: Shower and drink water: Start cool and hydra...",
-"text": "Shower and drink water: Start cool and hydrated.\nDry sauna or steam, 10 to 15 minutes: Relax, breathe slowly, let the muscles loosen.\nIce bath, 1 to 3 minutes: Long slow breaths out. Calm in the cold.\nRest 5 minutes: Sit, drink water, let your body come back to normal.\nRepeat two or three rounds: Finish on cold to feel awake, or on heat if you are going to sleep soon.\nRed light or a lie down by the lake: 10 to 15 minutes to finish the reset.",
+"text": "Shower and drink water: Start cool and hydrated.\nDry sauna or steam, 10 to 15 minutes: Relax, breathe slowly, let the muscles loosen.\nIce bath, 1 to 3 minutes: Long slow breaths out. Calm in the cold.\nRest 5 minutes: Sit, drink water, let your body come back to normal.\nRepeat two or three rounds: Finish on cold to feel awake, or on heat if you are going to sleep soon.\nLie down by the lake: 10 to 15 minutes to finish the reset.",
 "multi": true},
 {
 "id": "well_t37",
