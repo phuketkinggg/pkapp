@@ -9,7 +9,7 @@
 <meta name="description" content="Muay Thai prices in Kathu, Phuket: single classes, weekly and monthly passes, private lessons, recovery, Fitness Zone, yoga and DTV visa training packages.">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=12">
+<link rel="stylesheet" href="site.css?v=13">
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -29,7 +29,7 @@
 </div></section>
 
 <div class="light-sec"><div class="wrap"><div class="buyinfo" id="buyinfo">
-  <div><b data-text="prices_buy1">Buy online, pay by card or QR</b><span data-text="prices_buy2">Every package can be bought here. Pay by card or Thai QR (PromptPay) on the secure Stripe page.</span></div>
+  <div><b data-text="prices_buy1">Buy online, pay by card or QR</b><span data-text="prices_buy2">Every package can be bought here. Pay by card, or scan our PromptPay QR with any Thai bank app.</span></div>
   <div><b data-text="prices_buy3">Group classes: just turn up</b><span data-text="prices_buy4">No booking needed. Your package starts automatically from your first class.</span></div>
   <div><b data-text="prices_buy5">Other packages: you choose the start</b><span data-text="prices_buy6">For privates and kids monthly, pick the day you want to start when you buy.</span></div>
 </div></div></div>
@@ -56,13 +56,18 @@
 <dialog class="basket" id="buy" aria-labelledby="buyTitle">
   <div class="bhead"><h2 id="buyTitle">Buy</h2><button type="button" class="x" id="closeBuy" aria-label="Close">×</button></div>
   <div id="buyWhat" style="padding:14px 20px 0"></div>
+  <div id="ppView" style="padding:14px 20px 22px" hidden></div>
   <form id="buyForm" novalidate>
     <div id="startBox"></div>
     <label>Full name<input id="b-name" autocomplete="name" required maxlength="80"></label>
     <label>Email<input id="b-email" type="email" autocomplete="email" required maxlength="120"></label>
     <label>Phone or WhatsApp<input id="b-phone" type="tel" autocomplete="tel" maxlength="30"></label>
     <label>Anything we should know (optional)<input id="b-note" maxlength="300" placeholder="Experience level, injuries, arrival date"></label>
-    <p class="sub">You pay on the next page by card or Thai QR (PromptPay), through Stripe. We never see your card number. Use the same email to sign in to the Phuket King app and see your package.</p>
+    <fieldset class="paypick"><legend>How do you want to pay?</legend>
+      <label><input type="radio" name="bpay" value="card" checked> Card (Visa, Mastercard and more), on the secure Stripe page</label>
+      <label><input type="radio" name="bpay" value="pp"> PromptPay QR from any Thai bank app</label>
+    </fieldset>
+    <p class="sub">We never see your card number. Use the same email to sign in to the Phuket King app and see your package.</p>
     <p class="err" id="berr" role="alert" hidden></p>
     <button class="btn red" type="submit" id="payBtn">Pay</button>
   </form>
@@ -76,6 +81,7 @@
 
 <script src="photos.js?v=11"></script>
 <script src="site.js?v=11"></script>
+<script src="qrcode.js?v=1"></script>
 <script src="chat.js?v=1" defer></script>
 <script>
 (function(){
@@ -128,7 +134,7 @@ function buy(p,g){
       (p.covers||[]).indexOf('Muay Thai')>=0?'<b>No booking needed.</b> Just turn up to any group class. Your package starts automatically from your first class.':
       '<b>No booking needed.</b> Just come in. Your package starts automatically from your first visit.')+within+(dtv?' We prepare your DTV paperwork after payment. DTV courses cannot be refunded once the paperwork is issued.':'')+'</p>';
   }
-  $('payBtn').textContent='Pay '+PK.thb(p.price); $('payBtn').disabled=false; $('berr').hidden=true;
+  $('payBtn').textContent='Pay '+PK.thb(p.price); $('payBtn').disabled=false; $('berr').hidden=true; $('buyForm').hidden=false; $('ppView').hidden=true; $('buyWhat').hidden=false;
   try{ var m=JSON.parse(localStorage.getItem('pk_buyer')||'{}'); ['name','email','phone'].forEach(function(k){ if(m[k]&&!$('b-'+k).value) $('b-'+k).value=m[k]; }); }catch(e){}
   openDlg($('buy'));
 }
@@ -141,11 +147,43 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can find your package when you arrive.'; err.hidden=false; $('b-email').focus(); return; }
   if(st&&!st.value){ err.textContent='Choose the date you want to start.'; err.hidden=false; st.focus(); return; }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
-  btn.disabled=true; btn.textContent='Opening the secure payment page';
-  call({mode:'order',package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',back:location.origin+location.pathname})
-    .then(function(d){ location.href=d.url; })
+  var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
+  btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
+  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',back:location.origin+location.pathname})
+    .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ btn.disabled=false; btn.textContent='Pay '+PK.thb(cur.price); err.textContent=x.message; err.hidden=false; });
 });
+/* PromptPay straight to the gym bank account: QR with the amount, the buyer taps I have paid, the front desk checks the bank and confirms */
+function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
+function ppTlv(str){ var out=[], i=0; while(i<str.length){ if(i+4>str.length) return null; var id=str.substr(i,2), n=parseInt(str.substr(i+2,2),10); if(isNaN(n)||i+4+n>str.length) return null; out.push([id,str.substr(i+4,n)]); i+=4+n; } return out; }
+function ppWithAmount(str,amt){ var t=(ppTlv(String(str).trim())||[]).filter(function(x){ return x[0]!=='54'&&x[0]!=='63'; }).map(function(x){ return x[0]==='01'?['01','12']:x; });
+  if(!t.some(function(x){ return x[0]==='01'; })) t.push(['01','12']);
+  var at=-1; t.forEach(function(x,i){ if(x[0]==='53') at=i; }); t.splice(at>=0?at+1:t.length,0,['54',(Math.round(amt*100)/100).toFixed(2)]);
+  var b=t.map(function(x){ return x[0]+String(x[1].length).padStart(2,'0')+x[1]; }).join('')+'6304'; return b+ppCrc(b); }
+function showPP(d){
+  $('buyForm').hidden=true; $('buyWhat').hidden=true; var v=$('ppView'); v.hidden=false; $('buyTitle').textContent='Pay with PromptPay';
+  var svg=''; try{ var q=window.qrcode(0,'M'); q.addData(ppWithAmount(d.pp.payload,d.amount)); q.make(); svg=q.createSvgTag({cellSize:6,margin:2,scalable:true}); }catch(e){ svg=''; }
+  try{ localStorage.setItem('pk_pp',JSON.stringify({id:d.id,at:Date.now()})); }catch(e){}
+  v.innerHTML='<p style="margin:0 0 4px"><b>'+PK.esc(d.what)+'</b></p><p style="font-size:28px;font-weight:700;margin:0 0 10px">'+PK.thb(d.amount)+'</p>'+
+    (svg?'<div class="ppqr">'+svg+'</div>':'<p class="err">The QR could not be drawn. WhatsApp us and we will send it.</p>')+
+    (d.pp.name?'<p class="sub" style="text-align:center">To '+PK.esc(String(d.pp.name).replace(/\.$/,''))+'. Check the name in your bank app before you pay.</p>':'')+
+    '<ol class="ppsteps"><li>Screenshot this QR, or scan it with another phone.</li><li>Open your Thai bank app, scan the QR (from your photos if you took a screenshot) and pay. The amount is already filled in.</li><li>Come back here and tap <b>I have paid</b>.</li></ol>'+
+    '<p class="err" id="pperr" role="alert" hidden></p><button type="button" class="btn red" id="ppDone" style="width:100%">I have paid</button>';
+  $('ppDone').onclick=function(){ var b=this; b.disabled=true; $('pperr').hidden=true;
+    call({mode:'claim',ref:d.id}).then(function(){ $('buy').close(); waitPP(d.id); })
+      .catch(function(x){ b.disabled=false; $('pperr').textContent=x.message; $('pperr').hidden=false; }); };
+}
+function waitPP(ref){ var box=$('doneBody'), tries=0; openDlg($('done'));
+  function draw(s){
+    if(s&&s.paid){ try{ localStorage.removeItem('pk_pp'); }catch(e){} $('doneTitle').textContent='You are in';
+      box.innerHTML='<p style="font-size:20px;margin:0 0 8px"><b>'+PK.esc(s.package)+'</b> is paid.</p><p>'+(s.start_on?'Your package starts on <b>'+PK.esc(longDate(s.start_on))+'</b>.':'No booking needed: just turn up. Your package starts automatically from your first class.')+'</p><p class="sub">Give your name at the front desk when you arrive. Sign in to the Phuket King app with the same email to see your package.</p>'; return; }
+    if(s&&s.rejected){ $('doneTitle').textContent='Payment not found'; box.innerHTML='<p>The front desk could not find your PromptPay payment in the bank. If you paid, <a href="'+PK.wa('Hi Phuket King, I paid by PromptPay for '+(s.package||'a package')+' on the website.')+'" target="_blank" rel="noopener">WhatsApp us</a> a screenshot of the payment slip and we will sort it out.</p>'; try{ localStorage.removeItem('pk_pp'); }catch(e){} return; }
+    $('doneTitle').textContent='Thank you';
+    box.innerHTML='<p><b>The front desk is checking your PromptPay payment.</b> This usually takes a few minutes during opening hours. You can close this page: your package is added to your account as soon as it is confirmed.</p><p class="sub">Want to be quick? <a href="'+PK.wa('Hi Phuket King, I just paid by PromptPay on the website. Here is my slip.')+'" target="_blank" rel="noopener">WhatsApp us your payment slip</a>.</p>'; }
+  function poll(){ call({mode:'status',ref:ref}).then(function(s){ draw(s); if(s&&!s.paid&&!s.rejected&&++tries<120) setTimeout(poll,5000); },function(){ if(++tries<120) setTimeout(poll,8000); }); }
+  poll();
+}
+(function(){ try{ var m=JSON.parse(localStorage.getItem('pk_pp')||'null'); if(m&&m.id&&Date.now()-m.at<2*864e5&&!/[?&]ref=/.test(location.search)) call({mode:'status',ref:m.id}).then(function(s){ if(s&&(s.checking||s.paid)) waitPP(m.id); else if(!s||s.error) localStorage.removeItem('pk_pp'); }); }catch(e){} })();
 (function(){ var q=new URLSearchParams(location.search), ref=q.get('ref'), paid=q.get('paid'); if(!ref||!/^[0-9a-f-]{36}$/.test(ref)) return;
   try{ history.replaceState(null,'',location.pathname); }catch(e){}
   var box=$('doneBody'), tries=0; openDlg($('done'));

@@ -1,5 +1,6 @@
 // Buy a training package on the website, paid by card or PromptPay QR through Stripe. No sign in.
 // order:  checks the package and price in the database (the page never sets the price), then makes the Stripe page
+// pp:     PromptPay straight to the gym bank account: returns the gym QR; the buyer taps I have paid (claim) and the desk confirms
 // status: after paying, the page asks if the payment went through (package name and start date only)
 // When Stripe confirms (stripe-webhook), the database finds or adds the customer and adds the paid package.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -46,12 +47,18 @@ Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({}));
   try {
     if (b.mode === "order") {
-      if (!KEY) return json({ error: "Online payment is not set up yet. WhatsApp us and we will help." });
+      const pp = b.pay === "pp";
+      if (!pp && !KEY) return json({ error: "Card payment is not set up yet. Choose PromptPay or WhatsApp us." });
       if (!isId(b.package_id)) return json({ error: "Choose a package." });
       const { data, error } = await admin.rpc("web_pkg_order", { p: { package_id: b.package_id, name: String(b.name ?? "").slice(0, 80), email: String(b.email ?? "").slice(0, 120),
         phone: String(b.phone ?? "").slice(0, 30), start_on: String(b.start_on ?? "").slice(0, 10), note: String(b.note ?? "").slice(0, 300) } });
       if (error) return json({ error: error.message });
       const o = data as { id: string; amount: number; what: string; email: string };
+      if (pp) {
+        const { data: acc } = await admin.rpc("web_pkg_promptpay");
+        if (!acc?.payload) return json({ error: "PromptPay is not set up yet. Choose card, or WhatsApp us." });
+        return json({ id: o.id, amount: o.amount, what: o.what, pp: acc });
+      }
       const back = backUrl(b.back);
       let url: string, qr = true;
       try { url = await session(o, back, true); }
@@ -60,6 +67,12 @@ Deno.serve(async (req) => {
         url = await session(o, back, false); qr = false;
       }
       return json({ url, qr });
+    }
+    if (b.mode === "claim") {
+      if (!isId(b.ref)) return json({ error: "No order." });
+      const { data, error } = await admin.rpc("web_pkg_claim", { p_id: b.ref });
+      if (error) return json({ error: error.message });
+      return json(data);
     }
     if (b.mode === "status") {
       if (!isId(b.ref)) return json({ error: "No order." });

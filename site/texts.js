@@ -505,7 +505,7 @@ window.PK_TEXTS=[{
 "id": "prices_buy2",
 "page": "Prices",
 "label": "Buy online: text",
-"text": "Every package can be bought here. Pay by card or Thai QR (PromptPay) on the secure Stripe page.",
+"text": "Every package can be bought here. Pay by card, or scan our PromptPay QR with any Thai bank app.",
 "multi": true},{
 "id": "prices_buy3",
 "page": "Prices",

@@ -16,7 +16,7 @@ LIVE = "--live" in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
 PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html"]
-ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "photos.js", "texts.js", "img"]
+ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
     html = html.replace('href="../book.html"', 'href="book.html"')
