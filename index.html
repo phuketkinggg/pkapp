@@ -489,6 +489,7 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .lgsets{display:grid;gap:6px;margin:6px 0}.lgrow{display:grid;grid-template-columns:40px repeat(auto-fit,minmax(70px,1fr));gap:8px;align-items:center}.lghead{font-size:12px;color:var(--muted)}.lgn{font-weight:700;text-align:center}.lgrow input{width:100%;font-size:18px}
 .lgfeel{display:flex;gap:6px;flex-wrap:wrap}.painrow{border-left:4px solid var(--bad)}.lgcard{margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
 .wline.w2{stroke:var(--gold);stroke-dasharray:6 4}.wpt.w2{fill:var(--gold)}.wleg{display:flex;gap:16px;font-size:13px;color:var(--muted)}.wkey::before{content:'';display:inline-block;width:18px;height:3px;background:var(--ink);vertical-align:middle;margin-right:6px}.wkey.w2::before{background:var(--gold)}
+.gaddb{display:flex;flex-direction:column;gap:10px}.gaddn{font-weight:700;margin:6px 0}
 </style>
 </head>
 <body>
@@ -2376,7 +2377,7 @@ function lessonText(t){ var box=h('div',{class:'ltext'});
     else { var pp=h('p'); lines.forEach(function(l,i){ if(i) pp.appendChild(h('br')); inl(l,pp); }); box.appendChild(pp); } });
   return box; }
 function crsLoad(){ CRS.busy=true; return sb.rpc('course_list_mine').then(must).then(function(d){ CRS.list=d; CRS.busy=false; schedule(); }).catch(function(e){ CRS.busy=false; CRS.err=errText(e); schedule(); }); }
-function crsOpen(id,lessonId){ return sb.rpc('course_view',{p_course:id}).then(must).then(function(d){ CRS.view=d; CRS.lesson=lessonId||null; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
+function crsOpen(id,lessonId){ return Promise.all([sb.rpc('course_view',{p_course:id}).then(must),sb.rpc('course_groups',{p_course:id}).then(must).catch(function(){ return []; })]).then(function(r){ var d=r[0]; d.groups=r[1]||[]; if(d.open&&d.groups.length&&me&&me.role==='customer'&&!PV) sb.rpc('course_join',{p_course:id}).then(function(){ COACHM.data=null; },function(){}); CRS.view=d; CRS.lesson=lessonId||null; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
 function crsPrice(c){ return !c.price?'Free':thb(c.price)+(c.members_free?', or free with a membership':''); }
 function crsBuyUrl(c){ return SITE_URL+'/course?c='+encodeURIComponent(c.slug); }
 function fileList(files){ if(!files||!files.length) return null;
@@ -2410,6 +2411,7 @@ function crsCourseView(asMgr){
   return [h('div',{class:'row'},back),pageHead(c.title,c.summary||''),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
     c.about?h('div',{class:'panel pad'},lessonText(c.about)):null,
+    (c.groups||[]).length?h('div',{class:'panel pad'},h('b',null,'Coaching included: '+c.groups.map(function(g){ return g.name; }).join(', ')),h('p',{class:'sub'},c.open?'Your weekly steps are in the Coaching tab.':'Unlocks with the course: weekly steps in your Coaching tab.'),c.open&&me.role==='customer'?btn('Open Coaching',function(){ CRS.view=null; ui.tab='c_coach'; COACHM.tab='today'; schedule(); },'small'):null):null,
     c.open?(me.role==='customer'&&L.length?h('p',{class:'sub'},done+' of '+L.length+' lessons done.'):null):crsLocked(c),
     section('Lessons',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
       return h('button',{type:'button',class:'lrow'+(l.open?'':' locked'),onclick:function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }},
@@ -2436,7 +2438,7 @@ function vCourses(){
       CRS.list,'No courses yet. Tap New course.'),
     h('p',{class:'sub narrow'},'How to add a video: upload it to YouTube as Unlisted (not Public), copy the share link, and paste it into the lesson. Unlisted videos do not show in YouTube search.')];
 }
-function crsEdit(id){ return sb.rpc('course_view',{p_course:id}).then(must).then(function(d){ CRS.edit=d; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
+function crsEdit(id){ return Promise.all([sb.rpc('course_view',{p_course:id}).then(must),sb.rpc('course_groups',{p_course:id}).then(must).catch(function(){ return []; })]).then(function(r){ var d=r[0]; d.groups=r[1]||[]; CRS.edit=d; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
 function crsSlug(t){ return String(t||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60); }
 function editCourse(c){ c=c||{status:'draft',members_free:true};
   var cover=c.cover||null;
@@ -2460,8 +2462,9 @@ function editCourse(c){ c=c||{status:'draft',members_free:true};
 }
 function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
   return [h('div',{class:'row'},btn('All courses',function(){ CRS.edit=null; CRS.list=null; schedule(); },'small')),
-    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),
+    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),btn('Coaching included',function(){ crsGroupsEdit(c); },'small'),
       h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
+    (c.groups||[]).length?h('p',{class:'sub'},'Coaching included: '+c.groups.map(function(g){ return g.name; }).join(', ')+'. Students join these action groups automatically.'):null,
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
     section('Lessons ('+L.length+')',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
       return h('div',{class:'lrow'},h('span',{class:'lnum'},String(i+1)),h('span',{class:'lt'},linkBtn(l.title,function(){ editLesson(c,l); }),
@@ -2755,17 +2758,6 @@ function coGroupPage(g){ var t=ymd(new Date());
     h('div',{class:'row'},h('button',{type:'button',class:'btn small danger',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to delete the group'; return; }
       sb.rpc('group_remove',{p_id:g.id}).then(must).then(function(){ COACH.gopen=null; toast('Deleted.'); coGrpLoad(); }).catch(function(e){ toast(errText(e)); }); }},'Delete group'))];
 }
-function coGroupAddPeople(g,cid){
-  var mgr=me&&me.role==='manager';
-  (COACH.list?Promise.resolve(COACH.list):sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.list=l; return l; })).then(function(list){
-    var opts=list.map(function(c){ return [c.id,c.name]; });
-    if(mgr) (S.customers||[]).forEach(function(c){ if(!c.is_agency&&!opts.some(function(o){ return o[0]===c.id; })) opts.push([c.id,c.name]); });
-    if(cid&&!opts.some(function(o){ return o[0]===cid; })) opts.unshift([cid,(COACH.client&&COACH.client.customer.name)||'This client']);
-    if(!opts.length){ toast('No clients yet. A manager picks the clients for each coach.'); return; }
-    openForm({title:'Add someone to '+g.name,values:{c:cid||opts[0][0],start:ymd(new Date())},saveLabel:'Add',doneMsg:'Added. Their steps unlock from the start date.',
-      fields:[{key:'c',label:'Client',type:'select',options:opts.sort(function(a,b){ return a[1].localeCompare(b[1]); })},{key:'start',label:'Start date',type:'date',hint:'Week 1 and Day 1 begin on this date. Steps set to a fixed date ignore it.'}],
-      onSave:function(v){ return sb.rpc('group_add',{p_group:g.id,p_customer:v.c,p_start:v.start||null}).then(must).then(function(){ coGrpLoad(); if(COACH.cid) coReload(); }); }});
-  }).catch(function(e){ toast(errText(e)); }); }
 function coNewStep(after){ return {id:'s'+cRand(),at_mode:after?after.at_mode:'week',at_n:after?((Number(after.at_n)||1)+(after.at_mode==='week'?1:after.at_mode==='day'?7:0)):1,at_date:after?after.at_date:'',kind:'video',title:'',text:'',url:'',habit:{freq:'daily',days:[],times:3,weeks:''},template_id:''}; }
 function coEditGroup(g){ COACH.gedit=g; if(!COACH.tpl) coTpl().catch(function(){}); schedule(); window.scrollTo(0,0); }
 function coGroupEditor(){
@@ -2894,6 +2886,56 @@ function coGroupSyncAsk(g){ var n=(g.members||[]).length;
     h('p',{class:'sub'},'Programs that are already showing in their app keep any changes their coach made. Programs not shown yet are refreshed from the template.'),
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Only new people',function(){ $dlg.close(); toast('Saved. New people get the new steps.'); }),go))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
+
+/* add many people to a group at once: one person, by tags, everyone, a coach's clients, or everyone with a course */
+function coGroupAddPeople(g,cid){
+  var mgr=me&&me.role==='manager', st={mode:cid?'one':(mgr?'tags':'mine'),tags:[],course:'',one:cid||'',start:ymd(new Date())}, seq=0;
+  var tagCount={}; (S.customers||[]).forEach(function(c){ if(c.is_agency) return; (c.tags||[]).forEach(function(t){ tagCount[t]=(tagCount[t]||0)+1; }); });
+  var tags=Object.keys(tagCount).sort(function(a,b){ return tagCount[b]-tagCount[a]||a.localeCompare(b); });
+  var modes=[['one','One person']].concat(tags.length?[['tags','By tags']]:[]).concat(mgr?[['all','All customers'],['course','Everyone with a course']]:[]).concat([['mine',mgr?'All clients with a coach':'All my clients']]);
+  var body=h('div',{class:'gaddb'}), count=h('p',{class:'gaddn',role:'status'},''), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var start=h('input',{type:'date',id:'ga-start'}); start.value=st.start; start.addEventListener('change',function(){ st.start=start.value; });
+  var go=btn('Add',function(){ run(false); },'primary');
+  function people(){ var list=(COACH.list||[]).map(function(c){ return [c.id,c.name]; }); if(mgr) (S.customers||[]).forEach(function(c){ if(!c.is_agency&&!list.some(function(o){ return o[0]===c.id; })) list.push([c.id,c.name]); });
+    if(cid&&!list.some(function(o){ return o[0]===cid; })) list.unshift([cid,(COACH.client&&COACH.client.customer.name)||'This client']); return list.sort(function(a,b){ return String(a[1]).localeCompare(String(b[1])); }); }
+  function args(dry){ return {p_group:g.id,p_mode:st.mode,p_tags:st.mode==='tags'?st.tags:null,p_course:st.mode==='course'?(st.course||null):null,p_start:st.start||null,p_dry:dry}; }
+  function count_(){ var my=++seq; go.disabled=true;
+    if(st.mode==='one'){ go.disabled=!st.one; go.textContent='Add'; count.textContent=''; return; }
+    if(st.mode==='tags'&&!st.tags.length){ count.textContent='Pick one or more tags.'; return; }
+    if(st.mode==='course'&&!st.course){ count.textContent='Pick a course.'; return; }
+    count.textContent='Counting...';
+    sb.rpc('group_add_bulk',args(true)).then(must).then(function(r){ if(my!==seq) return; count.textContent=r.added+' '+(r.added===1?'person':'people')+' will be added'+(r.already?', '+r.already+' already in the group':'')+'.'; go.textContent='Add '+r.added; go.disabled=!r.added; })
+      .catch(function(e){ if(my===seq) count.textContent=errText(e); }); }
+  function draw(){ var parts=[h('div',{class:'ctabs small',role:'radiogroup'},modes.map(function(m){ return h('button',{type:'button',role:'radio','aria-checked':st.mode===m[0]?'true':'false',class:'ctab'+(st.mode===m[0]?' on':''),onclick:function(){ st.mode=m[0]; draw(); }},m[1]); }))];
+    if(st.mode==='one'){ var sel=h('select',{id:'ga-one',onchange:function(ev){ st.one=ev.target.value; count_(); }},[h('option',{value:''},'Pick a client')].concat(people().map(function(o){ return h('option',{value:o[0]},o[1]); }))); sel.value=st.one; parts.push(h('div',{class:'field'},h('label',{for:'ga-one'},'Client'),sel)); }
+    if(st.mode==='tags') parts.push(h('div',{class:'checkgrid'},tags.map(function(t,i){ var cb=h('input',{type:'checkbox',id:'ga-t'+i}); cb.checked=st.tags.indexOf(t)>=0;
+      cb.addEventListener('change',function(){ st.tags=st.tags.filter(function(x){ return x!==t; }); if(cb.checked) st.tags.push(t); count_(); }); return h('label',{class:'check',for:'ga-t'+i},cb,h('span',null,t+' ('+tagCount[t]+')')); })),h('small',{class:'sub'},'Adds customers with any of the ticked tags.'));
+    if(st.mode==='course'){ var cs=h('select',{id:'ga-course',onchange:function(ev){ st.course=ev.target.value; count_(); }},[h('option',{value:''},'Pick a course')].concat((CRS.list||[]).map(function(c){ return h('option',{value:c.id},c.title); }))); cs.value=st.course;
+      parts.push(h('div',{class:'field'},h('label',{for:'ga-course'},'Course'),cs)); if(!CRS.list) crsLoad().then(draw); }
+    if(st.mode==='all') parts.push(h('small',{class:'sub'},'Every customer, including people who have not opened the app yet. They see the steps when they sign in.'));
+    body.replaceChildren.apply(body,parts); count_(); }
+  function run(){ go.disabled=true; err.hidden=true;
+    var p=st.mode==='one'?sb.rpc('group_add',{p_group:g.id,p_customer:st.one,p_start:st.start||null}).then(must).then(function(){ return {added:1}; }):sb.rpc('group_add_bulk',args(false)).then(must);
+    p.then(function(r){ $dlg.close(); toast('Added '+r.added+' '+(r.added===1?'person':'people')+' to '+g.name+'.'); coGrpLoad(); if(COACH.cid) coReload(); })
+      .catch(function(e){ err.textContent=errText(e); err.hidden=false; go.disabled=false; }); }
+  $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,'Add people to '+g.name),body,count,h('div',{class:'field'},h('label',{for:'ga-start'},'Start date'),start,h('small',null,'Week 1 and Day 1 begin on this date. Steps set to a fixed date ignore it.')),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),go))));
+  draw(); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  if(!COACH.list) sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.list=l; if(st.mode==='one') draw(); }).catch(function(){});
+}
+/* courses: coaching groups included with a course */
+function crsGroupsEdit(c){
+  Promise.all([COACH.grp?Promise.resolve(COACH.grp):coGrpLoad(),sb.rpc('course_groups',{p_course:c.id}).then(must)]).then(function(r){ var all=r[0], on=(r[1]||[]).map(function(x){ return x.id; });
+    if(!all.length){ toast('No action groups yet. Make one in Coaching, Action groups.'); return; }
+    openForm({title:'Coaching included with '+c.title,values:{g:on,old:true},saveLabel:'Save',doneMsg:'Saved.',
+      note:'Anyone who gets this course (bought, given, or free with a package when they open it) is added to these action groups, starting that day.',
+      fields:[{key:'g',label:'Action groups',type:'checks',options:all.map(function(g){ return [g.id,g.name]; })},
+        {key:'old',label:'Also add people who already have this course',type:'checkbox'}],
+      onSave:function(v){ var add=(v.g||[]).filter(function(id){ return on.indexOf(id)<0; });
+        return sb.rpc('course_groups_set',{p_course:c.id,p_groups:v.g||[]}).then(must).then(function(){
+          if(!v.old||!add.length) return; return Promise.all(add.map(function(id){ return sb.rpc('group_add_bulk',{p_group:id,p_mode:'course',p_tags:null,p_course:c.id,p_start:null,p_dry:false}).then(must); }))
+            .then(function(rs){ var n=rs.reduce(function(t,x){ return t+x.added; },0); if(n) setTimeout(function(){ toast('Added '+n+' existing '+(n===1?'student':'students')+'.'); },400); }); })
+          .then(function(){ CRS.groups=null; return crsEdit(c.id); }); }}); }).catch(function(e){ toast(errText(e)); }); }
 
 /* ================= coaches and managers: Coaching tab ================= */
 function coLoad(){ COACH.busy=true; return sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.busy=false; COACH.list=l; COACH.err=null; schedule(); })
