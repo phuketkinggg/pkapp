@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob: https://jijnshwduhgegacfvpkh.supabase.co; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Phuket King</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -449,6 +449,35 @@ body.cuview #view button:not(.pvexit){opacity:.75}
 .socmini{display:block;width:44px;height:44px;border-radius:6px;overflow:hidden;background:var(--sunken)}.socmini img{width:100%;height:100%;object-fit:cover;display:block}
 .socopts{display:grid;gap:10px;margin:10px 0}.socopt{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}.socoptt{white-space:pre-wrap;font-size:14px;line-height:1.45}
 .socask input{flex:1;min-width:0}.socedit{max-width:640px}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ctabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}.ctab{border:1px solid var(--line);background:var(--surface);color:inherit;font:inherit;font-weight:600;padding:8px 14px;border-radius:999px;cursor:pointer}
+.ctab.on{background:var(--ink);color:var(--bg,#fff);border-color:var(--ink)}.ctabs.small .ctab{padding:6px 11px;font-size:14px}
+.hlist{display:grid;gap:10px}.hcard{display:flex;flex-direction:column;gap:8px}.hcard.done{border-color:var(--ok)}
+.hrow{display:flex;align-items:flex-start;gap:12px;justify-content:space-between}.hmain{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.hbig{min-width:118px;min-height:44px;border-radius:12px;border:2px solid var(--ok);background:none;color:var(--ok);font:inherit;font-weight:700;cursor:pointer}.hbig.on{background:var(--ok);color:#fff}
+.hstrip{display:flex;gap:4px;flex-wrap:wrap}.hdot{width:28px;height:28px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--sunken);color:var(--muted);padding:0;font-family:inherit}
+button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);color:#fff}.hdot.miss{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}.hdot.due{border-color:var(--ok);color:var(--ok);background:none}.hdot.off{opacity:.45}.hdot.today{box-shadow:0 0 0 2px var(--gold)}
+.hmore{margin-top:8px;display:flex;flex-direction:column;gap:10px}.clinks{display:flex;flex-direction:column;gap:8px}
+.cfoods{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}.cfood{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column}
+.cfimg{display:block;padding:0;border:0;background:var(--sunken);cursor:zoom-in;aspect-ratio:4/3;width:100%}.cfimg img,.cfimg .cwait{width:100%;height:100%;object-fit:cover;display:block}
+.cfin{padding:10px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}.cnote{background:var(--sunken);border-left:3px solid var(--gold);padding:6px 10px;border-radius:6px;font-size:14px;white-space:pre-wrap}
+.cwait{background:var(--sunken);min-height:80px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+.cvid{width:100%;max-height:70vh;border-radius:10px;background:#000;display:block}.cfoodprev{width:100%;max-height:40vh;object-fit:contain;border-radius:10px;background:var(--sunken)}
+.wchart{margin:12px 0}.wsvg{width:100%;height:auto;display:block}.wax{stroke:var(--line);stroke-width:1}.wlab{fill:var(--muted);font-size:12px;font-family:inherit}
+.wgoal{stroke:var(--gold);stroke-width:1.5;stroke-dasharray:6 5}.wline{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}.wpt{fill:var(--ink)}
+.wgoalbox{display:flex;flex-direction:column;gap:4px;margin:10px 0}.wrow{align-items:center}.wrow input[type=number]{width:110px;font-size:20px}.wrow input:not([type]){flex:1;min-width:160px}
+.citems{display:grid;gap:10px;margin:8px 0 14px}.citem{display:flex;flex-direction:column;gap:8px}.csec{margin:10px 0 0;text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:var(--muted)}
+.cnow{color:var(--ok);font-weight:600}.cform{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}.panel.cform{border-top:1px solid var(--line);margin-bottom:12px}
+.cwhead{display:flex;align-items:center;gap:10px;margin-top:6px}.cwhead h3{margin:0}.cph{margin:4px 0 10px}.copick{max-height:50vh;overflow:auto;margin:8px 0}
+.lrow.static{cursor:default;justify-content:space-between;flex-wrap:wrap}
+.proutine{margin-bottom:14px;display:flex;flex-direction:column;gap:10px}.proutine>.row input{flex:1;min-width:180px;font-weight:700}
+.pitems{display:flex;flex-direction:column;gap:10px}.pitem{position:relative;border:1px solid var(--line);border-radius:10px;padding:10px 12px 10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.pitem.psec{flex-direction:row;align-items:center;background:var(--sunken)}.pitem.psec input{flex:1;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pgrid{display:grid;gap:8px;grid-template-columns:2fr repeat(4,1fr)}.pgrid label{display:block;font-size:12px;color:var(--muted)}.pgrid input{width:100%}
+@media (max-width:640px){.pgrid{grid-template-columns:repeat(2,1fr)}.pname{grid-column:1/-1}}
+.pmini{display:flex;gap:4px}.pmini button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:inherit;cursor:pointer;font:inherit;padding:0}
+.pitem>.pmini{align-self:flex-end}.pvid input{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -547,7 +576,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -2459,6 +2488,404 @@ function editLesson(c,l){ l=l||{};
 }
 
 
+/* ---------- coaching: food diary, habits, weight, workout programs and form-check videos.
+   Private: only the member, managers and the coaches a manager picked for that member can see it. ---------- */
+var COACH={list:null,busy:false,cid:null,client:null,view:'clients',sub:'habits',prog:null,tpl:null,ex:null};
+var COACHM={data:null,busy:false,tab:'today',prog:null,routine:null,open:{}};
+var WD=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], WDL=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var FOODK=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner'],['snack','Snack'],['drink','Drink'],['meal','Meal']];
+function cRand(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+function cAdd(s,n){ var d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
+function cWd(s){ return (parseYmd(s).getDay()+6)%7+1; }
+function cShort(s){ return s?parseYmd(String(s).slice(0,10)).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''; }
+function cWhen(ts){ return new Date(ts).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function cDayOf(ts){ return new Date(Date.parse(ts)+7*3600e3).toISOString().slice(0,10); }
+function cKg(n){ return (Math.round(Number(n)*10)/10).toFixed(1)+' kg'; }
+/* private photos and videos: short-lived signed links, fetched in batches */
+var CSIGN={}, csQ=[], csT=0;
+function csUrl(p){ var c=CSIGN[p]; if(c&&c.exp>Date.now()) return c.u; if(!c||c.exp<=Date.now()){ CSIGN[p]={u:null,exp:Date.now()+15000}; csQ.push(p); if(!csT) csT=setTimeout(csFlush,20); } return null; }
+function csFlush(){ csT=0; var list=csQ.splice(0,100); if(!list.length) return;
+  sb.storage.from('coaching').createSignedUrls(list,3600).then(function(r){ (r.data||[]).forEach(function(x){ if(x.signedUrl) CSIGN[x.path]={u:x.signedUrl,exp:Date.now()+3300e3}; }); schedule(); },function(){}); }
+function cPhoto(p,cls){ var u=csUrl(p); return u?h('img',{class:cls||'',src:u,alt:'',loading:'lazy'}):h('div',{class:(cls||'')+' cwait'},''); }
+function cVideoPriv(p){ var u=csUrl(p); return u?h('video',{class:'cvid',src:u,controls:true,preload:'metadata',playsinline:true}):h('div',{class:'cvid cwait'},'Loading the video'); }
+function cVideo(u){ if(!u) return null; return ytFrame(u)||(/\.(mp4|mov|webm)(\?|$)/i.test(u)?h('video',{class:'cvid',src:u,controls:true,preload:'metadata',playsinline:true}):h('a',{class:'btn small',href:u,target:'_blank',rel:'noopener'},'Open the video')); }
+function cLinks(links){ if(!links||!links.length) return null;
+  return h('div',{class:'clinks'},links.map(function(l){ return ytId(l.url)||/\.(mp4|mov|webm)(\?|$)/i.test(l.url)?h('div',null,h('b',null,l.name||'Video'),cVideo(l.url)):h('a',{class:'lfile',href:l.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(l.url)?'PDF':'LINK'),l.name||'Open'); })); }
+
+/* habits */
+function hActive(x,d){ return d>=x.start_on&&(!x.end_on||d<=x.end_on)&&(!x.stopped_on||d<x.stopped_on); }
+function hDue(x,d){ if(!hActive(x,d)) return false; return x.freq==='days'?(x.days||[]).indexOf(cWd(d))>=0:true; }
+function hDone(x,d){ return (x.logs||[]).indexOf(d)>=0; }
+function hWeek(x,d){ var s=cAdd(d,1-cWd(d)), e=cAdd(s,6); return (x.logs||[]).filter(function(l){ return l>=s&&l<=e; }).length; }
+function hFreq(x){ return x.freq==='days'?(x.days||[]).map(function(n){ return WD[n-1]; }).join(', '):x.freq==='week'?x.times+' time'+(x.times>1?'s':'')+' a week':'Every day'; }
+function hSpan(x,today){ var a=x.start_on>today?'Starts '+cShort(x.start_on):'Since '+cShort(x.start_on);
+  return x.stopped_on?a+', stopped '+cShort(x.stopped_on):x.end_on?a+' until '+cShort(x.end_on):a+', ongoing'; }
+function hStrip(x,today,n,onTap){ var out=[];
+  for(var i=n-1;i>=0;i--){ (function(d){ var due=x.freq==='week'?false:hDue(x,d), done=hDone(x,d), can=onTap&&hActive(x,d)&&d>=cAdd(today,-3);
+    var cls='hdot'+(done?' on':due&&d<today?' miss':due?' due':' off')+(d===today?' today':'');
+    out.push(can?h('button',{type:'button',class:cls,title:cShort(d),'aria-label':WD[cWd(d)-1]+' '+cShort(d)+(done?', done':', not done'),onclick:function(){ onTap(x,d,!done); }},WD[cWd(d)-1].charAt(0))
+      :h('span',{class:cls,title:cShort(d)},WD[cWd(d)-1].charAt(0))); })(cAdd(today,-i)); }
+  return h('div',{class:'hstrip'},out); }
+
+/* weight chart: one line, goal as a dashed line */
+function wChart(ws,goal){ if(!ws.length) return null;
+  var pts=ws.map(function(w){ return {t:Date.parse(w.at),kg:Number(w.kg)}; }), W=640, H=220, P=34;
+  var ks=pts.map(function(p){ return p.kg; }); if(goal) ks.push(Number(goal.kg));
+  var lo=Math.floor(Math.min.apply(null,ks)-1), hi=Math.ceil(Math.max.apply(null,ks)+1);
+  var t0=pts[0].t, t1=goal&&goal.on?Math.max(pts[pts.length-1].t,Date.parse(goal.on)):pts[pts.length-1].t; if(t1===t0) t1=t0+864e5;
+  function X(t){ return P+(W-P-10)*(t-t0)/(t1-t0); } function Y(k){ return 10+(H-P-10)*(hi-k)/(hi-lo); }
+  var line=pts.map(function(p){ return X(p.t).toFixed(1)+','+Y(p.kg).toFixed(1); }).join(' ');
+  var s='<svg viewBox="0 0 '+W+' '+H+'" class="wsvg" role="img" aria-label="Weight over time">'+
+    '<line x1="'+P+'" y1="'+Y(hi)+'" x2="'+P+'" y2="'+Y(lo)+'" class="wax"/><line x1="'+P+'" y1="'+Y(lo)+'" x2="'+(W-10)+'" y2="'+Y(lo)+'" class="wax"/>'+
+    '<text x="'+(P-6)+'" y="'+(Y(hi)+4)+'" class="wlab" text-anchor="end">'+hi+'</text><text x="'+(P-6)+'" y="'+(Y(lo)+4)+'" class="wlab" text-anchor="end">'+lo+'</text>'+
+    '<text x="'+P+'" y="'+(H-8)+'" class="wlab">'+cShort(new Date(t0+7*3600e3).toISOString().slice(0,10))+'</text>'+
+    '<text x="'+(W-10)+'" y="'+(H-8)+'" class="wlab" text-anchor="end">'+cShort(new Date(t1+7*3600e3).toISOString().slice(0,10))+'</text>'+
+    (goal?'<line x1="'+P+'" y1="'+Y(goal.kg)+'" x2="'+(W-10)+'" y2="'+Y(goal.kg)+'" class="wgoal"/><text x="'+(W-12)+'" y="'+(Y(goal.kg)-6)+'" class="wlab" text-anchor="end">Goal '+Number(goal.kg)+'</text>':'')+
+    '<polyline points="'+line+'" class="wline"/>'+pts.map(function(p){ return '<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.kg).toFixed(1)+'" r="3.5" class="wpt"/>'; }).join('')+'</svg>';
+  var d=h('div',{class:'wchart'}); d.innerHTML=s; return d; }
+function wGoalLine(ws,goal,today){ if(!goal) return null; var last=ws.length?Number(ws[ws.length-1].kg):null;
+  var days=goal.on?Math.round((parseYmd(goal.on)-parseYmd(today))/864e5):null;
+  return h('div',{class:'panel pad wgoalbox'},h('b',null,'Goal: '+cKg(goal.kg)+(goal.on?' by '+fmtDate(goal.on):'')),goal.note?h('div',{class:'sub'},goal.note):null,
+    last!=null?h('div',null,Math.abs(last-goal.kg)<0.05?'On the goal weight.':cKg(Math.abs(last-goal.kg))+' to '+(last>goal.kg?'lose':'gain')+(days!=null?(days>=0?', '+days+' day'+(days===1?'':'s')+' left':', the date has passed'):'')+'.'):null); }
+
+/* workout programs */
+function exLine(it){ var a=[], s=it.sets, r=it.reps;
+  if(s&&r) a.push(s+' x '+r); else if(s) a.push(s+' sets'); else if(r) a.push(r+' reps');
+  if(it.intensity) a.push(it.intensity); if(it.rest) a.push('rest '+it.rest); return a.join(', '); }
+function exNow(it){ var st=Number(it.step)||0, pr=it.progressions||[]; return st>0&&pr[st-1]?pr[st-1]:null; }
+
+/* ================= member: Coaching tab ================= */
+function cmLoad(){ COACHM.busy=true; return sb.rpc('my_coaching').then(must).then(function(d){ COACHM.busy=false; COACHM.data=d; COACHM.err=null; schedule(); })
+  .catch(function(e){ COACHM.busy=false; COACHM.err=errText(e); schedule(); }); }
+function vCoachMe(){
+  if(PV) return [pageHead('Coaching',''),h('div',{class:'panel empty'},'Coaching is private. Open it in the back office, in the Coaching tab.')];
+  var d=COACHM.data; if(!d){ if(!COACHM.busy) cmLoad(); return [pageHead('Coaching',''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
+  var tabs=[['today','Today'],['work','Workouts'],['food','Food'],['weight','Weight']];
+  var sub=h('div',{class:'ctabs',role:'tablist'},tabs.map(function(t){ return h('button',{type:'button',role:'tab','aria-selected':COACHM.tab===t[0]?'true':'false',class:'ctab'+(COACHM.tab===t[0]?' on':''),onclick:function(){ COACHM.tab=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); }));
+  var who=d.coaches.length?'Your coach'+(d.coaches.length>1?'es':'')+': '+d.coaches.map(function(c){ return c.name; }).join(', ')+'. ':'';
+  var head=pageHead('Coaching',who+'Private: only you, your coach and the managers can see this.');
+  var body=COACHM.tab==='work'?cmWork(d):COACHM.tab==='food'?cmFood(d):COACHM.tab==='weight'?cmWeight(d):cmToday(d);
+  return [head,sub,body];
+}
+function cmMark(x,d,on){ sb.rpc('habit_mark',{p_habit:x.id,p_day:d,p_done:on}).then(must).then(function(){
+    if(on){ if(!hDone(x,d)) x.logs.push(d); } else x.logs=x.logs.filter(function(l){ return l!==d; }); schedule(); }).catch(function(e){ toast(errText(e)); }); }
+function cmHabitCard(x,t){
+  var open=COACHM.open[x.id], done=hDone(x,t), due=hDue(x,t);
+  var big=h('button',{type:'button',class:'hbig'+(done?' on':''),'aria-pressed':done?'true':'false',onclick:function(){ cmMark(x,t,!done); }},done?'✓ Done':'Mark done');
+  return h('div',{class:'panel pad hcard'+(done?' done':'')},
+    h('div',{class:'hrow'},h('div',{class:'hmain'},h('b',null,x.name),h('small',{class:'sub'},hFreq(x)+(x.freq==='week'?', '+hWeek(x,t)+' of '+x.times+' this week':''))),due?big:null),
+    hStrip(x,t,7,cmMark),
+    x.details||(x.links||[]).length?h('div',null,linkBtn(open?'Hide how to':'How to do it',function(){ COACHM.open[x.id]=!open; schedule(); }),
+      open?h('div',{class:'hmore'},x.details?lessonText(x.details):null,cLinks(x.links)):null):null);
+}
+function cmToday(d){
+  var t=d.today, hs=d.habits.filter(function(x){ return hActive(x,t); }), soon=d.habits.filter(function(x){ return x.start_on>t&&!x.stopped_on; });
+  var dueN=hs.filter(function(x){ return hDue(x,t)&&x.freq!=='week'; }), doneN=dueN.filter(function(x){ return hDone(x,t); }).length;
+  var wd=cWd(t), todays=[]; d.programs.forEach(function(p){ (p.routines||[]).forEach(function(r){ if(Number(r.day)===wd) todays.push({p:p,r:r}); }); });
+  return [
+    hs.length?section('Habits'+(dueN.length?', '+doneN+' of '+dueN.length+' done today':''),null,h('div',{class:'hlist'},hs.map(function(x){ return cmHabitCard(x,t); }))):
+      h('div',{class:'panel empty'},d.coaches.length?'No habits yet. Your coach adds them here.':'When a coach works with you, your habits and programs show here. You can already keep your food diary and weight.'),
+    h('p',{class:'sub'},'Tap a day letter to tick the last few days too.'),
+    soon.length?section('Coming next',null,h('div',{class:'panel'},soon.map(function(x){ return h('div',{class:'lrow static'},h('b',null,x.name),h('small',{class:'sub'},'Starts '+fmtDate(x.start_on)+', '+hFreq(x))); }))):null,
+    todays.length?section('Today’s workout',null,h('div',{class:'panel'},todays.map(function(o){ return h('button',{type:'button',class:'lrow',onclick:function(){ COACHM.tab='work'; COACHM.prog=o.p.id; COACHM.routine=o.r.id; schedule(); window.scrollTo(0,0); }},h('b',null,o.r.name||WDL[wd-1]),h('small',{class:'sub'},o.p.name)); }))):null,
+    h('div',{class:'row'},btn('Add a food photo',function(){ COACHM.tab='food'; schedule(); cmFoodPick(); },'primary'),btn('Log my weight',function(){ COACHM.tab='weight'; schedule(); setTimeout(function(){ var e=document.getElementById('cm-kg'); if(e) e.focus(); },60); }))];
+}
+/* food diary */
+function cmGuessKind(){ var hr=Number(new Date().toLocaleString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',hour12:false})); return hr<11?'breakfast':hr<15?'lunch':hr<17?'snack':'dinner'; }
+function cmFoodPick(){
+  var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(f) cmFoodForm(f); }});
+  document.body.appendChild(inp); inp.click(); }
+function cmFoodForm(f){
+  var url=URL.createObjectURL(f), close=function(){ URL.revokeObjectURL(url); $dlg.close(); };
+  var kind=h('select',{id:'cm-fk'},FOODK.map(function(k){ return h('option',{value:k[0]},k[1]); })); kind.value=cmGuessKind();
+  var note=h('input',{id:'cm-fn',placeholder:'Optional, for example: rice, chicken, no sauce',maxlength:'300'});
+  var err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var save=btn('Save',function(){ save.disabled=true; save.textContent='Saving...'; var cid=COACHM.data.customer.id, path=cid+'/food/'+cRand()+'.jpg';
+    shrinkPhoto(f,1600).then(function(b){ return sb.storage.from('coaching').upload(path,b,{contentType:'image/jpeg',upsert:false}); })
+      .then(function(r){ if(r.error) throw r.error; return sb.rpc('food_add',{p:{path:path,kind:kind.value,note:note.value}}); }).then(must)
+      .then(function(){ close(); toast('Added to your food diary.'); cmLoad(); })
+      .catch(function(e){ err.textContent=errText(e); err.hidden=false; save.disabled=false; save.textContent='Save'; }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Food diary'),h('img',{class:'cfoodprev',src:url,alt:''}),
+    h('div',{class:'field'},h('label',{for:'cm-fk'},'What is it'),kind),h('div',{class:'field'},h('label',{for:'cm-fn'},'Note'),note),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',close),save))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function foodDays(food){ var by={}, order=[]; food.forEach(function(f){ var d=cDayOf(f.eaten_at); if(!by[d]){ by[d]=[]; order.push(d); } by[d].push(f); }); return order.map(function(d){ return {day:d,items:by[d].slice().reverse()}; }); }
+function foodCard(f,staff){
+  var k=FOODK.filter(function(x){ return x[0]===f.kind; })[0];
+  return h('div',{class:'cfood'},h('button',{type:'button',class:'cfimg','aria-label':'Open the photo',onclick:function(){ var u=csUrl(f.path); if(u) window.open(u,'_blank','noopener'); }},cPhoto(f.path)),
+    h('div',{class:'cfin'},h('b',null,(k?k[1]:'Meal')+', '+bkkTime(f.eaten_at)),f.note?h('div',{class:'sub'},f.note):null,
+      f.coach_note?h('div',{class:'cnote'},h('b',null,(f.coach_name||'Coach')+': '),f.coach_note):null,
+      staff?btn(f.coach_note?'Edit note':'Add a note',function(){ coachFoodNote(f); },'small'):
+        h('button',{type:'button',class:'link small',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to remove'; return; }
+          sb.rpc('food_remove',{p_id:f.id}).then(must).then(function(){ cmLoad(); }).catch(function(e){ toast(errText(e)); }); }},'Remove')));
+}
+function cmFood(d){
+  var days=foodDays(d.food);
+  return [h('div',{class:'row'},btn('Add a food photo',cmFoodPick,'primary')),
+    h('p',{class:'sub'},'Take a photo of everything you eat and drink. Your coach looks at it and may leave a note.'),
+    days.length?days.map(function(g){ return section(g.day===d.today?'Today':fmtDate(g.day),null,h('div',{class:'cfoods'},g.items.map(function(f){ return foodCard(f,false); }))); }):
+      h('div',{class:'panel empty'},'No photos yet. Start with your next meal.')];
+}
+/* weight */
+function cmWeight(d){
+  var kg=h('input',{id:'cm-kg',type:'number',inputmode:'decimal',step:'0.1',min:'20',max:'300',placeholder:'kg'});
+  var note=h('input',{id:'cm-wn',placeholder:'Optional, for example: morning, before training',maxlength:'150'});
+  var save=btn('Save',function(){ var v=Number(kg.value); if(!(v>=20&&v<=300)){ toast('Type your weight in kg, for example 72.4'); kg.focus(); return; }
+    save.disabled=true; sb.rpc('weight_add',{p:{kg:v,note:note.value}}).then(must).then(function(){ toast('Saved.'); cmLoad(); }).catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
+  var ws=d.weights;
+  return [h('div',{class:'panel pad'},h('div',{class:'row wrow'},h('label',{for:'cm-kg',class:'sr'},'Weight in kg'),kg,h('span',null,'kg'),note,save),
+      h('small',{class:'sub'},'Weigh yourself at the same time of day, ideally in the morning before you eat.')),
+    wGoalLine(ws,d.goal,d.today), wChart(ws,d.goal),
+    ws.length?section('History',null,table([{label:'When',cell:function(w){ return cWhen(w.at); }},{label:'Weight',num:true,cell:function(w){ return cKg(w.kg); }},{label:'Note',cell:function(w){ return w.note||''; }},
+      {label:'',cell:function(w){ return h('button',{type:'button',class:'link small',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again'; return; }
+        sb.rpc('weight_remove',{p_id:w.id}).then(must).then(function(){ cmLoad(); }).catch(function(e){ toast(errText(e)); }); }},'Remove'); }}],ws.slice().reverse().slice(0,60),'')):null];
+}
+/* workouts */
+function cmWork(d){
+  var ps=d.programs; if(!ps.length) return h('div',{class:'panel empty'},'No workout program yet. Your coach adds it here.');
+  var p=ps.filter(function(x){ return x.id===COACHM.prog; })[0]||ps[0], rs=p.routines||[], wd=cWd(d.today);
+  var r=rs.filter(function(x){ return x.id===COACHM.routine; })[0]||rs.filter(function(x){ return Number(x.day)===wd; })[0]||rs[0];
+  var doneToday=r&&d.workouts.some(function(w){ return w.program_id===p.id&&w.routine_id===r.id&&w.day===d.today; });
+  var last=r&&d.workouts.filter(function(w){ return w.program_id===p.id&&w.routine_id===r.id; })[0];
+  return [ps.length>1?h('div',{class:'ctabs'},ps.map(function(x){ return h('button',{type:'button',class:'ctab'+(x.id===p.id?' on':''),onclick:function(){ COACHM.prog=x.id; COACHM.routine=null; schedule(); }},x.name); })):h('h2',{class:'cph'},p.name),
+    p.notes?h('div',{class:'panel pad'},lessonText(p.notes)):null,
+    rs.length>1?h('div',{class:'ctabs small'},rs.map(function(x){ return h('button',{type:'button',class:'ctab'+(r&&x.id===r.id?' on':''),onclick:function(){ COACHM.routine=x.id; schedule(); }},(x.name||'Routine')+(Number(x.day)?' ('+WD[x.day-1]+')':'')); })):null,
+    r?[h('div',{class:'cwhead'},h('h3',null,r.name||'Workout'),Number(r.day)?chip(WDL[r.day-1],Number(r.day)===wd?'ok':''):null),
+      h('div',{class:'citems'},(r.items||[]).map(function(it){ return cmItem(d,p,it); })),
+      h('div',{class:'row'},btn(doneToday?'✓ Done today (tap to undo)':'Mark this workout done',function(){ sb.rpc('workout_mark',{p_program:p.id,p_routine:r.id,p_day:d.today,p_done:!doneToday,p_note:''}).then(must).then(function(){ toast(doneToday?'Undone.':'Great work.'); cmLoad(); }).catch(function(e){ toast(errText(e)); }); },doneToday?'':'primary'),
+        last&&!doneToday?h('span',{class:'sub'},'Last done '+fmtDate(last.day)):null)]:h('div',{class:'panel empty'},'This program has no workouts yet.')];
+}
+function cmItem(d,p,it){
+  if(it.kind==='section') return h('h4',{class:'csec'},it.name||'');
+  var open=COACHM.open[it.id], now=exNow(it), forms=d.forms.filter(function(f){ return f.item_id===it.id; });
+  return h('div',{class:'panel pad citem'},
+    h('div',{class:'hrow'},h('div',{class:'hmain'},h('b',null,it.name||'Exercise'),exLine(it)?h('div',null,exLine(it)):null,now?h('div',{class:'cnow'},'Now: '+now):null),
+      it.video?btn(open?'Hide video':'Watch',function(){ COACHM.open[it.id]=!open; schedule(); },'small'):null),
+    open&&it.video?cVideo(it.video):null, it.notes?h('div',{class:'sub'},it.notes):null,
+    h('div',{class:'row'},btn('Send a video to my coach',function(){ cmFormPick(p,it); },'small')),
+    forms.map(function(f){ return h('div',{class:'cform'},h('small',{class:'sub'},'Your video, '+cWhen(f.created_at)),f.note?h('div',null,f.note):null,
+      f.reply?h('div',{class:'cnote'},h('b',null,(f.reply_name||'Coach')+': '),f.reply):h('small',{class:'sub'},'Your coach has not replied yet.'),
+      COACHM.open['v'+f.id]?cVideoPriv(f.path):linkBtn('Watch my video',function(){ COACHM.open['v'+f.id]=true; schedule(); })); }));
+}
+function cmFormPick(p,it){
+  var inp=h('input',{type:'file',accept:'video/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+    if(f.size>250*1024*1024){ toast('That video is over 250 MB. Film a shorter clip.'); return; }
+    var note=h('textarea',{id:'cm-vn',rows:'3',placeholder:'Optional: what you want your coach to look at'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+    var send=btn('Send',function(){ send.disabled=true; send.textContent='Uploading, keep the app open...';
+      var cid=COACHM.data.customer.id, ext=/quicktime/.test(f.type)?'mov':/webm/.test(f.type)?'webm':'mp4', path=cid+'/form/'+cRand()+'.'+ext;
+      sb.storage.from('coaching').upload(path,f,{contentType:f.type||'video/mp4',upsert:false}).then(function(r){ if(r.error) throw r.error;
+        return sb.rpc('form_add',{p:{program_id:p.id,item_id:it.id,exercise_name:it.name||'',path:path,note:note.value}}); }).then(must)
+        .then(function(){ $dlg.close(); toast('Sent. Your coach will reply here.'); cmLoad(); })
+        .catch(function(e){ err.textContent=errText(e); err.hidden=false; send.disabled=false; send.textContent='Send'; }); },'primary');
+    $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Video for your coach'),h('p',null,h('b',null,it.name||'Exercise'),', '+f.name),
+      h('div',{class:'field'},h('label',{for:'cm-vn'},'Note'),note),err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),send))));
+    if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }});
+  document.body.appendChild(inp); inp.click(); }
+
+/* ================= coaches and managers: Coaching tab ================= */
+function coLoad(){ COACH.busy=true; return sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.busy=false; COACH.list=l; COACH.err=null; schedule(); })
+  .catch(function(e){ COACH.busy=false; COACH.err=errText(e); schedule(); }); }
+function coOpen(cid){ COACH.cid=cid; COACH.view='client'; return sb.rpc('coach_client',{p_customer:cid}).then(must).then(function(d){ COACH.client=d; schedule(); })
+  .catch(function(e){ toast(errText(e)); COACH.view='clients'; COACH.cid=null; schedule(); }); }
+function coReload(){ return COACH.cid?coOpen(COACH.cid):coLoad(); }
+function coTpl(){ return sb.rpc('program_templates').then(must).then(function(l){ COACH.tpl=l; schedule(); return l; }); }
+function coEx(){ return sb.rpc('exercise_list').then(must).then(function(l){ COACH.ex=l; schedule(); return l; }); }
+function openCoaching(cid){ ui.tab='coaching'; COACH.prog=null; coOpen(cid); schedule(); }
+function vCoaching(){
+  if(COACH.prog) return coProgEditor();
+  if(COACH.view==='client'&&COACH.cid) return coClient();
+  var top=h('div',{class:'ctabs'},[['clients','Clients'],['templates','Program templates'],['exercises','Exercises']].map(function(t){ return h('button',{type:'button',class:'ctab'+(COACH.view===t[0]?' on':''),onclick:function(){ COACH.view=t[0]; schedule(); }},t[1]); }));
+  if(COACH.view==='templates') return [pageHead('Coaching','Program templates: build once, add to any client. Each client gets their own copy to adjust.',btn('New template',function(){ coEditProg({name:'',notes:'',routines:[coNewRoutine()]},'templates'); },'primary')),top,coTemplates()];
+  if(COACH.view==='exercises') return [pageHead('Coaching','Exercise library: name, demo video and coaching points. Use them in programs.',btn('New exercise',function(){ coEditEx(); },'primary')),top,coExercises()];
+  if(!COACH.list){ if(!COACH.busy) coLoad(); return [pageHead('Coaching',''),top,h('div',{class:'panel empty'},COACH.err||'Loading.')]; }
+  var mgr=me&&me.role==='manager';
+  return [pageHead('Coaching',mgr?'Clients with a coach. Pick the coaches for a client: only they and the managers can see that client’s food diary, weight, habits and videos.':'Your clients. Only you, their other coaches and the managers can see this.',mgr?btn('Add a client',coPickClient,'primary'):null),top,
+    table([{label:'Client',cell:function(c){ return linkBtn(c.name,function(){ coOpen(c.id); }); }},
+      {label:'Coach',cell:function(c){ return (c.coaches||[]).map(function(x){ return x.name; }).join(', '); }},
+      {label:'Habits today',cell:function(c){ return c.habits?c.habits_done_today+' of '+c.habits:''; }},
+      {label:'Food',cell:function(c){ return c.last_food?'Last '+cWhen(c.last_food):''; }},
+      {label:'Weight',cell:function(c){ return c.last_weight?cKg(c.last_weight.kg)+(c.goal?', goal '+cKg(c.goal.kg):''):''; }},
+      {label:'',cell:function(c){ return c.forms_waiting?chip(c.forms_waiting+' video'+(c.forms_waiting>1?'s':'')+' to answer','warn'):''; }}],
+      COACH.list,mgr?'No clients with a coach yet. Tap Add a client.':'No clients yet. A manager picks the clients for each coach.')];
+}
+function coPickClient(){
+  var q=h('input',{id:'co-q',placeholder:'Type a name',autocomplete:'off'}), out=h('div',{class:'panel copick'});
+  function draw(){ var s=q.value.trim().toLowerCase(); var list=(S.customers||[]).filter(function(c){ return !c.is_agency&&(!s||String(c.name||'').toLowerCase().indexOf(s)>=0); }).slice(0,12);
+    out.replaceChildren.apply(out,list.map(function(c){ return h('button',{type:'button',class:'lrow',onclick:function(){ $dlg.close(); coOpen(c.id); }},h('b',null,c.name),h('small',{class:'sub'},c.email||c.phone||'')); })); }
+  q.addEventListener('input',draw);
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Add a client'),h('div',{class:'field'},h('label',{for:'co-q'},'Customer'),q),out,h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
+  draw(); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); setTimeout(function(){ q.focus(); },30); }
+function coClient(){
+  var d=COACH.client; if(!d) return [pageHead('Coaching',''),h('div',{class:'panel empty'},'Loading.')];
+  var mgr=me&&me.role==='manager', t=d.today;
+  var back=h('div',null,linkBtn('Back to clients',function(){ COACH.view='clients'; COACH.cid=null; COACH.client=null; coLoad(); schedule(); }));
+  var coaches=mgr?h('div',{class:'panel pad'},h('b',null,'Coaches who can see this client'),h('div',{class:'checkgrid'},(d.staff_coaches||[]).map(function(s){ var on=d.coaches.some(function(c){ return c.id===s.id; });
+      var cb=h('input',{type:'checkbox',id:'cc-'+s.id}); cb.checked=on; cb.addEventListener('change',function(){ cb.disabled=true; sb.rpc('coach_assign',{p_customer:d.customer.id,p_staff:s.id,p_on:cb.checked}).then(must).then(function(){ toast(cb.checked?s.name+' can now coach '+d.customer.name+'.':s.name+' removed.'); coReload(); }).catch(function(e){ cb.disabled=false; cb.checked=!cb.checked; toast(errText(e)); }); });
+      return h('label',{class:'check',for:'cc-'+s.id},cb,h('span',null,s.name+(s.role==='manager'?' (manager)':''))); })),h('small',{class:'sub'},'Managers can always see every client.'))
+    :h('p',{class:'sub'},'Coaches: '+(d.coaches.map(function(c){ return c.name; }).join(', ')||'none'));
+  var waiting=d.forms.filter(function(f){ return !f.reply; }).length;
+  var tabs=[['habits','Habits'],['food','Food diary'],['weight','Weight'],['programs','Programs'],['videos','Videos'+(waiting?' ('+waiting+')':'')]];
+  var sub=h('div',{class:'ctabs'},tabs.map(function(x){ return h('button',{type:'button',class:'ctab'+(COACH.sub===x[0]?' on':''),onclick:function(){ COACH.sub=x[0]; schedule(); }},x[1]); }));
+  var body=COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):coHabits(d);
+  return [back,pageHead(d.customer.name,'Coaching. Private to this client, their coaches and the managers.'),coaches,sub,body];
+}
+/* habits (coach) */
+function coHabits(d){
+  var t=d.today, live=d.habits.filter(function(x){ return !x.stopped_on&&(!x.end_on||x.end_on>=t); }), old=d.habits.filter(function(x){ return live.indexOf(x)<0; });
+  function rows(list){ return h('div',{class:'hlist'},list.map(function(x){
+    var n14=0,d14=0; for(var i=0;i<14;i++){ var dd=cAdd(t,-i); if(x.freq!=='week'&&hDue(x,dd)&&dd<=t){ n14++; if(hDone(x,dd)) d14++; } }
+    return h('div',{class:'panel pad hcard'},h('div',{class:'hrow'},h('div',{class:'hmain'},h('b',null,x.name),h('small',{class:'sub'},hFreq(x)+'. '+hSpan(x,t)+(x.freq==='week'?'. This week: '+hWeek(x,t)+' of '+x.times:n14?'. Last 2 weeks: '+d14+' of '+n14+' done':'')))),
+      hStrip(x,t,14,null),x.details||(x.links||[]).length?h('small',{class:'sub'},[x.details?'Has instructions':null,(x.links||[]).length?(x.links.length+' tutorial link'+(x.links.length>1?'s':'')):null].filter(Boolean).join(', ')):null,
+      h('div',{class:'row'},btn('Edit',function(){ coEditHabit(d,x); },'small'),!x.stopped_on?btn('Stack the next habit',function(){ coEditHabit(d,{start_on:x.end_on?cAdd(x.end_on,1):cAdd(t,7)}); },'small'):null,
+        btn(x.stopped_on?'Start again':'Stop',function(){ sb.rpc('habit_stop',{p_id:x.id,p_stop:!x.stopped_on}).then(must).then(coReload).catch(function(e){ toast(errText(e)); }); },'small'))); })); }
+  return [h('div',{class:'row'},btn('Add a habit',function(){ coEditHabit(d); },'primary')),
+    h('p',{class:'sub'},'The client ticks each habit in their app. Green is done, red is missed. Stack habits: keep the old ones going and add the next with a later start date.'),
+    live.length?rows(live):h('div',{class:'panel empty'},'No habits yet.'), old.length?section('Finished or stopped',null,rows(old)):null];
+}
+function coEditHabit(d,x){ x=x||{};
+  var weeks=x.end_on&&x.start_on?Math.round((parseYmd(x.end_on)-parseYmd(x.start_on))/864e5+1)/7:null;
+  var links=(x.links||[]).map(function(l){ return (l.name?l.name+' | ':'')+l.url; }).join('\n');
+  openForm({title:x.id?'Edit habit':'New habit for '+d.customer.name,saveLabel:'Save',doneMsg:'Saved. It shows in their app now.',
+    values:{name:x.name||'',details:x.details||'',freq:x.freq||'daily',days:(x.days||[]).map(String),times:x.times||3,start_on:x.start_on||d.today,weeks:weeks&&weeks===Math.round(weeks)?weeks:null,links:links},
+    fields:[{key:'name',label:'Habit',required:true,hint:'Short and clear, for example: Drink 3 litres of water, 10 minutes stretching after training.'},
+      {key:'details',label:'How to do it and why',type:'textarea',rows:4},
+      {key:'freq',label:'How often',type:'select',options:[['daily','Every day'],['days','On set days'],['week','A number of times a week, any days']],onChange:function(v,set,get,so,show){ show('days',v==='days'); show('times',v==='week'); }},
+      {key:'days',label:'Which days',type:'checks',options:WD.map(function(n,i){ return [String(i+1),n]; }),hide:(x.freq||'daily')!=='days'},
+      {key:'times',label:'Times a week',type:'number',hide:(x.freq||'daily')!=='week'},
+      {key:'start_on',label:'Starts',type:'date'},
+      {key:'weeks',label:'For how many weeks',type:'number',hint:'Leave empty to keep it going until you stop it.'},
+      {key:'links',label:'Tutorial videos or documents',type:'textarea',rows:3,hint:'One per line: name | https://link. YouTube links play in the app. Or use Upload a file below.'}],
+    onSave:function(v){ var w=Number(v.weeks)||0, ls=String(v.links||'').split('\n').map(function(l){ l=l.trim(); if(!l) return null; var i=l.lastIndexOf('|'); return i>=0?{name:l.slice(0,i).trim(),url:l.slice(i+1).trim()}:{name:'',url:l}; }).filter(Boolean);
+      if(ls.some(function(l){ return !/^https:\/\//.test(l.url); })) throw {plain:true,message:'Each link must start with https://'};
+      return sb.rpc('habit_save',{p:{id:x.id||null,customer_id:d.customer.id,name:v.name,details:v.details,freq:v.freq,days:v.days||[],times:v.times,start_on:v.start_on||d.today,end_on:w>0?cAdd(v.start_on||d.today,Math.round(w*7)-1):null,links:ls}}).then(must).then(coReload); }});
+  var ta=document.getElementById('f-links'); if(ta) ta.parentNode.appendChild(h('div',{class:'row'},btn('Upload a file',function(){ coUpload('habit',function(u,name){ ta.value=(ta.value.trim()?ta.value.trim()+'\n':'')+name+' | '+u; }); },'small')));
+}
+function coUpload(folder,done,accept){
+  var inp=h('input',{type:'file',accept:accept||'video/*,image/*,.pdf,.doc,.docx,.txt',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+    if(f.size>250*1024*1024){ toast('That file is over 250 MB.'); return; }
+    var ext=(f.name.match(/\.([a-z0-9]{2,5})$/i)||[0,'bin'])[1].toLowerCase(), path=folder+'/'+cRand()+'.'+ext; toast('Uploading '+f.name+'...');
+    sb.storage.from('coach-media').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error;
+      done(sb.storage.from('coach-media').getPublicUrl(path).data.publicUrl,f.name.replace(/\.[^.]+$/,'').slice(0,60)); toast('Uploaded.'); }).catch(function(e){ toast(errText(e)); }); }});
+  document.body.appendChild(inp); inp.click(); }
+/* food (coach) */
+function coFoodNote(f){ openForm({title:'Note on this meal',values:{note:f.coach_note||''},saveLabel:'Save note',doneMsg:'Saved. The client sees it under the photo.',
+  fields:[{key:'note',label:'Your note',type:'textarea',rows:4}],onSave:function(v){ return sb.rpc('food_note',{p_id:f.id,p_note:v.note}).then(must).then(coReload); }}); }
+function coachFoodNote(f){ coFoodNote(f); }
+function coFood(d){ var days=foodDays(d.food);
+  return days.length?days.map(function(g){ return section(fmtDate(g.day)+', '+g.items.length+' photo'+(g.items.length>1?'s':''),null,h('div',{class:'cfoods'},g.items.map(function(f){ return foodCard(f,true); }))); })
+    :h('div',{class:'panel empty'},'No food photos yet. The client adds them in their app, under Coaching.'); }
+/* weight (coach) */
+function coWeight(d){
+  return [h('div',{class:'row'},btn('Set the goal',function(){ coGoal(d); },'primary'),btn('Add a weight',function(){ openForm({title:'Add a weight',values:{},saveLabel:'Save',doneMsg:'Saved.',
+      fields:[{key:'kg',label:'Weight in kg',type:'number',required:true},{key:'note',label:'Note',hint:'For example: official weigh-in, after sauna.'}],
+      onSave:function(v){ return sb.rpc('weight_add',{p:{customer_id:d.customer.id,kg:v.kg,note:v.note}}).then(must).then(coReload); }}); })),
+    wGoalLine(d.weights,d.goal,d.today)||h('p',{class:'sub'},'No goal yet. For a fighter’s cut, set the fight weight and the weigh-in date.'),
+    wChart(d.weights,d.goal),
+    d.weights.length?section('History',null,table([{label:'When',cell:function(w){ return cWhen(w.at); }},{label:'Weight',num:true,cell:function(w){ return cKg(w.kg); }},{label:'Note',cell:function(w){ return w.note||''; }},
+      {label:'',cell:function(w){ return h('button',{type:'button',class:'link small',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again'; return; }
+        sb.rpc('weight_remove',{p_id:w.id}).then(must).then(coReload).catch(function(e){ toast(errText(e)); }); }},'Remove'); }}],d.weights.slice().reverse().slice(0,80),'')):h('div',{class:'panel empty'},'No weights yet.')];
+}
+function coGoal(d){ var g=d.goal||{};
+  openForm({title:'Weight goal',values:{kg:g.kg,on:g.on||'',note:g.note||''},saveLabel:'Save goal',doneMsg:'Saved. The client sees it in their app.',
+    fields:[{key:'kg',label:'Goal weight in kg',type:'number',required:true},{key:'on',label:'By this date',type:'date',hint:'For a fight: the weigh-in day.'},{key:'note',label:'Note',hint:'For example: Fight at Bangla Stadium, 61 kg.'}],
+    extraBtn:d.goal?['Clear the goal',function(){ sb.rpc('coach_goal_save',{p_customer:d.customer.id,p_kg:null,p_on:null,p_note:''}).then(must).then(function(){ $dlg.close(); coReload(); }).catch(function(e){ toast(errText(e)); }); }]:null,
+    onSave:function(v){ return sb.rpc('coach_goal_save',{p_customer:d.customer.id,p_kg:v.kg,p_on:v.on||null,p_note:v.note}).then(must).then(coReload); }}); }
+/* videos (coach) */
+function coVideos(d){
+  if(!d.forms.length) return h('div',{class:'panel empty'},'No videos yet. The client can film an exercise from their program and send it here.');
+  return d.forms.map(function(f){ var ta=h('textarea',{id:'fr-'+f.id,rows:'3',placeholder:'What to fix and how'}); ta.value=f.reply||'';
+    return h('div',{class:'panel pad cform'},h('div',{class:'hrow'},h('b',null,f.exercise_name||'Exercise'),f.reply?chip('Answered','ok'):chip('Waiting for you','warn')),
+      h('small',{class:'sub'},'Sent '+cWhen(f.created_at)),f.note?h('div',null,'“'+f.note+'”'):null, cVideoPriv(f.path),
+      h('div',{class:'field'},h('label',{for:'fr-'+f.id},'Your feedback'),ta),
+      h('div',{class:'row'},btn(f.reply?'Update feedback':'Send feedback',function(ev){ var b=ev.currentTarget; b.disabled=true; sb.rpc('form_reply',{p_id:f.id,p_reply:ta.value}).then(must).then(function(){ toast('Sent. The client sees it under the exercise.'); coReload(); }).catch(function(e){ b.disabled=false; toast(errText(e)); }); },'primary small'))); });
+}
+/* programs (coach) */
+function coPrograms(d){
+  return [h('div',{class:'row'},btn('Add from a template',function(){ coAddTpl(d); },'primary'),btn('New program',function(){ coEditProg({customer_id:d.customer.id,name:'',notes:'',routines:[coNewRoutine()]},'client'); })),
+    d.programs.length?h('div',{class:'panel'},d.programs.map(function(p){ var n=(p.routines||[]).length, done=d.workouts.filter(function(w){ return w.program_id===p.id; }).length;
+      return h('div',{class:'lrow static'},h('div',{class:'hmain'},h('b',null,p.name),h('small',{class:'sub'},n+' workout'+(n===1?'':'s')+(done?', done '+done+' time'+(done>1?'s':'')+' in the last 90 days':''))),
+        h('div',{class:'row'},btn('Edit',function(){ coEditProg(JSON.parse(JSON.stringify(Object.assign({customer_id:d.customer.id},p))),'client'); },'small'),
+          h('button',{type:'button',class:'btn small danger',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to remove'; return; }
+            sb.rpc('program_remove',{p_id:p.id}).then(must).then(coReload).catch(function(e){ toast(errText(e)); }); }},'Remove'))); })):h('div',{class:'panel empty'},'No program yet.')];
+}
+function coAddTpl(d){ (COACH.tpl?Promise.resolve(COACH.tpl):coTpl()).then(function(l){
+  if(!l.length){ toast('No templates yet. Make one in Program templates, or tap New program.'); return; }
+  openForm({title:'Add a program to '+d.customer.name,values:{t:l[0].id},saveLabel:'Add',doneMsg:'Added. You can adjust their copy without changing the template.',
+    fields:[{key:'t',label:'Template',type:'select',options:l.map(function(x){ return [x.id,x.name]; })}],
+    onSave:function(v){ return sb.rpc('program_assign',{p_template:v.t,p_customer:d.customer.id}).then(must).then(coReload); }}); }).catch(function(e){ toast(errText(e)); }); }
+function coTemplates(){
+  if(!COACH.tpl){ coTpl().catch(function(e){ COACH.tplErr=errText(e); schedule(); }); return h('div',{class:'panel empty'},COACH.tplErr||'Loading.'); }
+  return COACH.tpl.length?h('div',{class:'panel'},COACH.tpl.map(function(p){ var n=(p.routines||[]).length;
+    return h('div',{class:'lrow static'},h('div',{class:'hmain'},h('b',null,p.name),h('small',{class:'sub'},n+' workout'+(n===1?'':'s')+(p.used?', given to '+p.used+' client'+(p.used>1?'s':''):'')+(p.by?', by '+p.by:''))),
+      h('div',{class:'row'},btn('Edit',function(){ coEditProg(JSON.parse(JSON.stringify(p)),'templates'); },'small'),btn('Give to a client',function(){ coGiveTpl(p); },'small'),
+        h('button',{type:'button',class:'btn small danger',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to delete'; return; }
+          sb.rpc('program_remove',{p_id:p.id}).then(must).then(coTpl).catch(function(e){ toast(errText(e)); }); }},'Delete'))); })):h('div',{class:'panel empty'},'No templates yet. Tap New template.'); }
+function coGiveTpl(p){ (COACH.list?Promise.resolve(COACH.list):sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.list=l; return l; })).then(function(l){
+  if(!l.length){ toast('No clients yet. A manager picks the clients for each coach.'); return; }
+  openForm({title:'Give “'+p.name+'” to a client',values:{c:l[0].id},saveLabel:'Give',doneMsg:'Added to their app.',
+    fields:[{key:'c',label:'Client',type:'select',options:l.map(function(x){ return [x.id,x.name]; })}],
+    onSave:function(v){ return sb.rpc('program_assign',{p_template:p.id,p_customer:v.c}).then(must).then(function(){ coTpl(); }); }}); }).catch(function(e){ toast(errText(e)); }); }
+function coExercises(){
+  if(!COACH.ex){ coEx().catch(function(e){ COACH.exErr=errText(e); schedule(); }); return h('div',{class:'panel empty'},COACH.exErr||'Loading.'); }
+  return table([{label:'Exercise',cell:function(x){ return linkBtn(x.name,function(){ coEditEx(x); }); }},{label:'Video',cell:function(x){ return x.video?chip('Video','ok'):''; }},{label:'Coaching points',cell:function(x){ return (x.notes||'').slice(0,80); }}],COACH.ex,'No exercises yet. Tap New exercise.'); }
+function coEditEx(x){ x=x||{};
+  openForm({title:x.id?'Edit exercise':'New exercise',values:{name:x.name||'',video:x.video||'',notes:x.notes||''},saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'name',label:'Name',required:true},{key:'video',label:'Demo video',hint:'A YouTube link (Unlisted is fine), or upload a video below.'},{key:'notes',label:'Coaching points',type:'textarea',rows:4}],
+    onDelete:x.id?function(){ return sb.rpc('exercise_remove',{p_id:x.id}).then(must).then(coEx); }:null,
+    onSave:function(v){ return sb.rpc('exercise_save',{p:{id:x.id||null,name:v.name,video:v.video,notes:v.notes}}).then(must).then(coEx); }});
+  var vi=document.getElementById('f-video'); if(vi) vi.parentNode.appendChild(h('div',{class:'row'},btn('Upload a video',function(){ coUpload('ex',function(u){ vi.value=u; },'video/*'); },'small')));
+}
+/* program editor: routines (one per day if you like), sections and exercises with sets, reps, intensity, rest, video and progressions */
+function coNewRoutine(){ return {id:'r'+cRand(),name:'Workout 1',day:'',items:[{id:'i'+cRand(),kind:'section',name:'Warm up'},{id:'i'+cRand(),kind:'exercise',name:'',sets:'',reps:'',intensity:'',rest:'',notes:'',video:'',progressions:[],step:0}]}; }
+function coEditProg(p,back){ COACH.prog=p; COACH.progBack=back; if(!COACH.ex) coEx().catch(function(){}); schedule(); window.scrollTo(0,0); }
+function coProgEditor(){
+  var p=COACH.prog, isT=!p.customer_id, mv=function(arr,i,dlt){ var j=i+dlt; if(j<0||j>=arr.length) return; arr.splice(j,0,arr.splice(i,1)[0]); schedule(); };
+  function inp(o,k,id,a){ a=a||{}; var e=a.area?h('textarea',{id:id,rows:String(a.rows||2),placeholder:a.placeholder||null}):h('input',{id:id,placeholder:a.placeholder||null,list:a.list||null,inputmode:a.inputmode||null,autocomplete:'off'});
+    e.value=o[k]==null?'':o[k]; e.addEventListener('input',function(){ o[k]=e.value; }); return e; }
+  var dl=h('datalist',{id:'co-exlist'},(COACH.ex||[]).map(function(x){ return h('option',{value:x.name}); }));
+  function exRow(r,it,i){
+    var ctl=h('div',{class:'pmini'},h('button',{type:'button','aria-label':'Move up',onclick:function(){ mv(r.items,i,-1); }},'↑'),h('button',{type:'button','aria-label':'Move down',onclick:function(){ mv(r.items,i,1); }},'↓'),
+      h('button',{type:'button','aria-label':'Copy',onclick:function(){ var c=JSON.parse(JSON.stringify(it)); c.id='i'+cRand(); r.items.splice(i+1,0,c); schedule(); }},'⧉'),
+      h('button',{type:'button','aria-label':'Remove',onclick:function(){ r.items.splice(i,1); schedule(); }},'×'));
+    if(it.kind==='section') return h('div',{class:'pitem psec'},h('label',{class:'sr',for:'pi-'+it.id},'Section'),inp(it,'name','pi-'+it.id,{placeholder:'Section, for example Warm up, Main, Finisher'}),ctl);
+    var name=inp(it,'name','pn-'+it.id,{placeholder:'Exercise',list:'co-exlist'});
+    name.addEventListener('change',function(){ var m=(COACH.ex||[]).filter(function(x){ return x.name.toLowerCase()===name.value.trim().toLowerCase(); })[0]; if(m){ if(!it.video&&m.video) it.video=m.video; if(!it.notes&&m.notes) it.notes=m.notes; schedule(); } });
+    var prog=h('textarea',{id:'pp-'+it.id,rows:'2',placeholder:'Progressions, one per line, for example: 4 x 8 at 70%'}); prog.value=(it.progressions||[]).join('\n');
+    prog.addEventListener('input',function(){ it.progressions=prog.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean); });
+    prog.addEventListener('change',function(){ schedule(); });
+    var stepSel=!isT&&(it.progressions||[]).length?h('select',{id:'ps-'+it.id,onchange:function(ev){ it.step=Number(ev.target.value); }},[h('option',{value:'0'},'Now: the base sets and reps')].concat(it.progressions.map(function(s,k){ return h('option',{value:String(k+1)},'Now: step '+(k+1)+', '+s); }))):null;
+    if(stepSel) stepSel.value=String(it.step||0);
+    var vid=inp(it,'video','pv-'+it.id,{placeholder:'Video link (YouTube) or upload'});
+    return h('div',{class:'pitem'},h('div',{class:'pgrid'},h('div',{class:'pname'},h('label',{for:'pn-'+it.id},'Exercise '),name),
+        h('div',null,h('label',{for:'pse-'+it.id},'Sets'),inp(it,'sets','pse-'+it.id,{inputmode:'numeric'})),h('div',null,h('label',{for:'pr-'+it.id},'Reps'),inp(it,'reps','pr-'+it.id,{placeholder:'8 or 30 sec'})),
+        h('div',null,h('label',{for:'pin-'+it.id},'Intensity'),inp(it,'intensity','pin-'+it.id,{placeholder:'RPE 7, 70%'})),h('div',null,h('label',{for:'pre-'+it.id},'Rest'),inp(it,'rest','pre-'+it.id,{placeholder:'90 sec'}))),
+      h('div',{class:'field'},h('label',{for:'pno-'+it.id},'Notes'),inp(it,'notes','pno-'+it.id,{area:true,rows:2})),
+      h('div',{class:'row pvid'},vid,btn('Upload',function(){ coUpload('ex',function(u){ it.video=u; schedule(); },'video/*'); },'small')),
+      h('div',{class:'field'},h('label',{for:'pp-'+it.id},'Progressions'),prog,stepSel),ctl);
+  }
+  var routines=(p.routines||[]).map(function(r,ri){
+    var day=h('select',{id:'rd-'+r.id,onchange:function(ev){ r.day=ev.target.value; }},[h('option',{value:''},'Any day')].concat(WDL.map(function(n,i){ return h('option',{value:String(i+1)},n); }))); day.value=String(r.day||'');
+    return h('div',{class:'panel pad proutine'},
+      h('div',{class:'row'},h('label',{class:'sr',for:'rn-'+r.id},'Workout name'),inp(r,'name','rn-'+r.id,{placeholder:'Workout name, for example Monday: Legs'}),h('label',{class:'sr',for:'rd-'+r.id},'Day'),day,
+        h('div',{class:'pmini'},h('button',{type:'button','aria-label':'Move workout up',onclick:function(){ mv(p.routines,ri,-1); }},'↑'),h('button',{type:'button','aria-label':'Move workout down',onclick:function(){ mv(p.routines,ri,1); }},'↓'),
+          h('button',{type:'button','aria-label':'Copy workout',onclick:function(){ var c=JSON.parse(JSON.stringify(r)); c.id='r'+cRand(); c.name=(r.name||'Workout')+' copy'; c.items.forEach(function(x){ x.id='i'+cRand(); }); p.routines.splice(ri+1,0,c); schedule(); }},'⧉'),
+          h('button',{type:'button','aria-label':'Remove workout',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Sure?'; return; } p.routines.splice(ri,1); schedule(); }},'×'))),
+      h('div',{class:'pitems'},(r.items||[]).map(function(it,i){ return exRow(r,it,i); })),
+      h('div',{class:'row'},btn('Add exercise',function(){ r.items.push({id:'i'+cRand(),kind:'exercise',name:'',sets:'',reps:'',intensity:'',rest:'',notes:'',video:'',progressions:[],step:0}); schedule(); setTimeout(function(){ var l=r.items[r.items.length-1], e=document.getElementById('pn-'+l.id); if(e) e.focus(); },60); },'small'),
+        btn('Add section',function(){ r.items.push({id:'i'+cRand(),kind:'section',name:''}); schedule(); },'small')));
+  });
+  var save=btn('Save',function(){ save.disabled=true;
+    sb.rpc('program_save',{p:{id:p.id||null,customer_id:p.customer_id||null,name:p.name,notes:p.notes,routines:p.routines}}).then(must).then(function(){
+      toast(isT?'Template saved.':'Saved. It shows in the client’s app now.'); COACH.prog=null; if(isT){ COACH.view='templates'; coTpl(); } else coReload(); schedule(); })
+    .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
+  return [h('div',null,linkBtn('Close without saving',function(){ COACH.prog=null; schedule(); })),
+    pageHead(isT?(p.id?'Edit template':'New template'):(p.id?'Edit program':'New program'),isT?'Changes here do not change programs already given to clients.':'This is the client’s own copy.',save),
+    dl, h('div',{class:'panel pad'},h('div',{class:'field'},h('label',{for:'pg-name'},'Program name'),inp(p,'name','pg-name',{placeholder:'For example: Fight camp strength, 6 weeks'})),
+      h('div',{class:'field'},h('label',{for:'pg-notes'},'Notes for the client'),inp(p,'notes','pg-notes',{area:true,rows:3}))),
+    routines, h('div',{class:'row'},btn('Add a workout',function(){ var r=coNewRoutine(); r.name='Workout '+((p.routines||[]).length+1); p.routines.push(r); schedule(); }),save)];
+}
+
 /* ---------- social media: the AI writes the caption, a manager approves it, the server posts it to Facebook and Instagram on time ---------- */
 var SOC={list:null,busy:false,cfg:null};
 var SOC_FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/social';
@@ -3936,7 +4363,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
@@ -4314,7 +4741,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -4536,7 +4963,7 @@ function cards(items,emptyMsg){
 
 /* ---------- customer app ---------- */
 var CU=null, cuCode=null, cuAt=0, cuDone=null, cuBusy=false;
-var CTABS=[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates'],['c_learn','Learn']];
+var CTABS=[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates'],['c_coach','Coaching'],['c_learn','Learn']];
 (function(){
   /* the QR poster opens the app with ?c=code. Keep it for 20 minutes so it survives signing in. */
   try{
@@ -5308,7 +5735,7 @@ function vKiosk(){
     ui.kintent&&!q?h('p',{class:'sub'},'Now type your name above and tap it.'):null,
     !q?promoBoard():null,foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','actions','customers','shop','kitchen']:['today','shop','kitchen','stays','actions','customers','timetable','privates','fights']; return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
+function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','actions','customers','shop','kitchen']:['today','shop','kitchen','stays','actions','customers','timetable','privates','fights'].concat(row.role==='coach'?['coaching']:[]); return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
