@@ -483,6 +483,12 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .gtick{width:40px;height:40px;border-radius:20px;border:2px solid var(--ok);background:none;color:#fff;font-size:20px;font-weight:700;cursor:pointer;flex:none}.gtick.on{background:var(--ok)}
 .gstepb{display:flex;flex-direction:column;gap:10px;align-items:flex-start}.gstepb>*{max-width:100%}.gwhen{min-width:74px;font-weight:700;color:var(--muted);font-size:14px}
 .gedit{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.gwhenrow{align-items:center}.gwhenrow input[type=number]{width:80px}.gwhenrow .pmini{margin-left:auto}.gextra{display:flex;flex-direction:column;gap:8px}.gextra .row{align-items:center}.gextra input[type=number]{width:90px}
+
+.cset{border-left:4px solid var(--gold);padding-left:10px;display:grid;gap:8px}.csethead{font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
+.pitem.pss{border-left:4px solid var(--gold)}.pssl{color:var(--gold);font-weight:700}
+.lgsets{display:grid;gap:6px;margin:6px 0}.lgrow{display:grid;grid-template-columns:40px repeat(auto-fit,minmax(70px,1fr));gap:8px;align-items:center}.lghead{font-size:12px;color:var(--muted)}.lgn{font-weight:700;text-align:center}.lgrow input{width:100%;font-size:18px}
+.lgfeel{display:flex;gap:6px;flex-wrap:wrap}.painrow{border-left:4px solid var(--bad)}.lgcard{margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.wline.w2{stroke:var(--gold);stroke-dasharray:6 4}.wpt.w2{fill:var(--gold)}.wleg{display:flex;gap:16px;font-size:13px;color:var(--muted)}.wkey::before{content:'';display:inline-block;width:18px;height:3px;background:var(--ink);vertical-align:middle;margin-right:6px}.wkey.w2::before{background:var(--gold)}
 </style>
 </head>
 <body>
@@ -2658,18 +2664,25 @@ function cmWork(d){
     p.notes?h('div',{class:'panel pad'},lessonText(p.notes)):null,
     rs.length>1?h('div',{class:'ctabs small'},rs.map(function(x){ return h('button',{type:'button',class:'ctab'+(r&&x.id===r.id?' on':''),onclick:function(){ COACHM.routine=x.id; schedule(); }},(x.name||'Routine')+(Number(x.day)?' ('+WD[x.day-1]+')':'')); })):null,
     r?[h('div',{class:'cwhead'},h('h3',null,r.name||'Workout'),Number(r.day)?chip(WDL[r.day-1],Number(r.day)===wd?'ok':''):null),
-      h('div',{class:'citems'},(r.items||[]).map(function(it){ return cmItem(d,p,it); })),
+      h('div',{class:'citems'},(function(){ var out=[], items=r.items||[], i=0;
+        while(i<items.length){ var it=items[i];
+          if(it.kind!=='section'&&it.ss){ var grp=[it]; while(items[i+1]&&items[i+1].kind!=='section'&&grp[grp.length-1].ss){ i++; grp.push(items[i]); }
+            out.push(h('div',{class:'cset'},h('div',{class:'csethead'},'Superset: do these back to back, then rest'),grp.map(function(x,k){ return cmItem(d,p,x,r); }))); }
+          else out.push(cmItem(d,p,it,r)); i++; }
+        return out; })()),
       h('div',{class:'row'},btn(doneToday?'✓ Done today (tap to undo)':'Mark this workout done',function(){ sb.rpc('workout_mark',{p_program:p.id,p_routine:r.id,p_day:d.today,p_done:!doneToday,p_note:''}).then(must).then(function(){ toast(doneToday?'Undone.':'Great work.'); cmLoad(); }).catch(function(e){ toast(errText(e)); }); },doneToday?'':'primary'),
         last&&!doneToday?h('span',{class:'sub'},'Last done '+fmtDate(last.day)):null)]:h('div',{class:'panel empty'},'This program has no workouts yet.')];
 }
-function cmItem(d,p,it){
+function cmItem(d,p,it,r){
   if(it.kind==='section') return h('h4',{class:'csec'},it.name||'');
   var open=COACHM.open[it.id], now=exNow(it), forms=d.forms.filter(function(f){ return f.item_id===it.id; });
   return h('div',{class:'panel pad citem'},
     h('div',{class:'hrow'},h('div',{class:'hmain'},h('b',null,it.name||'Exercise'),exLine(it)?h('div',null,exLine(it)):null,now?h('div',{class:'cnow'},'Now: '+now):null),
       it.video?btn(open?'Hide video':'Watch',function(){ COACHM.open[it.id]=!open; schedule(); },'small'):null),
     open&&it.video?cVideo(it.video):null, it.notes?h('div',{class:'sub'},it.notes):null,
-    h('div',{class:'row'},btn('Send a video to my coach',function(){ cmFormPick(p,it); },'small')),
+    (function(){ var mine=lgFor(d.logs||[],it), last=mine[mine.length-1];
+      return last?h('div',{class:'sub'},(last.day===d.today?'Logged today: ':'Last time ('+fmtDate(last.day)+'): ')+lgSets(last)+(last.feel?', '+feelName(last.feel).toLowerCase():''),last.hurt?' ':null,last.hurt?chip('Pain','bad'):null):null; })(),
+    h('div',{class:'row'},btn('Log my sets',function(){ cmLogForm(d,p,r,it); },'primary small'),lgFor(d.logs||[],it).length?btn('Progress',function(){ lgShow(it.name||'Exercise',lgFor(d.logs||[],it)); },'small'):null,btn('Send a video to my coach',function(){ cmFormPick(p,it); },'small')),
     forms.map(function(f){ return h('div',{class:'cform'},h('small',{class:'sub'},'Your video, '+cWhen(f.created_at)),f.note?h('div',null,f.note):null,
       f.reply?h('div',{class:'cnote'},h('b',null,(f.reply_name||'Coach')+': '),f.reply):h('small',{class:'sub'},'Your coach has not replied yet.'),
       COACHM.open['v'+f.id]?cVideoPriv(f.path):linkBtn('Watch my video',function(){ COACHM.open['v'+f.id]=true; schedule(); })); }));
@@ -2731,7 +2744,7 @@ function coGroups(){
 function coGroupPage(g){ var t=ymd(new Date());
   var steps=(g.items||[]).slice().sort(function(a,b){ return gKey(a)<gKey(b)?-1:1; });
   return [h('div',null,linkBtn('Back to action groups',function(){ COACH.gopen=null; schedule(); })),
-    pageHead(g.name,g.notes||'',h('div',{class:'row'},btn('Edit steps',function(){ coEditGroup(JSON.parse(JSON.stringify(g))); },'primary'),btn('Add people',function(){ coGroupAddPeople(g); }))),
+    pageHead(g.name,g.notes||'',h('div',{class:'row'},btn('Edit steps',function(){ coEditGroup(JSON.parse(JSON.stringify(g))); },'primary'),btn('Add people',function(){ coGroupAddPeople(g); }),(g.members||[]).length?btn('Update people already in it',function(){ coGroupSyncAsk(g); }):null)),
     section('Steps',null,steps.length?h('div',{class:'panel'},steps.map(function(it){ return h('div',{class:'lrow static'},h('span',{class:'gwhen'},gWhen(it)),h('div',{class:'hmain'},h('b',null,it.title||gKind(it.kind)),h('small',{class:'sub'},gKind(it.kind)+(it.kind==='habit'&&it.habit?', '+hFreq({freq:it.habit.freq||'daily',days:(it.habit.days||[]).map(Number),times:it.habit.times||1})+(it.habit.weeks?', for '+it.habit.weeks+' weeks':''):'')))); }))
       :h('div',{class:'panel empty'},'No steps yet. Tap Edit steps.')),
     section('People in this group',null,table([{label:'Name',cell:function(m){ return m.can?linkBtn(m.name,function(){ COACH.sub='groups'; coOpen(m.customer_id); }):m.name; }},
@@ -2782,7 +2795,7 @@ function coGroupEditor(){
       it.kind!=='program'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'))):null,
       extra); });
   var save=btn('Save',function(){ save.disabled=true; var items=g.items.slice().sort(function(a,b){ return gKey(a)<gKey(b)?-1:gKey(a)>gKey(b)?1:0; });
-    sb.rpc('group_save',{p:{id:g.id||null,name:g.name,notes:g.notes,items:items}}).then(must).then(function(id){ toast('Saved.'); COACH.gedit=null; COACH.gopen=id; coGrpLoad(); })
+    sb.rpc('group_save',{p:{id:g.id||null,name:g.name,notes:g.notes,items:items}}).then(must).then(function(id){ COACH.gedit=null; COACH.gopen=id; coGrpLoad().then(function(l){ var gg=l.filter(function(x){ return x.id===id; })[0]; if(gg&&(gg.members||[]).length) coGroupSyncAsk(gg); else toast('Saved.'); }); })
       .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
   return [h('div',null,linkBtn('Close without saving',function(){ COACH.gedit=null; schedule(); })),
     pageHead(g.id?'Edit action group':'New action group','Steps unlock by week or day from each person’s start date, or on a fixed date. Habits and programs are set up for each person when you add them, so changes here apply to people you add after.',save),
@@ -2805,6 +2818,82 @@ function coClientGroups(d){ var t=d.today;
           return h('div',{class:'lrow static'},h('span',{class:'gwhen'},cShort(it.on)),h('div',{class:'hmain'},h('b',null,it.title||gKind(it.kind)),h('small',{class:'sub'},gKind(it.kind)+', '+gWhen(it))),
             done?chip('Done','ok'):live?chip('Open'):chip('Locked','warn')); }))); }):h('div',{class:'panel empty'},'Not in any action group.')];
 }
+
+/* ---------- exercise logs: weight per set (left and right when it differs), reps, how it felt, pain, notes; progress over time ---------- */
+var FEEL=[['easy','Easy'],['good','Just right'],['hard','Hard'],['max','Too hard']];
+function feelName(f){ var x=FEEL.filter(function(a){ return a[0]===f; })[0]; return x?x[1]:''; }
+function lgTop(l,k){ var m=null; (l.sets||[]).forEach(function(s){ var v=Number(s[k]); if(s[k]!==''&&s[k]!=null&&!isNaN(v)&&(m===null||v>m)) m=v; }); return m; }
+function lgSets(l){ return (l.sets||[]).map(function(s){ var w=l.sides?(s.kg!=null&&s.kg!==''?'L '+s.kg:'')+(s.kg_r!=null&&s.kg_r!==''?' R '+s.kg_r:''):(s.kg!=null&&s.kg!==''?s.kg+' kg':'');
+  return (w||'')+(s.reps?(w?' x ':'')+s.reps:''); }).filter(Boolean).join(', '); }
+function lgFor(logs,it){ var n=String(it.name||it.exercise_name||'').trim().toLowerCase(); return logs.filter(function(l){ return l.item_id===it.id||(n&&String(l.exercise_name||'').trim().toLowerCase()===n); }); }
+function pChart(series,unit){ var all=[]; series.forEach(function(s){ s.pts.forEach(function(p){ all.push(p); }); }); if(all.length<1) return null;
+  var W=640,H=220,P=40, ts=all.map(function(p){ return parseYmd(p.d).getTime(); }), vs=all.map(function(p){ return p.v; });
+  var t0=Math.min.apply(null,ts), t1=Math.max.apply(null,ts); if(t1===t0) t1=t0+864e5; var lo=Math.floor(Math.min.apply(null,vs)*0.95), hi=Math.ceil(Math.max.apply(null,vs)*1.05); if(hi===lo) hi=lo+1;
+  function X(d){ return P+(W-P-10)*(parseYmd(d).getTime()-t0)/(t1-t0); } function Y(v){ return 10+(H-P-10)*(hi-v)/(hi-lo); }
+  var s='<svg viewBox="0 0 '+W+' '+H+'" class="wsvg" role="img" aria-label="Progress chart">'+
+    '<line x1="'+P+'" y1="'+Y(hi)+'" x2="'+P+'" y2="'+Y(lo)+'" class="wax"/><line x1="'+P+'" y1="'+Y(lo)+'" x2="'+(W-10)+'" y2="'+Y(lo)+'" class="wax"/>'+
+    '<text x="'+(P-6)+'" y="'+(Y(hi)+4)+'" class="wlab" text-anchor="end">'+hi+'</text><text x="'+(P-6)+'" y="'+(Y(lo)+4)+'" class="wlab" text-anchor="end">'+lo+'</text>'+
+    '<text x="'+P+'" y="'+(H-8)+'" class="wlab">'+cShort(ymd(new Date(t0)))+'</text><text x="'+(W-10)+'" y="'+(H-8)+'" class="wlab" text-anchor="end">'+cShort(ymd(new Date(t1)))+'</text>'+
+    series.map(function(se,i){ var pts=se.pts.slice().sort(function(a,b){ return a.d<b.d?-1:1; });
+      return '<polyline points="'+pts.map(function(p){ return X(p.d).toFixed(1)+','+Y(p.v).toFixed(1); }).join(' ')+'" class="wline'+(i?' w2':'')+'"/>'+pts.map(function(p){ return '<circle cx="'+X(p.d).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="3.5" class="wpt'+(i?' w2':'')+'"/>'; }).join(''); }).join('')+'</svg>';
+  var d=h('div',{class:'wchart'}); d.innerHTML=s;
+  if(series.length>1) d.appendChild(h('div',{class:'wleg'},series.map(function(se,i){ return h('span',{class:'wkey'+(i?' w2':'')},se.label); })));
+  return d; }
+function lgProgress(logs,name){ var sides=logs.some(function(l){ return l.sides; });
+  var se=sides?[{label:'Left, top kg',pts:[]},{label:'Right, top kg',pts:[]}]:[{label:'Top kg',pts:[]}];
+  logs.forEach(function(l){ var a=lgTop(l,'kg'); if(a!=null) se[0].pts.push({d:l.day,v:a}); if(sides){ var b=lgTop(l,'kg_r'); if(b!=null) se[1].pts.push({d:l.day,v:b}); } });
+  var first=se[0].pts[0], last=se[0].pts[se[0].pts.length-1];
+  return [first&&last&&last.d!==first.d?h('p',null,h('b',null,(last.v-first.v>=0?'+':'')+(Math.round((last.v-first.v)*10)/10)+' kg'),' since '+fmtDate(first.d)+(sides?' (left side)':'')+'.'):null,
+    pChart(se.filter(function(s){ return s.pts.length; }),'kg')||h('p',{class:'sub'},'No weights logged yet.'),
+    table([{label:'Day',cell:function(l){ return fmtDate(l.day); }},{label:'Sets',cell:function(l){ return lgSets(l); }},
+      {label:'Felt',cell:function(l){ return h('span',null,l.feel?feelName(l.feel):'',l.hurt?chip('Pain','bad'):null); }},{label:'Note',cell:function(l){ return l.note||''; }}],logs.slice().reverse(),'')]; }
+function cmLogForm(d,p,r,it){
+  var t=d.today, mine=lgFor(d.logs||[],it), today=mine.filter(function(l){ return l.day===t&&l.item_id===it.id; })[0], last=mine.filter(function(l){ return l.day<t; }).slice(-1)[0];
+  var base=today||last, n=Math.max(1,Math.min(20,parseInt(it.sets,10)||(base?base.sets.length:3)));
+  var rows=[]; for(var i=0;i<n;i++){ var b=base&&base.sets[i]||{}; rows.push({kg:b.kg!=null?b.kg:'',kg_r:b.kg_r!=null?b.kg_r:'',reps:today?(b.reps||''):(parseInt(it.reps,10)||'')}); }
+  var st={feel:today?today.feel:'',hurt:today?today.hurt:false}, sides=!!it.sides;
+  var box=h('div',{class:'lgsets'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function num(o,k,label,id){ var e=h('input',{id:id,type:'number',inputmode:'decimal',step:'0.5',min:'0','aria-label':label}); e.value=o[k]; e.addEventListener('input',function(){ o[k]=e.value; }); return e; }
+  function draw(){ box.replaceChildren.apply(box,[h('div',{class:'lgrow lghead'},h('span',null,'Set'),sides?h('span',null,'Left kg'):h('span',null,'kg'),sides?h('span',null,'Right kg'):null,h('span',null,'Reps'))].concat(rows.map(function(o,i){
+      return h('div',{class:'lgrow'},h('span',{class:'lgn'},String(i+1)),num(o,'kg',(sides?'Left kg':'kg')+', set '+(i+1),'lg-k'+i),sides?num(o,'kg_r','Right kg, set '+(i+1),'lg-r'+i):null,num(o,'reps','Reps, set '+(i+1),'lg-p'+i)); }))); }
+  draw();
+  var feel=h('div',{class:'lgfeel',role:'radiogroup','aria-label':'How did it feel'}); function drawFeel(){ feel.replaceChildren.apply(feel,FEEL.map(function(f){ return h('button',{type:'button',role:'radio','aria-checked':st.feel===f[0]?'true':'false',class:'ctab'+(st.feel===f[0]?' on':''),onclick:function(){ st.feel=st.feel===f[0]?'':f[0]; drawFeel(); }},f[1]); })); } drawFeel();
+  var hurt=h('input',{type:'checkbox',id:'lg-hurt'}); hurt.checked=st.hurt;
+  var note=h('textarea',{id:'lg-note',rows:'3',placeholder:'How it went. If something hurt, say where and when.'}); note.value=today?today.note:'';
+  var save=btn('Save',function(){ save.disabled=true; err.hidden=true;
+    var sets=rows.map(function(o){ var s={}; if(o.kg!=='') s.kg=Number(o.kg); if(sides&&o.kg_r!=='') s.kg_r=Number(o.kg_r); if(o.reps!=='') s.reps=Number(o.reps); return s; }).filter(function(s){ return Object.keys(s).length; });
+    sb.rpc('log_save',{p:{program_id:p.id,routine_id:r?r.id:null,item_id:it.id,exercise_name:it.name||'',day:t,sets:sets,sides:sides,feel:st.feel||null,hurt:hurt.checked,note:note.value}}).then(must)
+      .then(function(){ $dlg.close(); toast(hurt.checked?'Saved. Your coach will see that something hurt.':'Saved.'); cmLoad(); })
+      .catch(function(e){ err.textContent=errText(e); err.hidden=false; save.disabled=false; }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,it.name||'Exercise'),h('p',{class:'sub'},(exLine(it)?'Plan: '+exLine(it)+'. ':'')+(last?'Last time ('+fmtDate(last.day)+'): '+lgSets(last)+'.':'')),
+    box,h('div',{class:'row'},btn('Add a set',function(){ var l=rows[rows.length-1]||{}; rows.push({kg:l.kg||'',kg_r:l.kg_r||'',reps:l.reps||''}); draw(); },'small'),rows.length>1?btn('Remove last set',function(){ if(rows.length>1){ rows.pop(); draw(); } },'small'):null),
+    h('div',{class:'field'},h('label',null,'How did it feel?'),feel),
+    h('label',{class:'check',for:'lg-hurt'},hurt,h('span',null,'Something hurt or felt wrong')),
+    h('div',{class:'field'},h('label',{for:'lg-note'},'Notes'),note),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),save))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function lgShow(title,logs){ $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,title),lgProgress(logs),h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
+/* coach: the client's logs and pain reports */
+function coLogs(d){ var logs=d.logs||[], t=d.today, by={}, order=[];
+  logs.forEach(function(l){ var k=String(l.exercise_name||'Exercise').trim().toLowerCase(); if(!by[k]){ by[k]={name:l.exercise_name||'Exercise',logs:[]}; order.push(k); } by[k].logs.push(l); });
+  order.sort(function(a,b){ var x=by[a].logs[by[a].logs.length-1].day, y=by[b].logs[by[b].logs.length-1].day; return x<y?1:-1; });
+  var pain=logs.filter(function(l){ return l.hurt&&l.day>=cAdd(t,-30); }).reverse();
+  if(!logs.length) return h('div',{class:'panel empty'},'Nothing logged yet. The client logs weights, reps and how it felt on each exercise in their app.');
+  return [pain.length?section('Pain or problems reported',null,h('div',{class:'panel'},pain.map(function(l){ return h('div',{class:'lrow static painrow'},h('div',{class:'hmain'},h('b',null,l.exercise_name+', '+fmtDate(l.day)),h('span',null,l.note||'No details given.'))); }))):null,
+    order.map(function(k){ var g=by[k], last=g.logs[g.logs.length-1];
+      return h('div',{class:'panel pad lgcard'},h('div',{class:'hrow'},h('div',{class:'hmain'},h('b',null,g.name),h('small',{class:'sub'},'Last '+fmtDate(last.day)+': '+lgSets(last)+(last.feel?', '+feelName(last.feel).toLowerCase():''))),
+        btn('Progress',function(){ lgShow(g.name,g.logs); },'small')),last.note?h('div',{class:'cnote'},last.note):null); })]; }
+
+function coGroupSyncAsk(g){ var n=(g.members||[]).length;
+  var go=btn('Update all '+n,function(){ go.disabled=true; sb.rpc('group_sync',{p_group:g.id}).then(must).then(function(k){ $dlg.close(); toast('Updated '+k+' '+(k===1?'person':'people')+'.'); coGrpLoad(); if(COACH.cid) coReload(); }).catch(function(e){ go.disabled=false; toast(errText(e)); }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Update people already in '+g.name+'?'),
+    h('p',null,n+' '+(n===1?'person is':'people are')+' in this group. Videos, notes and step dates update for everyone straight away.'),
+    h('p',null,'Update all also changes their habits to match the group (habits not started yet move to the new week), adds new habit and program steps, and stops steps you took out.'),
+    h('p',{class:'sub'},'Programs that are already showing in their app keep any changes their coach made. Programs not shown yet are refreshed from the template.'),
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Only new people',function(){ $dlg.close(); toast('Saved. New people get the new steps.'); }),go))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
 
 /* ================= coaches and managers: Coaching tab ================= */
 function coLoad(){ COACH.busy=true; return sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.busy=false; COACH.list=l; COACH.err=null; schedule(); })
@@ -2831,7 +2920,7 @@ function vCoaching(){
       {label:'Habits today',cell:function(c){ return c.habits?c.habits_done_today+' of '+c.habits:''; }},
       {label:'Food',cell:function(c){ return c.last_food?'Last '+cWhen(c.last_food):''; }},
       {label:'Weight',cell:function(c){ return c.last_weight?cKg(c.last_weight.kg)+(c.goal?', goal '+cKg(c.goal.kg):''):''; }},
-      {label:'',cell:function(c){ return c.forms_waiting?chip(c.forms_waiting+' video'+(c.forms_waiting>1?'s':'')+' to answer','warn'):''; }}],
+      {label:'',cell:function(c){ return h('span',{class:'row'},c.hurt?chip('Reported pain','bad'):null,c.forms_waiting?chip(c.forms_waiting+' video'+(c.forms_waiting>1?'s':'')+' to answer','warn'):null); }}],
       COACH.list,mgr?'No clients with a coach yet. Tap Add a client.':'No clients yet. A manager picks the clients for each coach.')];
 }
 function coPickClient(){
@@ -2850,9 +2939,9 @@ function coClient(){
       return h('label',{class:'check',for:'cc-'+s.id},cb,h('span',null,s.name+(s.role==='manager'?' (manager)':''))); })),h('small',{class:'sub'},'Managers can always see every client.'))
     :h('p',{class:'sub'},'Coaches: '+(d.coaches.map(function(c){ return c.name; }).join(', ')||'none'));
   var waiting=d.forms.filter(function(f){ return !f.reply; }).length;
-  var tabs=[['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['videos','Videos'+(waiting?' ('+waiting+')':'')]];
+  var tabs=[['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['logs','Workout logs'+((d.logs||[]).some(function(l){ return l.hurt&&l.day>=cAdd(t,-14); })?' (pain)':'')],['videos','Videos'+(waiting?' ('+waiting+')':'')]];
   var sub=h('div',{class:'ctabs'},tabs.map(function(x){ return h('button',{type:'button',class:'ctab'+(COACH.sub===x[0]?' on':''),onclick:function(){ COACH.sub=x[0]; schedule(); }},x[1]); }));
-  var body=COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):coHabits(d);
+  var body=COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):coHabits(d);
   return [back,pageHead(d.customer.name,'Coaching. Private to this client, their coaches and the managers.'),coaches,sub,body];
 }
 /* habits (coach) */
@@ -2982,11 +3071,14 @@ function coProgEditor(){
     var stepSel=!isT&&(it.progressions||[]).length?h('select',{id:'ps-'+it.id,onchange:function(ev){ it.step=Number(ev.target.value); }},[h('option',{value:'0'},'Now: the base sets and reps')].concat(it.progressions.map(function(s,k){ return h('option',{value:String(k+1)},'Now: step '+(k+1)+', '+s); }))):null;
     if(stepSel) stepSel.value=String(it.step||0);
     var vid=inp(it,'video','pv-'+it.id,{placeholder:'Video link (YouTube) or upload'});
-    return h('div',{class:'pitem'},h('div',{class:'pgrid'},h('div',{class:'pname'},h('label',{for:'pn-'+it.id},'Exercise '),name),
+    var prev=r.items[i-1], inSet=it.ss||(prev&&prev.kind!=='section'&&prev.ss);
+    return h('div',{class:'pitem'+(inSet?' pss':'')},inSet?h('small',{class:'pssl'},it.ss?'Superset with the next exercise':'End of superset'):null,h('div',{class:'pgrid'},h('div',{class:'pname'},h('label',{for:'pn-'+it.id},'Exercise '),name),
         h('div',null,h('label',{for:'pse-'+it.id},'Sets'),inp(it,'sets','pse-'+it.id,{inputmode:'numeric'})),h('div',null,h('label',{for:'pr-'+it.id},'Reps'),inp(it,'reps','pr-'+it.id,{placeholder:'8 or 30 sec'})),
         h('div',null,h('label',{for:'pin-'+it.id},'Intensity'),inp(it,'intensity','pin-'+it.id,{placeholder:'RPE 7, 70%'})),h('div',null,h('label',{for:'pre-'+it.id},'Rest'),inp(it,'rest','pre-'+it.id,{placeholder:'90 sec'}))),
       h('div',{class:'field'},h('label',{for:'pno-'+it.id},'Notes'),inp(it,'notes','pno-'+it.id,{area:true,rows:2})),
       h('div',{class:'row pvid'},vid,btn('Upload',function(){ coUpload('ex',function(u){ it.video=u; schedule(); },'video/*'); },'small')),
+      h('div',{class:'row'},(function(){ var cb=h('input',{type:'checkbox',id:'pss-'+it.id}); cb.checked=!!it.ss; cb.addEventListener('change',function(){ it.ss=cb.checked; schedule(); }); return h('label',{class:'check',for:'pss-'+it.id},cb,h('span',null,'Superset with the next exercise')); })(),
+        (function(){ var cb=h('input',{type:'checkbox',id:'psd-'+it.id}); cb.checked=!!it.sides; cb.addEventListener('change',function(){ it.sides=cb.checked; }); return h('label',{class:'check',for:'psd-'+it.id},cb,h('span',null,'Log left and right weight separately')); })()),
       h('div',{class:'field'},h('label',{for:'pp-'+it.id},'Progressions'),prog,stepSel),ctl);
   }
   var routines=(p.routines||[]).map(function(r,ri){
