@@ -445,6 +445,7 @@ body.cuview #view button:not(.pvexit){opacity:.75}
 .lfiles{display:flex;flex-direction:column;gap:8px}.lfile{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:inherit;background:var(--surface)}
 .lfiles.edit .lfile a{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.lficon{flex:none;font-size:11px;font-weight:700;background:var(--gold);color:#fff;border-radius:6px;padding:4px 6px}
 .crslock{border-left:4px solid var(--gold)}
+.newsprev{max-height:50vh;overflow:auto;margin:8px 0}
 </style>
 </head>
 <body>
@@ -543,7 +544,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -727,20 +728,20 @@ function editStaff(s){ s=s||{};
 }
 var LEADSRC=['Website','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
 function editCustomer(c){ c=c||{};
-  openForm({title:c.id?'Edit customer':'New customer',values:Object.assign({},c,{tags_txt:(c.tags||[]).join(', '),ok_txt:c.marketing_ok===true?'yes':c.marketing_ok===false?'no':''}),fields:[
+  openForm({title:c.id?'Edit customer':'New customer',values:Object.assign({},c,{tags_txt:(c.tags||[]).join(', '),ok_txt:c.marketing_ok===false?'no':'yes'}),fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Email',type:'email'},
     {key:'phone',label:'Phone'},
     {key:'tier',label:'Level',type:'select',def:'train',options:[['train','Train: check in, timetable, privates'],['progress','Progress: adds grading'],['pangea','Pangea: coached']]},
     {key:'price_group',label:'Pricing (only a manager sets this)',type:'select',def:'standard',options:[['standard','Standard prices'],['local','Local resident prices'],['thai','Thai prices']]},
     {key:'notes',label:'Notes',type:'textarea'},
-    {key:'tags_txt',label:'Tags',hint:'For the contact list. Separate with commas, for example: fighter, returning, dtv.'},
+    {key:'tags_txt',label:'Tags',hint:'For the contact list and newsletters. Separate with commas, for example: fighter, returning, dtv.'},
     {key:'lead_source',label:'Where they found us',type:'select',options:[['','Not known']].concat(LEADSRC.map(function(x){ return [x,x]; }))},
     {key:'country',label:'Country'},
-    {key:'ok_txt',label:'Emails with news and offers',type:'select',options:[['','Not asked yet'],['yes','Said yes'],['no','Said no, do not email']]}],
+    {key:'ok_txt',label:'Newsletters by email',type:'select',options:[['yes','Gets newsletters'],['no','Unsubscribed, do not email']]}],
     onSave:function(v){ var body=Object.assign({},c,v); if(!c.id) body.created=ymd(new Date());
       body.tags=String(v.tags_txt||'').split(',').map(function(t){ return t.trim().toLowerCase(); }).filter(function(t,i,a){ return t&&a.indexOf(t)===i; });
-      body.marketing_ok=v.ok_txt==='yes'?true:v.ok_txt==='no'?false:null; body.lead_source=v.lead_source||null; body.country=v.country||null;
+      body.marketing_ok=v.ok_txt==='no'?false:(c.marketing_ok===false||c.marketing_ok===true?true:c.marketing_ok==null?null:true); body.lead_source=v.lead_source||null; body.country=v.country||null;
       delete body.tags_txt; delete body.ok_txt; return save('customers',c.id,body).then(function(r){ CRM=null; return r; }); },
     onDelete:c.id?function(){ return db.doc('customers/'+c.id).delete().then(function(){ ui.customerId=null; schedule(); }); }:null});
 }
@@ -2454,6 +2455,64 @@ function editLesson(c,l){ l=l||{};
   anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Learning materials (PDFs, worksheets, photos)'),list,h('div',{class:'row'},addB),h('small',null,'Up to 20 files, 25 MB each (PDF, Word, Excel, PowerPoint, photos). Only people who can open the lesson see them.')),anchor.parentNode.nextSibling);
 }
 
+
+/* ---------- newsletters: everyone with an email gets them unless they unsubscribed; a newsletter can go to some tags only ---------- */
+var NEWS={list:null,aud:null,busy:false,sending:null};
+var NL_FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/newsletter';
+function newsLoad(){ NEWS.busy=true; return Promise.all([sb.rpc('newsletter_list'),sb.rpc('newsletter_audience',{p_tags:[]})]).then(function(r){ NEWS.busy=false; NEWS.list=must(r[0]); NEWS.aud=must(r[1]); schedule(); })
+  .catch(function(e){ NEWS.busy=false; NEWS.err=errText(e); schedule(); }); }
+function newsCall(body){ return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
+  return fetch(NL_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i',Authorization:'Bearer '+(t||'')},body:JSON.stringify(body)}).then(function(x){ return x.json(); }); })
+  .then(function(d){ if(d&&d.error) throw {plain:true,message:d.error}; return d; }); }
+function newsWho(n){ return n.tags&&n.tags.length?'Tags: '+n.tags.join(', '):'Everyone'; }
+function vNews(){
+  if(!NEWS.list){ if(!NEWS.busy) newsLoad(); return [pageHead('Newsletters',''),h('div',{class:'panel empty'},NEWS.err||'Loading.')]; }
+  var a=NEWS.aud||{count:0,unsubscribed:0};
+  return [pageHead('Newsletters','Everyone with an email gets newsletters unless they unsubscribe. '+a.count+' people get them now, '+a.unsubscribed+' unsubscribed.',btn('New newsletter',function(){ editNews(); },'primary')),
+    table([{label:'Newsletter',cell:function(n){ return linkBtn(n.subject,function(){ newsOpen(n); }); }},
+      {label:'Who',cell:function(n){ return newsWho(n); }},
+      {label:'',cell:function(n){ return n.status==='sent'?chip('Sent '+fmtDate(String(n.sent_at).slice(0,10))+', '+n.sent+' people'+(n.failed?', '+n.failed+' failed':''),'ok'):n.status==='sending'?chip('Sending, '+n.sent+' so far','warn'):chip('Draft'); }}],
+      NEWS.list,'No newsletters yet. Tap New newsletter.'),
+    h('p',{class:'sub narrow'},'Send to some people only: give customers tags (for example dtv, fighter, kids, resort) in their customer details, then pick those tags in the newsletter. Every email has an unsubscribe link. Members can also switch emails off in the app, under My details.')];
+}
+function editNews(n){ n=n||{tags:[]};
+  var tags=((NEWS.aud&&NEWS.aud.tags)||[]).map(function(t){ return [t.tag,t.tag+' ('+t.count+')']; });
+  (n.tags||[]).forEach(function(t){ if(!tags.some(function(x){ return x[0]===t; })) tags.push([t,t+' (0)']); });
+  openForm({title:n.id?'Edit newsletter':'New newsletter',values:{subject:n.subject||'',preview:n.preview||'',body:n.body||'Hi {{name}},\n\n',tags:n.tags||[]},saveLabel:'Save draft',doneMsg:'Saved. Open it to send a test or send it.',
+    fields:[{key:'subject',label:'Subject',required:true},
+      {key:'preview',label:'Preview line',hint:'Optional. The grey line people see after the subject in their inbox.'},
+      {key:'body',label:'The email',type:'textarea',rows:14,required:true,hint:'{{name}} becomes their first name. A blank line starts a new paragraph, ## makes a heading, - makes a list, **word** is bold, [text](https://link) is a link.'},
+      {key:'tags',label:'Who gets it',type:'checks',options:tags,hint:tags.length?'Tick tags to send only to customers with any of those tags. Tick none to send to everyone.':'No tags yet: it goes to everyone. Add tags to customers to send to groups.'}],
+    onSave:function(v){ return sb.rpc('newsletter_save',{p:{id:n.id||null,subject:v.subject,preview:v.preview,body:v.body,tags:v.tags||[]}}).then(must).then(function(){ NEWS.list=null; newsLoad(); }); }});
+  var body=document.getElementById('f-body'); if(!body) return;
+  body.parentNode.appendChild(h('div',{class:'row'},btn('Add photo into the email',function(){ blogPhoto(function(u){ var at=body.selectionStart||body.value.length; body.value=body.value.slice(0,at)+'\n\n![]('+u+')\n\n'+body.value.slice(at); body.focus(); }); },'small')));
+}
+function newsOpen(n){
+  sb.rpc('newsletter_audience',{p_tags:n.tags||[]}).then(must).then(function(a){
+    var close=function(){ $dlg.close(); };
+    var info=h('p',{class:'sub'},n.status==='sent'?'Sent '+fmtDate(String(n.sent_at).slice(0,10))+' to '+n.sent+' people.':'Goes to '+a.count+' people ('+newsWho(n)+').');
+    var err=h('p',{class:'ferr',role:'alert',hidden:true});
+    var prev=h('div',{class:'panel pad newsprev'},h('div',{class:'sub'},'Subject: '+n.subject),lessonText(String(n.body||'').replace(/\{\{\s*name\s*\}\}/gi,'Anna')));
+    var armed=false, sendB=btn(n.status==='sent'?'Already sent':'Send to '+a.count+' people',function(){
+      if(n.status==='sent'||!a.count) return;
+      if(!armed){ armed=true; sendB.textContent='Tap again to send to '+a.count+' people'; return; }
+      sendB.disabled=true; err.hidden=true; var total=0;
+      (function step(){ sendB.textContent='Sending, '+total+' of '+a.count+' done';
+        newsCall({mode:'send',id:n.id}).then(function(d){ total+=d.sent||0;
+          if(d.error&&!d.sent){ err.textContent='Sending stopped: '+d.error; err.hidden=false; sendB.disabled=false; sendB.textContent='Try again'; armed=false; NEWS.list=null; newsLoad(); return; }
+          if(d.more) return step();
+          close(); toast('Sent to '+total+' people.'); NEWS.list=null; newsLoad(); })
+        .catch(function(e){ err.textContent=errText(e); err.hidden=false; sendB.disabled=false; sendB.textContent='Try again'; armed=false; }); })();
+    },'primary');
+    sendB.disabled=n.status==='sent'||!a.count;
+    var testB=btn('Send a test to me',function(){ testB.disabled=true; newsCall({mode:'test',id:n.id}).then(function(d){ toast('Test sent to '+d.to+'.'); }).catch(function(e){ err.textContent=errText(e); err.hidden=false; }).then(function(){ testB.disabled=false; }); },'small');
+    $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,n.subject),info,prev,err,
+      h('div',{class:'factions'},n.status==='draft'?btn('Edit',function(){ close(); setTimeout(function(){ editNews(n); },50); },'small'):btn('Copy as new',function(){ close(); setTimeout(function(){ editNews({subject:n.subject,preview:n.preview,body:n.body,tags:n.tags}); },50); },'small'),
+        h('div',{class:'row'},btn('Close',close),testB,sendB))));
+    if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  }).catch(function(e){ toast(errText(e)); });
+}
+
 /* ---------- fights: for coaches, the front desk and managers ---------- */
 var FIGHTS=null;
 var FTX={
@@ -4131,7 +4190,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
@@ -4523,7 +4582,7 @@ function orderCard(p){
     act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
 }
 function editMe(){
-  openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone,news:CU.me.marketing_ok===true},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'},{key:'news',label:'Send me news and offers by email',type:'checkbox'}],
+  openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone,news:CU.me.marketing_ok!==false},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'},{key:'news',label:'Send me the Phuket King newsletter by email',type:'checkbox'}],
     onSave:function(v){ return sb.rpc('customer_marketing',{p_ok:!!v.news}).then(must).then(function(){ return cuCall('customer_join',{p_name:v.name,p_phone:v.phone||null}); }); }});
 }
 function cuStay(){
