@@ -3100,7 +3100,11 @@ function coProgEditor(){
     pageHead(isT?(p.id?'Edit template':'New template'):(p.id?'Edit program':'New program'),isT?'Changes here do not change programs already given to clients.':'This is the client’s own copy.',save),
     dl, h('div',{class:'panel pad'},h('div',{class:'field'},h('label',{for:'pg-name'},'Program name'),inp(p,'name','pg-name',{placeholder:'For example: Fight camp strength, 6 weeks'})),
       h('div',{class:'field'},h('label',{for:'pg-notes'},'Notes for the client'),inp(p,'notes','pg-notes',{area:true,rows:3}))),
-    routines, h('div',{class:'row'},btn('Add a workout',function(){ var r=coNewRoutine(); r.name='Workout '+((p.routines||[]).length+1); p.routines.push(r); schedule(); }),save)];
+    routines, h('div',{class:'row'},btn('Add a workout',function(){ var r=coNewRoutine(); r.name='Workout '+((p.routines||[]).length+1); p.routines.push(r); schedule(); }),save,
+      isT?null:btn('Save as template',function(){ openForm({title:'Save as a template',values:{name:p.name||''},saveLabel:'Save template',doneMsg:'Template saved. Find it in Program templates.',
+        fields:[{key:'name',label:'Template name',required:true,hint:'Saves a copy of this program as it is now. The client\u2019s program is not changed and is not saved yet: tap Save for that.'}],
+        onSave:function(v){ var rs=JSON.parse(JSON.stringify(p.routines||[])); rs.forEach(function(r){ (r.items||[]).forEach(function(it){ if(it.kind!=='section') it.step=0; }); });
+          return sb.rpc('program_save',{p:{id:null,customer_id:null,name:v.name,notes:p.notes,routines:rs}}).then(must).then(function(){ COACH.tpl=null; }); }}); }))];
 }
 
 /* ---------- social media: the AI writes the caption, a manager approves it, the server posts it to Facebook and Instagram on time ---------- */
