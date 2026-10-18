@@ -2446,12 +2446,12 @@ function editLesson(c,l){ l=l||{};
   function addFiles(){ var inp=h('input',{type:'file',multiple:true,accept:'.pdf,image/*,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt',hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[],0,20-files.length); inp.remove(); if(!fs.length) return; busy=fs.length; draw();
       fs.reduce(function(pr,f){ return pr.then(function(){ if(f.size>25*1024*1024){ toast(f.name+' is over 25 MB.'); busy--; draw(); return; }
         var safe=f.name.toLowerCase().replace(/[^a-z0-9.]+/g,'-').replace(/^-+/,'').slice(-60)||'file', rnd=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-        var path='course/'+rnd+'-'+safe;
-        return sb.storage.from('promos').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error; files.push({name:f.name.slice(0,140),url:sb.storage.from('promos').getPublicUrl(path).data.publicUrl}); })
+        var path='lesson/'+rnd+'-'+safe;
+        return sb.storage.from('courses').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error; files.push({name:f.name.slice(0,140),url:sb.storage.from('courses').getPublicUrl(path).data.publicUrl}); })
           .catch(function(e){ toast(errText(e)); }).then(function(){ busy--; draw(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
   draw();
-  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Learning materials (PDFs, worksheets, photos)'),list,h('div',{class:'row'},addB),h('small',null,'Up to 20 files, 25 MB each. Only people who can open the lesson see them.')),anchor.parentNode.nextSibling);
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Learning materials (PDFs, worksheets, photos)'),list,h('div',{class:'row'},addB),h('small',null,'Up to 20 files, 25 MB each (PDF, Word, Excel, PowerPoint, photos). Only people who can open the lesson see them.')),anchor.parentNode.nextSibling);
 }
 
 /* ---------- fights: for coaches, the front desk and managers ---------- */
