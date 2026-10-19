@@ -42,6 +42,12 @@ PK.seo=function(o){ var head=document.head, url='https://www.phuketking.com/'+o.
   if(o.ld){ var l=document.createElement('script'); l.type='application/ld+json'; l.textContent=JSON.stringify(o.ld); head.appendChild(l); } };
 var b=document.querySelector('.menu'), n=document.querySelector('.nav');
 if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open'); b.setAttribute('aria-expanded',o?'true':'false'); b.textContent=o?'Close':'Menu'; });
+// switch to the menu button if the links would run into the logo
+(function(){ var top=document.querySelector('.top'), logo=document.querySelector('.top .logo'); if(!top||!logo||!n) return;
+  function fit(){ if(n.classList.contains('open')) return; top.classList.remove('tight'); if(getComputedStyle(n).display==='none') return;
+    var a=n.querySelector('a'), w=top.querySelector('.wrap'); if(!a||!w) return;
+    if(a.getBoundingClientRect().left<logo.getBoundingClientRect().right+12||n.getBoundingClientRect().right>w.getBoundingClientRect().right+1) top.classList.add('tight'); }
+  fit(); window.addEventListener('resize',fit); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fit); window.addEventListener('load',fit); })();
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
 var y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
