@@ -127,6 +127,15 @@ def main():
         r += ["/%s /post?p=%s 301" % (s, s), "/%s/ /post?p=%s 301" % (s, s)]
     r = [x.replace("  ", " ") for x in r if not x.startswith("/blog /blog 200") and not x.startswith("/wellness /wellness 200")]
     open(os.path.join(OUT, "_redirects"), "w").write("\n".join(r) + "\n")
+    # security headers for every page (Cloudflare Pages reads this file)
+    open(os.path.join(OUT, "_headers"), "w").write("""/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(self)
+  Content-Security-Policy: frame-ancestors 'self'
+""")
     if LIVE:
         open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\nSitemap: https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/sitemap\n" % DOMAIN)
     else:
