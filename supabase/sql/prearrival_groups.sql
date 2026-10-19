@@ -1,6 +1,6 @@
 -- The three "Get ready" countdown groups. Day 1 is 14 days before arrival, day 15 is arrival day.
 -- Only added when missing; coaches can change them any time in Coaching, Action groups.
-do $$
+create or replace function private.prearrival_seed() returns void language plpgsql security definer set search_path='' as $f$
 declare cfg jsonb; gb uuid; ge uuid; gf uuid;
   common_end jsonb := '[
     {"id":"pa-bring","kind":"note","at_mode":"day","at_n":11,"title":"What to bring","text":"- Light training clothes, two or three sets (you will sweat a lot)\n- Hand wraps, gloves and shin guards if you have them. If not, message us and we will help\n- A water bottle\n- Flip flops and a towel for after training\n- Any medicine you need"},
@@ -67,4 +67,6 @@ begin
     'experienced', coalesce(nullif(cfg->'groups'->>'experienced',''), ge::text),
     'fight', coalesce(nullif(cfg->'groups'->>'fight',''), gf::text)));
   update public.app_settings set value=cfg::text, updated_at=now() where key='prearrival';
-end $$;
+end $f$;
+revoke all on function private.prearrival_seed() from public, anon, authenticated;
+select private.prearrival_seed();

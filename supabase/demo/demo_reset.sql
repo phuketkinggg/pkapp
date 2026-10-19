@@ -47,6 +47,7 @@ begin
     ('checkin_code','MUAYFIGHT-DEMO'),
     ('review_message','Hi {name}, thanks so much for training with us at Muay Fight Gym! If you have a minute, a quick Google review helps us a lot: {link} See you in class.'),
     ('renew_message',''),
+    ('prearrival','{"auto":false,"video_url":"","video_title":"Meet your coaches","groups":{}}'),
     ('kiosk_promos','[]'),('shop_vat','{"rate":0,"included":true}'),('app_theme','{"accent":"#2759DA"}');
 
   -- staff
@@ -215,6 +216,20 @@ begin
   insert into public.action_groups(id,name,notes,items,created_by) values (grp,'Fight camp, 4 weeks','Everything for your first fight, week by week.',
     '[{"id":"a1","at_mode":"week","at_n":1,"kind":"video","title":"Welcome to fight camp","url":""},{"id":"a2","at_mode":"week","at_n":1,"kind":"weight","title":"First weigh in"},{"id":"a3","at_mode":"week","at_n":2,"kind":"food","title":"Start your food diary"}]'::jsonb, s_owner);
   insert into public.group_members(group_id,customer_id,start_on,added_by) values (grp,c_member,t-14,s_lek);
+
+  -- get ready for camp: the member login has the form waiting, booked guests show under Arriving soon
+  perform private.prearrival_seed();
+  insert into public.prearrival(customer_id,arrival,sent_at,sent_to,expires_at) values (c_member,t+6,now()-interval '1 day','member@demo.muayfriend.com',now()+interval '30 days');
+  insert into public.prearrival(customer_id,arrival,stay_id,sent_at,sent_to,opened_at,done_at,answers,expires_at)
+  select x.customer_id, x.check_in, x.id, now()-interval '3 days', 'guest@example.com', case when x.rn=1 then now()-interval '2 days' end, case when x.rn=1 then now()-interval '2 days' end,
+    case when x.rn=1 then '{"level":"new","goals":["technique","fitness"],"win":"Learn the basics properly and get fit","weight_kg":84,"target_kg":79,"height_cm":180,"fitness":2,"train_now":"1-2","injury":"yes","injury_where":"right shoulder","injury_note":"Old gym injury, fine most days","sessions":"2","privates":"maybe","food":"No pork"}'::jsonb else '{}'::jsonb end,
+    now()+interval '30 days'
+  from (select s.*, row_number() over (order by s.check_in) rn from public.stays s where s.status='booked') x;
+  for r in select p.customer_id, p.arrival from public.prearrival p where p.done_at is not null loop
+    insert into public.group_members(group_id,customer_id,start_on) values ((private.prearrival_cfg()->'groups'->>'beginner')::uuid, r.customer_id, r.arrival-14) returning id into grp;
+    perform private.group_apply(grp);
+    update public.prearrival set group_member=grp where customer_id=r.customer_id;
+  end loop;
 
   -- fights
   insert into public.fights(fight_date,fight_time,venue,fighter_customer_id,fighter_name,weight,opponent,corner_ids,show_in_app,created_by)
