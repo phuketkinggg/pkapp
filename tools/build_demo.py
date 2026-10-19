@@ -52,9 +52,9 @@ SWAPS = [
     ('check phuketking.com shows', 'check your domain shows'),
 ]
 
-COLORS = [  # brand colours: Muay Friend red instead of Phuket King gold
-    ('--gold:#B88A44; --gold-ink:#7A5720; --btn-bg:#101311;', '--gold:#D7263D; --gold-ink:#A81D30; --btn-bg:#101A2E;'),
-    ('--gold:#B88A44; --gold-ink:#CFA35C; --btn-bg:#B88A44;', '--gold:#E0485C; --gold-ink:#F07A89; --btn-bg:#E0485C;'),
+COLORS = [  # brand colours: Muay Friend blue instead of Phuket King gold
+    ('--gold:#B88A44; --gold-ink:#7A5720; --btn-bg:#101311;', '--gold:#2759DA; --gold-ink:#1F47B0; --btn-bg:#17213C;'),
+    ('--gold:#B88A44; --gold-ink:#CFA35C; --btn-bg:#B88A44;', '--gold:#5B84EE; --gold-ink:#8FAAF3; --btn-bg:#5B84EE;'),
 ]
 
 
@@ -68,19 +68,22 @@ def icons():
     from PIL import Image, ImageDraw
     os.makedirs(os.path.join(OUT, 'icons'), exist_ok=True)
 
+    # Muay Friend mark (three blue shapes) on white, same shapes as muayfriend/logo-mark.svg
+    SHAPES = [[(55, 95), (145, 142), (148, 229), (54, 170)], [(168, 119), (250, 79), (251, 117), (166, 168)], [(172, 179), (222, 153), (220, 195), (169, 226)]]
+
     def make(size, pad, name, rounded):
-        im = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+        big = size * 4
+        im = Image.new('RGBA', (big, big), (0, 0, 0, 0))
         d = ImageDraw.Draw(im)
-        r = int(size * 0.22) if rounded else 0
-        d.rounded_rectangle([0, 0, size - 1, size - 1], radius=r, fill=(16, 26, 46, 255))
-        inner = size - 2 * pad
-        h = max(2, int(inner * 0.11))
-        gap = int(inner * 0.2)
-        top = (size - (3 * h + 2 * gap)) // 2
-        for i, col in enumerate([(215, 38, 61), (236, 237, 232), (47, 91, 211)]):
-            y = top + i * (h + gap)
-            d.rounded_rectangle([pad, y, size - pad, y + h], radius=h // 2, fill=col + (255,))
-        im.save(os.path.join(OUT, 'icons', name))
+        r = int(big * 0.22) if rounded else 0
+        d.rounded_rectangle([0, 0, big - 1, big - 1], radius=r, fill=(255, 255, 255, 255))
+        x0, y0, w, h = 50, 75, 206, 158
+        p = pad * 4
+        sc = (big - 2 * p) / max(w, h)
+        ox, oy = p + ((big - 2 * p) - w * sc) / 2, p + ((big - 2 * p) - h * sc) / 2
+        for shp in SHAPES:
+            d.polygon([(ox + (x - x0) * sc, oy + (y - y0) * sc) for x, y in shp], fill=(39, 89, 218, 255))
+        im.resize((size, size), Image.LANCZOS).save(os.path.join(OUT, 'icons', name))
 
     make(192, 30, 'icon-192.png', True)
     make(512, 80, 'icon-512.png', True)

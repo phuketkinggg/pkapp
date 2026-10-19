@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Muay Friend | The app that runs your Muay Thai gym</title>
-<meta name="description" content="Check-ins, privates, coaching, payments, rooms and marketing in one app. Built inside a working Muay Thai camp in Phuket, for gyms and camps everywhere.">
+<meta name="description" content="One app to run your Muay Thai gym: bookings, check-ins, sales, cafe, coaching, accounts and your website. Built with over 30 gyms around the world.">
 <link rel="canonical" href="https://muayfriend.com/">
 <meta property="og:title" content="Muay Friend | The app that runs your Muay Thai gym">
-<meta property="og:description" content="Check-ins, privates, coaching, payments, rooms and marketing in one app. Built inside a working Muay Thai camp in Phuket.">
+<meta property="og:description" content="One app to run your Muay Thai gym. Built with over 30 gyms around the world.">
 <meta property="og:url" content="https://muayfriend.com/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
@@ -25,7 +25,7 @@
 @font-face{font-family:'Instrument Sans';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/instrument-sans-latin-700-normal.woff2) format('woff2')}
 :root{
   --canvas:#ECEDE8;--paper:#F7F7F4;--ink:#101A2E;--ink2:#3C4558;--muted:#5D6474;
-  --red:#D7263D;--blue:#2F5BD3;--navy:#101A2E;--line:#CED2CA;
+  --red:#D7263D;--blue:#2759DA;--navy:#101A2E;--line:#CED2CA;
   --display:'Big Shoulders Display','Arial Narrow',sans-serif;
   --body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
@@ -49,8 +49,8 @@ p{margin:0 0 1em}
 /* header */
 .top{position:sticky;top:0;z-index:20;background:rgba(236,237,232,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:28px;height:68px}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 27px var(--display);letter-spacing:.01em}
-.brand svg{width:34px;height:34px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 23px var(--body);letter-spacing:-.01em;color:#17213C}
+.brand .mark{width:38px;height:30px;color:var(--blue)}
 .top nav{display:flex;gap:22px;margin-left:auto;font-weight:500;font-size:15px}
 .top nav a{text-decoration:none;color:var(--ink2)}
 .top nav a:hover{color:var(--ink)}
@@ -203,18 +203,19 @@ form .btn{grid-column:1/-1;justify-self:start}
 
 footer{background:var(--navy);color:#9AA3B5;border-top:1px solid rgba(255,255,255,.12);padding:28px 0;font-size:15px}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
-footer .brand{color:#fff;font-size:22px}
+footer .brand{color:#fff;font-size:20px}
+footer .brand .mark{color:#7FA0F0}
 footer a{color:#C9CFDB}
 </style>
 </head>
 <body>
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Muay Friend home"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#101A2E"/><rect x="8" y="20" width="48" height="5" rx="2.5" fill="#D7263D"/><rect x="8" y="30" width="48" height="5" rx="2.5" fill="#ECEDE8"/><rect x="8" y="40" width="48" height="5" rx="2.5" fill="#2F5BD3"/></svg>Muay Friend</a>
+    <a class="brand" href="#top" aria-label="Muay Friend home"><svg class="mark" viewBox="40 66 226 178" aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="8" stroke-linejoin="round"><path d="M55 95 L145 142 L148 229 L54 170 Z"/><path d="M168 119 L250 79 L251 117 L166 168 Z"/><path d="M172 179 L222 153 L220 195 L169 226 Z"/></g></svg>Muay Friend</a>
     <nav aria-label="Main">
       <a href="#who">Who it's for</a>
       <a href="#features">What it does</a>
-      <a href="#story">Built in a real camp</a>
+      <a href="#why">Why Muay Friend</a>
       <a href="#faq">Questions</a>
       <a href="demo/">Live demo</a>
     </nav>
@@ -228,7 +229,7 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div class="hero-copy">
         <h1><span>Run your</span><span>Muay Thai gym</span><span>from one app</span></h1>
-        <p class="lede">Check-ins, privates, coaching, payments, rooms and marketing in one place. Built inside a working camp in Phuket, for gyms and camps everywhere.</p>
+        <p class="lede">Bookings, check-ins, sales, your cafe, coaching, accounts and your website, all in one clear place. Run it from your phone, and stop paying for ten different apps.</p>
         <div class="cta">
           <a class="btn" href="#contact">Book a free demo</a>
           <a class="btn ghost" href="demo/">Try the live demo</a>
@@ -262,17 +263,36 @@ footer a{color:#C9CFDB}
 
   <section class="instead" aria-labelledby="instead-h">
     <div class="wrap">
-      <h2 id="instead-h">Instead of</h2>
+      <h2 id="instead-h">Too many apps?</h2>
       <ul>
-        <li>a notebook at the front desk</li>
-        <li>three spreadsheets</li>
-        <li>a booking plugin</li>
+        <li>booking software</li>
+        <li>check-in software</li>
+        <li>a till for the shop</li>
+        <li>cafe ordering</li>
+        <li>accounting software</li>
+        <li>a website builder</li>
         <li>a newsletter tool</li>
         <li>a social media scheduler</li>
-        <li>WhatsApp groups for coaches</li>
-        <li>a shoebox of receipts</li>
+        <li>spreadsheets</li>
       </ul>
-      <p>One app for the desk, the coaches, the members and the owner.</p>
+      <p>We know. Most gyms pay for a pile of subscriptions that don't talk to each other. That's why we built Muay Friend: one app, one login, everything in one place.</p>
+    </div>
+  </section>
+
+  <section class="block story" id="why">
+    <div class="wrap">
+      <div>
+        <h2>Built with gyms, for gyms</h2>
+        <p class="lede" style="margin-top:18px">Muay Friend was built with the help of over 30 gyms around the world. We asked owners, managers and coaches real questions about how they work and what gets in their way, then built the answers.</p>
+        <p class="lede">The same problems came up again and again: too many apps, too much admin and too little time to coach. So we put everything in one place and made it simple enough for the whole team to pick up quickly.</p>
+      </div>
+      <ul>
+        <li><b>Save money.</b> One app instead of a stack of monthly subscriptions.</li>
+        <li><b>Save time.</b> Check-ins in seconds, payments recorded as you sell, accounts sorted for you.</li>
+        <li><b>Easy for coaches.</b> Simple screens, no big learning curve. Each coach only sees what they need.</li>
+        <li><b>Control from your phone.</b> See today, approve privates and check the money from anywhere.</li>
+        <li><b>Your data stays yours.</b> Every gym has its own private database. No other gym can ever see it.</li>
+      </ul>
     </div>
   </section>
 
@@ -298,7 +318,7 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div class="head">
         <h2>What it does</h2>
-        <p class="lede">Everything a gym runs on, in one place. Use only what you need.</p>
+        <p class="lede">Everything a gym runs on, in one place. Add packages, change prices, build coaching plans or launch a course in minutes, and use only what you need.</p>
       </div>
 
       <div class="feat">
@@ -318,7 +338,7 @@ footer a{color:#C9CFDB}
         <ul>
           <li><b>Workout programs</b> with sets, reps, supersets and left and right sides</li>
           <li><b>Templates</b> you can give to any client in one tap</li>
-          <li><b>Habits, food diary and weight</b>, including fight weight cuts</li>
+          <li><b>Habits, meal guidance, food diary and weight</b>, including fight weight cuts</li>
           <li><b>Progress charts</b> from the weights members log themselves</li>
           <li><b>Form checks</b>: members film a lift or a combo, coaches reply</li>
           <li><b>Action groups</b> like Fight camp, with steps that unlock week by week</li>
@@ -334,6 +354,18 @@ footer a{color:#C9CFDB}
           <li><b>Social media posts</b> written by AI from your photos, approved by you, posted on schedule</li>
           <li><b>Web pages</b> made by describing them, then edited by hand</li>
           <li><b>Google review requests</b> on WhatsApp, in one tap</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <div><h3>Your website</h3><p class="sub">Keep it fresh without a web designer.</p></div>
+        <ul>
+          <li><b>Change photos and text</b> yourself, from your phone, any time</li>
+          <li><b>New pages made by AI</b>: describe the page, then edit the words and photos</li>
+          <li><b>SEO kept clean for you</b>: page titles, descriptions, sitemaps and search data done automatically</li>
+          <li><b>Blog</b> for guides and news that bring people in from Google</li>
+          <li><b>Sell online</b>: packages, privates, courses and shop items</li>
+          <li><b>Website chat</b> that lands in the same app as everything else</li>
         </ul>
       </div>
 
@@ -360,6 +392,7 @@ footer a{color:#C9CFDB}
           <li><b>Kitchen screen</b> for cafe orders</li>
         </ul>
       </div>
+      <p class="lede" style="margin-top:40px">And a lot more. If your gym does it, there's a good chance Muay Friend already handles it, and if it doesn't yet, tell us.</p>
     </div>
   </section>
 
@@ -380,23 +413,6 @@ footer a{color:#C9CFDB}
     </div>
   </section>
 
-  <section class="block story" id="story">
-    <div class="wrap">
-      <div>
-        <h2>Built in a real camp</h2>
-        <p class="lede" style="margin-top:18px">Muay Friend was built inside Phuket King Muay Thai, a lakeside training camp in Kathu, Phuket, where it runs the whole business every day.</p>
-        <p class="lede">Every feature started as a real problem at the desk, in the ring or in the office. If it didn't save the team time, it didn't stay.</p>
-        <p><a href="https://www.phuketking.com" rel="noopener">Visit Phuket King Muay Thai</a></p>
-      </div>
-      <ul>
-        <li>Group classes three times a day and privates with Thai coaches</li>
-        <li>Lakeside bungalows with training included</li>
-        <li>A cafe, a shop and a recovery spa</li>
-        <li>Long stay guests from all over the world</li>
-        <li>Thai, Burmese and international staff</li>
-      </ul>
-    </div>
-  </section>
 
   <section class="block">
     <div class="wrap">
@@ -413,8 +429,9 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div class="head"><h2>Questions</h2></div>
       <div class="faq">
+        <details><summary>Will my coaches find it hard to learn?</summary><p>No. The screens are simple and each role only sees what it needs, so there's no big learning curve. Key staff screens also work in Thai and Burmese.</p></details>
         <details><summary>Does it work on phones?</summary><p>Yes. It works on any phone, tablet or computer. There's nothing to install from an app store: open the link and add it to the home screen.</p></details>
-        <details><summary>Is my members' data private?</summary><p>Each gym gets its own private database, separate from every other gym. Staff only see what their role needs, and everything is backed up every night.</p></details>
+        <details><summary>Is my members' data private?</summary><p>Yes. Each gym gets its own private database, completely separate from every other gym. No other gym can see your members, prices or numbers, and we never share or sell your data. Inside your gym, staff only see what their role needs, and everything is backed up every night.</p></details>
         <details><summary>Which payments can it take?</summary><p>Cash at the desk, card payment links, and PromptPay QR in Thailand. Members can also pay in their own app.</p></details>
         <details><summary>Can I use only some of it?</summary><p>Yes. We switch off what you don't need, so a gym without rooms won't see stays or housekeeping.</p></details>
         <details><summary>Can you move my existing members across?</summary><p>Yes. Send us your current list and we'll bring in your members, packages and what they have left.</p></details>
@@ -453,9 +470,9 @@ footer a{color:#C9CFDB}
 
 <footer>
   <div class="wrap">
-    <span class="brand">Muay Friend</span>
+    <span class="brand"><svg class="mark" viewBox="40 66 226 178" aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="8" stroke-linejoin="round"><path d="M55 95 L145 142 L148 229 L54 170 Z"/><path d="M168 119 L250 79 L251 117 L166 168 Z"/><path d="M172 179 L222 153 L220 195 L169 226 Z"/></g></svg>Muay Friend</span>
     <span>The app for Muay Thai gyms and camps.</span>
-    <span>Made in Phuket, Thailand.</span>
+    <span>Made in Thailand, with gyms around the world.</span>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
     <a href="#contact">Get more info</a>
   </div>
