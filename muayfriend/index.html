@@ -106,14 +106,23 @@ p{margin:0 0 1em}
   .ropes{left:0;top:auto;bottom:230px;transform:none}
 }
 
-/* instead of */
-.instead{background:var(--navy);color:#fff;padding:56px 0}
-.instead .wrap{display:grid;grid-template-columns:260px 1fr;gap:32px;align-items:start}
-.instead h2{font-size:44px}
-.instead ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 12px}
-.instead li{font-size:18px;padding:8px 16px;border:1px solid rgba(255,255,255,.22);border-radius:999px;text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:2px;color:#C9CFDB}
-.instead p{grid-column:2;margin:18px 0 0;font-size:19px;color:#fff}
-@media (max-width:760px){.instead .wrap{grid-template-columns:1fr;gap:20px}.instead p{grid-column:1}}
+/* too many apps: comparison table */
+.instead{background:var(--navy);color:#fff;padding:72px 0}
+.instead .ihead{display:grid;grid-template-columns:260px 1fr;gap:32px;align-items:start;margin-bottom:28px}
+.instead h2{font-size:48px}
+.instead .ihead p{font-size:19px;color:#DDE3EE;margin:6px 0 0;max-width:40em}
+.tblwrap{overflow-x:auto;border:1px solid rgba(255,255,255,.18);border-radius:14px}
+.cmp{width:100%;border-collapse:collapse;font-size:16px;min-width:680px}
+.cmp th,.cmp td{text-align:left;vertical-align:top;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
+.cmp thead th{font-weight:600;font-size:14px;color:#9AA3B5;background:rgba(255,255,255,.04)}
+.cmp tbody th{font-weight:600;color:#fff;width:34%}
+.cmp tbody th span{display:block;font-weight:400;font-size:14px;color:#9AA3B5}
+.cmp tbody td:nth-child(2){color:#F2A3AD;width:22%;white-space:nowrap}
+.cmp tbody td:last-child{color:#DDE3EE}
+.cmp tr.hidden-cost th{color:#F2A3AD}
+.cmp tfoot th,.cmp tfoot td{border-bottom:0;background:var(--blue);color:#fff;font-weight:600}
+.instead .small{font-size:13px;color:#9AA3B5;margin:12px 0 0}
+@media (max-width:760px){.instead .ihead{grid-template-columns:1fr;gap:12px}.cmp tbody td:nth-child(2){white-space:normal}}
 
 section.block{padding:96px 0}
 .head{max-width:760px;margin-bottom:48px}
@@ -132,6 +141,27 @@ section.block{padding:96px 0}
 @media (max-width:760px){.who{grid-template-columns:1fr}.who div,.who div:nth-child(even){padding:24px 0;border-right:0!important}}
 .roles{margin-top:40px;display:flex;flex-wrap:wrap;gap:10px}
 .roles span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-weight:500}
+
+/* website editor section */
+.webed .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.wsteps{margin:28px 0 0;padding:0;list-style:none;counter-reset:w}
+.wsteps li{counter-increment:w;position:relative;padding:16px 0 16px 52px;border-top:1px solid var(--line);color:var(--ink2)}
+.wsteps li::before{content:counter(w);position:absolute;left:0;top:10px;font:900 40px/1 var(--display);color:var(--blue)}
+.wsteps b{color:var(--ink)}
+.ai{display:inline-block;font-size:12px;font-weight:600;color:var(--blue);border:1px solid var(--blue);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+.mock{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 24px 50px -24px rgba(16,26,46,.35);display:grid;gap:10px;font-size:14px}
+.mbar{display:flex;align-items:center;gap:6px;padding-bottom:6px}
+.mbar span{width:10px;height:10px;border-radius:50%;background:#E1E3DD}
+.mbar b{margin-left:8px;font-weight:600}
+.mask{border:1.5px dashed var(--blue);border-radius:12px;padding:12px;color:var(--ink2);display:flex;justify-content:space-between;gap:10px;align-items:center}
+.mask i{font-style:normal;background:var(--blue);color:#fff;border-radius:8px;padding:6px 10px;font-weight:600;white-space:nowrap}
+.msec{display:grid;grid-template-columns:28px 1fr;column-gap:10px;border:1px solid #E1E3DD;border-radius:12px;padding:12px;background:var(--paper)}
+.msec i{grid-row:span 2;font-style:normal;color:var(--muted);font-size:18px;line-height:1.4}
+.msec em{font-style:normal;color:var(--muted);font-size:13px}
+.msec.lift{transform:translate(10px,-4px) rotate(-1deg);box-shadow:0 14px 28px -10px rgba(16,26,46,.35);border-color:var(--blue);background:#fff}
+.mpub{display:flex;justify-content:space-between;align-items:center;color:var(--muted);padding-top:4px}
+.mpub s{text-decoration:none;background:var(--ink);color:#fff;border-radius:8px;padding:6px 14px;font-weight:600}
+@media (max-width:860px){.webed .wrap{grid-template-columns:1fr;gap:32px}}
 
 /* features */
 .features{background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -263,19 +293,30 @@ footer a{color:#C9CFDB}
 
   <section class="instead" aria-labelledby="instead-h">
     <div class="wrap">
-      <h2 id="instead-h">Too many apps?</h2>
-      <ul>
-        <li>booking software</li>
-        <li>check-in software</li>
-        <li>a till for the shop</li>
-        <li>cafe ordering</li>
-        <li>accounting software</li>
-        <li>a website builder</li>
-        <li>a newsletter tool</li>
-        <li>a social media scheduler</li>
-        <li>spreadsheets</li>
-      </ul>
-      <p>We know. Most gyms pay for a pile of subscriptions that don't talk to each other. That's why we built Muay Friend: one app, one login, everything in one place.</p>
+      <div class="ihead">
+        <h2 id="instead-h">Too many apps?</h2>
+        <p>Most gyms pay for a pile of subscriptions that don't talk to each other, and lose money in the gaps between them. We know, because gyms told us. That's why we built Muay Friend.</p>
+      </div>
+      <div class="tblwrap" role="region" aria-label="Apps Muay Friend replaces" tabindex="0">
+        <table class="cmp">
+          <thead><tr><th scope="col">What gyms use today</th><th scope="col">Often costs (USD a month)</th><th scope="col">In Muay Friend</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">CRM and funnels <span>like GoHighLevel</span></th><td>97 to 497</td><td>Customer list, tags, newsletters, website chat and enquiries</td></tr>
+            <tr><th scope="row">Shop and cafe till <span>like Loyverse</span></th><td>Free, then about 25 per add-on</td><td>Shop and cafe till, kitchen screen, stock</td></tr>
+            <tr><th scope="row">Gym management app <span>like Mindbody or Glofox</span></th><td>About 99 to 300</td><td>Check-ins, packages, timetable, privates, member app</td></tr>
+            <tr><th scope="row">Hotel booking software <span>booking engine or channel manager</span></th><td>Often 50 or more</td><td>Rooms, online booking, Booking.com and Agoda calendar sync</td></tr>
+            <tr><th scope="row">Accounting software <span>like Xero or QuickBooks</span></th><td>About 15 to 80</td><td>Receipts, accounts by department, monthly bills</td></tr>
+            <tr><th scope="row">Coaching app <span>like Trainerize</span></th><td>About 10 to 250</td><td>Programs, habits, food diary, weight, form checks</td></tr>
+            <tr><th scope="row">Course platform <span>like Kajabi or Teachable</span></th><td>About 40 to 200</td><td>Video courses with free preview lessons</td></tr>
+            <tr><th scope="row">Email marketing <span>like Mailchimp</span></th><td>About 20 to 350</td><td>Newsletters to everyone or by tag</td></tr>
+            <tr><th scope="row">Website builder and SEO help</th><td>About 15 to 50</td><td>Edit your site from the app, AI pages, SEO done for you</td></tr>
+            <tr class="hidden-cost"><th scope="row">Bookings lost to slow replies and admin mix-ups</th><td>Lost income</td><td>Live availability, online booking and every message in one place</td></tr>
+            <tr class="hidden-cost"><th scope="row">Members who drift away and don't come back</th><td>Lost income</td><td>Renewal reminders, follow-ups, newsletters and review requests</td></tr>
+          </tbody>
+          <tfoot><tr><th scope="row">All together</th><td>Often several hundred, plus hours of admin</td><td><b>One app, one login, one monthly price</b></td></tr></tfoot>
+        </table>
+      </div>
+      <p class="small">Prices are typical published prices and change by plan and gym size. Brand names belong to their owners.</p>
     </div>
   </section>
 
@@ -293,6 +334,28 @@ footer a{color:#C9CFDB}
         <li><b>Control from your phone.</b> See today, approve privates and check the money from anywhere.</li>
         <li><b>Your data stays yours.</b> Every gym has its own private database. No other gym can ever see it.</li>
       </ul>
+    </div>
+  </section>
+
+  <section class="block webed" id="website">
+    <div class="wrap">
+      <div>
+        <h2>Your website, as easy as your phone</h2>
+        <p class="lede" style="margin-top:18px">No web designer, no waiting. Change your website from the same app you run the gym with.</p>
+        <ol class="wsteps">
+          <li><b>Describe it.</b> Type what you want, for example "a page for our 4 week fight camp", add a few photos, and a page is built for you. <span class="ai">AI add-on</span></li>
+          <li><b>Drag and drop.</b> Move sections up and down with your finger, tap any words to change them, swap photos from your phone.</li>
+          <li><b>Publish.</b> One tap and it's live. Page titles, descriptions and sitemaps for Google are done for you.</li>
+        </ol>
+      </div>
+      <div class="mock" aria-hidden="true">
+        <div class="mbar"><span></span><span></span><span></span><b>Edit page: Fight camp</b></div>
+        <div class="mask">Make the top shorter and add a section about the cafe<i>Change it</i></div>
+        <div class="msec"><i>⠿</i><b>1. Big photo at the top</b><em>Fight camp, 4 weeks</em></div>
+        <div class="msec lift"><i>⠿</i><b>2. Photo and text side by side</b><em>What a day looks like</em></div>
+        <div class="msec"><i>⠿</i><b>3. Questions and answers</b><em>5 questions</em></div>
+        <div class="mpub">On the website <s>Save</s></div>
+      </div>
     </div>
   </section>
 
@@ -351,8 +414,8 @@ footer a{color:#C9CFDB}
           <li><b>Online shop</b> and package sales on your website</li>
           <li><b>Video courses</b> with free preview lessons</li>
           <li><b>Newsletters</b> to everyone or by tag, with unsubscribe built in</li>
-          <li><b>Social media posts</b> written by AI from your photos, approved by you, posted on schedule</li>
-          <li><b>Web pages</b> made by describing them, then edited by hand</li>
+          <li><b>Social media posts</b> written by AI from your photos, approved by you, posted on schedule <span class="ai">AI add-on</span></li>
+          <li><b>Web pages</b> made by describing them, then edited by hand <span class="ai">AI add-on</span></li>
           <li><b>Google review requests</b> on WhatsApp, in one tap</li>
         </ul>
       </div>
@@ -360,8 +423,8 @@ footer a{color:#C9CFDB}
       <div class="feat">
         <div><h3>Your website</h3><p class="sub">Keep it fresh without a web designer.</p></div>
         <ul>
-          <li><b>Change photos and text</b> yourself, from your phone, any time</li>
-          <li><b>New pages made by AI</b>: describe the page, then edit the words and photos</li>
+          <li><b>Drag and drop</b> sections, change photos and text yourself, from your phone, any time</li>
+          <li><b>New pages made by AI</b>: describe the page, then edit the words and photos <span class="ai">AI add-on</span></li>
           <li><b>SEO kept clean for you</b>: page titles, descriptions, sitemaps and search data done automatically</li>
           <li><b>Blog</b> for guides and news that bring people in from Google</li>
           <li><b>Sell online</b>: packages, privates, courses and shop items</li>
@@ -372,7 +435,7 @@ footer a{color:#C9CFDB}
       <div class="feat">
         <div><h3>Running the business</h3><p class="sub">Know where the money goes.</p></div>
         <ul>
-          <li><b>Receipts</b> photographed or uploaded, read by AI</li>
+          <li><b>Receipts</b> photographed or uploaded, read by AI <span class="ai">AI add-on</span></li>
           <li><b>Accounts</b> by business and department, with monthly bills</li>
           <li><b>Staff hours and commission</b> worked out for you</li>
           <li><b>Investor view</b> with totals only, never member details</li>
@@ -435,6 +498,7 @@ footer a{color:#C9CFDB}
         <details><summary>Which payments can it take?</summary><p>Cash at the desk, card payment links, and PromptPay QR in Thailand. Members can also pay in their own app.</p></details>
         <details><summary>Can I use only some of it?</summary><p>Yes. We switch off what you don't need, so a gym without rooms won't see stays or housekeeping.</p></details>
         <details><summary>Can you move my existing members across?</summary><p>Yes. Send us your current list and we'll bring in your members, packages and what they have left.</p></details>
+        <details><summary>Is the AI included?</summary><p>The AI tools are an optional add-on: making web pages from a description, writing social media posts from your photos, and reading receipts. Everything else works without them, and you can add them any time.</p></details>
         <details><summary>How much does it cost?</summary><p>It depends on the size of your gym and what you use. Tell us about your gym and we'll send you a clear monthly price.</p></details>
       </div>
     </div>
