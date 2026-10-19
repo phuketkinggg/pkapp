@@ -46,11 +46,15 @@ The staff member filed it under: business "${r.business}", department "${r.depar
 Read it and reply with JSON only:
 {"supplier": "shop or company name, in English letters if possible", "day": "YYYY-MM-DD or empty if not shown (Thai Buddhist years: subtract 543)", "amount": total paid as a number in Thai baht (the grand total including VAT, not a subtotal), "method": "cash" | "transfer" | "card" | "" if not shown, "category": one of ${JSON.stringify(CATS)}, "business": "Phuket King Gym" or "Pangea Resort" (keep the staff choice unless the receipt clearly belongs to the other), "department": one of the departments for that business ${JSON.stringify(DEPTS)}, "note": "a few words on what was bought, in English"}
 If something cannot be read, leave it empty. Never guess an amount.`;
+    const slot = await admin.rpc("ai_usage_take", { p_fn: "receipt" });
+    if (slot.error) return json({ error: "Could not check the AI allowance. Try again." });
+    if (!slot.data) return json({ error: "This month's AI allowance is used up. It starts again on the 1st of next month." });
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST", headers: { "x-api-key": KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({ model: MODEL, max_tokens: 800, messages: [{ role: "user", content: [doc, { type: "text", text: prompt }] }] }),
     });
     const j = await res.json().catch(() => ({}));
+    await admin.from("ai_usage").update({ in_tokens: j?.usage?.input_tokens ?? null, out_tokens: j?.usage?.output_tokens ?? null, ok: res.ok }).eq("id", slot.data);
     if (!res.ok) return json({ error: "The AI said: " + (j?.error?.message ?? res.status) });
     const out = String((j.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join(""));
     let o: Record<string, unknown> = {};

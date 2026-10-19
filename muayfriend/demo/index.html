@@ -58,6 +58,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .tabs2 button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);min-height:40px;border-radius:8px;cursor:pointer}
 .tabs2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
 .login input{width:100%}
+.aibar{height:8px;border-radius:99px;background:var(--sunken);overflow:hidden;margin:6px 0 10px}.aibar i{display:block;height:100%;background:var(--gold)}.aibar i.hot{background:#C0392B}
 .thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .demobox{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--line);border-radius:10px}
 .demobtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -4995,6 +4996,32 @@ function reviewDue(){
   (S.stays||[]).forEach(function(st){ if(st.status==='cancelled'||!st.customer_id||st.check_out<recent||st.check_out>today) return; var c=byId('customers',st.customer_id); if(!c||c.is_agency||reviewAsked(c)||!reviewPhone(c)) return; out[c.id]={c:c,why:'Checked out '+fmtDate(st.check_out)}; });
   return Object.keys(out).map(function(k){ return out[k]; }).slice(0,12);
 }
+// Customers filters: visits, last visit and money paid come from the database (customer_stats), loaded when the page opens
+var CSTATS=null, CSTATS_AT=0;
+function loadCStats(force){ if(!me||(me.role!=='manager'&&me.role!=='front_desk')) return; if(!force&&CSTATS_AT&&Date.now()-CSTATS_AT<120000) return; CSTATS_AT=Date.now();
+  sb.rpc('customer_stats').then(function(res){ if(res.error) return; var m={}; (res.data||[]).forEach(function(r){ m[r.customer_id]=r; }); CSTATS=m; schedule(); },function(){}); }
+function cStat(id){ return CSTATS&&CSTATS[id]||null; }
+// first time we saw them: first visit, first package or when they were added
+function memberSince(){ var first={};
+  function seen(id,d){ if(id&&d&&(!first[id]||d<first[id])) first[id]=d; }
+  S.customers.forEach(function(c){ if(c.created_at) seen(c.id,String(c.created_at).slice(0,10)); });
+  S.purchases.forEach(function(p){ seen(p.customer_id,p.purchased_on); });
+  S.checkin_days.forEach(function(d){ (d.entries||[]).forEach(function(e){ seen(e.customer_id,d.id); }); });
+  return first; }
+// packages ending within 7 days or with 2 visits or fewer left, unless they already have the next one waiting
+function runningOut(day){ var soon=addDays(day,7), out={};
+  S.purchases.forEach(function(p){ if(!p.customer_id||p.stay_id||(p.covers&&!p.covers.length)) return; var st=stateOf(p,day); if(st.status!=='active'&&st.status!=='week_limit') return;
+    var why=[]; if(p.expires_on&&p.expires_on<=soon) why.push(p.expires_on===day?'ends today':'ends '+fmtDate(p.expires_on)); if(p.class_limit&&left(p)<=2) why.push(left(p)===0?'no visits left':left(p)+' visit'+(left(p)===1?'':'s')+' left');
+    if(!why.length) return;
+    var next=S.purchases.some(function(q){ return q.id!==p.id&&q.customer_id===p.customer_id&&!q.stay_id&&!(q.covers&&!q.covers.length)&&stateOf(q,day).status==='not_started'; });
+    if(next) return;
+    if(!out[p.customer_id]) out[p.customer_id]={p:p,why:why.join(', ')}; });
+  return out; }
+var RENEW_DEF='Hi {name}, a quick heads up: your {package} {why}. Want to keep training? Reply here and we will set up the next one for you.';
+function renewAsk(c,r){ var ph=reviewPhone(c); if(!ph){ toast('No phone number on file. Add one with Edit first.'); return; }
+  var msg=RENEW_DEF.split('{name}').join(String(c.name||'').split(' ')[0]).split('{package}').join(/pack|pass|membership/i.test(r.p.package_name||'')?r.p.package_name:(r.p.package_name||'')+' package').split('{why}').join(r.why.replace(/(\d+|no) visits? left/,'has $&'));
+  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener'); }
+var CSHOW=[['all','All customers'],['active','Active members'],['newest','Newest members'],['oldest','Longest with us'],['spend','Highest spenders'],['visits','Most attendance'],['out','Package running out']];
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
@@ -5044,20 +5071,49 @@ function vCustomers(){
         {label:'For',cell:function(v){return entryWhat(v.e);}}],visits.slice(0,12),'No visits yet.'))
     ];
   }
-  var q=ui.cq.trim().toLowerCase();
-  var list=sortBy(S.customers.filter(function(x){ return !q||[x.name,x.email,x.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name');
+  loadCStats();
+  var q=ui.cq.trim().toLowerCase(), show=ui.cshow||'all', mgr=me&&me.role==='manager', staffish=me&&(me.role==='manager'||me.role==='front_desk');
+  var out=runningOut(day), outIds=Object.keys(out), since=memberSince();
+  var activePk={}; S.purchases.forEach(function(p){ if(p.customer_id&&!activePk[p.customer_id]&&!(p.covers&&!p.covers.length)&&stateOf(p,day).ok) activePk[p.customer_id]=p; });
+  var localVisits={}; S.checkin_days.forEach(function(d){ (d.entries||[]).forEach(function(e){ if(e.customer_id) localVisits[e.customer_id]=(localVisits[e.customer_id]||0)+1; }); });
+  function visitsOf(x){ var st=cStat(x.id); return st?st.visits:(localVisits[x.id]||0); }
+  function spentOf(x){ var st=cStat(x.id); return st?st.spent:0; }
+  var list=S.customers.filter(function(x){ return !q||[x.name,x.email,x.phone].join(' ').toLowerCase().indexOf(q)>=0; });
+  if(show!=='all') list=list.filter(function(x){ return !x.is_agency; });
+  if(show==='active') list=list.filter(function(x){ return activePk[x.id]; });
+  if(show==='out') list=list.filter(function(x){ return out[x.id]; });
+  if(show==='newest'||show==='oldest') list=list.filter(function(x){ return since[x.id]; });
+  if(show==='spend') list=list.filter(function(x){ return spentOf(x)>0; });
+  if(show==='visits') list=list.filter(function(x){ return visitsOf(x)>0; });
+  list=sortBy(list,'name');
+  if(show==='newest') list.sort(function(a,b){ return since[a.id]<since[b.id]?1:since[a.id]>since[b.id]?-1:0; });
+  if(show==='oldest') list.sort(function(a,b){ return since[a.id]<since[b.id]?-1:since[a.id]>since[b.id]?1:0; });
+  if(show==='spend') list.sort(function(a,b){ return spentOf(b)-spentOf(a); });
+  if(show==='visits') list.sort(function(a,b){ return visitsOf(b)-visitsOf(a); });
+  if(show==='out') list.sort(function(a,b){ var x=out[a.id].p.expires_on||'9999', y=out[b.id].p.expires_on||'9999'; return x<y?-1:x>y?1:0; });
+  var label=(CSHOW.filter(function(o){ return o[0]===show; })[0]||CSHOW[0])[1];
+  var showSel=h('select',{id:'cshow','aria-label':'Show',onchange:function(ev){ ui.cshow=ev.target.value; schedule(); }},CSHOW.filter(function(o){ return o[0]!=='spend'||mgr; }).map(function(o){ var e=h('option',{value:o[0]},o[0]==='out'&&outIds.length?o[1]+' ('+outIds.length+')':o[1]); if(o[0]===show) e.selected=true; return e; }));
+  var cols=[
+      {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),newTag(x),exChip(x),x.is_agency?[' ',chip('Agency')]:null,out[x.id]&&show!=='out'?[' ',chip('Running out','warn')]:null];}},
+      {label:'Package',cell:function(x){ if(out[x.id]) return [out[x.id].p.package_name,' ',chip(out[x.id].why,'warn')]; var a=activePk[x.id]; return a?a.package_name:chip('None active'); }},
+      {label:'With us since',cell:function(x){ return since[x.id]?fmtDate(since[x.id]):''; }},
+      {label:'Visits',num:true,cell:function(x){ var st=cStat(x.id); return st?(st.visits+(st.visits_30?' ('+st.visits_30+' this month)':'')):String(localVisits[x.id]||0); }},
+      {label:'Last visit',cell:function(x){ var st=cStat(x.id); return st&&st.last_visit?fmtDate(st.last_visit):''; }},
+      mgr?{label:'Spent',num:true,cell:function(x){ var v=spentOf(x); return v?thb(v):''; }}:null,
+      {label:'Level',cell:function(x){return chip(TIERS[x.tier]||'Train');}},
+      show==='all'?{label:'Pricing',cell:function(x){ var g=x.price_group||'standard'; return g==='standard'?'Standard':chip(GROUPS[g],'warn'); }}:null,
+      {label:'Contact',cell:function(x){return x.email||x.phone||'';}},
+      show==='out'?{label:'',cell:function(x){ return reviewPhone(x)?btn('Remind on WhatsApp',function(){ renewAsk(x,out[x.id]); },'small'):btn('Sell a package',function(){ sellPackage(x); },'small'); }}:null
+    ].filter(Boolean);
+  if(!staffish) cols=cols.filter(function(c){ return c.label!=='Last visit'; });
   return [
     pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
+    outIds.length&&show!=='out'&&!q?h('div',{class:'panel pad row owebox'},h('b',null,outIds.length+' package'+(outIds.length===1?'':'s')+' running out'),h('span',{class:'sub'},'Ending within a week or 2 visits or fewer left, with nothing new lined up.'),btn('Show them',function(){ ui.cshow='out'; schedule(); },'primary small')):null,
     (function(){ var due=q?[]:reviewDue(); return due.length?h('div',{class:'panel pad'},h('b',null,'Ask for a Google review'),h('p',{class:'sub'},'These people are a week or two in, or just checked out. One tap opens WhatsApp with the review link ready to send.',me&&me.role==='manager'?[' ',linkBtn('Change the message',editReviewMsg)]:null),
       h('div',{class:'row',style:'flex-wrap:wrap'},due.map(function(d){ return btn(d.c.name+' ('+d.why+')',function(){ reviewAsk(d.c); },'small'); }))):null; })(),
-    h('div',{class:'row'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }})),
-    table([
-      {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),newTag(x),exChip(x),x.is_agency?[' ',chip('Agency')]:null];}},
-      {label:'Level',cell:function(x){return chip(TIERS[x.tier]||'Train');}},
-      {label:'Pricing',cell:function(x){ var g=x.price_group||'standard'; return g==='standard'?'Standard':chip(GROUPS[g],'warn'); }},
-      {label:'Contact',cell:function(x){return x.email||x.phone||'';}},
-      {label:'Package',cell:function(x){ var a=S.purchases.filter(function(p){return p.customer_id===x.id&&stateOf(p,day).ok;})[0]; return a?a.package_name:chip('None active'); }}],
-      list,q?'No customer matches that search.':'No customers yet. Add your first customer to start selling packages and checking people in.')
+    h('div',{class:'row wrap'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }}),showSel,show!=='all'?h('span',{class:'sub'},list.length+' '+(list.length===1?'person':'people')):null),
+    show==='out'?h('p',{class:'sub'},'Remind on WhatsApp opens a message about renewing. You can change it before you send.'):null,
+    table(cols,list,q?'No customer matches that search.':show!=='all'?'Nobody in '+label.toLowerCase()+' right now.':'No customers yet. Add your first customer to start selling packages and checking people in.')
   ];
 }
 function vPackages(){
@@ -5354,6 +5410,23 @@ function backupSection(){
     h('p',{class:'sub',style:'margin:0'},'Every night at 3am the app saves a full copy of all its data, and keeps the last 14 nights. '+(last?'Last copy: '+new Date(last.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+', '+last.rows+' records. ':'')+
       'Those copies sit in the same place as the app, so also tap Download backup once a week and save the file to Google Drive. That copy is yours, wherever the app is.')));
 }
+// AI use this month (captions, web pages, receipts). The monthly allowance is set by Muay Friend; when it is used up the AI buttons say so until the 1st.
+var AIU=null, AIU_AT=0;
+function loadAiUsage(){ if(AIU_AT&&Date.now()-AIU_AT<60000) return; AIU_AT=Date.now();
+  sb.rpc('ai_usage_summary').then(function(res){ AIU=res.error?{error:errText(res.error)}:res.data; schedule(); },function(){}); }
+function aiUsageSection(){ loadAiUsage();
+  var u=AIU, names={social:'Social media captions',pages:'Web pages',receipt:'Receipt reading'};
+  if(!u) return section('AI use this month',null,h('div',{class:'panel pad'},h('p',{class:'sub'},'Loading...')));
+  if(u.error) return section('AI use this month',null,h('div',{class:'panel pad'},h('p',{class:'sub'},'Could not load: '+u.error)));
+  var lim=u.limit, used=Number(u.used)||0, pct=lim?Math.min(100,Math.round(used*100/lim)):0;
+  var by=Object.keys(u.by_fn||{}).sort(function(a,b){ return u.by_fn[b]-u.by_fn[a]; });
+  return section('AI use this month',btn('Refresh',function(){ AIU_AT=0; loadAiUsage(); },'small'),h('div',{class:'panel pad'},
+    h('p',null,h('b',null,used+(lim?' of '+lim:'')+' AI request'+(used===1?'':'s')),lim?' used this month':' this month, no limit on your plan'),
+    lim?h('div',{class:'aibar',role:'progressbar','aria-valuemin':'0','aria-valuemax':String(lim),'aria-valuenow':String(used)},h('i',{style:'width:'+pct+'%',class:pct>=90?'hot':''})):null,
+    lim&&used>=lim?h('p',null,chip('Used up','bad'),' The AI buttons are paused until the 1st of next month.'):lim&&pct>=80?h('p',null,chip('Nearly used up','warn')):null,
+    by.length?h('p',{class:'sub'},by.map(function(k){ return (names[k]||k)+': '+u.by_fn[k]; }).join(', ')):null,
+    h('p',{class:'sub'},'Last month: '+(Number(u.last_month)||0)+'. The count starts again on the 1st of each month.')));
+}
 function vSettings(){
   return [pageHead('Settings'),
     backupSection(),
@@ -5362,6 +5435,7 @@ function vSettings(){
     me.role==='manager'?welcomeSection():null,
     me.role==='manager'?reviewSection():null,
     me.role==='manager'?themeSection():null,
+    me.role==='manager'?aiUsageSection():null,
     promoSection(),
     webPhotosSection(),
     webTextSection(),

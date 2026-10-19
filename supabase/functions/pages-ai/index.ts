@@ -99,11 +99,15 @@ async function ask(b: Record<string, unknown>) {
   }
   parts.push("Reply with the whole page as JSON only.");
   content.push({ type: "text", text: parts.join("\n\n") });
+  const slot = await admin.rpc("ai_usage_take", { p_fn: "pages" });
+  if (slot.error) return { error: "Could not check the AI allowance. Try again." };
+  if (!slot.data) return { error: "This month's AI allowance is used up. It starts again on the 1st of next month." };
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({ model: MODEL, max_tokens: 12000, system: VOICE, messages: [{ role: "user", content }] }),
   });
   const j = await r.json().catch(() => ({}));
+  await admin.from("ai_usage").update({ in_tokens: j?.usage?.input_tokens ?? null, out_tokens: j?.usage?.output_tokens ?? null, ok: r.ok }).eq("id", slot.data);
   if (!r.ok) return { error: "The AI said: " + (j?.error?.message ?? r.status) };
   const out = String((j.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join(""));
   try {
