@@ -1309,6 +1309,13 @@ function purchaseLine(p,st){ var bits=[p.package_name||'Package'];
   return bits.join(', '); }
 function stateChip(st){ return chip(st.label, st.ok?(st.status==='active'?'ok':null):'bad'); }
 function arrivedChip(p){ return p.arrived_at?chip('Arrived '+bkkTime(p.arrived_at)+(p.arrived_by==='customer'?' (own app)':''),'ok'):null; }
+// a private that was not booked ahead: book it for now and mark them as arrived in one go
+function privNow(c){
+  var d=new Date(), m=d.getMinutes(), hh=d.getHours(); if(m<15) m=0; else if(m<45) m=30; else { m=0; hh=(hh+1)%24; }
+  var p={date:ymd(d),time:(hh<10?'0':'')+hh+':'+(m<10?'0':'')+m,status:'confirmed',arrived_at:d.toISOString(),arrived_by:'desk'};
+  if(c) p.customer_id=c.id;
+  editPrivate(p);
+}
 function privArrived(p,name){ setPrivate(p,{arrived_at:new Date().toISOString(),arrived_by:'desk'},(name||'Customer')+' is here.'); }
 
 /* declining a private request: a reason the customer sees, and up to 3 other times they can take with one tap */
@@ -4860,6 +4867,7 @@ function vToday(){
   if(q) hits=sortBy(S.customers.filter(function(c){ return !c.is_agency&&[c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
   var search=h('input',{id:'q',class:'search',type:'search',placeholder:'Type a name, email or phone',value:ui.q,'aria-label':'Find a customer to check in',oninput:function(ev){ ui.q=ev.target.value; schedule(); }});
   var targets=todays.map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
+    .concat([{key:'p:private',kind:'private',label:'Private lesson'}])
     .concat(FACILITIES.map(function(f){ return {key:'f:'+f,kind:'facility',name:f,label:f}; }));
   if(ui.targetAuto||!targets.some(function(t){return t.key===ui.target;})){
     var cut=shiftTime(timeNow(),-45), cls=targets.filter(function(t){return t.kind==='class';});
@@ -4878,6 +4886,9 @@ function vToday(){
     else { var live=ps.filter(function(x){return x.st.ok;})[0], pk=S.purchases.filter(function(p){ return p.customer_id===c.id&&isPrivatePack(p)&&!p.cancelled&&stateOf(p,day).ok; })[0];
       right=h('div',{class:'row'},pk&&!ps.length?chip('Privates only: '+left(pk)+' of '+pk.class_limit+' left to book'):chip(live?live.p.package_name+' '+live.can.reason:(ps.length?ps[ps.length-1].st.label:'No group package'),'bad'),btn('Sell a package',function(){ sellPackage(c); },'small')); }
     var privToday=sortBy(S.privates.filter(function(x){ return x.customer_id===c.id&&x.date===day&&(x.status==='confirmed'||x.status==='done'); }),'time');
+    if(target&&target.kind==='private'){ var pk2=S.purchases.filter(function(p){ return p.customer_id===c.id&&isPrivatePack(p)&&!p.cancelled&&stateOf(p,day).ok; })[0];
+      right=h('div',{class:'row wrap'},pk2?chip('Private pack: '+left(pk2)+' of '+pk2.class_limit+' left','ok'):null,
+        btn(privToday.length?'Another private now':'Private now: check in',function(){ privNow(c); },privToday.length?'small':'primary small')); }
     if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
       return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length?right:null);
     return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),newTag(c),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
@@ -4895,8 +4906,8 @@ function vToday(){
     dashTodo(),
     staffToday(false),
     coachBoardToday(),
-    section('Check someone in',btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
-      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
+    section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
+      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
     orders.length?section('App orders waiting for payment',null,table([
       {label:'Customer',cell:function(p){return linkBtn(nameOf('customers',p.customer_id),function(){ openCustomer(p.customer_id); });}},
       {label:'Package',cell:function(p){return p.package_name;}},
