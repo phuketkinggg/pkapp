@@ -114,7 +114,7 @@ begin
   end loop;
 
   -- packages bought: one active training package each, plus private packs for some
-  for r in select c.id, row_number() over (order by c.created_at) n from public.customers c loop
+  for r in select c.id, (row_number() over (order by c.created_at))::int n from public.customers c loop
     select * into pk from public.packages where slug = case
       when r.n=1 then 'three-month' when r.n%9=0 then 'dtv-6' when r.n%7=0 then 'recovery-month' when r.n%5=0 then 'ten-class'
       when r.n%4=0 then 'one-week' when r.n%13=0 then 'kids-month' else 'one-month' end;
