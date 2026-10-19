@@ -495,6 +495,12 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .wpsec{margin-bottom:12px;display:flex;flex-direction:column;gap:8px}.wphead{align-items:center}.wphead .pmini{margin-left:auto}.wp2>.field{flex:1;min-width:200px}.wpbtn{align-items:flex-end}.wpbtn>.field{flex:1;min-width:160px}
 .wpimg{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.wpimg img,.wpnoimg{width:160px;aspect-ratio:16/10;object-fit:cover;border-radius:8px;background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
 .wpitems{display:grid;gap:8px}.wpitem{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}.wpitem>.pmini{align-self:flex-end}.wpai{display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--gold);margin-bottom:12px}
+.accbar{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}.accbar .row{align-items:center}.acccards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-bottom:12px}
+.acccard{display:flex;flex-direction:column;gap:10px}.acccard.total{border-left:4px solid var(--gold)}.accnums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.accnums small{display:block;color:var(--muted);font-size:12px}.accnums span{font-weight:700;font-size:17px}
+.accin{color:var(--ok)}.accout{color:var(--bad)}.accnotes{border-left:4px solid var(--warn)}.accnotes p{margin:4px 0}
+.accrc{display:grid;grid-template-columns:200px 1fr;gap:14px;margin-bottom:12px}.accrc.focus{outline:3px solid var(--gold)}.accrcimgw{display:block}.accrcimgw img,.accrcimg{width:100%;max-height:300px;object-fit:contain;border-radius:8px;background:var(--sunken);display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-size:13px}
+.accrcf{display:flex;flex-direction:column;gap:8px}.accrcg{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.accrcg .field{margin:0}
+@media (max-width:640px){.accrc{grid-template-columns:1fr}.accnums span{font-size:15px}}
 </style>
 </head>
 <body>
@@ -593,7 +599,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -3304,6 +3310,161 @@ function wpgEditor(){
       sb.rpc('site_page_remove',{p_id:p.id}).then(must).then(function(){ WPG.edit=null; wpgLoad(); toast('Deleted.'); }).catch(function(e){ toast(errText(e)); }); }},'Delete page'):null)];
 }
 
+/* ---------- Accounts: money in from everything the app records, money out from receipts, bills and coach shares, for each business ---------- */
+var ACC={data:null,busy:false,from:null,to:null,tab:'overview',biz:'all',rc:null};
+var BIZ=['Phuket King Gym','Pangea Resort'];
+var ACC_DEPTS={'Phuket King Gym':['Gym training','Privates','Spa','Visa and DTV','Gym shop','Gym','Office','Marketing','Maintenance','Other'],'Pangea Resort':['Rooms','Pangea Cafe','Pangea Resort','Housekeeping','Maintenance','Office','Marketing','Other']};
+var ACC_OUT=['Staff wages','Coach commission','Rent','Electricity','Water','Internet and phone','Food and drink stock','Cafe and drinks supplies','Shop stock','Spa supplies','Cleaning and laundry','Repairs and maintenance','Equipment','Marketing and ads','Software and subscriptions','Bank and card fees','Visa and government fees','Transport and fuel','Office and admin','Professional fees','Tax','Insurance','Owner drawings','Other'];
+var ACC_IN=['Booking site payout','Agent payment','Event or fight income','Sponsorship','Refund received','Other income'];
+var ACC_MOVE=['Staff meals','Staff room','Shared bill','Loan','Repayment','Other'];
+var ACC_M={cash:'Cash',transfer:'Transfer',qr:'Scan (PromptPay)',scan:'Scan (PromptPay)',card:'Card',stripe:'Card (online)',agent:'Agent',room:'Room bill'};
+function accM(m){ return ACC_M[m]||m||'Other'; }
+function accMonth(d){ return d.slice(0,7); }
+function accRange(k){ var t=ymd(new Date()), y=t.slice(0,4), m=Number(t.slice(5,7));
+  if(k==='last'){ var d=new Date(Number(y),m-2,1); return [ymd(d),ymd(new Date(d.getFullYear(),d.getMonth()+1,0))]; }
+  if(k==='year') return [y+'-01-01',t];
+  if(k==='quarter'){ var q=Math.floor((m-1)/3)*3; return [ymd(new Date(Number(y),q,1)),t]; }
+  return [t.slice(0,8)+'01',t]; }
+function accLoad(){ if(!ACC.from){ var r=accRange('month'); ACC.from=r[0]; ACC.to=r[1]; } ACC.busy=true;
+  return sb.rpc('accounts_data',{p_from:ACC.from,p_to:ACC.to}).then(must).then(function(d){ ACC.busy=false; ACC.data=d; ACC.err=null; schedule(); })
+    .catch(function(e){ ACC.busy=false; ACC.err=errText(e); schedule(); }); }
+function accReload(){ ACC.data=null; return accLoad(); }
+/* a "between the businesses" line is money out for one and money in for the other */
+function accFlat(lines){ var out=[]; lines.forEach(function(l){ var a=Number(l.a)||0;
+  if(l.t==='move'){ out.push(Object.assign({},l,{t:'out',a:a,move:true,dep:'Between the businesses',cat:l.cat||'Between the businesses',what:'To '+l.to+': '+l.what})); out.push(Object.assign({},l,{t:'in',b:l.to,a:a,move:true,dep:'Between the businesses',cat:l.cat||'Between the businesses',what:'From '+l.b+': '+l.what})); }
+  else out.push(Object.assign({},l,{a:a})); }); return out; }
+function accSum(list){ return list.reduce(function(t,l){ return t+l.a; },0); }
+function accGroup(list,key){ var g={}; list.forEach(function(l){ var k=typeof key==='function'?key(l):l[key]; (g[k]=g[k]||[]).push(l); });
+  return Object.keys(g).map(function(k){ return {k:k,list:g[k],sum:accSum(g[k]),n:g[k].length}; }).sort(function(a,b){ return b.sum-a.sum; }); }
+function accThb(n){ var v=Math.round(Number(n)||0); return (v<0?'-':'')+Math.abs(v).toLocaleString('en-US')+' THB'; }
+function vAccounts(){
+  var d=ACC.data; if(!d){ if(!ACC.busy) accLoad(); return [pageHead('Accounts',''),h('div',{class:'panel empty'},ACC.err||'Loading.')]; }
+  var all=accFlat(d.lines), lines=ACC.biz==='all'?all:all.filter(function(l){ return l.b===ACC.biz; });
+  var from=h('input',{type:'date',id:'acc-from',value:ACC.from}), to=h('input',{type:'date',id:'acc-to',value:ACC.to});
+  function setR(a,b){ ACC.from=a; ACC.to=b; accReload(); }
+  from.addEventListener('change',function(){ if(from.value) setR(from.value,ACC.to<from.value?from.value:ACC.to); }); to.addEventListener('change',function(){ if(to.value) setR(ACC.from>to.value?to.value:ACC.from,to.value); });
+  var period=h('div',{class:'panel pad accbar'},h('div',{class:'row'},h('label',{for:'acc-from'},'From'),from,h('label',{for:'acc-to'},'to'),to),
+    h('div',{class:'row'},[['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
+    h('div',{class:'ctabs small'},[['all','Both businesses']].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
+  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
+  var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
+    h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Download for the accountant',function(){ accCsv(all); })));
+  var body=ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
+  return [head,period,tabs,body];
+}
+function accOverview(lines,all,d){
+  var bizs=ACC.biz==='all'?BIZ:[ACC.biz];
+  var cards=bizs.map(function(b){ var L=lines.filter(function(l){ return l.b===b; }), inn=accSum(L.filter(function(l){ return l.t==='in'; })), out=accSum(L.filter(function(l){ return l.t==='out'; }));
+    return h('div',{class:'panel pad acccard'},h('b',null,b),h('div',{class:'accnums'},h('div',null,h('small',null,'Money in'),h('span',{class:'accin'},accThb(inn))),h('div',null,h('small',null,'Money out'),h('span',{class:'accout'},accThb(out))),
+      h('div',null,h('small',null,inn-out>=0?'Profit':'Loss'),h('span',{class:inn-out>=0?'accin':'accout'},accThb(inn-out))))); });
+  var ext=lines.filter(function(l){ return !l.move; }), inn=accSum(ext.filter(function(l){ return l.t==='in'; })), out=accSum(ext.filter(function(l){ return l.t==='out'; }));
+  if(ACC.biz==='all') cards.push(h('div',{class:'panel pad acccard total'},h('b',null,'Together'),h('div',{class:'accnums'},h('div',null,h('small',null,'Money in'),h('span',{class:'accin'},accThb(inn))),h('div',null,h('small',null,'Money out'),h('span',{class:'accout'},accThb(out))),h('div',null,h('small',null,inn-out>=0?'Profit':'Loss'),h('span',{class:inn-out>=0?'accin':'accout'},accThb(inn-out)))),h('small',{class:'sub'},'Money between the two businesses is left out here.')));
+  var methods=accGroup(ext,function(l){ return accM(l.m); }).map(function(g){ return {k:g.k,i:accSum(g.list.filter(function(l){ return l.t==='in'; })),o:accSum(g.list.filter(function(l){ return l.t==='out'; }))}; });
+  var months={}; (d.months||[]).forEach(function(r){ if(ACC.biz!=='all'&&r.b!==ACC.biz) return; var m=months[r.m]=months[r.m]||{i:0,o:0}; m.i+=Number(r.in)||0; m.o+=Number(r.out)||0; });
+  var mk=Object.keys(months).sort();
+  var notes=[];
+  if(Number(d.before_app)) notes.push(accThb(d.before_app)+' was recorded as paid before the app, so it is not counted here (it is in your old spreadsheet).');
+  if(d.no_amount) notes.push(d.no_amount+' receipt'+(d.no_amount>1?'s have':' has')+' no amount yet, so '+(d.no_amount>1?'they are':'it is')+' not counted. Use Sort receipts.');
+  if(Number(d.room_sales)&&(ACC.biz==='all'||ACC.biz==='Pangea Resort')) notes.push('Rooms sold for nights in this period: '+accThb(d.room_sales)+'. Room money shows here when it is paid. For Booking.com, Agoda or Airbnb, add each payout with Add money in, as "Booking site payout".');
+  return [h('div',{class:'acccards'},cards),
+    mk.length>1?section('Last 12 months',null,h('div',{class:'panel pad'},pChart([{label:'Money in',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].i)}; })},{label:'Money out',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].o)}; })}],'THB'),
+      table([{label:'Month',cell:function(m){ return parseYmd(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }},{label:'In',num:true,cell:function(m){ return accThb(months[m].i); }},{label:'Out',num:true,cell:function(m){ return accThb(months[m].o); }},
+        {label:'Profit',num:true,cell:function(m){ var p=months[m].i-months[m].o; return h('span',{class:p>=0?'accin':'accout'},accThb(p)); }}],mk.slice().reverse(),''))):null,
+    section('Money by payment method',null,table([{label:'Method',cell:function(x){ return x.k; }},{label:'In',num:true,cell:function(x){ return accThb(x.i); }},{label:'Out',num:true,cell:function(x){ return accThb(x.o); }},{label:'Difference',num:true,cell:function(x){ return accThb(x.i-x.o); }}],methods,'Nothing in this period.')),
+    h('p',{class:'sub narrow'},'Check these against the cash box and the bank statement. Scan (PromptPay) and Transfer both land in the bank account.'),
+    notes.length?h('div',{class:'panel pad accnotes'},notes.map(function(n){ return h('p',null,n); })):null];
+}
+function accIn(lines){ var L=lines.filter(function(l){ return l.t==='in'; });
+  if(!L.length) return h('div',{class:'panel empty'},'No money in for this period.');
+  return accGroup(L,function(l){ return l.b+'|'+l.dep; }).map(function(g){ var p=g.k.split('|');
+    return section(p[1]+(ACC.biz==='all'?', '+p[0]:'')+': '+accThb(g.sum),null,table([{label:'What sold',cell:function(x){ return x.k; }},{label:'Times',num:true,cell:function(x){ return String(x.n); }},{label:'Total',num:true,cell:function(x){ return accThb(x.sum); }}],
+      accGroup(g.list,function(l){ return l.src==='entry'?(l.cat||'Other income'):l.what; }),'')); }); }
+function accOut(lines,d){ var L=lines.filter(function(l){ return l.t==='out'; });
+  return [d.unsorted?h('div',{class:'panel pad accnotes'},h('p',null,d.unsorted+' receipt'+(d.unsorted>1?'s are':' is')+' not sorted into a category yet.'),btn('Sort receipts',function(){ ACC.tab='receipts'; schedule(); },'small')):null,
+    L.length?accGroup(L,'cat').map(function(g){ return section(g.k+': '+accThb(g.sum),null,table([{label:'Date',cell:function(x){ return fmtDate(x.d); }},{label:'Business',cell:function(x){ return h('span',null,x.b,h('div',{class:'sub'},x.dep||'')); }},
+        {label:'What',cell:function(x){ return x.what; }},{label:'Paid by',cell:function(x){ return accM(x.m); }},{label:'Amount',num:true,cell:function(x){ return accThb(x.a); }},
+        {label:'',cell:function(x){ return x.src==='entry'&&!x.move?btn('Edit',function(){ accEntryOpen(x); },'small'):x.src==='receipt'?btn('Sort',function(){ ACC.tab='receipts'; ACC.rcFocus=x.id; schedule(); },'small'):x.src==='commission'?h('small',{class:'sub'},'From Commission'):h('small',{class:'sub'},x.move?'Between businesses':''); }}],g.list,'')); })
+      :h('div',{class:'panel empty'},'No money out for this period.')]; }
+function accEntryOpen(x){ var e=(ACC.data.lines||[]).filter(function(l){ return l.id===x.id; })[0]; if(!e) return; accEntry({id:e.id,kind:e.t,day:e.d,business:e.b,to_business:e.to,department:e.dep,category:e.cat,amount:e.a,method:e.m,party:(e.what||'').replace(/ \(.*\)$/,''),note:((e.what||'').match(/\((.*)\)$/)||[])[1]||''}); }
+function accEntry(e){ e=e||{kind:'out',day:ymd(new Date()),business:ACC.biz!=='all'?ACC.biz:BIZ[0],method:'transfer'};
+  function cats(k){ return (k==='in'?ACC_IN:k==='move'?ACC_MOVE:ACC_OUT).map(function(c){ return [c,c]; }); }
+  function depts(b){ return [['','None']].concat((ACC_DEPTS[b]||[]).map(function(x){ return [x,x]; })); }
+  openForm({title:e.id?'Edit entry':'Add money in or out',values:{kind:e.kind,day:e.day,business:e.business,to_business:e.to_business||BIZ.filter(function(b){ return b!==e.business; })[0],department:e.department||'',category:e.category||(e.kind==='in'?ACC_IN[0]:e.kind==='move'?ACC_MOVE[0]:ACC_OUT[0]),amount:e.amount,method:e.method||'transfer',party:e.party||'',note:e.note||''},
+    saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'kind',label:'Type',type:'select',options:[['out','Money out (a bill or cost)'],['in','Money in (not already in the app)'],['move','Between the two businesses']],onChange:function(v,set,get,so,show){ so('category',cats(v)); set('category',cats(v)[0][0]); show('to_business',v==='move'); show('department',v!=='move'); }},
+      {key:'day',label:'Date',type:'date',required:true},
+      {key:'business',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; }),onChange:function(v,set,get,so){ so('department',depts(v)); so('to_business',BIZ.filter(function(b){ return b!==v; }).map(function(b){ return [b,b]; })); }},
+      {key:'to_business',label:'Pays the other business',type:'select',options:BIZ.filter(function(b){ return b!==e.business; }).map(function(b){ return [b,b]; }),hide:e.kind!=='move',hint:'For example the gym paying the resort for a staff room, or the resort paying the gym for staff training.'},
+      {key:'department',label:'Department',type:'select',options:depts(e.business),hide:e.kind==='move'},
+      {key:'category',label:'Category',type:'select',options:cats(e.kind)},
+      {key:'amount',label:'Amount in THB',type:'number',required:true},
+      {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan (PromptPay)'],['cash','Cash'],['card','Card']]},
+      {key:'party',label:e.kind==='in'?'From':'To (supplier or person)'},
+      {key:'note',label:'Note'}],
+    onDelete:e.id?function(){ return sb.rpc('acc_entry_void',{p_id:e.id}).then(must).then(accReload); }:null,
+    onSave:function(v){ return sb.rpc('acc_entry_save',{p:Object.assign({id:e.id||null},v)}).then(must).then(accReload); }}); }
+function accBills(d){ var R=(d.recurring||[]).filter(function(r){ return ACC.biz==='all'||r.business===ACC.biz; });
+  return [h('div',{class:'row'},btn('Add a monthly bill',function(){ accBill(); },'primary')),
+    h('p',{class:'sub'},'Bills that are the same every month, like rent, internet or a salary. Each one adds itself to Money out on its day of the month.'),
+    table([{label:'Bill',cell:function(r){ return linkBtn((r.party||r.category)+(r.note?' ('+r.note+')':''),function(){ accBill(r); }); }},{label:'Business',cell:function(r){ return r.business; }},{label:'Category',cell:function(r){ return r.category; }},
+      {label:'Day',num:true,cell:function(r){ return String(r.day_of_month); }},{label:'Amount',num:true,cell:function(r){ return accThb(r.amount); }},{label:'',cell:function(r){ return r.active?chip('On','ok'):chip('Stopped'); }}],R,'No monthly bills yet.'),
+    R.length?h('p',{class:'sub'},'Monthly total: '+accThb(R.filter(function(r){ return r.active&&r.kind==='out'; }).reduce(function(t,r){ return t+Number(r.amount); },0))+' out.'):null]; }
+function accBill(r){ r=r||{kind:'out',business:ACC.biz!=='all'?ACC.biz:BIZ[0],method:'transfer',day_of_month:1,active:true,from_month:ymd(new Date()).slice(0,8)+'01'};
+  openForm({title:r.id?'Edit monthly bill':'Add a monthly bill',values:{business:r.business,department:r.department||'',category:r.category||'Rent',party:r.party||'',amount:r.amount,day_of_month:r.day_of_month,method:r.method,from_month:String(r.from_month||'').slice(0,10),note:r.note||'',active:r.active!==false},
+    saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'party',label:'Paid to',required:true,hint:'For example: Landlord, AIS internet, Kru Max salary.'},
+      {key:'business',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; }),onChange:function(v,set,get,so){ so('department',[['','None']].concat((ACC_DEPTS[v]||[]).map(function(x){ return [x,x]; }))); }},
+      {key:'department',label:'Department',type:'select',options:[['','None']].concat((ACC_DEPTS[r.business]||[]).map(function(x){ return [x,x]; }))},
+      {key:'category',label:'Category',type:'select',options:ACC_OUT.map(function(c){ return [c,c]; })},
+      {key:'amount',label:'Amount in THB',type:'number',required:true},{key:'day_of_month',label:'Day of the month it is paid',type:'number',hint:'1 to 28.'},
+      {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan (PromptPay)'],['cash','Cash'],['card','Card']]},
+      {key:'from_month',label:'Starting from',type:'date',hint:'Months before this are not added. Pick an earlier month to fill in past months.'},
+      {key:'note',label:'Note'},{key:'active',label:'On (untick to stop it)',type:'checkbox'}],
+    onSave:function(v){ return sb.rpc('acc_recurring_save',{p:Object.assign({id:r.id||null,kind:'out'},v)}).then(must).then(accReload); }}); }
+/* sorting receipts: photo next to the fields, AI reads it, one tap to save */
+function accReceipts(){
+  var R=ACC.rc; if(!R||R.from!==ACC.from||R.to!==ACC.to){ if(!ACC.rcBusy){ ACC.rcBusy=true; sb.rpc('receipts_list',{p_from:ACC.from,p_to:ACC.to}).then(must).then(function(l){ ACC.rcBusy=false; ACC.rc={from:ACC.from,to:ACC.to,list:l,all:false}; schedule(); }).catch(function(e){ ACC.rcBusy=false; toast(errText(e)); }); }
+    return h('div',{class:'panel empty'},'Loading the receipts.'); }
+  var list=R.list.filter(function(x){ return R.all||!x.category||x.amount==null; }).filter(function(x){ return ACC.biz==='all'||x.business===ACC.biz; });
+  var readAll=btn('Read all with AI',function(){ var todo=list.filter(function(x){ return !x._ai; }); if(!todo.length) return; readAll.disabled=true; var n=0;
+    todo.reduce(function(p,x){ return p.then(function(){ readAll.textContent='Reading '+(++n)+' of '+todo.length+'...'; return accAi(x).catch(function(){}); }); },Promise.resolve()).then(function(){ readAll.disabled=false; readAll.textContent='Read all with AI'; schedule(); }); },'primary');
+  return [h('div',{class:'row'},list.length?readAll:null,h('label',{class:'check'},h('input',{type:'checkbox',checked:R.all?true:null,onchange:function(ev){ R.all=ev.target.checked; schedule(); }}),h('span',null,'Show sorted receipts too'))),
+    h('p',{class:'sub'},'The AI reads each photo: shop, date, amount and category. Check it, change anything, then Save.'),
+    list.length?list.map(accRcCard):h('div',{class:'panel empty'},'All receipts in this period are sorted.')]; }
+function accAi(x){ x._ai='busy'; schedule();
+  return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
+    return fetch(SB_URL+'/functions/v1/receipt-ai',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(t||'')},body:JSON.stringify({id:x.id})}).then(function(y){ return y.json(); }); })
+    .then(function(d){ if(d.error) throw {plain:true,message:d.error}; x._ai=d; x._f=Object.assign({},x._f||{},{supplier:d.supplier||x.supplier||'',day:d.day||x.day,amount:d.amount!=null?d.amount:x.amount,method:d.method||x.method,category:d.category||x.category||'',business:d.business||x.business,department:d.department||x.department,note:d.note||x.note||''}); schedule(); })
+    .catch(function(e){ x._ai=null; toast(errText(e)); schedule(); throw e; }); }
+function accRcCard(x){
+  var f=x._f=x._f||{supplier:x.supplier||'',day:x.day,amount:x.amount,method:x.method,category:x.category||'',business:x.business,department:x.department,note:x.note||''}, id='ar'+x.id;
+  function inp(k,a){ a=a||{}; var e=h('input',{id:id+k,type:a.type||'text',step:a.type==='number'?'0.01':null,placeholder:a.ph||null}); e.value=f[k]==null?'':f[k]; e.addEventListener('input',function(){ f[k]=e.value; }); return e; }
+  function sel(k,opts){ var e=h('select',{id:id+k,onchange:function(ev){ f[k]=ev.target.value; if(k==='business') schedule(); }},opts.map(function(o){ return h('option',{value:o[0]},o[1]); })); e.value=f[k]||''; return e; }
+  var deps=(ACC_DEPTS[f.business]||[]).concat(['Gym','Gym shop','Spa','Pangea Resort','Pangea Cafe','Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other']).filter(function(v,i,a){ return a.indexOf(v)===i; });
+  var img=h('div',{class:'accrcimg'},'Loading the photo');
+  if(x.photo_path){ if(x._url) img.replaceChildren(h('img',{src:x._url,alt:'Receipt'})); else if(!x._urlAsked){ x._urlAsked=true; sb.storage.from('receipts').createSignedUrl(x.photo_path,3600).then(function(r){ if(r.data&&r.data.signedUrl){ x._url=r.data.signedUrl; schedule(); } }); } }
+  var save=btn('Save',function(){ var a=f.amount===''||f.amount==null?null:Number(f.amount); if(a==null||isNaN(a)){ toast('Type the amount.'); return; } if(!f.category){ toast('Choose a category.'); return; } save.disabled=true;
+    sb.rpc('receipt_save',{p:{id:x.id,day:f.day,amount:a,method:f.method,supplier:f.supplier,note:f.note,status:'checked'}}).then(must)
+      .then(function(){ return sb.rpc('receipt_category',{p_id:x.id,p_category:f.category,p_business:f.business,p_department:f.department}).then(must); })
+      .then(function(){ toast('Saved.'); Object.assign(x,{amount:a,category:f.category,business:f.business,department:f.department,supplier:f.supplier,day:f.day,status:'checked'}); ACC.data=null; accLoad(); schedule(); })
+      .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
+  return h('div',{class:'panel pad accrc'+(ACC.rcFocus===x.id?' focus':'')},
+    h('a',{class:'accrcimgw',href:x._url||null,target:'_blank',rel:'noopener'},x._url?h('img',{src:x._url,alt:'Receipt photo'}):img),
+    h('div',{class:'accrcf'},h('small',{class:'sub'},'Added by '+(x.by||'staff')+', '+fmtDate(x.day)+(x.status==='checked'?', checked':'')),
+      h('div',{class:'accrcg'},h('div',{class:'field'},h('label',{for:id+'supplier'},'Shop or supplier'),inp('supplier')),h('div',{class:'field'},h('label',{for:id+'day'},'Date'),inp('day',{type:'date'})),
+        h('div',{class:'field'},h('label',{for:id+'amount'},'Amount THB'),inp('amount',{type:'number'})),h('div',{class:'field'},h('label',{for:id+'method'},'Paid by'),sel('method',[['transfer','Transfer'],['scan','Scan (PromptPay)'],['cash','Cash'],['card','Card']])),
+        h('div',{class:'field'},h('label',{for:id+'category'},'Category'),sel('category',[['','Choose']].concat(ACC_OUT.map(function(c){ return [c,c]; })))),
+        h('div',{class:'field'},h('label',{for:id+'business'},'Business'),sel('business',BIZ.map(function(b){ return [b,b]; }))),
+        h('div',{class:'field'},h('label',{for:id+'department'},'Department'),sel('department',deps.map(function(v){ return [v,v]; }))),
+        h('div',{class:'field'},h('label',{for:id+'note'},'Note'),inp('note'))),
+      h('div',{class:'row'},btn(x._ai==='busy'?'Reading...':x._ai?'Read again':'Read with AI',function(){ accAi(x).catch(function(){}); },'small'),save))); }
+function accCsv(all){
+  var rows=[['Date','Business','Department','Type','Category','Description','Paid by','Amount THB','Source']];
+  all.slice().sort(function(a,b){ return a.d<b.d?-1:a.d>b.d?1:0; }).forEach(function(l){ rows.push([l.d,l.b,l.dep||'',l.move?(l.t==='in'?'In, from the other business':'Out, to the other business'):(l.t==='in'?'In':'Out'),l.cat||'',l.what||'',accM(l.m),(Math.round(l.a*100)/100).toFixed(2),
+    ({payment:'App payment',shop:'Till',receipt:'Receipt',commission:'Coach commission',entry:'Entered by hand'})[l.src]||l.src]); });
+  var csv='﻿'+rows.map(function(r){ return r.map(function(c){ c=String(c); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='phuket-king-accounts-'+ACC.from+'-to-'+ACC.to+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }
+
 /* ---------- social media: the AI writes the caption, a manager approves it, the server posts it to Facebook and Instagram on time ---------- */
 var SOC={list:null,busy:false,cfg:null};
 var SOC_FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/social';
@@ -5159,7 +5320,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;
