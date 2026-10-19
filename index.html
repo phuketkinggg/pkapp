@@ -61,6 +61,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .demobar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 16px;background:#17213C;color:#fff;border-bottom:3px solid #2759DA;font-size:15px}
 .demobar[hidden]{display:none}
+.demobar .dback{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;background:#fff;color:#17213C;font-weight:700;text-decoration:none;white-space:nowrap}
+.demobar .dback:hover,.demobar .dback:focus-visible{background:#D7263D;color:#fff}
 .demobar .dnow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .demobar .dtag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#D7263D;color:#fff;border-radius:6px;padding:3px 8px}
 .demobar .drole{font-size:18px;font-weight:700;background:#2759DA;border-radius:999px;padding:6px 16px}
@@ -6794,9 +6796,10 @@ if(!window.supabase||!window.supabase.createClient){
     document.body.insertBefore(dbar,document.body.firstChild);
     var demoBar=function(user){
       var em=String(user&&user.email||'').toLowerCase(), cur=window.DEMO_LOGINS.filter(function(d){ return d.email===em; })[0];
-      if(!user){ dbar.hidden=true; return; }
+      var back=h('a',{class:'dback',href:'../'},'← Muay Friend website');
+      if(!user){ dbar.replaceChildren(back,h('span',{class:'dtag'},'Live demo'),h('span',null,'Pick a role below to look around.')); dbar.hidden=false; return; }
       var say=h('span',{class:'sub',role:'status',style:'color:#C9D3EA'});
-      dbar.replaceChildren(
+      dbar.replaceChildren(back,
         h('div',{class:'dnow'},h('span',{class:'dtag'},'Live demo'),h('span',null,'You are in'),h('b',{class:'drole'},cur?cur.label+' view':'your own login')),
         h('div',{class:'dswitch'},h('span',null,'Switch to:'),window.DEMO_LOGINS.filter(function(d){ return d!==cur; }).map(function(d){
           return h('button',{type:'button',title:d.note,onclick:function(ev){ var bs=dbar.querySelectorAll('button'); for(var i=0;i<bs.length;i++) bs[i].disabled=true; say.textContent='Opening the '+d.label.toLowerCase()+' view.';
