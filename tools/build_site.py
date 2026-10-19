@@ -6,13 +6,14 @@ This copies them into site/ with the links fixed for a website that lives at the
 adds the forwarding for old WordPress addresses (_redirects), robots.txt and sitemap.xml.
 
 Run after changing any website page:   python3 tools/build_site.py
-On switch day, to let Google in:       python3 tools/build_site.py --live
+Hidden test build (no Google):         python3 tools/build_site.py --test
 """
 import os, re, shutil, sys, json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "site")
-LIVE = "--live" in sys.argv
+# the website is live on www.phuketking.com since 19 Oct 2026; --test builds the hidden test version
+LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
 PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html", "page.html"]
