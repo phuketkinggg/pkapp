@@ -57,6 +57,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .tabs2 button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);min-height:40px;border-radius:8px;cursor:pointer}
 .tabs2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
 .login input{width:100%}
+.demobox{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--line);border-radius:10px}
+.demobtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.demobtns .btn{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;white-space:normal;text-align:left;padding:10px 12px;min-height:56px}
+.demobtns small{font-weight:400;opacity:.8;font-size:12px}
 main{flex:1;min-width:0;padding-block:24px;padding-inline:24px}
 #view{max-width:1080px;display:flex;flex-direction:column;gap:24px}
 h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1.05;text-transform:uppercase;letter-spacing:.01em;margin:0;text-wrap:balance}
@@ -6426,6 +6430,15 @@ function showSignIn(){
       mode!=='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='in'; showSignIn(); }},'Back to sign in'):null,
       mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='reset'; showSignIn(); }},'Forgot password'):null,
       mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='link'; showSignIn(); }},'Email me a link instead'):null));
+  // demo builds only (window.DEMO_LOGINS is set by tools/build_demo.py): one tap to try each side of the app
+  if(window.DEMO_LOGINS&&mode==='in'){
+    var dnote=h('p',{class:'sub',role:'status'});
+    form.insertBefore(h('div',{class:'demobox'},h('b',null,'Try the demo'),h('p',{class:'sub'},'Tap a role to look around. Everything resets every night, so change anything you like.'),
+      h('div',{class:'demobtns'},window.DEMO_LOGINS.map(function(d){ return h('button',{type:'button',class:'btn'+(d.main?' primary':''),onclick:function(ev){
+        ev.currentTarget.disabled=true; dnote.textContent='Opening the '+d.label.toLowerCase()+' view.';
+        sb.auth.signInWithPassword({email:d.email,password:d.pw}).then(function(res){ if(res.error) dnote.textContent=authText(res.error); }); }},
+        h('span',null,d.label),h('small',null,d.note)); })),dnote,h('p',{class:'sub'},'Or sign in below.')),form.children[1]);
+  }
   form.addEventListener('submit',function(ev){
     ev.preventDefault(); var v=email.value.trim(), p=pw.value;
     if(!v){ say('Enter your email first.'); email.focus(); return; }
