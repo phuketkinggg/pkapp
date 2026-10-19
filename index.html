@@ -2398,7 +2398,7 @@ setInterval(function(){ if(isDeskRole()&&allReady&&ui.tab==='chat'&&document.vis
 
 
 /* ---------- online courses: videos (YouTube unlisted) and learning materials. Managers build them, members learn in the Learn tab ---------- */
-var SITE_URL='https://new.phuketking.com';
+var SITE_URL='https://www.phuketking.com';
 var CRS={list:null,view:null,lesson:null,busy:false};
 function ytId(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
 function ytFrame(u){ var id=ytId(u); if(!id) return null; return h('div',{class:'lvideo'},h('iframe',{src:'https://www.youtube-nocookie.com/embed/'+id+'?rel=0&modestbranding=1',title:'Lesson video',allow:'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen',allowfullscreen:'',loading:'lazy'})); }
