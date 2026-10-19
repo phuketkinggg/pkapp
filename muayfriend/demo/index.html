@@ -58,6 +58,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .tabs2 button{flex:1;appearance:none;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);min-height:40px;border-radius:8px;cursor:pointer}
 .tabs2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
 .login input{width:100%}
+.thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .demobox{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--line);border-radius:10px}
 .demobtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .demobtns .btn{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;white-space:normal;text-align:left;padding:10px 12px;min-height:56px}
@@ -5360,6 +5361,7 @@ function vSettings(){
     me.role==='manager'?ppSettings():null,
     me.role==='manager'?welcomeSection():null,
     me.role==='manager'?reviewSection():null,
+    me.role==='manager'?themeSection():null,
     promoSection(),
     webPhotosSection(),
     webTextSection(),
@@ -6004,6 +6006,64 @@ function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab='customers'; u
 /* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */
 var kTimer=0, kRefresh=0;
 function pref(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){ return null; } }
+/* ---------- app colours: one brand colour (often taken from the gym's logo) themes the whole app, light and dark ---------- */
+function hexRgb(x){ x=String(x||'').replace('#',''); if(x.length===3) x=x.split('').map(function(c){ return c+c; }).join(''); var n=parseInt(x,16); return isNaN(n)||x.length!==6?null:[n>>16&255,n>>8&255,n&255]; }
+function rgbHex(c){ return '#'+c.map(function(v){ v=Math.max(0,Math.min(255,Math.round(v))); return (v<16?'0':'')+v.toString(16); }).join('').toUpperCase(); }
+function rgbHsl(c){ var r=c[0]/255,g=c[1]/255,b=c[2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,h=0,s2=0,d=mx-mn;
+  if(d){ s2=l>.5?d/(2-mx-mn):d/(mx+mn); h=mx===r?((g-b)/d+(g<b?6:0)):mx===g?((b-r)/d+2):((r-g)/d+4); h*=60; } return [h,s2,l]; }
+function hslHex(h,s2,l){ var k=function(n){ return (n+h/30)%12; }, a=s2*Math.min(l,1-l), f=function(n){ return l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1)); }; return rgbHex([f(0)*255,f(8)*255,f(4)*255]); }
+function relLum(hex){ var c=hexRgb(hex).map(function(v){ v/=255; return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4); }); return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2]; }
+function contrast(a,b){ var x=relLum(a),y=relLum(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); }
+function towards(hex,bg,dir){ var hs=rgbHsl(hexRgb(hex)), l=hs[2], out=hex, i=0; while(contrast(out,bg)<4.5&&i<60){ l=Math.max(0,Math.min(1,l+dir*0.015)); out=hslHex(hs[0],hs[1],l); i++; } return out; }
+function themeVars(accent){
+  var hs=rgbHsl(hexRgb(accent)), h=hs[0], t=Math.min(hs[1],0.6), L={}, D={};
+  L.bg=hslHex(h,0.22*t+0.04,0.955); L.surface='#FFFFFF'; L.sunken=hslHex(h,0.18*t+0.04,0.905); L.line=hslHex(h,0.16*t+0.04,0.83); L.ink=hslHex(h,0.35*t,0.09); L.muted=hslHex(h,0.1*t,0.37);
+  L.gold=accent; L['gold-ink']=towards(accent,L.bg,-1); L['btn-bg']=L.ink; L['btn-fg']=L.bg;
+  D.bg=hslHex(h,0.3*t,0.075); D.surface=hslHex(h,0.24*t,0.115); D.sunken=hslHex(h,0.26*t,0.095); D.line=hslHex(h,0.16*t,0.2); D.ink=hslHex(h,0.2*t,0.94); D.muted=hslHex(h,0.1*t,0.68);
+  D.gold=towards(accent,D.surface,1); D['gold-ink']=D.gold; D['btn-bg']=D.gold; D['btn-fg']=D.bg;
+  return {light:L,dark:D};
+}
+function applyTheme(t){
+  var old=document.getElementById('apptheme'); if(old) old.remove();
+  var acc=t&&hexRgb(t.accent)?rgbHex(hexRgb(t.accent)):null; if(!acc) return;
+  var v=themeVars(acc), css=function(o){ return Object.keys(o).map(function(k){ return '--'+k+':'+o[k]+';'; }).join(''); };
+  var st=document.createElement('style'); st.id='apptheme';
+  st.textContent=':root{'+css(v.light)+'}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){'+css(v.dark)+'color-scheme:dark}}:root[data-theme="dark"]{'+css(v.dark)+'color-scheme:dark}';
+  document.head.appendChild(st);
+  var m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content',v.light.ink);
+}
+(function(){ try{ applyTheme(JSON.parse(pref('app_theme')||'null')); }catch(e){} })();
+function loadTheme(){ return sb.rpc('app_theme').then(function(res){ if(res.error) return; var t=res.data&&res.data.accent?res.data:null; pref('app_theme',t?JSON.stringify(t):null); applyTheme(t); APPTHEME=t; schedule(); }); }
+var APPTHEME=null;
+// colours from a logo: the strongest few colours, ignoring white, black and grey
+function logoColours(file){ return new Promise(function(ok,bad){ var img=new Image(), u=URL.createObjectURL(file);
+  img.onload=function(){ var c=document.createElement('canvas'), n=72; c.width=n; c.height=n; var x=c.getContext('2d'); x.drawImage(img,0,0,n,n);
+    var d=x.getImageData(0,0,n,n).data, B={};
+    for(var i=0;i<d.length;i+=4){ if(d[i+3]<200) continue; var hs=rgbHsl([d[i],d[i+1],d[i+2]]); if(hs[1]<0.25||hs[2]<0.12||hs[2]>0.9) continue;
+      var k=Math.round(hs[0]/15)%24; (B[k]=B[k]||{n:0,r:0,g:0,b:0}); B[k].n++; B[k].r+=d[i]; B[k].g+=d[i+1]; B[k].b+=d[i+2]; }
+    URL.revokeObjectURL(u);
+    ok(Object.keys(B).map(function(k){ var o=B[k]; return {n:o.n,hex:rgbHex([o.r/o.n,o.g/o.n,o.b/o.n])}; }).sort(function(a,b){ return b.n-a.n; }).filter(function(o){ return o.n>=6; }).slice(0,5).map(function(o){ return o.hex; })); };
+  img.onerror=function(){ URL.revokeObjectURL(u); bad({message:'That file could not be read. Try a PNG or JPG of your logo.'}); }; img.src=u; }); }
+var THS={picks:[],note:'',color:null};
+function themeSection(){
+  var cur=APPTHEME&&APPTHEME.accent||'', picks=THS.picks, note=h('p',{class:'sub'},THS.note);
+  var color=h('input',{type:'color',id:'th-color','aria-label':'Choose a colour',value:THS.color||cur.toLowerCase()||'#b88a44'});
+  color.addEventListener('input',function(){ THS.color=color.value; applyTheme({accent:color.value}); });
+  var sw=h('div',{class:'row thsw'});
+  function draw(){ sw.replaceChildren.apply(sw,picks.map(function(c){ return h('button',{type:'button',class:'thchip',style:'background:'+c,'aria-label':'Use '+c,title:c,onclick:function(){ color.value=c.toLowerCase(); THS.color=color.value; applyTheme({accent:c}); }}); })); }
+  draw();
+  var file=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(ev){ var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+    logoColours(f).then(function(cs){ THS.picks=picks=cs; draw(); THS.note=note.textContent=cs.length?'Tap a colour to try it. The whole app changes so you can see it, light and dark. Then tap Save colours.':'No strong colours found in that logo. Choose one with the colour picker.'; if(cs[0]){ color.value=cs[0].toLowerCase(); THS.color=color.value; applyTheme({accent:cs[0]}); } }).catch(function(e){ toast(errText(e)); }); }});
+  function save(acc){ var v=JSON.stringify(acc?{accent:rgbHex(hexRgb(acc))}:{});
+    return sb.from('app_settings').update({value:v,updated_at:new Date().toISOString()}).eq('key','app_theme').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'};
+      THS={picks:[],note:'',color:null}; APPTHEME=acc?{accent:rgbHex(hexRgb(acc))}:null; pref('app_theme',APPTHEME?JSON.stringify(APPTHEME):null); applyTheme(APPTHEME); toast(acc?'Colours saved. Everyone sees them next time the app opens.':'Back to the original colours.'); schedule(); }); }
+  return section('App colours',null,h('div',{class:'panel pad thbox'},
+    h('p',{class:'sub'},'Make the app match your brand. Upload your logo and pick one of its colours, or choose any colour. Buttons, links, highlights and the background tint all follow it, in light and dark mode, and the app keeps text easy to read.'),
+    h('div',{class:'row'},btn('Pick from my logo',function(){ file.click(); },'small'),h('label',{class:'row thpick',for:'th-color'},color,h('span',null,'Or choose a colour')),file),
+    sw,note,
+    h('div',{class:'row'},btn('Save colours',function(){ run(save(color.value),null); },'primary small'),btn('Cancel',function(){ THS={picks:[],note:'',color:null}; applyTheme(APPTHEME); schedule(); },'small'),
+      APPTHEME?btn('Use the original colours',function(){ run(save(null),null); },'small'):null)));
+}
 function startDeskMode(){
   openForm({title:'Desk mode',saveLabel:'Start desk mode',doneMsg:'Desk mode on.',
     note:'This screen becomes a check in screen. Members type their name, tap it, then tap their class. No names show until they type. '+(window.DEMO_LOGINS?'In this demo, tap Staff at the bottom to leave, no password needed. In your own gym it asks for the password for the login in use.':'To leave desk mode you need the password for '+(me.email||currentEmail)+'.')+' Best on a tablet signed in with a front desk login, not a manager one.',
@@ -6626,6 +6686,7 @@ if(!window.supabase||!window.supabase.createClient){
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
   })();
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  loadTheme().catch(function(){});
   sb.auth.onAuthStateChange(function(event,session){
     if(event==='PASSWORD_RECOVERY'){ recovering=true; if(session&&session.access_token&&!recoveryToken) recoveryToken=session.access_token; setTimeout(showNewPassword,0); return; }
     if(recovering){ if(recoveryToken) setTimeout(showNewPassword,0); return; }
