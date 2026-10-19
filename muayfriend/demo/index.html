@@ -5994,7 +5994,7 @@ var kTimer=0, kRefresh=0;
 function pref(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){ return null; } }
 function startDeskMode(){
   openForm({title:'Desk mode',saveLabel:'Start desk mode',doneMsg:'Desk mode on.',
-    note:'This screen becomes a check in screen. Members type their name, tap it, then tap their class. No names show until they type. To leave desk mode you need the password for '+(me.email||currentEmail)+'. Best on a tablet signed in with a front desk login, not a manager one.',
+    note:'This screen becomes a check in screen. Members type their name, tap it, then tap their class. No names show until they type. '+(window.DEMO_LOGINS?'In this demo, tap Staff at the bottom to leave, no password needed. In your own gym it asks for the password for the login in use.':'To leave desk mode you need the password for '+(me.email||currentEmail)+'.')+' Best on a tablet signed in with a front desk login, not a manager one.',
     fields:[],onSave:function(){ pref('pk_kiosk','1'); enterKiosk(); return Promise.resolve(); }});
 }
 /* offers and information shown on the desk mode screen; managers change them in Settings */
@@ -6215,13 +6215,15 @@ function kIdle(ms){ clearTimeout(kTimer); kTimer=setTimeout(kReset,ms); }
 document.addEventListener('pointerdown',function(){ if(ui.tab==='kiosk'&&(ui.kc||ui.kq)&&!ui.kdone) kIdle(30000); },true);
 function exitKiosk(){
   var email=me.email||currentEmail;
+  function leave(){ pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk');
+    try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
+    TABS=staffTabs(me); ui.tab='today'; schedule(); }
+  if(window.DEMO_LOGINS){ leave(); toast('Desk mode off. In your own gym, staff type their password here.'); return; } // demo only: no password to leave desk mode
   openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
     {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:true}],
     onSave:function(v){ return sb.auth.signInWithPassword({email:email,password:v.pw}).then(function(res){
       if(res.error) throw {plain:true,message:/invalid/i.test(res.error.message)?'That password is wrong.':authText(res.error)};
-      pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk');
-      try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
-      TABS=staffTabs(me); ui.tab='today'; schedule(); }); }});
+      leave(); }); }});
 }
 function kLabel(c,all){
   var parts=String(c.name||'').trim().split(/\s+/), first=parts[0]||'Member', last=parts.length>1?parts[parts.length-1]:'';
