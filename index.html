@@ -490,6 +490,7 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .lgfeel{display:flex;gap:6px;flex-wrap:wrap}.painrow{border-left:4px solid var(--bad)}.lgcard{margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
 .wline.w2{stroke:var(--gold);stroke-dasharray:6 4}.wpt.w2{fill:var(--gold)}.wleg{display:flex;gap:16px;font-size:13px;color:var(--muted)}.wkey::before{content:'';display:inline-block;width:18px;height:3px;background:var(--ink);vertical-align:middle;margin-right:6px}.wkey.w2::before{background:var(--gold)}
 .gaddb{display:flex;flex-direction:column;gap:10px}.gaddn{font-weight:700;margin:6px 0}
+.dprow{align-items:center;margin-bottom:6px;flex-wrap:nowrap}.dprow input[type=date]{min-width:0;flex:1.3}.dprow input[type=time]{width:110px}.dprow select{flex:1;min-width:0}.pdecl{border-left:4px solid var(--warn);display:flex;flex-direction:column;gap:8px}.pofrs{display:flex;flex-direction:column;gap:8px;margin-top:6px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -1298,6 +1299,33 @@ function purchaseLine(p,st){ var bits=[p.package_name||'Package'];
 function stateChip(st){ return chip(st.label, st.ok?(st.status==='active'?'ok':null):'bad'); }
 function arrivedChip(p){ return p.arrived_at?chip('Arrived '+bkkTime(p.arrived_at)+(p.arrived_by==='customer'?' (own app)':''),'ok'):null; }
 function privArrived(p,name){ setPrivate(p,{arrived_at:new Date().toISOString(),arrived_by:'desk'},(name||'Customer')+' is here.'); }
+
+/* declining a private request: a reason the customer sees, and up to 3 other times they can take with one tap */
+var DECLINE_REASONS=['No coach is free at that time','The gym is closed at that time','Too short notice, we need more time to arrange it','Your preferred coach is away that day'];
+function declinePrivate(p){ if(!guard()) return;
+  var ch=coaches(), cust=byId('customers',p.customer_id)||{}, err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var pick=h('select',{id:'dp-pick'},[h('option',{value:''},'Pick a reason or write your own')].concat(DECLINE_REASONS.map(function(r){ return h('option',{value:r},r); })));
+  var reason=h('textarea',{id:'dp-reason',rows:'2',placeholder:'The customer sees this'}); pick.addEventListener('change',function(){ if(pick.value) reason.value=pick.value; });
+  var rows=[0,1,2].map(function(i){ var d=h('input',{type:'date',id:'dp-d'+i}), t=h('input',{type:'time',id:'dp-t'+i,step:'900'}), c=h('select',{id:'dp-c'+i},ch.map(function(x){ return h('option',{value:x.id},x.name); }));
+    if(i===0){ d.value=p.date; } c.value=p.preferred_coach_id&&ch.some(function(x){ return x.id===p.preferred_coach_id; })?p.preferred_coach_id:(ch[0]&&ch[0].id)||'';
+    return {d:d,t:t,c:c,el:h('div',{class:'row dprow'},h('span',{class:'lgn'},String(i+1)),h('label',{class:'sr',for:'dp-d'+i},'Date'),d,h('label',{class:'sr',for:'dp-t'+i},'Time'),t,h('label',{class:'sr',for:'dp-c'+i},'Coach'),c)}; });
+  var send=btn('Decline and send',function(){ var r=reason.value.trim(); if(!r){ err.textContent='Give a reason, the customer sees it.'; err.hidden=false; reason.focus(); return; }
+    var offers=rows.filter(function(x){ return x.d.value&&x.t.value; }).map(function(x){ return {date:x.d.value,time:x.t.value,coach_id:x.c.value}; });
+    send.disabled=true; err.hidden=true;
+    sb.rpc('private_decline',{p_id:p.id,p_reason:r,p_offers:offers}).then(must).then(function(){ return reload('privates'); }).then(function(){
+      var ph=String(cust.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1);
+      var msg='Hi '+String(cust.name||'').split(' ')[0]+', sorry, we cannot book your private on '+fmtDate(p.date)+' at '+p.time+'. '+r+'.'+(offers.length?' We can offer: '+offers.map(function(o){ return fmtDate(o.date)+' at '+o.time+' with '+nameOf('staff',o.coach_id); }).join('; ')+'. Tap one in the Phuket King app, under Privates, to book it.':' Request another time in the Phuket King app, under Privates.');
+      $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Declined'),h('p',null,cust.name+' sees the reason'+(offers.length?' and the '+offers.length+' time'+(offers.length>1?'s':'')+' you offered':'')+' in their app, under Privates.'+(offers.length?' Tapping one books it straight away.':'')),
+        ph.length>=8?h('a',{class:'btn primary',href:'https://wa.me/'+ph+'?text='+encodeURIComponent(msg),target:'_blank',rel:'noopener'},'Also tell them on WhatsApp'):h('p',{class:'sub'},'No phone number on file, so no WhatsApp message.'),
+        h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
+    }).catch(function(e){ err.textContent=errText(e); err.hidden=false; send.disabled=false; }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,'Decline request from '+(cust.name||'customer')),
+    h('p',{class:'sub'},'They asked for '+fmtDate(p.date)+' at '+p.time+(p.preferred_coach_id?' with '+nameOf('staff',p.preferred_coach_id):'')+'.'+(p.notes?' Note: '+p.notes:'')),
+    h('div',{class:'field'},h('label',{for:'dp-reason'},'Reason'),pick,reason),
+    h('div',{class:'field'},h('label',null,'Offer other times (optional)'),rows.map(function(x){ return x.el; }),h('small',null,'Leave a row empty to skip it. The customer can take one with one tap, and it is booked straight away.')),
+    err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),send))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
 function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.id).update(patch),msg); }
 
 /* ---------- resort: stays, room bills and meal plans ---------- */
@@ -4588,7 +4616,7 @@ function vToday(){
       {label:'Coach',cell:function(p){return coachCell(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Note',cell:function(p){return p.notes||'';}},
-      {label:'',cell:function(p){return h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ setPrivate(p,{status:'cancelled'},'Private declined.'); },'small'));}}],waiting,'')):null,
+      {label:'',cell:function(p){return h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small'));}}],waiting,'')):null,
     moves.length?section('Requests to move a private',null,table([
       {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
       {label:'Wants',cell:function(p){return h('b',null,fmtDate(p.reschedule.date)+' '+p.reschedule.time);}},
@@ -4728,7 +4756,7 @@ function vPrivates(){
       {label:'Coach share',num:true,cell:function(p){return thb(coachShare(p.price_thb,p.coach_pct));}},
       {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':p.status==='requested'?'warn':p.status==='cancelled'?'bad':null),arrivedChip(p));}},
       {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip('Not paid','warn');}},
-      {label:'',cell:function(p){ return p.status==='requested'?btn('Approve',function(){ approvePrivate(p); },'primary small'):p.status==='confirmed'&&p.date<=day?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):''; }}],
+      {label:'',cell:function(p){ return p.status==='requested'?h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small')):p.status==='cancelled'&&p.decline_reason?h('small',{class:'sub'},'Declined: '+p.decline_reason+(p.offers?(p.offer_taken!=null?'. They took an offered time.':'. '+p.offers.length+' other time'+(p.offers.length>1?'s':'')+' offered.'):'')):p.status==='confirmed'&&p.date<=day?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):''; }}],
       list,ui.pfilter==='upcoming'?'No privates coming up. Book the first one with the button above.':'Nothing to show here.')];
 }
 function vStaff(){
@@ -5570,10 +5598,17 @@ function cuPrivPay(p){
 function vCPt(){
   var day=CU.today, pack=cuPack();
   var up=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='requested'||p.status==='confirmed'); });
-  var past=CU.privates.filter(function(p){ return up.indexOf(p)<0; }).reverse();
+  var dec=CU.privates.filter(function(p){ return p.status==='cancelled'&&p.decline&&p.decline.taken==null&&p.date>=cAdd(day,-7); });
+  var past=CU.privates.filter(function(p){ return up.indexOf(p)<0&&dec.indexOf(p)<0; }).reverse();
   var info=pack?'Your pack has '+classesLeft(pack)+' of '+pack.class_limit+' sessions left'+(pack.expires_on?', use by '+fmtDate(pack.expires_on):'')+'.'
     :(CU.private_price!=null?'A private is '+thb(CU.private_price)+'. Packs of sessions are in Packages.':'One to one with a coach.');
   return [pageHead('Privates',info,btn('Request a private',requestPrivate,'primary')),
+    dec.length?section('Requests we could not book',null,h('div',{class:'hlist'},dec.map(function(p){ var d=p.decline, offers=(d.offers||[]).filter(function(o){ return o.date>=day; });
+      return h('div',{class:'panel pad pdecl'},h('b',null,'You asked for '+fmtDate(p.date)+' at '+p.time),h('p',null,d.reason||'We could not book this time.'),
+        offers.length?h('div',null,h('div',{class:'sub'},'We can offer you instead. Tap one to book it:'),h('div',{class:'pofrs'},(d.offers||[]).map(function(o,i){ return o.date<day?null:btn(fmtDate(o.date)+', '+o.time+(o.coach?' with '+o.coach:''),function(ev){ var b=ev.currentTarget; b.disabled=true;
+          cuCall('customer_take_offer',{p_private:p.id,p_index:i}).then(function(){ toast('Booked: '+fmtDate(o.date)+' at '+o.time+'.'); }).catch(function(e){ b.disabled=false; toast(errText(e)); }); },'primary'); })))
+          :null,
+        h('div',{class:'row'},btn(offers.length?'None of these, ask for another time':'Ask for another time',requestPrivate,'small'))); }))):null,
     section('Coming up',null,cards(up.map(function(p){ return ptCard(p); }),'Nothing booked. Request a private and the front desk will confirm it.')),
     past.length?section('Earlier',null,cards(past.map(function(p){ return ptCard(p); }),'')):null,
     h('p',{class:'sub narrow'},'To cancel a private, speak to a manager at the front desk.')];
