@@ -4937,6 +4937,24 @@ function vToday(){
   ];
 }
 function openCustomer(id){ ackCustomer(id); ui.tab='customers'; ui.customerId=id; schedule(); }
+var REVIEW_URL='https://search.google.com/local/writereview?placeid=ChIJP3H551swUDARAlnVam0_73w';
+function reviewPhone(c){ var ph=String(c&&c.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1); return ph.length>=8?ph:''; }
+function reviewAsked(c){ return (c.tags||[]).indexOf('Review asked')>=0; }
+function reviewAsk(c){
+  var ph=reviewPhone(c); if(!ph){ toast('No phone number on file. Add one with Edit first.'); return; }
+  var msg='Hi '+String(c.name||'').split(' ')[0]+', thanks so much for training with us at Phuket King! If you have a minute, a quick Google review helps us a lot: '+REVIEW_URL+' Thank you, see you in class.';
+  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener');
+  if(!reviewAsked(c)){ var was=c.tags||[], tags=was.concat(['Review asked']); c.tags=tags; schedule(); save('customers',c.id,{tags:tags}).catch(function(){ c.tags=was; schedule(); }); }
+}
+// people a week or two into training, or just checked out, who have not been asked yet
+function reviewDue(){
+  var now=new Date(), from=ymd(new Date(now.getTime()-21*864e5)), to=ymd(new Date(now.getTime()-7*864e5)), recent=ymd(new Date(now.getTime()-7*864e5)), today=ymd(now);
+  var first={}; S.checkin_days.forEach(function(d){ (d.entries||[]).forEach(function(e){ if(e.customer_id&&(!first[e.customer_id]||d.id<first[e.customer_id])) first[e.customer_id]=d.id; }); });
+  S.purchases.forEach(function(pu){ var d=pu.purchased_on; if(pu.customer_id&&d&&(!first[pu.customer_id]||d<first[pu.customer_id])) first[pu.customer_id]=d; });
+  var out={}; S.customers.forEach(function(c){ if(c.is_agency||reviewAsked(c)||!reviewPhone(c)) return; var f=first[c.id]; if(f&&f>=from&&f<=to) out[c.id]={c:c,why:'First class '+fmtDate(f)}; });
+  (S.stays||[]).forEach(function(st){ if(st.status==='cancelled'||!st.customer_id||st.check_out<recent||st.check_out>today) return; var c=byId('customers',st.customer_id); if(!c||c.is_agency||reviewAsked(c)||!reviewPhone(c)) return; out[c.id]={c:c,why:'Checked out '+fmtDate(st.check_out)}; });
+  return Object.keys(out).map(function(k){ return out[k]; }).slice(0,12);
+}
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
@@ -4947,7 +4965,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
@@ -4990,6 +5008,8 @@ function vCustomers(){
   var list=sortBy(S.customers.filter(function(x){ return !q||[x.name,x.email,x.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name');
   return [
     pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
+    (function(){ var due=q?[]:reviewDue(); return due.length?h('div',{class:'panel pad'},h('b',null,'Ask for a Google review'),h('p',{class:'sub'},'These people are a week or two in, or just checked out. One tap opens WhatsApp with the review link ready to send.'),
+      h('div',{class:'row',style:'flex-wrap:wrap'},due.map(function(d){ return btn(d.c.name+' ('+d.why+')',function(){ reviewAsk(d.c); },'small'); }))):null; })(),
     h('div',{class:'row'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }})),
     table([
       {label:'Name',cell:function(x){return [linkBtn(x.name,function(){ openCustomer(x.id); }),newTag(x),exChip(x),x.is_agency?[' ',chip('Agency')]:null];}},
