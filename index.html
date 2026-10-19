@@ -5016,10 +5016,21 @@ function runningOut(day){ var soon=addDays(day,7), out={};
     if(next) return;
     if(!out[p.customer_id]) out[p.customer_id]={p:p,why:why.join(', ')}; });
   return out; }
-var RENEW_DEF='Hi {name}, a quick heads up: your {package} {why}. Want to keep training? Reply here and we will set up the next one for you. Work hard, Fight easy.';
+var RENEW_DEF='Hi {name}, a quick heads up: your {package} {why}. Want to keep training? Reply here and we will set up the next one for you. Work hard, Fight easy.', RENEW_MSG=null;
+function loadRenewMsg(){ return sb.from('app_settings').select('value').eq('key','renew_message').maybeSingle().then(function(res){ RENEW_MSG=res.data&&String(res.data.value||'').trim()?res.data.value:null; schedule(); }); }
+function renewText(c,r){ var pk=r&&r.p&&r.p.package_name||''; pk=/pack|pass|membership/i.test(pk)?pk:(pk?pk+' package':'package');
+  var why=String(r&&r.why||'').replace(/(\d+|no) visits? left/,'has $&');
+  return (RENEW_MSG||RENEW_DEF).split('{name}').join(String(c&&c.name||'').split(' ')[0]).split('{package}').join(pk).split('{why}').join(why); }
+function editRenewMsg(){
+  openForm({title:'Renewal reminder message',values:{msg:RENEW_MSG||RENEW_DEF},saveLabel:'Save message',doneMsg:'Saved. New renewal reminders use this message.',
+    note:'This is the WhatsApp message that opens when you tap Remind on WhatsApp for someone whose package is running out. You can still change it in WhatsApp before you send.',
+    fields:[{key:'msg',label:'Message',type:'textarea',required:true,hint:'{name} becomes their first name, {package} the package name, and {why} why it is running out, for example "ends 24 Oct" or "has 2 visits left".'}],
+    onSave:function(v){ var t=String(v.msg||'').trim(); if(!t) return 'Write a message first.';
+      return sb.from('app_settings').update({value:t,updated_at:new Date().toISOString()}).eq('key','renew_message').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; RENEW_MSG=t; schedule(); }); }});
+}
+function renewSection(){ return section('Renewal reminder message',btn('Edit message',editRenewMsg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub'},'Sent on WhatsApp when you tap Remind on WhatsApp on the Customers page, under Package running out.'),h('p',{style:'white-space:pre-wrap'},renewText({name:'Alex'},{p:{package_name:'10 class pack'},why:'2 visits left'})))); }
 function renewAsk(c,r){ var ph=reviewPhone(c); if(!ph){ toast('No phone number on file. Add one with Edit first.'); return; }
-  var msg=RENEW_DEF.split('{name}').join(String(c.name||'').split(' ')[0]).split('{package}').join(/pack|pass|membership/i.test(r.p.package_name||'')?r.p.package_name:(r.p.package_name||'')+' package').split('{why}').join(r.why.replace(/(\d+|no) visits? left/,'has $&'));
-  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener'); }
+  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(renewText(c,r)),'_blank','noopener'); }
 var CSHOW=[['all','All customers'],['active','Active members'],['newest','Newest members'],['oldest','Longest with us'],['spend','Highest spenders'],['visits','Most attendance'],['out','Package running out']];
 function vCustomers(){
   var day=ymd(new Date());
@@ -5111,7 +5122,7 @@ function vCustomers(){
     (function(){ var due=q?[]:reviewDue(); return due.length?h('div',{class:'panel pad'},h('b',null,'Ask for a Google review'),h('p',{class:'sub'},'These people are a week or two in, or just checked out. One tap opens WhatsApp with the review link ready to send.',me&&me.role==='manager'?[' ',linkBtn('Change the message',editReviewMsg)]:null),
       h('div',{class:'row',style:'flex-wrap:wrap'},due.map(function(d){ return btn(d.c.name+' ('+d.why+')',function(){ reviewAsk(d.c); },'small'); }))):null; })(),
     h('div',{class:'row wrap'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }}),showSel,show!=='all'?h('span',{class:'sub'},list.length+' '+(list.length===1?'person':'people')):null),
-    show==='out'?h('p',{class:'sub'},'Remind on WhatsApp opens a message about renewing. You can change it before you send.'):null,
+    show==='out'?h('p',{class:'sub'},'Remind on WhatsApp opens a message about renewing. You can change it before you send.',mgr?[' ',linkBtn('Change the message',editRenewMsg)]:null):null,
     table(cols,list,q?'No customer matches that search.':show!=='all'?'Nobody in '+label.toLowerCase()+' right now.':'No customers yet. Add your first customer to start selling packages and checking people in.')
   ];
 }
@@ -5433,6 +5444,7 @@ function vSettings(){
     me.role==='manager'?ppSettings():null,
     me.role==='manager'?welcomeSection():null,
     me.role==='manager'?reviewSection():null,
+    me.role==='manager'?renewSection():null,
     me.role==='manager'?themeSection():null,
     me.role==='manager'?aiUsageSection():null,
     promoSection(),
@@ -5531,7 +5543,7 @@ function reload(col){
   }
   return sb.from(MAP[col].t).select(cols(MAP[col].t)).then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
-function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')) jobs.push(loadReviewMsg().catch(function(){})); return Promise.all(jobs); }
+function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')){ jobs.push(loadReviewMsg().catch(function(){})); jobs.push(loadRenewMsg().catch(function(){})); } return Promise.all(jobs); }
 function makeDb(){
   function changed(res){ var d=must(res); if(!d||!d.length) throw {message:'You do not have permission to change this, or it no longer exists.'}; }
   function then(q,col){ return q.select('id').then(changed).then(function(){ return reload(col); }); }

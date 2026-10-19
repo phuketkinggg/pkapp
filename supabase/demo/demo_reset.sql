@@ -46,6 +46,7 @@ begin
   insert into public.app_settings(key,value) values
     ('checkin_code','MUAYFIGHT-DEMO'),
     ('review_message','Hi {name}, thanks so much for training with us at Muay Fight Gym! If you have a minute, a quick Google review helps us a lot: {link} See you in class.'),
+    ('renew_message',''),
     ('kiosk_promos','[]'),('shop_vat','{"rate":0,"included":true}'),('app_theme','{"accent":"#2759DA"}');
 
   -- staff

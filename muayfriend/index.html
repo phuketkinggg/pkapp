@@ -6,6 +6,9 @@
 <title>Muay Friend | The app that runs your Muay Thai gym</title>
 <meta name="description" content="One app to run your Muay Thai gym: bookings, check-ins, sales, cafe, coaching, accounts and your website. Built with over 30 gyms around the world.">
 <link rel="canonical" href="https://muayfriend.com/">
+<link rel="alternate" hreflang="en" href="https://muayfriend.com/">
+<link rel="alternate" hreflang="th" href="https://muayfriend.com/th/">
+<link rel="alternate" hreflang="x-default" href="https://muayfriend.com/">
 <meta property="og:title" content="Muay Friend | The app that runs your Muay Thai gym">
 <meta property="og:description" content="One app to run your Muay Thai gym. Built with over 30 gyms around the world.">
 <meta property="og:url" content="https://muayfriend.com/">
@@ -55,7 +58,11 @@ p{margin:0 0 1em}
 .top nav a{text-decoration:none;color:var(--ink2)}
 .top nav a:hover{color:var(--ink)}
 .top .btn{min-height:42px;padding:0 20px;font-size:15px}
-@media (max-width:860px){.top nav{display:none}.top .btn{margin-left:auto}}
+.lang{display:inline-flex;align-items:center;min-height:42px;padding:0 4px;font-weight:600;font-size:15px;text-decoration:none;color:var(--ink2)}
+.lang:hover{color:var(--blue)}
+@media (max-width:860px){.top nav{display:none}.top .lang{margin-left:auto}.top .wrap{gap:16px}}
+.brand,.top .btn{white-space:nowrap}
+@media (max-width:420px){.top .wrap{gap:10px;padding:0 16px}.brand{font-size:20px;gap:8px}.brand .mark{width:32px;height:26px}.top .btn{padding:0 14px;font-size:14px}}
 
 /* hero with ring ropes */
 .hero{position:relative;overflow:hidden;padding:72px 0 88px}
@@ -249,6 +256,7 @@ footer a{color:#C9CFDB}
       <a href="#faq">Questions</a>
       <a href="demo/">Live demo</a>
     </nav>
+    <a class="lang" href="th/" hreflang="th" lang="th">ไทย</a>
     <a class="btn" href="#contact">Get more info</a>
   </div>
 </header>
@@ -324,8 +332,9 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div>
         <h2>Built with gyms, for gyms</h2>
-        <p class="lede" style="margin-top:18px">Muay Friend was built with the help of over 30 gyms around the world. We asked owners, managers and coaches real questions about how they work and what gets in their way, then built the answers.</p>
-        <p class="lede">The same problems came up again and again: too many apps, too much admin and too little time to coach. So we put everything in one place and made it simple enough for the whole team to pick up quickly.</p>
+        <p class="lede" style="margin-top:18px">Working closely with gyms, we noticed how many separate apps the average gym needs just to run. They creep up one at a time. Some clash, some don't talk to each other, and that's when things slip: a missed booking, a check-in that never got recorded, a renewal nobody chased.</p>
+        <p class="lede">So we made Muay Friend to keep it simple. Everything in one place, so you know where your staff are, you know where your customers are, and the whole team finds it easy to use.</p>
+        <p class="lede">It was built with the help of over 30 gyms around the world. We asked owners, managers and coaches real questions about how they work and what gets in their way, then built the answers.</p>
       </div>
       <ul>
         <li><b>Save money.</b> One app instead of a stack of monthly subscriptions.</li>
@@ -537,6 +546,7 @@ footer a{color:#C9CFDB}
     <span class="brand"><svg class="mark" viewBox="40 66 226 178" aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="8" stroke-linejoin="round"><path d="M55 95 L145 142 L148 229 L54 170 Z"/><path d="M168 119 L250 79 L251 117 L166 168 Z"/><path d="M172 179 L222 153 L220 195 L169 226 Z"/></g></svg>Muay Friend</span>
     <span>The app for Muay Thai gyms and camps.</span>
     <span>Made in Thailand, with gyms around the world.</span>
+    <a href="th/" hreflang="th" lang="th">ภาษาไทย</a>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
     <a href="#contact">Get more info</a>
   </div>
