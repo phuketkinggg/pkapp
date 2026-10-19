@@ -491,6 +491,10 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .wline.w2{stroke:var(--gold);stroke-dasharray:6 4}.wpt.w2{fill:var(--gold)}.wleg{display:flex;gap:16px;font-size:13px;color:var(--muted)}.wkey::before{content:'';display:inline-block;width:18px;height:3px;background:var(--ink);vertical-align:middle;margin-right:6px}.wkey.w2::before{background:var(--gold)}
 .gaddb{display:flex;flex-direction:column;gap:10px}.gaddn{font-weight:700;margin:6px 0}
 .dprow{align-items:center;margin-bottom:6px;flex-wrap:nowrap}.dprow input[type=date]{min-width:0;flex:1.3}.dprow input[type=time]{width:110px}.dprow select{flex:1;min-width:0}.pdecl{border-left:4px solid var(--warn);display:flex;flex-direction:column;gap:8px}.pofrs{display:flex;flex-direction:column;gap:8px;margin-top:6px;align-items:flex-start}
+.wplib{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));max-height:60vh;overflow:auto}.wplibi{border:1px solid var(--line);border-radius:8px;padding:0;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:inherit;overflow:hidden}.wplibi img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}.wplibi small{display:block;padding:4px 6px;font-size:12px}
+.wpsec{margin-bottom:12px;display:flex;flex-direction:column;gap:8px}.wphead{align-items:center}.wphead .pmini{margin-left:auto}.wp2>.field{flex:1;min-width:200px}.wpbtn{align-items:flex-end}.wpbtn>.field{flex:1;min-width:160px}
+.wpimg{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.wpimg img,.wpnoimg{width:160px;aspect-ratio:16/10;object-fit:cover;border-radius:8px;background:var(--sunken);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+.wpitems{display:grid;gap:8px}.wpitem{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}.wpitem>.pmini{align-self:flex-end}.wpai{display:flex;flex-direction:column;gap:8px;border-left:4px solid var(--gold);margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -589,7 +593,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -3177,6 +3181,129 @@ function coProgEditor(){
           return sb.rpc('program_save',{p:{id:null,customer_id:null,name:v.name,notes:p.notes,routines:rs}}).then(must).then(function(){ COACH.tpl=null; }); }}); }))];
 }
 
+/* ---------- Web pages: the AI makes a website page from a description; edit every section by hand or ask the AI to change it ---------- */
+var WPG={list:null,busy:false,edit:null,undo:[],ai:false};
+var WPG_FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/pages-ai';
+var WPG_TYPES=[['hero','Big photo at the top'],['text','Text'],['split','Photo and text side by side'],['cards','Cards'],['steps','Numbered steps'],['gallery','Photo gallery'],['quote','Quote from a customer'],['faq','Questions and answers'],['video','YouTube video'],['cta','Call to action']];
+var WPG_LINKS=[['','No button'],['whatsapp','WhatsApp us'],['prices.html','Prices page'],['book.html','Stay at Pangea'],['index.html#schedule','Schedule'],['about.html','About'],['wellness.html','Wellness'],['dtv.html','DTV visa'],['courses.html','Online courses'],['shop.html','Shop'],['blog.html','Blog'],['custom','Another link']];
+function wpgType(t){ var x=WPG_TYPES.filter(function(a){ return a[0]===t; })[0]; return x?x[1]:t; }
+function wpgCall(body){ return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
+  return fetch(WPG_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(t||'')},body:JSON.stringify(body)}).then(function(x){ return x.json(); }); })
+  .then(function(d){ if(d&&d.error) throw {plain:true,message:d.error}; return d; }); }
+function wpgLoad(){ WPG.busy=true; if(!window.PK_PHOTOS&&typeof loadWebPhotos==='function') loadWebPhotos().catch(function(){}); return sb.rpc('site_page_list').then(must).then(function(l){ WPG.busy=false; WPG.list=l; schedule(); }).catch(function(e){ WPG.busy=false; WPG.err=errText(e); schedule(); }); }
+function wpgLibrary(){ return (window.PK_PHOTOS||[]).map(function(p){ var cur=WEBP&&WEBP.photos&&WEBP.photos[p.id]; return {src:cur||p.src,label:p.page+': '+p.label}; }); }
+function wpgUrl(p,preview){ return SITE_URL+'/page?p='+encodeURIComponent(p.slug)+(preview&&p.preview_token?'&preview='+p.preview_token:''); }
+function wpgUpload(files,done){ var list=[].slice.call(files||[],0,8), out=[];
+  return list.reduce(function(pr,f){ return pr.then(function(){ return shrinkPhoto(f,1800).then(function(b){ var path='site/pages/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
+    return sb.storage.from('promos').upload(path,b,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; out.push(sb.storage.from('promos').getPublicUrl(path).data.publicUrl); }); }); }); },Promise.resolve())
+    .then(function(){ done(out); }); }
+function wpgPickPhotos(multi,done){
+  var inp=h('input',{type:'file',accept:'image/*',multiple:multi?true:null,hidden:true,onchange:function(){ var fs=inp.files; inp.remove(); if(!fs||!fs.length) return; toast('Uploading '+(fs.length>1?fs.length+' photos':'the photo')+'...');
+    wpgUpload(fs,function(urls){ toast('Uploaded.'); done(urls); }).catch(function(e){ toast(errText(e)); }); }});
+  document.body.appendChild(inp); inp.click(); }
+function wpgLibraryPick(done){
+  var lib=wpgLibrary(), grid=h('div',{class:'wplib'},lib.map(function(p){ return h('button',{type:'button',class:'wplibi',title:p.label,onclick:function(){ $dlg.close(); done(p.src); }},h('img',{src:p.src,alt:p.label,loading:'lazy'}),h('small',null,p.label)); }));
+  $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,'Pick a website photo'),grid,h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }
+function vWebPages(){
+  if(WPG.edit) return wpgEditor();
+  if(!WPG.list){ if(!WPG.busy) wpgLoad(); return [pageHead('Web pages',''),h('div',{class:'panel empty'},WPG.err||'Loading.')]; }
+  return [pageHead('Web pages','Make a new page for the website by describing it. The AI writes it in the website’s style, then you change any words or photos, by hand or by asking the AI.',
+      h('div',{class:'row'},btn('Make a page with AI',wpgMake,'primary'),btn('Blank page',function(){ wpgOpen({title:'',slug:'',description:'',status:'draft',sections:[{id:'s'+cRand(),type:'hero',heading:'',text:'',image:'',button_text:'',button_link:''}]}); }))),
+    table([{label:'Page',cell:function(p){ return linkBtn(p.title,function(){ wpgOpen(JSON.parse(JSON.stringify(p))); }); }},
+      {label:'Address',cell:function(p){ return h('small',null,'/page?p='+p.slug); }},
+      {label:'',cell:function(p){ return h('span',{class:'row'},p.status==='published'?chip('On the website','ok'):chip('Draft'),p.in_footer&&p.status==='published'?chip('In the footer'):null); }},
+      {label:'',cell:function(p){ return h('a',{class:'btn small',href:wpgUrl(p,p.status!=='published'),target:'_blank',rel:'noopener'},p.status==='published'?'View':'Preview'); }}],
+      WPG.list,'No pages yet. Tap Make a page with AI.'),
+    h('p',{class:'sub narrow'},'Photos: upload your own, or use any photo already on the website. Prices, dates and names: put them in your description, the AI never makes them up.')];
+}
+function wpgMake(){
+  var brief=h('textarea',{id:'wp-brief',rows:'7',placeholder:'For example: A page for our 4 week Fight Camp. Who it is for (people with some experience who want a first fight), what is included (2 group classes a day, 3 privates a week, a fight at the end, a bungalow at Pangea, meals at the cafe), how to join (message us on WhatsApp). Friendly but serious. Add a few questions and answers.'});
+  var photos=[], strip=h('div',{class:'pstrip'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function draw(){ strip.replaceChildren.apply(strip,photos.map(function(u,i){ return h('div',{class:'pthumb'},h('img',{src:u,alt:''}),h('div',{class:'pacts'},h('button',{type:'button','aria-label':'Remove',onclick:function(){ photos.splice(i,1); draw(); }},'×'))); })); }
+  var go=btn('Make the page',function(){ if(!brief.value.trim()){ err.textContent='Describe the page first.'; err.hidden=false; return; }
+    go.disabled=true; go.textContent='The AI is writing your page, about a minute...'; err.hidden=true;
+    wpgCall({mode:'make',brief:brief.value,images:photos,library:wpgLibrary()}).then(function(d){ $dlg.close(); var p=d.page; p.status='draft'; wpgOpen(p); toast('Here is your page. Change anything, then Save.'); })
+      .catch(function(e){ err.textContent=errText(e); err.hidden=false; go.disabled=false; go.textContent='Make the page'; }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,'Make a page with AI'),
+    h('div',{class:'field'},h('label',{for:'wp-brief'},'Describe the page you want'),brief,h('small',null,'Say who it is for, what to tell them, and what they should do next. Put in any prices, dates or names you want on it.')),
+    h('div',{class:'field'},h('label',null,'Your photos for this page (optional)'),strip,h('div',{class:'row'},btn('Add photos',function(){ wpgPickPhotos(true,function(u){ photos=photos.concat(u).slice(0,8); draw(); }); },'small')),h('small',null,'The AI looks at them and puts each one where it fits. It can also use photos already on the website.')),
+    err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),go))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function wpgOpen(p){ (p.sections||[]).forEach(function(s){ if(!s.id) s.id='s'+cRand(); }); WPG.edit=p; WPG.undo=[]; schedule(); window.scrollTo(0,0); }
+function wpgSave(after){ var p=WPG.edit;
+  if(!p.slug) p.slug=String(p.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+  return sb.rpc('site_page_save',{p:{id:p.id||null,slug:p.slug,title:p.title,description:p.description,sections:p.sections,status:p.status||'draft',in_footer:!!p.in_footer,footer_label:p.footer_label||''}}).then(must)
+    .then(function(r){ p.id=r.id; p.slug=r.slug; p.preview_token=r.preview_token; WPG.list=null; if(after) after(r); return r; }); }
+function wpgEditor(){
+  var p=WPG.edit, S_=p.sections=p.sections||[];
+  function mv(i,d){ var j=i+d; if(j<0||j>=S_.length) return; S_.splice(j,0,S_.splice(i,1)[0]); schedule(); }
+  function inp(o,k,id,a){ a=a||{}; var e=a.area?h('textarea',{id:id,rows:String(a.rows||3),placeholder:a.placeholder||null}):h('input',{id:id,placeholder:a.placeholder||null,autocomplete:'off'});
+    e.value=o[k]==null?'':o[k]; e.addEventListener('input',function(){ o[k]=e.value; }); return e; }
+  function fld(label,id,el,hint){ return h('div',{class:'field'},h('label',{for:id},label),el,hint?h('small',null,hint):null); }
+  function photo(o,k,id){ var u=o[k];
+    return h('div',{class:'field'},h('label',null,'Photo'),h('div',{class:'wpimg'},u?h('img',{src:u,alt:''}):h('div',{class:'wpnoimg'},'No photo'),
+      h('div',{class:'row'},btn(u?'Upload another':'Upload',function(){ wpgPickPhotos(false,function(x){ o[k]=x[0]; schedule(); }); },'small'),btn('Website photos',function(){ wpgLibraryPick(function(x){ o[k]=x; schedule(); }); },'small'),u?btn('Remove',function(){ o[k]=''; schedule(); },'small'):null))); }
+  function button(o,id){ var known=WPG_LINKS.some(function(x){ return x[0]===(o.button_link||'')&&x[0]!=='custom'; }), mode=known?(o.button_link||''):'custom';
+    var sel=h('select',{id:id+'-bl',onchange:function(ev){ var v=ev.target.value; o.button_link=v==='custom'?'https://':v; if(!v){ o.button_text=''; } else if(!o.button_text) o.button_text=WPG_LINKS.filter(function(x){ return x[0]===v; })[0][1]; schedule(); }},WPG_LINKS.map(function(x){ return h('option',{value:x[0]},x[1]); }));
+    sel.value=mode; return h('div',{class:'row wpbtn'},h('div',{class:'field'},h('label',{for:id+'-bl'},'Button'),sel),
+      o.button_link?h('div',{class:'field'},h('label',{for:id+'-bt'},'Button words'),inp(o,'button_text',id+'-bt')):null,
+      mode==='custom'&&o.button_link?h('div',{class:'field'},h('label',{for:id+'-bu'},'Link'),inp(o,'button_link',id+'-bu',{placeholder:'https://'})):null); }
+  function items(s,id){ var it=s.items=s.items||[], faq=s.type==='faq';
+    return h('div',{class:'wpitems'},it.map(function(x,i){ return h('div',{class:'wpitem'},
+        faq?fld('Question',id+'q'+i,inp(x,'q',id+'q'+i)):fld('Title',id+'t'+i,inp(x,'title',id+'t'+i)),
+        faq?fld('Answer',id+'a'+i,inp(x,'a',id+'a'+i,{area:true,rows:3})):fld('Text',id+'x'+i,inp(x,'text',id+'x'+i,{area:true,rows:2})),
+        s.type==='cards'?photo(x,'image',id+'i'+i):null,
+        h('div',{class:'pmini'},h('button',{type:'button','aria-label':'Move up',onclick:function(){ if(i){ it.splice(i-1,0,it.splice(i,1)[0]); schedule(); } }},'↑'),h('button',{type:'button','aria-label':'Remove',onclick:function(){ it.splice(i,1); schedule(); }},'×'))); }),
+      btn(faq?'Add a question':'Add one',function(){ it.push(faq?{q:'',a:''}:{title:'',text:'',image:''}); schedule(); },'small')); }
+  function sec(s,i){ var id='wp'+s.id, bg=s.type==='hero'?null:h('select',{id:id+'-bg','aria-label':'Background',onchange:function(ev){ s.bg=ev.target.value; }},[['dark','Dark'],['light','Light'],['navy','Navy']].map(function(x){ return h('option',{value:x[0]},x[1]); }));
+    if(bg) bg.value=s.bg||'dark';
+    var body=[];
+    if(['text','split','cards','steps','faq','gallery','video'].indexOf(s.type)>=0) body.push(h('div',{class:'row wp2'},s.type!=='gallery'&&s.type!=='video'?fld('Small label above',id+'-e',inp(s,'eyebrow',id+'-e')):null,fld('Heading',id+'-h',inp(s,'heading',id+'-h'))));
+    if(s.type==='hero'||s.type==='cta') body.push(fld('Heading',id+'-h',inp(s,'heading',id+'-h')),fld('Text',id+'-t',inp(s,'text',id+'-t',{area:true,rows:3})));
+    if(s.type==='text'||s.type==='split') body.push(fld('Text',id+'-b',inp(s,'body',id+'-b',{area:true,rows:6}),'A blank line starts a new paragraph, - makes a list, **word** is bold.'));
+    if(s.type==='cards') body.push(fld('Intro',id+'-in',inp(s,'intro',id+'-in',{area:true,rows:2})));
+    if(s.type==='quote') body.push(fld('Quote',id+'-q',inp(s,'text',id+'-q',{area:true,rows:3}),'Use real words from a customer.'),fld('Name',id+'-n',inp(s,'name',id+'-n')));
+    if(s.type==='video') body.push(fld('YouTube link',id+'-v',inp(s,'url',id+'-v',{placeholder:'https://youtu.be/...'})));
+    if(s.type==='hero'||s.type==='split') body.push(photo(s,'image',id+'-p'));
+    if(s.type==='split'){ var side=h('select',{id:id+'-sd',onchange:function(ev){ s.image_side=ev.target.value; }},[h('option',{value:'right'},'Photo on the right'),h('option',{value:'left'},'Photo on the left')]); side.value=s.image_side||'right'; body.push(fld('Photo side',id+'-sd',side)); }
+    if(s.type==='gallery'){ s.images=s.images||[]; body.push(h('div',{class:'field'},h('label',null,'Photos'),h('div',{class:'pstrip'},s.images.map(function(u,k){ return h('div',{class:'pthumb'},h('img',{src:u,alt:''}),h('div',{class:'pacts'},h('button',{type:'button','aria-label':'Remove',onclick:function(){ s.images.splice(k,1); schedule(); }},'×'))); })),
+      h('div',{class:'row'},btn('Upload photos',function(){ wpgPickPhotos(true,function(u){ s.images=s.images.concat(u).slice(0,12); schedule(); }); },'small'),btn('Website photos',function(){ wpgLibraryPick(function(u){ s.images.push(u); schedule(); }); },'small')))); }
+    if(['cards','steps','faq'].indexOf(s.type)>=0) body.push(items(s,id));
+    if(['hero','text','split','cta'].indexOf(s.type)>=0) body.push(button(s,id));
+    return h('div',{class:'panel pad wpsec'},h('div',{class:'row wphead'},h('b',null,(i+1)+'. '+wpgType(s.type)),bg,
+        h('div',{class:'pmini'},h('button',{type:'button','aria-label':'Move up',onclick:function(){ mv(i,-1); }},'↑'),h('button',{type:'button','aria-label':'Move down',onclick:function(){ mv(i,1); }},'↓'),
+          h('button',{type:'button','aria-label':'Copy',onclick:function(){ var c=JSON.parse(JSON.stringify(s)); c.id='s'+cRand(); S_.splice(i+1,0,c); schedule(); }},'⧉'),
+          h('button',{type:'button','aria-label':'Remove',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='?'; return; } S_.splice(i,1); schedule(); }},'×'))),body); }
+  var ask=h('textarea',{id:'wp-ask',rows:'3',placeholder:'For example: make the top shorter and punchier, add a section about the cafe, use my new photos in the gallery, make it sound more fun'});
+  var askPhotos=[], askStrip=h('div',{class:'pstrip'});
+  function drawAsk(){ askStrip.replaceChildren.apply(askStrip,askPhotos.map(function(u,i){ return h('div',{class:'pthumb'},h('img',{src:u,alt:''}),h('div',{class:'pacts'},h('button',{type:'button','aria-label':'Remove',onclick:function(){ askPhotos.splice(i,1); drawAsk(); }},'×'))); })); }
+  var askB=btn(WPG.ai?'The AI is working...':'Change it',function(){ if(!ask.value.trim()){ toast('Say what to change.'); ask.focus(); return; }
+    WPG.ai=true; askB.disabled=true; askB.textContent='The AI is working, about a minute...';
+    wpgCall({mode:'edit',page:{title:p.title,slug:p.slug,description:p.description,sections:p.sections},ask:ask.value,images:askPhotos,library:wpgLibrary()}).then(function(d){
+      WPG.undo.push(JSON.parse(JSON.stringify({title:p.title,description:p.description,sections:p.sections})));
+      p.title=d.page.title||p.title; p.description=d.page.description||p.description; p.sections=d.page.sections; WPG.ai=false; ask.value=''; askPhotos=[]; schedule(); toast('Changed. Check it, then Save. Undo is at the top if you do not like it.'); })
+      .catch(function(e){ WPG.ai=false; askB.disabled=false; askB.textContent='Change it'; toast(errText(e)); }); },'primary');
+  askB.disabled=WPG.ai;
+  var addSel=h('select',{id:'wp-add'},WPG_TYPES.map(function(x){ return h('option',{value:x[0]},x[1]); })); addSel.value='text';
+  var status=h('select',{id:'wp-status',onchange:function(ev){ p.status=ev.target.value; }},[h('option',{value:'draft'},'Draft, only you can preview it'),h('option',{value:'published'},'On the website')]); status.value=p.status||'draft';
+  var foot=h('input',{type:'checkbox',id:'wp-foot'}); foot.checked=!!p.in_footer; foot.addEventListener('change',function(){ p.in_footer=foot.checked; schedule(); });
+  var save=btn('Save',function(){ save.disabled=true; wpgSave().then(function(){ toast(p.status==='published'?'Saved. It is on the website now.':'Saved as a draft.'); save.disabled=false; schedule(); }).catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
+  var prev=btn('Preview',function(){ var w=window.open('about:blank','_blank'); wpgSave().then(function(){ if(w) w.location=wpgUrl(p,true); schedule(); }).catch(function(e){ if(w) w.close(); toast(errText(e)); }); });
+  return [h('div',{class:'row'},linkBtn('Back to all pages',function(){ WPG.edit=null; wpgLoad(); schedule(); }),WPG.undo.length?btn('Undo the AI change',function(){ var u=WPG.undo.pop(); p.title=u.title; p.description=u.description; p.sections=u.sections; schedule(); },'small'):null),
+    pageHead(p.id?'Edit page':'New page',p.id&&p.status==='published'?'Live at '+wpgUrl(p,false).replace(/^https:\/\//,''):'Not on the website yet.',h('div',{class:'row'},prev,save)),
+    h('div',{class:'panel pad wpai'},h('b',null,'Change it with AI'),ask,askStrip,h('div',{class:'row'},btn('Add photos',function(){ wpgPickPhotos(true,function(u){ askPhotos=askPhotos.concat(u).slice(0,8); drawAsk(); }); },'small'),askB),
+      h('small',{class:'sub'},'The AI rewrites the page as you ask and keeps the rest. Your unsaved hand changes are kept too.')),
+    h('div',{class:'panel pad'},h('div',{class:'row wp2'},fld('Page title',"wp-title",inp(p,'title','wp-title')),fld('Web address',"wp-slug",inp(p,'slug','wp-slug',{placeholder:'fight-camp'}),'Small letters, numbers and dashes. The page is at '+SITE_URL.replace(/^https:\/\//,'')+'/page?p=this')),
+      fld('Description for Google',"wp-desc",inp(p,'description','wp-desc',{area:true,rows:2}),'One sentence, shown under the title in Google results.'),
+      h('div',{class:'row wp2'},fld('Status',"wp-status",status),h('div',{class:'field'},h('label',{class:'check',for:'wp-foot'},foot,h('span',null,'Link it in the website footer')),p.in_footer?inp(p,'footer_label','wp-fl',{placeholder:'Link words, for example Fight camp'}):null))),
+    S_.map(sec),
+    h('div',{class:'panel pad row'},h('label',{for:'wp-add'},'Add a section'),addSel,btn('Add',function(){ var t=addSel.value, s={id:'s'+cRand(),type:t,bg:'dark'}; if(['cards','steps','faq'].indexOf(t)>=0) s.items=[]; if(t==='gallery') s.images=[]; S_.push(s); schedule(); },'small')),
+    h('div',{class:'row'},prev,save,p.id?h('button',{type:'button',class:'btn danger',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to delete the page'; return; }
+      sb.rpc('site_page_remove',{p_id:p.id}).then(must).then(function(){ WPG.edit=null; wpgLoad(); toast('Deleted.'); }).catch(function(e){ toast(errText(e)); }); }},'Delete page'):null)];
+}
+
 /* ---------- social media: the AI writes the caption, a manager approves it, the server posts it to Facebook and Instagram on time ---------- */
 var SOC={list:null,busy:false,cfg:null};
 var SOC_FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/social';
@@ -5032,7 +5159,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 function renderNav(){
   var tabs=TABS.length&&chatOn()?TABS.concat([['chat',M('tab')]]):TABS;

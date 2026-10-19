@@ -53,4 +53,10 @@ PK.data().then(function(d){ var ph=(d&&d.photos)||{}, ok=/^https:\/\/jijnshwduhg
     document.querySelectorAll('[data-photo="'+k+'"]').forEach(function(e){ e.src=u; });
     document.querySelectorAll('[data-photo-bg="'+k+'"]').forEach(function(e){ e.style.backgroundImage='url("'+u.replace(/["\\]/g,'')+'")'; }); });
 },function(){});
+// pages made in the app (Web pages) that should show in the footer
+PK.rest('site_pages?select=slug,title,footer_label&in_footer=eq.true&status=eq.published&removed=eq.false&order=title').then(function(list){
+  if(!list||!list.length) return; var blog=document.querySelector('footer a[href$="blog.html"]'); if(!blog) return;
+  var base=blog.getAttribute('href').replace(/blog\.html$/,'page.html?p='), col=blog.parentNode;
+  list.forEach(function(x){ if(!/^[a-z0-9-]{1,60}$/.test(x.slug)) return; var a=document.createElement('a'); a.href=base+x.slug; a.textContent=x.footer_label||x.title; col.appendChild(a); });
+},function(){});
 })();
