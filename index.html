@@ -4524,13 +4524,13 @@ function vContacts(){
 /* ---------- receipts: anyone photographs a receipt, the manager checks them and downloads them for the accounts ---------- */
 var RDEPTS=['Gym','Gym shop','Spa','Pangea Resort','Pangea Cafe','Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other'];
 var RXT={
-  en:{btn:'Receipt',title:'Add a receipt',note:'Take a photo of the receipt. The manager sees it and it goes into the accounts.',photo:'Photo of the receipt',dept:'Department',amount:'Total paid (THB)',what:'Shop, or what it was for',paid:'Paid by',day:'Date on the receipt',save:'Send',cancel:'Cancel',sent:'Receipt sent. Thank you.',needPhoto:'Take a photo of the receipt first.',needDept:'Choose the department.',sending:'Sending...',
+  en:{cam:'Take a photo',gal:'From gallery or files',btn:'Receipt',title:'Add a receipt',note:'Take a photo of the receipt. The manager sees it and it goes into the accounts.',photo:'Photo of the receipt',dept:'Department',amount:'Total paid (THB)',what:'Shop, or what it was for',paid:'Paid by',day:'Date on the receipt',save:'Send',cancel:'Cancel',sent:'Receipt sent. Thank you.',needPhoto:'Take a photo of the receipt first.',needDept:'Choose the department.',sending:'Sending...',
     m:{transfer:'Transfer or PromptPay',scan:'Scan QR',cash:'Cash',card:'Card'},
     d:{'Gym':'Gym','Gym shop':'Gym shop','Spa':'Spa','Pangea Resort':'Pangea Resort','Pangea Cafe':'Pangea Cafe','Housekeeping':'Housekeeping','Maintenance':'Maintenance','Office':'Office','Marketing':'Marketing','Visa and DTV':'Visa and DTV','Other':'Other'}},
-  th:{btn:'ใบเสร็จ',title:'เพิ่มใบเสร็จ',note:'ถ่ายรูปใบเสร็จ ผู้จัดการจะเห็นและนำเข้าบัญชี',photo:'รูปใบเสร็จ',dept:'แผนก',amount:'ยอดที่จ่าย (บาท)',what:'ร้าน หรือ ซื้ออะไร',paid:'จ่ายโดย',day:'วันที่ในใบเสร็จ',save:'ส่ง',cancel:'ยกเลิก',sent:'ส่งใบเสร็จแล้ว ขอบคุณ',needPhoto:'ถ่ายรูปใบเสร็จก่อน',needDept:'เลือกแผนก',sending:'กำลังส่ง...',
+  th:{cam:'ถ่ายรูป',gal:'เลือกจากคลังรูปหรือไฟล์',btn:'ใบเสร็จ',title:'เพิ่มใบเสร็จ',note:'ถ่ายรูปใบเสร็จ ผู้จัดการจะเห็นและนำเข้าบัญชี',photo:'รูปใบเสร็จ',dept:'แผนก',amount:'ยอดที่จ่าย (บาท)',what:'ร้าน หรือ ซื้ออะไร',paid:'จ่ายโดย',day:'วันที่ในใบเสร็จ',save:'ส่ง',cancel:'ยกเลิก',sent:'ส่งใบเสร็จแล้ว ขอบคุณ',needPhoto:'ถ่ายรูปใบเสร็จก่อน',needDept:'เลือกแผนก',sending:'กำลังส่ง...',
     m:{transfer:'โอน หรือ พร้อมเพย์',scan:'สแกน QR',cash:'เงินสด',card:'บัตร'},
     d:{'Gym':'ยิม','Gym shop':'ร้านค้ายิม','Spa':'สปา','Pangea Resort':'รีสอร์ท Pangea','Pangea Cafe':'คาเฟ่ Pangea','Housekeeping':'แม่บ้าน','Maintenance':'ซ่อมบำรุง','Office':'ออฟฟิศ','Marketing':'การตลาด','Visa and DTV':'วีซ่า และ DTV','Other':'อื่นๆ'}},
-  my:{btn:'ပြေစာ',title:'ပြေစာ ထည့်ရန်',note:'ပြေစာကို ဓာတ်ပုံရိုက်ပါ။ မန်နေဂျာ မြင်ပြီး စာရင်းထဲ ထည့်ပါမည်။',photo:'ပြေစာ ဓာတ်ပုံ',dept:'ဌာန',amount:'ပေးခဲ့သော စုစုပေါင်း (ဘတ်)',what:'ဆိုင် သို့မဟုတ် ဘာအတွက်',paid:'ပေးချေနည်း',day:'ပြေစာပါ ရက်စွဲ',save:'ပို့ရန်',cancel:'မလုပ်တော့ပါ',sent:'ပြေစာ ပို့ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',needPhoto:'ပြေစာကို အရင် ဓာတ်ပုံရိုက်ပါ။',needDept:'ဌာန ရွေးပါ။',sending:'ပို့နေသည်...',
+  my:{cam:'ဓာတ်ပုံရိုက်ရန်',gal:'ဓာတ်ပုံများ သို့မဟုတ် ဖိုင်မှ ရွေးရန်',btn:'ပြေစာ',title:'ပြေစာ ထည့်ရန်',note:'ပြေစာကို ဓာတ်ပုံရိုက်ပါ။ မန်နေဂျာ မြင်ပြီး စာရင်းထဲ ထည့်ပါမည်။',photo:'ပြေစာ ဓာတ်ပုံ',dept:'ဌာန',amount:'ပေးခဲ့သော စုစုပေါင်း (ဘတ်)',what:'ဆိုင် သို့မဟုတ် ဘာအတွက်',paid:'ပေးချေနည်း',day:'ပြေစာပါ ရက်စွဲ',save:'ပို့ရန်',cancel:'မလုပ်တော့ပါ',sent:'ပြေစာ ပို့ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',needPhoto:'ပြေစာကို အရင် ဓာတ်ပုံရိုက်ပါ။',needDept:'ဌာန ရွေးပါ။',sending:'ပို့နေသည်...',
     m:{transfer:'ငွေလွှဲ / PromptPay',scan:'QR စကန်',cash:'ငွေသား',card:'ကတ်'},
     d:{'Gym':'ဂျင်','Gym shop':'ဂျင် ဆိုင်','Spa':'စပါ','Pangea Resort':'Pangea ရီဆော့','Pangea Cafe':'Pangea ကဖေး','Housekeeping':'အိမ်ထိန်း','Maintenance':'ပြုပြင်ထိန်းသိမ်းရေး','Office':'ရုံး','Marketing':'စျေးကွက်','Visa and DTV':'ဗီဇာ နှင့် DTV','Other':'အခြား'}}};
 function RX(k){ var l=RXT[clkLang()]||RXT.en; return l[k]!==undefined?l[k]:RXT.en[k]; }
@@ -4540,15 +4540,19 @@ function shrinkImage(file){
       c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(function(b){ b?ok(b):bad({message:'Could not read the photo.'}); },'image/jpeg',0.8); },function(){ ok(file); }); });
 }
 function expReceipt(){
-  var file=h('input',{type:'file',id:'rx-file',accept:'image/*,application/pdf',capture:'environment'}), prev=h('img',{class:'rxprev',alt:'',hidden:true});
+  /* two ways in: the camera, or a photo or PDF already on the phone */
+  var picked=null, prev=h('img',{class:'rxprev',alt:'',hidden:true}), fname=h('small',{class:'sub'},'');
+  var cam=h('input',{type:'file',id:'rx-cam',accept:'image/*',capture:'environment',hidden:true}), gal=h('input',{type:'file',id:'rx-gal',accept:'image/*,application/pdf',hidden:true});
+  function took(inp){ var f=inp.files[0]; if(!f) return; picked=f; inp.value=''; fname.textContent=f.name||''; if(/^image\//.test(f.type)){ prev.src=URL.createObjectURL(f); prev.hidden=false; } else prev.hidden=true; }
+  cam.onchange=function(){ took(cam); }; gal.onchange=function(){ took(gal); };
+  var pick=h('div',{class:'row'},btn(RX('cam'),function(){ cam.click(); },'primary small'),btn(RX('gal'),function(){ gal.click(); },'small'),cam,gal);
   var dept=h('select',{id:'rx-dept'},[h('option',{value:''},'')].concat(RDEPTS.map(function(d){ return h('option',{value:d},RX('d')[d]||d); })));
   var amt=h('input',{type:'number',id:'rx-amt',inputmode:'decimal',min:'0',step:'any'}), what=h('input',{type:'text',id:'rx-what'}), day=h('input',{type:'date',id:'rx-day',value:ymd(new Date()),max:ymd(new Date())});
   var meth=h('select',{id:'rx-m'},['transfer','scan','cash','card'].map(function(k){ return h('option',{value:k},RX('m')[k]); }));
   var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
-  file.onchange=function(){ var f=file.files[0]; if(f&&/^image\//.test(f.type)){ prev.src=URL.createObjectURL(f); prev.hidden=false; } else prev.hidden=true; };
   function bad(m){ err.textContent=m; err.hidden=false; }
   var go=btn(RX('save'),function(){
-    if(busy) return; err.hidden=true; var f=file.files[0];
+    if(busy) return; err.hidden=true; var f=picked;
     if(!f) return bad(RX('needPhoto')); if(!dept.value) return bad(RX('needDept'));
     busy=true; go.disabled=true; go.textContent=RX('sending');
     shrinkImage(f).then(function(blob){ var ext=blob.type==='application/pdf'?'pdf':'jpg', path=currentUser+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
@@ -4558,7 +4562,7 @@ function expReceipt(){
     .catch(function(e){ busy=false; go.disabled=false; go.textContent=RX('save'); bad(errText(e)); });
   },'primary');
   shopDlg(h('div',{class:'billbox'},h('h2',null,RX('title')),h('p',{class:'sub'},RX('note')),
-    field('rx-file',RX('photo'),file),prev,field('rx-dept',RX('dept'),dept),field('rx-amt',RX('amount'),amt),field('rx-what',RX('what'),what),field('rx-m',RX('paid'),meth),field('rx-day',RX('day'),day),err,
+    h('div',{class:'field'},h('label',null,RX('photo')),pick,fname),prev,field('rx-dept',RX('dept'),dept),field('rx-amt',RX('amount'),amt),field('rx-what',RX('what'),what),field('rx-m',RX('paid'),meth),field('rx-day',RX('day'),day),err,
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(RX('cancel'),function(){ $dlg.close(); }),go))));
 }
 function receiptBtn(){ return h('button',{type:'button',class:'btn small',onclick:expReceipt},RX('btn')); }
