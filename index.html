@@ -4950,10 +4950,21 @@ function vToday(){
 function openCustomer(id){ ackCustomer(id); ui.tab='customers'; ui.customerId=id; schedule(); }
 var REVIEW_URL='https://search.google.com/local/writereview?placeid=ChIJP3H551swUDARAlnVam0_73w';
 function reviewPhone(c){ var ph=String(c&&c.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1); return ph.length>=8?ph:''; }
+var REVIEW_DEF='Hi {name}, thanks so much for training with us at Phuket King! If you have a minute, a quick Google review helps us a lot: {link} Thank you, see you in class. Work hard, Fight easy.', REVIEW_MSG=null;
+function loadReviewMsg(){ return sb.from('app_settings').select('value').eq('key','review_message').maybeSingle().then(function(res){ REVIEW_MSG=res.data&&res.data.value?res.data.value:null; schedule(); }); }
+function reviewText(c){ var t=REVIEW_MSG||REVIEW_DEF; if(t.indexOf('{link}')<0) t+=' {link}'; return t.split('{name}').join(String(c&&c.name||'').split(' ')[0]).split('{link}').join(REVIEW_URL); }
+function editReviewMsg(){
+  openForm({title:'Review request message',values:{msg:REVIEW_MSG||REVIEW_DEF},saveLabel:'Save message',doneMsg:'Saved. New review requests use this message.',
+    note:'This is the WhatsApp message that opens when you tap Ask for a Google review. You can still change it in WhatsApp before you send.',
+    fields:[{key:'msg',label:'Message',type:'textarea',required:true,hint:'{name} becomes their first name. {link} becomes your Google review link (it is added at the end if you leave it out).'}],
+    onSave:function(v){ var t=String(v.msg||'').trim(); if(!t) return 'Write a message first.';
+      return sb.from('app_settings').update({value:t,updated_at:new Date().toISOString()}).eq('key','review_message').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; REVIEW_MSG=t; schedule(); }); }});
+}
+function reviewSection(){ return section('Google review message',btn('Edit message',editReviewMsg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub'},'Sent on WhatsApp when you tap Ask for a Google review on the Customers page.'),h('p',{style:'white-space:pre-wrap'},reviewText({name:'Alex'})))); }
 function reviewAsked(c){ return (c.tags||[]).indexOf('Review asked')>=0; }
 function reviewAsk(c){
   var ph=reviewPhone(c); if(!ph){ toast('No phone number on file. Add one with Edit first.'); return; }
-  var msg='Hi '+String(c.name||'').split(' ')[0]+', thanks so much for training with us at Phuket King! If you have a minute, a quick Google review helps us a lot: '+REVIEW_URL+' Thank you, see you in class.';
+  var msg=reviewText(c);
   window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener');
   if(!reviewAsked(c)){ var was=c.tags||[], tags=was.concat(['Review asked']); c.tags=tags; schedule(); save('customers',c.id,{tags:tags}).catch(function(){ c.tags=was; schedule(); }); }
 }
@@ -5019,7 +5030,7 @@ function vCustomers(){
   var list=sortBy(S.customers.filter(function(x){ return !q||[x.name,x.email,x.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name');
   return [
     pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
-    (function(){ var due=q?[]:reviewDue(); return due.length?h('div',{class:'panel pad'},h('b',null,'Ask for a Google review'),h('p',{class:'sub'},'These people are a week or two in, or just checked out. One tap opens WhatsApp with the review link ready to send.'),
+    (function(){ var due=q?[]:reviewDue(); return due.length?h('div',{class:'panel pad'},h('b',null,'Ask for a Google review'),h('p',{class:'sub'},'These people are a week or two in, or just checked out. One tap opens WhatsApp with the review link ready to send.',me&&me.role==='manager'?[' ',linkBtn('Change the message',editReviewMsg)]:null),
       h('div',{class:'row',style:'flex-wrap:wrap'},due.map(function(d){ return btn(d.c.name+' ('+d.why+')',function(){ reviewAsk(d.c); },'small'); }))):null; })(),
     h('div',{class:'row'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }})),
     table([
@@ -5331,6 +5342,7 @@ function vSettings(){
     posterSection(),
     me.role==='manager'?ppSettings():null,
     me.role==='manager'?welcomeSection():null,
+    me.role==='manager'?reviewSection():null,
     promoSection(),
     webPhotosSection(),
     webTextSection(),
@@ -5427,7 +5439,7 @@ function reload(col){
   }
   return sb.from(MAP[col].t).select(cols(MAP[col].t)).then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
-function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); return Promise.all(jobs); }
+function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')) jobs.push(loadReviewMsg().catch(function(){})); return Promise.all(jobs); }
 function makeDb(){
   function changed(res){ var d=must(res); if(!d||!d.length) throw {message:'You do not have permission to change this, or it no longer exists.'}; }
   function then(q,col){ return q.select('id').then(changed).then(function(){ return reload(col); }); }
