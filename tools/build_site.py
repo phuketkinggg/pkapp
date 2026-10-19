@@ -29,7 +29,12 @@ def fix_book(html):
     html = html.replace('href="pk/', 'href="').replace('src="pk/', 'src="')
     return html
 
-def finish(html):
+def finish(html, page=None):
+    # tell Google the one true address of each page
+    if page and '<link rel="canonical"' not in html:
+        path = "/" if page == "index.html" else "/" + page[:-5]
+        if page not in ("post.html", "page.html", "course.html"):
+            html = html.replace("</title>", "</title>\n<link rel=\"canonical\" href=\"%s%s\">" % (DOMAIN, path), 1)
     if LIVE:
         html = html.replace('<meta name="robots" content="noindex">\n', '').replace('<meta name="robots" content="noindex">', '')
     return html
@@ -40,7 +45,7 @@ def main():
     os.makedirs(OUT)
     for p in PAGES:
         src = open(os.path.join(ROOT, "pk", p), encoding="utf-8").read()
-        open(os.path.join(OUT, p), "w", encoding="utf-8").write(finish(fix_pk(src)))
+        open(os.path.join(OUT, p), "w", encoding="utf-8").write(finish(fix_pk(src), p))
     for a in ASSETS:
         s = os.path.join(ROOT, "pk", a)
         (shutil.copytree if os.path.isdir(s) else shutil.copy2)(s, os.path.join(OUT, a))
@@ -49,7 +54,7 @@ def main():
     txt = open(css, encoding="utf-8").read().replace("../icons/", "icons/").replace("../img/", "img/")
     open(css, "w", encoding="utf-8").write(txt)
     book = open(os.path.join(ROOT, "book.html"), encoding="utf-8").read()
-    open(os.path.join(OUT, "book.html"), "w", encoding="utf-8").write(finish(fix_book(book)))
+    open(os.path.join(OUT, "book.html"), "w", encoding="utf-8").write(finish(fix_book(book), "book.html"))
     os.makedirs(os.path.join(OUT, "icons"))
     for f in ["icon-192.png", "icon-512.png", "favicon-48.png", "apple-touch-icon.png"]:
         if os.path.exists(os.path.join(ROOT, "icons", f)):
@@ -64,11 +69,16 @@ def main():
         "/blog /blog 200", "/blog/ /blog 301", "/contact-us /#location 301", "/contact-us/ /#location 301",
         "/shop/* /shop 301", "/product/* /shop 301", "/product-category/* /shop 301", "/cart /shop 301", "/cart/ /shop 301",
         "/checkout /shop 301", "/checkout/ /shop 301", "/my-account " + APP + " 301", "/my-account/* " + APP + " 301",
+        # common WordPress addresses, so old links and Google results land somewhere useful
+        "/home /  301", "/home/ / 301", "/index.php / 301", "/feed /blog 301", "/feed/* /blog 301", "/comments/feed /blog 301",
+        "/category/* /blog 301", "/tag/* /blog 301", "/author/* /blog 301", "/page/* /blog 301",
+        "/wellness /wellness 200", "/recovery /wellness 301", "/recovery/ /wellness 301", "/spa /wellness 301", "/spa/ /wellness 301",
+        "/courses/ /courses 301", "/visa /dtv 301", "/visa/ /dtv 301",
     ]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
         r += ["/%s /post?p=%s 301" % (s, s), "/%s/ /post?p=%s 301" % (s, s)]
-    r = [x for x in r if not x.startswith("/blog /blog 200")]
+    r = [x.replace("  ", " ") for x in r if not x.startswith("/blog /blog 200") and not x.startswith("/wellness /wellness 200")]
     open(os.path.join(OUT, "_redirects"), "w").write("\n".join(r) + "\n")
     if LIVE:
         open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\n" % DOMAIN)
