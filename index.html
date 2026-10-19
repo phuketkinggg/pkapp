@@ -4890,7 +4890,7 @@ function vToday(){
       right=h('div',{class:'row wrap'},pk2?chip('Private pack: '+left(pk2)+' of '+pk2.class_limit+' left','ok'):null,
         btn(privToday.length?'Another private now':'Private now: check in',function(){ privNow(c); },privToday.length?'small':'primary small')); }
     if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
-      return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length?right:null);
+      return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length||(target&&target.kind==='private')?right:null);
     return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),newTag(c),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
       h('small',null,already?'Already checked in today at '+already.time+'. ':'',usable.map(function(x){return purchaseLine(x.p,x.st);}).join(' | '))),right);
   });
