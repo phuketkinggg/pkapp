@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
 Sitemap: https://www.phuketking.com/sitemap.xml
+Sitemap: https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/sitemap

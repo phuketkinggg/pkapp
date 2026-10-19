@@ -49,7 +49,7 @@
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=12"></script>
+<script src="site.js?v=13"></script>
 <script src="chat.js?v=1" defer></script>
 <script>
 (function(){
@@ -64,7 +64,9 @@ else PK.rest('blog_posts?select=slug,title,excerpt,body,cover_url,published_at&s
   var md=document.querySelector('meta[name=description]'); if(md&&p.excerpt) md.setAttribute('content',p.excerpt);
   box.innerHTML='<span class="num">'+PK.esc(PK.date(p.published_at))+'</span><h1>'+PK.esc(p.title)+'</h1><span class="rule"></span>'+(p.cover_url?'<img class="cover" src="'+PK.esc(p.cover_url)+'" alt="">':'')+'<div class="prose">'+PK.md(p.body)+'</div>';
   if(p.cover_url){ var f=box.querySelector('.prose figure img'); if(f&&f.getAttribute('src')===p.cover_url) f.parentNode.remove(); }
-  var ld=document.createElement('script'); ld.type='application/ld+json'; ld.textContent=JSON.stringify({'@context':'https://schema.org','@type':'BlogPosting',headline:p.title,datePublished:p.published_at,image:p.cover_url||undefined,description:p.excerpt||undefined,author:{'@type':'Organization',name:'Phuket King Muay Thai'}}); document.head.appendChild(ld);
+  PK.seo({path:'post?p='+encodeURIComponent(p.slug),title:p.title,description:p.excerpt||'',image:p.cover_url||'',type:'article',
+    ld:{'@context':'https://schema.org','@type':'BlogPosting',headline:p.title,datePublished:p.published_at,image:p.cover_url||undefined,description:p.excerpt||undefined,mainEntityOfPage:'https://www.phuketking.com/post?p='+p.slug,
+      author:{'@type':'Organization',name:'Phuket King Muay Thai',url:'https://www.phuketking.com/'},publisher:{'@type':'Organization',name:'Phuket King Muay Thai',logo:{'@type':'ImageObject',url:'https://www.phuketking.com/icons/icon-512.png'}}}});
 }).catch(function(){ box.innerHTML='<p class="err">This post could not load. Please try again in a moment.</p>'; });
 PK.rest('blog_posts?select=slug,title,cover_url,published_at&status=eq.published&order=published_at.desc&limit=4').then(function(list){
   var m=document.getElementById('more'); list.filter(function(p){ return p.slug!==slug; }).slice(0,3).forEach(function(p){ m.appendChild(card(p)); }); }).catch(function(){});

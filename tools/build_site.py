@@ -16,7 +16,7 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html", "page.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html", "page.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
@@ -30,13 +30,59 @@ def fix_book(html):
     html = html.replace('href="pk/', 'href="').replace('src="pk/', 'src="')
     return html
 
+NAMES = {"about.html": "About", "prices.html": "Prices", "dtv.html": "DTV Visa", "shop.html": "Shop", "blog.html": "Blog", "wellness.html": "Wellness and recovery",
+         "courses.html": "Online courses", "book.html": "Stay at Pangea Resort"}
+DYNAMIC = ("post.html", "page.html", "course.html", "404.html")
+DEFAULT_IMG = "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp"
+
+def seo(html, page):
+    """Share previews, fonts preconnect, breadcrumbs and FAQ data for Google, added to every page the same way."""
+    def get(pat):
+        m = re.search(pat, html, re.S)
+        return m.group(1) if m else ""
+    title, desc = get(r"<title>(.*?)</title>"), get(r'<meta name="description" content="([^"]*)"')
+    path = "/" if page == "index.html" else "/" + page[:-5]
+    url = DOMAIN + path
+    # og:image must be a full address
+    html = re.sub(r'(<meta property="og:image" content=")(?!https?://)([^"]+)"', lambda m: m.group(1) + DOMAIN + "/" + m.group(2).lstrip("./") + '"', html)
+    tags = []
+    def need(prop, val, attr="property"):
+        if val and ('%s="%s"' % (attr, prop)) not in html:
+            tags.append('<meta %s="%s" content="%s">' % (attr, prop, val))
+    need("og:title", title.split(" | ")[0] if " | " in title else title)
+    need("og:description", desc)
+    need("og:image", DEFAULT_IMG)
+    need("og:type", "website")
+    need("og:site_name", "Phuket King Muay Thai")
+    need("og:locale", "en_GB")
+    if page not in DYNAMIC:
+        need("og:url", url)
+    need("twitter:card", "summary_large_image", "name")
+    if 'rel="preconnect"' not in html:
+        tags.append('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>')
+    if page in NAMES:
+        tags.append('<script type="application/ld+json">%s</script>' % json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": DOMAIN + "/"}, {"@type": "ListItem", "position": 2, "name": NAMES[page], "item": url}]}))
+    # questions and answers on the page become FAQ data, unless the page already has it
+    if '"FAQPage"' not in html and page not in DYNAMIC:
+        qa = re.findall(r"<details><summary><h3>(.*?)</h3></summary>\s*<p>(.*?)</p>", html, re.S)
+        if qa:
+            strip = lambda t: re.sub(r"<[^>]+>", "", t).strip()
+            tags.append('<script type="application/ld+json">%s</script>' % json.dumps({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+                {"@type": "Question", "name": strip(q), "acceptedAnswer": {"@type": "Answer", "text": strip(a)}} for q, a in qa]}))
+    if tags:
+        html = html.replace("</head>", "\n".join(tags) + "\n</head>", 1)
+    return html
+
 def finish(html, page=None):
     # tell Google the one true address of each page
     if page and '<link rel="canonical"' not in html:
         path = "/" if page == "index.html" else "/" + page[:-5]
-        if page not in ("post.html", "page.html", "course.html"):
+        if page not in DYNAMIC:
             html = html.replace("</title>", "</title>\n<link rel=\"canonical\" href=\"%s%s\">" % (DOMAIN, path), 1)
-    if LIVE:
+    if page:
+        html = seo(html, page)
+    if LIVE and page != "404.html":
         html = html.replace('<meta name="robots" content="noindex">\n', '').replace('<meta name="robots" content="noindex">', '')
     return html
 
@@ -82,12 +128,15 @@ def main():
     r = [x.replace("  ", " ") for x in r if not x.startswith("/blog /blog 200") and not x.startswith("/wellness /wellness 200")]
     open(os.path.join(OUT, "_redirects"), "w").write("\n".join(r) + "\n")
     if LIVE:
-        open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\n" % DOMAIN)
+        open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nAllow: /\nSitemap: %s/sitemap.xml\nSitemap: https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/sitemap\n" % DOMAIN)
     else:
         open(os.path.join(OUT, "robots.txt"), "w").write("User-agent: *\nDisallow: /\n")
-    urls = ["/", "/about", "/prices", "/wellness", "/courses", "/dtv", "/book", "/shop", "/blog"] + ["/post?p=" + s for s in slugs]
+    # main pages here; blog posts, courses and pages made in the app are in the live sitemap (listed in robots.txt)
+    import datetime
+    today = datetime.date.today().isoformat()
+    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/courses", "0.6"), ("/shop", "0.6"), ("/blog", "0.6")]
     open(os.path.join(OUT, "sitemap.xml"), "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + "".join("  <url><loc>%s%s</loc></url>\n" % (DOMAIN, u.replace("&", "&amp;")) for u in urls) + "</urlset>\n")
+        + "".join("  <url><loc>%s%s</loc><lastmod>%s</lastmod><priority>%s</priority></url>\n" % (DOMAIN, u, today, pr) for u, pr in urls) + "</urlset>\n")
     print("site/ built", "(live, Google allowed)" if LIVE else "(test, hidden from Google)", len(r), "forwards")
 
 main()

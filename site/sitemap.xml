@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://www.phuketking.com/</loc></url>
-  <url><loc>https://www.phuketking.com/about</loc></url>
-  <url><loc>https://www.phuketking.com/prices</loc></url>
-  <url><loc>https://www.phuketking.com/wellness</loc></url>
-  <url><loc>https://www.phuketking.com/courses</loc></url>
-  <url><loc>https://www.phuketking.com/dtv</loc></url>
-  <url><loc>https://www.phuketking.com/book</loc></url>
-  <url><loc>https://www.phuketking.com/shop</loc></url>
-  <url><loc>https://www.phuketking.com/blog</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=how-to-apply-for-the-dtv-visa-through-muay-thai-the-real-process-step-by-step-2026</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=thailand-dtv-visa-rules-have-changed-what-you-need-to-know-from-31-august-2026</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=what-really-matters-when-you-start-muay-thai</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=stop-kicking-the-heavy-bag-wrong</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=no-you-do-not-have-to-fight</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=am-i-too-old-to-learn-muay-thai-phuket-king-muay-thai</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=how-to-choose-the-right-muay-thai-gym-for-you</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=how-to-book-a-muay-thai-training-camp-in-phuket</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=the-thailand-dtv-visa-the-complete-no-nonsense-guide-for-2026-including-the-muay-thai-route</loc></url>
-  <url><loc>https://www.phuketking.com/post?p=how-to-use-a-heavy-bag-for-muay-thai-tips-from-phuket-king-muay-thai</loc></url>
+  <url><loc>https://www.phuketking.com/</loc><lastmod>2026-10-19</lastmod><priority>1.0</priority></url>
+  <url><loc>https://www.phuketking.com/prices</loc><lastmod>2026-10-19</lastmod><priority>0.9</priority></url>
+  <url><loc>https://www.phuketking.com/book</loc><lastmod>2026-10-19</lastmod><priority>0.9</priority></url>
+  <url><loc>https://www.phuketking.com/dtv</loc><lastmod>2026-10-19</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.phuketking.com/about</loc><lastmod>2026-10-19</lastmod><priority>0.7</priority></url>
+  <url><loc>https://www.phuketking.com/wellness</loc><lastmod>2026-10-19</lastmod><priority>0.7</priority></url>
+  <url><loc>https://www.phuketking.com/courses</loc><lastmod>2026-10-19</lastmod><priority>0.6</priority></url>
+  <url><loc>https://www.phuketking.com/shop</loc><lastmod>2026-10-19</lastmod><priority>0.6</priority></url>
+  <url><loc>https://www.phuketking.com/blog</loc><lastmod>2026-10-19</lastmod><priority>0.6</priority></url>
 </urlset>

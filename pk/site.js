@@ -34,6 +34,12 @@ window.PK={
       return '<p>'+inl(b)+'</p>'; }).join('');
   }
 };
+// for pages filled after loading (blog posts, made pages, courses): the right address, description and share preview for Google
+PK.seo=function(o){ var head=document.head, url='https://www.phuketking.com/'+o.path;
+  function meta(attr,key,val){ if(!val) return; var m=head.querySelector('meta['+attr+'="'+key+'"]'); if(!m){ m=document.createElement('meta'); m.setAttribute(attr,key); head.appendChild(m); } m.setAttribute('content',val); }
+  var c=head.querySelector('link[rel=canonical]'); if(!c){ c=document.createElement('link'); c.rel='canonical'; head.appendChild(c); } c.href=url;
+  meta('name','description',o.description); meta('property','og:title',o.title); meta('property','og:description',o.description); meta('property','og:url',url); meta('property','og:image',o.image); meta('property','og:type',o.type||'website'); meta('name','twitter:title',o.title); meta('name','twitter:description',o.description); meta('name','twitter:image',o.image);
+  if(o.ld){ var l=document.createElement('script'); l.type='application/ld+json'; l.textContent=JSON.stringify(o.ld); head.appendChild(l); } };
 var b=document.querySelector('.menu'), n=document.querySelector('.nav');
 if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open'); b.setAttribute('aria-expanded',o?'true':'false'); b.textContent=o?'Close':'Menu'; });
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });

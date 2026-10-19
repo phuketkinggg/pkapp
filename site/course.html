@@ -9,6 +9,14 @@
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
 <link rel="stylesheet" href="site.css?v=16">
+<meta property="og:title" content="Online Course">
+<meta property="og:description" content="An online Muay Thai course from the Phuket King coaches.">
+<meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Phuket King Muay Thai">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -44,7 +52,7 @@
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I have a question about the online courses.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=12"></script>
+<script src="site.js?v=13"></script>
 <script src="chat.js?v=1" defer></script>
 <script src="qrcode.js?v=1"></script>
 <script src="checkout.js?v=1"></script>
@@ -62,7 +70,7 @@ if(!/^[a-z0-9-]{1,80}$/.test(slug)){ location.replace('courses.html'); return; }
 PK.rest('rpc/course_public?p_slug='+encodeURIComponent(slug)).then(function(list){ var c=list&&list[0];
   if(!c){ $('ctitle').textContent='Course not found'; $('csum').innerHTML='<a href="courses.html">See all courses</a>'; return; }
   document.title=c.title+' | Phuket King Muay Thai online course';
-  var md=document.querySelector('meta[name=description]'); if(md&&c.summary) md.setAttribute('content',c.summary);
+  PK.seo({path:'course?c='+encodeURIComponent(slug),title:c.title,description:c.summary||'',image:c.cover||'',ld:{'@context':'https://schema.org','@type':'Course',name:c.title,description:c.summary||c.title,provider:{'@type':'Organization',name:'Phuket King Muay Thai',sameAs:'https://www.phuketking.com/'}}});
   if(c.cover) $('chero').style.backgroundImage='url("'+c.cover.replace(/["\\]/g,'')+'")'; else $('chero').classList.add('nocover');
   $('ctitle').textContent=c.title; $('csum').textContent=c.summary||'';
   var free=(c.lessons||[]).filter(function(l){ return l.free; }).length;

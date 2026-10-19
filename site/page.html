@@ -21,6 +21,12 @@
 .light-sec .pg-body{color:var(--ink)}.pg-split .photo img{aspect-ratio:4/3}.pg-acts{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}.pg-cta .pg-acts{justify-content:center}
 .pg-preview{position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:50;background:#C98500;color:#111;font-weight:700;padding:6px 14px;border-radius:999px;font-size:14px}
 </style>
+<meta property="og:description" content="Phuket King Muay Thai, Kathu, Phuket.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Phuket King Muay Thai">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -46,7 +52,7 @@
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=12"></script>
+<script src="site.js?v=13"></script>
 <script src="chat.js?v=1" defer></script>
 <script>
 (function(){
@@ -77,7 +83,7 @@ function section(s){ var t=s.type, b=bg(s), a='';
   return ''; }
 function show(p){ if(!p){ box.innerHTML='<section class="band light-sec"><div class="wrap"><h1>Page not found</h1><p>It may have moved. <a href="index.html">Go to the home page</a></p></div></section>'; return; }
   title=p.title||''; document.title=title+' | Phuket King Muay Thai';
-  var md=document.querySelector('meta[name=description]'); if(md&&p.description) md.setAttribute('content',p.description);
+  if(!tok) PK.seo({path:'page?p='+encodeURIComponent(slug),title:title,description:p.description||'',image:((p.sections||[]).filter(function(s){ return s.type==='hero'&&img(s.image); })[0]||{}).image||''});
   var og=document.querySelector('meta[property="og:title"]'); if(og) og.setAttribute('content',title);
   var hero=(p.sections||[]).filter(function(s){ return s.type==='hero'&&img(s.image); })[0], ogi=document.querySelector('meta[property="og:image"]'); if(hero&&ogi) ogi.setAttribute('content',hero.image);
   box.innerHTML=(tok?'<div class="pg-preview">Preview'+(p.status==='published'?'':', not published yet')+'</div>':'')+(p.sections||[]).map(section).join('');
