@@ -108,7 +108,7 @@ begin
       case when i in (1,5,20) then 'pangea' when i%7=0 then 'progress' else 'train' end,
       case when countries[i]='Thailand' then 'thai' when i%9=0 then 'local' else 'standard' end,
       countries[i],
-      case when i in (1,5,20,29) then '{fighter}' when i%6=0 then '{dtv}' when i%5=0 then '{beginner}' when i%11=0 then '{kids parent}' else '{}' end,
+      case when i in (1,5,20,29) then '{fighter}' when i%6=0 then '{dtv}' when i%5=0 then '{beginner}' when i%11=0 then '{kids parent}' else '{}' end::text[],
       true, case i%4 when 0 then 'Google' when 1 then 'Instagram' when 2 then 'Walk in' else 'Friend' end,
       now()-((60-i)||' days')::interval, now());
   end loop;
