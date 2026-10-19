@@ -59,6 +59,16 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .login input{width:100%}
 .aibar{height:8px;border-radius:99px;background:var(--sunken);overflow:hidden;margin:6px 0 10px}.aibar i{display:block;height:100%;background:var(--gold)}.aibar i.hot{background:#C0392B}
 .thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.demobar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 16px;background:#17213C;color:#fff;border-bottom:3px solid #2759DA;font-size:15px}
+.demobar[hidden]{display:none}
+.demobar .dnow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.demobar .dtag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#D7263D;color:#fff;border-radius:6px;padding:3px 8px}
+.demobar .drole{font-size:18px;font-weight:700;background:#2759DA;border-radius:999px;padding:6px 16px}
+.demobar .dswitch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.demobar .dswitch button{font:inherit;font-weight:600;font-size:15px;min-height:44px;padding:0 16px;border-radius:999px;border:2px solid #fff;background:transparent;color:#fff;cursor:pointer}
+.demobar .dswitch button:hover,.demobar .dswitch button:focus-visible{background:#fff;color:#17213C}
+.demobar .dswitch button:disabled{opacity:.6;cursor:wait}
+@media (max-width:640px){.demobar .dswitch{margin-left:0;width:100%}.demobar .dswitch button{flex:1 1 40%}}
 .demobox{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--line);border-radius:10px}
 .demobtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .demobtns .btn{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;white-space:normal;text-align:left;padding:10px 12px;min-height:56px}
@@ -6778,6 +6788,23 @@ if(!window.supabase||!window.supabase.createClient){
     if(session&&session.user){ if(linkNote){ toast(linkNote); linkNote=''; } setTimeout(function(){ enter(session.user); },0); }
     else if(event==='SIGNED_OUT'||event==='INITIAL_SESSION'){ currentUser=null; recovering=false; signMode='in'; showSignIn(); }
   });
+  // demo builds only: a bar on every screen that says which role you are in, with one tap to switch to another
+  if(window.DEMO_LOGINS){
+    var dbar=h('div',{class:'demobar',role:'region','aria-label':'Demo roles',hidden:true});
+    document.body.insertBefore(dbar,document.body.firstChild);
+    var demoBar=function(user){
+      var em=String(user&&user.email||'').toLowerCase(), cur=window.DEMO_LOGINS.filter(function(d){ return d.email===em; })[0];
+      if(!user){ dbar.hidden=true; return; }
+      var say=h('span',{class:'sub',role:'status',style:'color:#C9D3EA'});
+      dbar.replaceChildren(
+        h('div',{class:'dnow'},h('span',{class:'dtag'},'Live demo'),h('span',null,'You are in'),h('b',{class:'drole'},cur?cur.label+' view':'your own login')),
+        h('div',{class:'dswitch'},h('span',null,'Switch to:'),window.DEMO_LOGINS.filter(function(d){ return d!==cur; }).map(function(d){
+          return h('button',{type:'button',title:d.note,onclick:function(ev){ var bs=dbar.querySelectorAll('button'); for(var i=0;i<bs.length;i++) bs[i].disabled=true; say.textContent='Opening the '+d.label.toLowerCase()+' view.';
+            sb.auth.signInWithPassword({email:d.email,password:d.pw}).then(function(res){ if(res.error){ say.textContent=authText(res.error); for(var i=0;i<bs.length;i++) bs[i].disabled=false; return; } try{ window.scrollTo(0,0); }catch(e){} location.reload(); }); }},d.label); }),say));
+      dbar.hidden=false;
+    };
+    sb.auth.onAuthStateChange(function(event,session){ demoBar(session&&session.user); });
+  }
   window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); });
 }
 })();
