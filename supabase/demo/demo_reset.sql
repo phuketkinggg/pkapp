@@ -71,6 +71,11 @@ begin
     if i in (1,3) then insert into public.classes(day,start_time,title,discipline,coach_id) values (i,'18:00','Fight team clinch and sprints','Muay Thai',s_lek); end if;
     if i in (0,2,4) then insert into public.classes(day,start_time,title,discipline,coach_id) values (i,'09:45','Yoga and mobility','Yoga',null); end if;
   end loop;
+  -- two coaches on each Muay Thai class (the class's own coach plus one more), end times on the main classes
+  update public.classes k set coach_ids = array_remove(array[k.coach_id, case when k.coach_id = coaches[1] then coaches[2] else coaches[1] end], null),
+    end_time = case to_char(k.start_time,'HH24:MI') when '08:00' then '09:30'::time when '16:30' then '18:00'::time when '18:30' then '20:00'::time when '18:00' then '19:00'::time when '09:45' then '10:45'::time end
+  where k.discipline = 'Muay Thai';
+  update public.classes set end_time = '10:45' where discipline = 'Yoga';
 
   -- packages
   insert into public.packages(slug,name,price_thb,price_local_thb,covers,visit_limit,duration_days,clock,qty_unit,notes,start_within_days) values
