@@ -3915,6 +3915,7 @@ function sessJudge(day,x,e,now){
   if(!e&&now>=en) r.state='missed'; else if(!e&&now>=st) r.state='late';
   return r;
 }
+var MYTAB=null;
 function vClock(){
   if(!CLOCK){ if(!ui.clockAsked){ ui.clockAsked=true; loadClock(); } return [pageHead(K('title'),''),h('div',{class:'panel empty'},ui.clockErr||'...')]; }
   var E=CLOCK.entries||[];
@@ -3943,6 +3944,8 @@ function vClock(){
       sh.filter(function(e){ return e.out_at; }).map(function(e){ return h('p',{class:'sub'},bkkTime(e.in_at)+' - '+bkkTime(e.out_at)); }),
       btn(open?K('shiftOut'):K('shiftIn'),function(){ punch('shift',null); },open?'':'primary'))));
   }
+  if(MYTAB===null){ MYTAB=false; sb.rpc('staff_tab_mine').then(function(r){ MYTAB=r.error?false:r.data; schedule(); }); }
+  if(MYTAB&&MYTAB.owed>0) out.push(section((coLang()==='th'?'ยอดค้างของฉัน':'My staff tab')+': '+thb(MYTAB.owed),null,cards(MYTAB.charges.map(function(c){ return {when:fmtDate(c.day),right:thb(c.amount),title:c.description}; }),'')));
   return out;
 }
 
@@ -4073,7 +4076,7 @@ function vHours(){
 
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
 var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
-var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['stripe','Stripe card link']];
+var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['staff','Staff tab'],['stripe','Stripe card link']];
 function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)'})[m]||(m||''); }
 function isBoss(){ return me&&(me.role==='manager'||me.role==='resort'); }
 function loadShop(){ ui.shopBusy=true; if(!PP) loadPP(); return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
@@ -4133,9 +4136,16 @@ function saleMistake(o){
   mistakeDlg('Sale #'+o.number+', '+thb(o.total)+(o.room?', on '+o.room:''),'Stock goes back, it comes out of the sales and the shift cash, and off the room bill if it was charged to a room.',
     function(pin,why,item){ return sb.rpc('shop_mistake',{p_order:o.id,p_item:item||null,p_pin:pin,p_reason:why}).then(must).then(function(){ shopRefresh(); loadShop(); reload('charges'); reload('purchases'); }); },lines.length>1?pick:null);
 }
+function miscDlg(){
+  openForm({title:'Other item',note:'For anything not on the menu. Type what it is and the price.',saveLabel:'Add to sale',doneMsg:'Added.',values:{qty:1},
+    fields:[{key:'name',label:'What is it',required:true,hint:'For example: towel, taxi, borrowed gloves.'},{key:'price',label:'Price each (THB)',type:'number',required:true},{key:'qty',label:'How many',type:'number'}],
+    onSave:function(v){ var n=String(v.name||'').trim(), pr=Math.round(Number(v.price)), q=Math.round(Number(v.qty)||1);
+      if(!n) return 'Type what it is.'; if(!(pr>=0)) return 'Type the price.'; if(q<1||q>999) return 'Type how many, 1 to 999.';
+      cart().push({id:'misc'+Date.now(),name:n,price:pr,qty:q,note:'',misc:true}); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); return true; }});
+}
 function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
 /* training packages on the gym till: the package goes on the customer, the money goes through the till */
-function cartItems(){ return cart().map(function(l){ return l.pkg?{package:l.pkg,price:l.price}:{product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; }); }
+function cartItems(){ return cart().map(function(l){ return l.misc?{misc:true,name:l.name,price:l.price,qty:l.qty,note:l.note||null}:l.pkg?{package:l.pkg,price:l.price}:{product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; }); }
 function cartCust(){ var l=cart().filter(function(x){ return x.pkg; })[0]; return l?l.pkg.customer_id:null; }
 function gymTill(loc){ return !!loc&&!/cafe/i.test(locName(loc)); }
 function tillPackages(){ return sortBy(S.packages.filter(function(p){ return p.active!==false&&!isMealOnly(p); }),'name'); }
@@ -4226,6 +4236,13 @@ function payDlg(method,waitingOrder){
     extra.push(field('pay-given','Cash given (THB)',given,'Leave empty if they give the exact amount.'),change,
       h('div',{class:'row'},[100,500,1000].filter(function(n){ return n>=total; }).slice(0,3).map(function(n){ return btn(thb(n),function(){ given.value=n; given.oninput(); },'small'); })));
   }
+  var staffSel=null;
+  if(method==='staff'){
+    var team=sortBy(S.staff.filter(function(x){ return x.active!==false; }),'name');
+    if(!team.length){ toast('No staff in the app yet.'); return; }
+    staffSel=h('select',{id:'pay-staff'},[h('option',{value:''},'Choose who')].concat(team.map(function(x){ return h('option',{value:x.id},x.name+(ROLES[x.role]?' ('+ROLES[x.role]+')':'')); })));
+    extra.push(field('pay-staff','Who is it for',staffSel),h('p',{class:'sub'},'Goes on their staff tab. A manager settles it later, in cash or from their wages.'));
+  }
   if(method==='room'){
     var rooms=SHOP.in_house||[];
     if(!rooms.length){ toast('Nobody is checked in to a room right now.'); return; }
@@ -4237,6 +4254,7 @@ function payDlg(method,waitingOrder){
     if(waitingOrder) p.order_id=waitingOrder.id; else { p.items=cartItems(); p.customer_id=cartCust(); }
     if(given&&given.value) p.cash_given=Number(given.value);
     if(stay) p.stay_id=stay.value;
+    if(staffSel){ if(!staffSel.value){ err.textContent='Choose who it is for.'; err.hidden=false; return; } p.staff_id=staffSel.value; }
     var b=this; if(b) b.disabled=true;
     var hadPk=!waitingOrder&&cart().some(function(l){ return l.pkg; });
     sb.rpc('shop_sell',{p:p}).then(must).then(function(r){
@@ -4248,7 +4266,7 @@ function payDlg(method,waitingOrder){
     }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; });
   }
   shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),h('p',{class:'paytotal'},'Total '+thb(total)),extra,err,
-    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(method==='room'?'Charge to room':'Payment received',go,'primary')))));
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(method==='room'?'Charge to room':method==='staff'?'Put on their tab':'Payment received',go,'primary')))));
   if(given) setTimeout(function(){ given.focus(); },30);
 }
 function receiptNode(o){
@@ -4466,6 +4484,36 @@ function vReport(){
     !r?null:section('Discounts and refunds',null,table([{label:'Sale',cell:function(o){ return '#'+o.number+' '+fmtDate(o.at.slice(0,10)); }},{label:'What',cell:function(o){ return o.status==='refunded'?'Refund: '+(o.refund_reason||''):'Discount '+thb(o.discount)+': '+(o.discount_reason||''); }},
       {label:'By',cell:function(o){ return (o.by||'')+(o.approved_by?', approved by '+o.approved_by:''); }}],orders.filter(function(o){ return o.discount>0||o.status==='refunded'; }),'None.'))];
 }
+/* staff tabs: what staff owe for drinks, food and other items, settled later by a manager */
+var TABS_ST=null;
+function staffChargeDlg(sid){
+  var team=sortBy(S.staff.filter(function(x){ return x.active!==false; }),'name');
+  openForm({title:'Add to a staff tab',note:'For something not sold on the till, for example money borrowed or a lost key.',saveLabel:'Add',doneMsg:'Added to their tab.',values:{staff:sid||''},
+    fields:[{key:'staff',label:'Who',type:'select',required:true,options:[['','Choose who']].concat(team.map(function(x){ return [x.id,x.name]; }))},{key:'desc',label:'What for',required:true},{key:'amount',label:'Amount (THB)',type:'number',required:true}],
+    onSave:function(v){ var a=Math.round(Number(v.amount)); if(!v.staff) return 'Choose who.'; if(!(a>0)) return 'Type the amount.';
+      return sb.rpc('staff_charge_add',{p_staff:v.staff,p_desc:v.desc,p_amount:a}).then(must).then(function(){ TABS_ST=null; MYTAB=null; schedule(); }); }});
+}
+function settleDlg(t){
+  openForm({title:'Settle '+t.name+'’s tab',note:'Marks everything on the tab ('+thb(t.owed)+') as settled.',saveLabel:'Settle '+thb(t.owed),doneMsg:'Tab settled.',values:{how:'cash'},
+    fields:[{key:'how',label:'How',type:'select',options:[['cash','Paid in cash'],['transfer','Paid by transfer'],['wages','Taken from their wages'],['free','On the house (written off)']]},{key:'note',label:'Note',hint:'Optional. For example: October wages.'}],
+    onSave:function(v){ return sb.rpc('staff_tab_settle',{p_staff:t.staff_id,p_how:v.how,p_note:v.note||null}).then(must).then(function(){ TABS_ST=null; schedule(); }); }});
+}
+function vStaffTabs(){
+  var mgr=me.role==='manager', back=h('div',null,linkBtn('Back to the till',function(){ ui.shopView=''; schedule(); }));
+  var head=pageHead('Staff tabs',mgr?'Drinks, food and other things staff take, settled later in cash or from wages.':'Add something to a staff member’s tab. A manager settles it.',btn('Add to a staff tab',function(){ staffChargeDlg(); },'primary'));
+  if(!mgr) return [back,head,h('div',{class:'panel pad'},h('p',null,'To put a sale on a tab, ring it up on the till as normal and tap Staff tab to pay.'))];
+  if(!TABS_ST){ if(!ui.tabsBusy){ ui.tabsBusy=true; sb.rpc('staff_tabs').then(must).then(function(d){ ui.tabsBusy=false; TABS_ST=d||[]; schedule(); }).catch(function(e){ ui.tabsBusy=false; toast(errText(e)); }); } return [back,head,h('div',{class:'panel empty'},'Loading.')]; }
+  var owing=TABS_ST.filter(function(t){ return t.owed>0; }), total=owing.reduce(function(a,t){ return a+t.owed; },0);
+  var how={cash:'cash',transfer:'transfer',wages:'from wages',free:'written off'};
+  return [back,head,
+    h('div',{class:'stats'},h('span',null,h('b',null,thb(total)||'0 THB'),'owed in total'),h('span',null,h('b',null,owing.length),owing.length===1?'person owes':'people owe')),
+    TABS_ST.filter(function(t){ return t.charges.length; }).map(function(t){
+      return section(t.name+(t.owed?': owes '+thb(t.owed):': all settled'),h('div',{class:'row'},btn('Add',function(){ staffChargeDlg(t.staff_id); },'small'),t.owed?btn('Settle',function(){ settleDlg(t); },'primary small'):null),
+        table([{label:'Date',cell:function(c){ return fmtDate(c.day); }},{label:'What',cell:function(c){ return [c.description,c.till?null:h('span',{class:'sub'},' (added by '+(c.by||'staff')+')')]; }},
+          {label:'Amount',num:true,cell:function(c){ return c.voided?h('s',null,thb(c.amount)):thb(c.amount); }},
+          {label:'',cell:function(c){ return c.voided?chip('Removed'):c.settled_at?chip('Settled, '+(how[c.settled_how]||c.settled_how)+', '+fmtDate(String(c.settled_at).slice(0,10)),'ok'):!c.till?btn('Remove',function(){ if(guard()) run(sb.rpc('staff_charge_remove',{p_id:c.id}).then(must).then(function(){ TABS_ST=null; schedule(); }),'Removed.'); },'small'):chip('Owed','warn'); }}],t.charges,'')); }),
+    TABS_ST.some(function(t){ return t.charges.length; })?null:h('div',{class:'panel empty'},'Nobody has anything on their tab yet. On the till, tap Staff tab to pay, or Add to a staff tab here.')];
+}
 function vShop(){
   if(!SHOP){
     if(ui.shopErr) return [pageHead('Shop',''),h('div',{class:'panel empty'},ui.shopErr,' ',btn('Try again',function(){ ui.shopErr=null; loadShop(); },'small'))];
@@ -4475,6 +4523,7 @@ function vShop(){
   if(ui.shopView==='products'&&me.role==='manager') return vProducts();
   if(ui.shopView==='report'&&isBoss()) return vReport();
   if(ui.shopView==='stock'&&isBoss()) return vStock();
+  if(ui.shopView==='tabs') return vStaffTabs();
   var loc=shopLoc(), L=SHOP.locations||[];
   if(!loc) return [pageHead('Shop','Which shop is this till?'),h('div',{class:'panel pad'},h('p',null,'Choose once on this phone or tablet. You can change it later.'),
     h('div',{class:'row wrap'},L.map(function(l){ return btn(l.name,function(){ setShopLoc(l.id); },'primary'); })))];
@@ -4493,6 +4542,7 @@ function vShop(){
     isBoss()&&!lows.length?btn('Stock',function(){ ui.shopView='stock'; ui.stockLoc=loc; schedule(); },'small'):null,
     isBoss()?btn('Sales report',function(){ ui.shopView='report'; ui.report=null; schedule(); },'small'):null,
     me.role==='manager'?btn('Products',function(){ ui.shopView='products'; schedule(); },'small'):null,
+    btn('Staff tabs',function(){ ui.shopView='tabs'; TABS_ST=null; schedule(); },'small'),
     isBoss()?btn(SHOP.has_pin?'Change my PIN':'Set my approval PIN',pinDlg,SHOP.has_pin?'small':'primary small'):null);
   var search=h('input',{id:'shop-q',type:'search',placeholder:'Search products',value:ui.shopQ||'',oninput:function(e){ ui.shopQ=e.target.value; schedule(); }});
   var grid=pkMode?h('div',{class:'tillgrid'},tillPackages().filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0; }).map(function(p){ var t=tiersFor(p,'standard');
@@ -4514,7 +4564,7 @@ function vShop(){
     h('div',{class:'carttot'},disc?h('div',null,h('span',null,'Subtotal'),h('span',null,thb(sub))):null,
       disc?h('div',null,h('span',null,'Discount'+(ui.cartDisc.reason?' ('+ui.cartDisc.reason+')':'')),h('span',null,'-'+thb(disc))):null,
       h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(tot)||'0 THB'))),
-    h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small')),
+    h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small'),btn('Other item',miscDlg,'small')),
     shift?h('div',{class:'paybtns'},PAYS.map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); }))
       :h('div',{class:'panel pad'},h('p',null,'Open a shift before you sell. Count the change in the till first.'),btn('Open shift',shiftDlg,'primary')));
   var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
