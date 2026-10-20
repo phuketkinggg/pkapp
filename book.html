@@ -251,8 +251,15 @@ function render(){
       el('div',{cls:'rooms'},rs.map(function(r){ var rr=room(r.id); return el('button',{type:'button',cls:'chip'+(r.state!=='free'?' full':'')+(pick&&pick.id===r.id?' on':''),disabled:r.state!=='free'?'':null,onclick:function(){ choose(r.id); }},short(rr?rr.name:'Room')); })),
       q?el('button',{type:'button',cls:'btn'+(chosen?' primary':''),onclick:function(){ choose(chosen?pick.id:q.id); }},chosen?'Chosen: '+short(room(pick.id).name):'Choose this room'):null)); });
 }
+// any number of sessions: the price runs smoothly between your packages (same sum as the server)
+function packPrice(opts,n){ var p=(opts||[]).filter(function(o){ return o.limit>0; }).sort(function(a,b){ return a.limit-b.limit; }); if(!p.length||!(n>0)) return 0;
+  var lo=null,hi=null; p.forEach(function(o){ if(o.limit<=n) lo=o; else if(!hi) hi=o; }); if(lo&&lo.limit===n) return lo.price;
+  var v=!lo?n*hi.price/hi.limit:!hi?n*lo.price/lo.limit:lo.price+(n-lo.limit)*(hi.price-lo.price)/(hi.limit-lo.limit); return Math.round(v/50)*50; }
+function anyN(e,n){ return Math.max(1,Math.min(e.any_max||30,Math.round(Number(n)||1))); }
+function anyName(e,n){ var p=(e.options||[]).filter(function(o){ return o.limit>0; }), one=p.filter(function(o){ return o.limit===1; })[0], many=p.filter(function(o){ return o.limit>1; })[0];
+  var w1=one?one.name.replace(/^\d+\s*/,''):'session', w2=many?many.name.replace(/^\d+\s*/,''):w1+'s'; return n+' '+(n===1?w1:w2); }
 function exPrice(e,sel){ if(!sel) return 0; var n=Q.nights;
-  if(e.kind==='pick'){ var o=(e.options||[]).filter(function(x){ return x.id===sel.option; })[0]; return o?o.price:0; }
+  if(e.kind==='pick'){ if(sel.option==='any'&&e.any) return packPrice(e.options,anyN(e,sel.n)); var o=(e.options||[]).filter(function(x){ return x.id===sel.option; })[0]; return o?o.price:0; }
   if(e.kind==='day'){ if(!sel.on) return 0; var d=Math.max(1,Math.min(n,Math.round(Number(sel.days)||n))), per=e.tiers&&e.tiers.length?((e.tiers.filter(function(t){ return d<=t.max; })[0]||e.tiers[e.tiers.length-1]).price):Number(e.price||0);
     return (per+(sel.addon&&e.addon?e.addon.price:0))*d; }
   return (Number(sel.qty)||0)*Number(e.price||0); }
@@ -266,7 +273,11 @@ function renderExtras(){
     renderOne(e,grid,curCat); }); });
   function renderOne(e,grid,cat){ var sel=EX[e.id]||(EX[e.id]={}), price=exPrice(e,sel), on=price>0, body=[];
     if(e.kind==='pick'){ body.push(el('div',{cls:'exrow'},[el('button',{type:'button',cls:'chip'+(!sel.option?' on':''),onclick:function(){ sel.option=null; changed(); }},'None')].concat((e.options||[]).map(function(o){
-        return el('button',{type:'button',cls:'chip'+(sel.option===o.id?' on':''),onclick:function(){ sel.option=o.id; changed(); }},o.name+', '+thb(o.price)); })))); }
+        return el('button',{type:'button',cls:'chip'+(sel.option===o.id?' on':''),onclick:function(){ sel.option=o.id; changed(); }},o.name+', '+thb(o.price)); })
+      .concat(e.any?[el('button',{type:'button',cls:'chip'+(sel.option==='any'?' on':''),onclick:function(){ sel.option='any'; if(!sel.n) sel.n=3; changed(); }},'Other number')]:[]))));
+      if(e.any&&sel.option==='any'){ var an=anyN(e,sel.n);
+        body.push(el('div',{cls:'exrow'},el('div',{cls:'step'},el('button',{type:'button',cls:'btn','aria-label':'Less',onclick:function(){ sel.n=Math.max(1,an-1); changed(); }},'−'),el('b',null,String(an)),el('button',{type:'button',cls:'btn','aria-label':'More',onclick:function(){ sel.n=Math.min(e.any_max||30,an+1); changed(); }},'+')),
+          el('span',{cls:'sub'},anyName(e,an)+', '+thb(packPrice(e.options,an))))); } }
     else if(e.kind==='day'){ if(sel.days==null) sel.days=n;
       var per=e.tiers&&e.tiers.length?e.tiers.map(function(t,i){ var lo=i?e.tiers[i-1].max+1:1; return (t.max>=999?lo+'+ days':lo+' to '+t.max+' days')+' '+thb(t.price); }).join(', ')+' a day':thb(e.price)+' a day';
       var cb=el('input',{type:'checkbox','aria-label':'Add '+e.name}); cb.checked=!!sel.on; cb.onchange=function(){ sel.on=cb.checked; changed(); };
@@ -311,7 +322,7 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
   b.disabled=true; b.textContent='Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
+  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
     .then(function(d){ location.href=d.url; })
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+thb(pick.total)+' by card'; err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });

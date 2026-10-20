@@ -21,7 +21,7 @@ const isDay = (d: unknown) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.tes
 type Season = { id: string; name: string; ranges?: { from: string; to: string }[] };
 type Group = { id: string; name: string; rooms: string[]; prices: Record<string, number>; note?: string };
 type Opt = { id: string; name: string; price: number; limit?: number };
-type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; max?: number; unit?: string; note?: string };
+type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; any?: boolean; any_max?: number; max?: number; unit?: string; note?: string };
 type Rates = { base: string; seasons: Season[]; groups: Group[]; extras?: Extra[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
 type Item = { name: string; price: number; covers: string[]; limit?: number | null; days?: number | null; starts?: string | null; expires?: string | null };
 
@@ -58,6 +58,18 @@ function checkDates(from: unknown, to: unknown) {
   if (f > addDays(today(), 540)) return "We take bookings up to 18 months ahead.";
   return null;
 }
+// any number of sessions: the price runs smoothly between the packages, rounded to 50 THB (same sum as book.html)
+function packPrice(opts: Opt[], n: number): number {
+  const p = opts.filter((o) => (o.limit ?? 0) > 0).sort((a, b) => a.limit! - b.limit!); if (!p.length || !(n > 0)) return 0;
+  let lo: Opt | null = null, hi: Opt | null = null; for (const o of p) { if (o.limit! <= n) lo = o; else if (!hi) hi = o; }
+  if (lo && lo.limit === n) return lo.price;
+  const v = !lo ? n * hi!.price / hi!.limit! : !hi ? n * lo.price / lo.limit! : lo.price + (n - lo.limit!) * (hi.price - lo.price) / (hi.limit! - lo.limit!);
+  return Math.round(v / 50) * 50;
+}
+function anyName(e: Extra, n: number): string {
+  const p = (e.options || []).filter((o) => (o.limit ?? 0) > 0), one = p.find((o) => o.limit === 1), many = p.find((o) => o.limit! > 1);
+  const w1 = one ? one.name.replace(/^\d+\s*/, "") : "session", w2 = many ? many.name.replace(/^\d+\s*/, "") : w1 + "s"; return `${n} ${n === 1 ? w1 : w2}`;
+}
 // what the guest picked on the page, priced here from the settings, never from the page
 function extraItems(R: Rates, picks: unknown, from: string, to: string): Item[] {
   const nights = Math.round((Date.parse(to) - Date.parse(from)) / 864e5), out: Item[] = [];
@@ -66,6 +78,10 @@ function extraItems(R: Rates, picks: unknown, from: string, to: string): Item[] 
     const e = (R.extras || []).find((x) => x.id === p.id && !(x as { off?: boolean }).off); if (!e) continue;
     const covers = e.covers || [];
     if (e.kind === "pick") {
+      if (p.option === "any" && e.any) {
+        const n = Math.max(1, Math.min(e.any_max || 30, Math.round(Number(p.n) || 1))), price = packPrice(e.options || [], n); if (!price) continue;
+        out.push({ name: `${e.name}, ${anyName(e, n)}`, price, covers, limit: n, starts: from, expires: addDays(to, 30) }); continue;
+      }
       const o = (e.options || []).find((x) => x.id === p.option); if (!o) continue;
       out.push({ name: `${e.name}, ${o.name}`, price: o.price, covers, limit: o.limit ?? null, starts: from, expires: addDays(to, 30) });
     } else if (e.kind === "day") {
@@ -131,7 +147,7 @@ Deno.serve(async (req) => {
         seasons: R.seasons.map((s) => ({ id: s.id, name: s.name, ranges: s.ranges || [], base: s.id === R.base })),
         groups: R.groups.map((g) => ({ id: g.id, name: g.name, note: g.note || "", prices: g.prices })),
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
-        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
+        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
       });
     }

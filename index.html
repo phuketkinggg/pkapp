@@ -1528,13 +1528,15 @@ function exParseOpts(t,old){ var out=[], err=null;
 function editExtra(e){
   var isNew=!e; e=e||{kind:'qty',cat:'gear',covers:[]};
   var tiers=e.tiers&&e.tiers.length;
-  var vals={cat:e.cat||'misc',name:e.name||'',note:e.note||'',kind:e.kind,price:e.price,opts:exOptsText(e),unit:e.unit||'',addon:e.addon?e.addon.price:null,max:e.max||null,off:!!e.off};
+  var vals={cat:e.cat||'misc',name:e.name||'',note:e.note||'',kind:e.kind,price:e.price,opts:exOptsText(e),any:!!e.any,any_max:e.any_max||30,unit:e.unit||'',addon:e.addon?e.addon.price:null,max:e.max||null,off:!!e.off};
   var fields=[{key:'cat',label:'Category',type:'select',options:EXCATS},{key:'name',label:'Name',required:true},{key:'note',label:'Short description',hint:'One line guests see under the name.'}];
   if(isNew) fields.push({key:'kind',label:'How it is priced',type:'select',options:[['qty','A price each (guests choose how many)'],['pick','A choice of options (for example 1 session or 10 sessions)'],['day','A price per day of the stay']],
-    onChange:function(v,set,get,o,show){ show('price',v!=='pick'); show('opts',v==='pick'); show('max',v==='qty'); show('unit',v==='qty'); }});
+    onChange:function(v,set,get,o,show){ show('price',v!=='pick'); show('opts',v==='pick'); show('any',v==='pick'); show('any_max',v==='pick'); show('max',v==='qty'); show('unit',v==='qty'); }});
   if(!tiers) fields.push({key:'price',label:'Price (THB)',type:'number',hide:e.kind==='pick',hint:'Each, or per day.'});
   (e.tiers||[]).forEach(function(t,i){ var lo=i?e.tiers[i-1].max+1:1; vals['t'+i]=t.price; fields.push({key:'t'+i,label:'Price per day for '+(t.max>=999?lo+' days or more':lo+' to '+t.max+' days')+' (THB)',type:'number',required:true}); });
   fields.push({key:'opts',label:'Choices and prices',type:'textarea',hide:e.kind!=='pick',hint:'One choice per line, written as name = price. For example, 1 session = 2000 on one line, and 10 sessions = 15000 on the next.'});
+  fields.push({key:'any',label:'Guests can also choose any number',type:'checkbox',hide:e.kind!=='pick',hint:'The price is worked out from your choices above. For example with 1 = 900 and 10 = 7500, 7 costs 5,300. Needs a number at the start of each choice.'});
+  fields.push({key:'any_max',label:'Most they can choose',type:'number',hide:e.kind!=='pick'});
   if(e.addon) fields.push({key:'addon',label:'Extra per day '+e.addon.name+' (THB)',type:'number'});
   fields.push({key:'unit',label:'Price is per',hide:e.kind!=='qty',hint:'Optional, for example: each way. Leave empty for each.'});
   fields.push({key:'max',label:'Most a guest can add',type:'number',hide:e.kind!=='qty'});
@@ -1545,7 +1547,7 @@ function editExtra(e){
       var n=JSON.parse(JSON.stringify(RATES)); n.extras=n.extras||[];
       var x=isNew?{id:'x'+Date.now().toString(36),kind:v.kind||'qty',covers:[]}:n.extras.filter(function(y){ return y.id===e.id; })[0]; if(!x) return 'Not found.';
       x.cat=v.cat||'misc'; x.name=String(v.name||'').trim(); x.note=String(v.note||'').trim(); x.off=!!v.off;
-      if(x.kind==='pick'){ var o=exParseOpts(v.opts,x.options); if(o.err) return o.err; x.options=o.opts; }
+      if(x.kind==='pick'){ var o=exParseOpts(v.opts,x.options); if(o.err) return o.err; x.options=o.opts; x.any=!!v.any; x.any_max=v.any_max?Math.max(2,Math.round(v.any_max)):30; if(x.any&&!x.options.some(function(z){ return z.limit>0; })) return 'To allow any number, start each choice with a number, like 10 sessions = 15000.'; }
       else if(!(x.tiers&&x.tiers.length)){ var pr=Math.round(Number(v.price)); if(!(pr>0)) return 'Type the price.'; x.price=pr; }
       (x.tiers||[]).forEach(function(t,i){ t.price=Math.round(v['t'+i]); }); if(x.addon&&v.addon!=null) x.addon.price=Math.round(v.addon);
       if(x.kind==='qty'){ x.unit=String(v.unit||'').trim()||undefined; x.max=v.max?Math.max(1,Math.round(v.max)):10; }
@@ -1554,7 +1556,7 @@ function editExtra(e){
 }
 function extrasSettings(){
   var r=needRates(), mgr=me&&me.role==='manager'; if(!r) return null;
-  function priceText(e){ if(e.options) return e.options.map(function(o){ return o.name+' '+thb(o.price); }).join(', ');
+  function priceText(e){ if(e.options) return e.options.map(function(o){ return o.name+' '+thb(o.price); }).join(', ')+(e.any?', or any number up to '+(e.any_max||30):'');
     if(e.tiers) return e.tiers.map(function(t,i){ var lo=i?e.tiers[i-1].max+1:1; return (t.max>=999?lo+'+':lo+' to '+t.max)+' days '+thb(t.price); }).join(', ')+' a day';
     return thb(e.price)+(e.kind==='day'?' a day':e.unit?' '+e.unit:' each')+(e.addon?', '+e.addon.name+' +'+thb(e.addon.price):''); }
   var ex=r.extras||[];
