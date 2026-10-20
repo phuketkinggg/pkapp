@@ -1769,7 +1769,8 @@ function openBill(st,msg,thenOut){
     ex.length?[h('h3',{class:'billh'},'Training, privates and extras'),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,ex.map(function(x){
       return h('tr',null,h('td',null,fmtDate(x.day)),h('td',null,x.what),h('td',{class:'num'},thb(x.price)||'0 THB'),h('td',null,x.owe?chip('Owes '+thb(x.owe),'warn'):chip('Paid','ok'))); })),
       h('tfoot',null,h('tr',null,h('td',null,'Paid'),h('td'),h('td',{class:'num'},thb(exPaid)||'0 THB'),h('td',null,exOwe?chip('Owes '+thb(exOwe),'warn'):null)))))]:null,
-    h('div',{class:'billsum'},h('span',null,'Whole stay: '+(thb(Number(st.room_price_thb||0)+extrasTotal(st)+exPrice)||'0 THB')),h('b',null,allOwe?'Still to pay '+thb(allOwe):'Nothing left to pay')),
+    (function(){ var whole=Number(st.room_price_thb||0)+extrasTotal(st)+exPrice, paid=Math.max(0,whole-allOwe);
+      return h('div',{class:'billsum'},h('span',null,'Whole stay '+(thb(whole)||'0 THB')+(paid?', paid '+thb(paid):'')),h('b',null,allOwe?'Still to pay '+thb(allOwe):'Nothing left to pay')); })(),
     st.settled?h('p',{class:'sub'},'Room bill settled by '+(st.settled_method||'')+' on '+fmtDate(st.settled_on)+'.'):null,
     err,
     h('div',{class:'factions'},
