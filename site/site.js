@@ -3,6 +3,9 @@
 'use strict';
 var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/site';
 var WA='66615155947';
+/* referral links: ?ref=<code> is remembered for 60 days, and the booking page sends it with the booking */
+(function(){ try{ var m=location.search.match(/[?&]ref=([A-Za-z0-9-]{2,30})(?:&|$)/); if(m) localStorage.setItem('pk_ref',JSON.stringify({c:m[1].toLowerCase(),t:Date.now()})); }catch(e){} })();
+window.PKREF=function(){ try{ var x=JSON.parse(localStorage.getItem('pk_ref')||'null'); if(x&&x.c&&Date.now()-x.t<60*864e5) return x.c; }catch(e){} return null; };
 window.PK={
   thb:function(n){ return Number(n).toLocaleString('en-US')+' THB'; },
   wa:function(text){ return 'https://wa.me/'+WA+'?text='+encodeURIComponent(text); },

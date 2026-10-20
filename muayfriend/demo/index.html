@@ -1622,7 +1622,7 @@ function editStay(st){
   st=st||{}; var day=ymd(new Date());
   var rooms=S.rooms.filter(function(r){ return r.active!==false||r.id===st.room_id; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
   if(!rooms.length){ toast('Add your rooms first, in Settings.'); return; }
-  var cs=sortBy(S.customers,'name'); needRates();
+  var cs=sortBy(S.customers,'name'); needRates(); if(!AFF) affLoad();
   var typed=!!st.id;
   function autoPrice(set,get){ if(st.id) return; var q=roomQuote(get('room_id'),get('check_in'),get('check_out')); set('rate_note',q?quoteText(q):(RATES?'This room is not in a price group yet. Set it in Settings, Room prices.':''));
     if(!typed&&q&&!q.missing.length) set('room_price_thb',q.total); }
@@ -1636,6 +1636,7 @@ function editStay(st){
     {key:'check_out',label:'Leaves',type:'date',required:true,def:addDays(day,1),onChange:function(v,set,get){ autoPrice(set,get); }},
     {key:'rate_note',label:'Season price',readonly:true,hide:!!st.id},
     {key:'source_id',label:'Booked through',type:'select',options:opts(sortBy(S.sources,'name'),'Direct or walk-in'),def:''},
+    {key:'affiliate_id',label:'Referred by',type:'select',options:[['','Nobody']].concat((AFF||[]).filter(function(a){ return a.active||a.id===st.affiliate_id; }).map(function(a){ return [a.id,a.name+' ('+a.pct+'%)']; })),def:'',hide:!AFF||(!AFF.length&&!st.affiliate_id),hint:'The affiliate who sent this guest earns their share of the room price.'},
     {key:'room_price_thb',label:'Room price for the whole stay (THB)',type:'number',onChange:function(){ typed=true; },
       hint:st.mp_price!=null&&Number(st.mp_price)!==Number(st.room_price_thb)?'MotoPress shows '+thb(Math.round(Number(st.mp_price)))+'. The price here is the one on the bill.':
         /^mphb:/.test(String(st.external_id||''))?'Filled in from MotoPress. Type a different price and the app keeps yours.':'The price the guest agreed. Leave empty if the room is free or paid elsewhere.'},
@@ -1668,6 +1669,7 @@ function editStay(st){
       var price=v.room_price_thb===''||v.room_price_thb==null?null:Math.round(Number(v.room_price_thb)), paid=Math.round(Number(v.room_paid_thb)||0);
       if(price!=null&&(isNaN(price)||price<0)) return 'The room price must be a number.';
       var body=Object.assign({},st,{room_id:v.room_id,check_in:v.check_in,check_out:v.check_out,source_id:v.source_id||null,notes:v.notes||null,room_price_thb:price,room_paid_thb:paid,training_included:!!v.training_included});
+      if(AFF&&v.affiliate_id!==undefined) body.affiliate_id=v.affiliate_id||null;
       /* a price typed here wins over MotoPress from now on; emptying it hands the price back to MotoPress */
       delete body.room_price_manual; var priceTouched=false;
       if(price!==(st.room_price_thb==null?null:Number(st.room_price_thb))||paid!==(Number(st.room_paid_thb)||0)){ body.room_price_manual=price!=null; priceTouched=true; }
@@ -2026,6 +2028,84 @@ function vCalendar(){
   return [h('div',{class:'calbar'},h('b',null,fmtDate(start)+' to '+fmtDate(addDays(end,-1))),nav),
     h('div',{class:'panel calwrap'},h('div',{class:'cal',style:'--days:'+days},h('div',{class:'corner'},'Room'),heads,rows)),legend];
 }
+/* ---------- affiliates: people who send guests get a share of the room price ---------- */
+var AFF=null;
+function affLoad(){ if(ui.affBusy) return; ui.affBusy=true; sb.rpc('affiliates_list').then(must).then(function(d){ ui.affBusy=false; ui.affErr=null; AFF=Array.isArray(d)?d:[]; schedule(); },function(e){ ui.affBusy=false; ui.affErr=errText(e); schedule(); }); }
+function affLink(a){ return SITE_URL+'/?ref='+a.code; }
+function affBookLink(a){ return SITE_URL+'/book?ref='+a.code; }
+function affOwed(a){ return Math.max(0,Number(a.earned||0)-Number(a.paid||0)); }
+function affCount(a){ return (a.stays||[]).filter(function(x){ return x.state!=='cancelled'; }).length; }
+var AFFST={coming:['Coming',''],earned:['Earned','ok'],cancelled:['Cancelled','warn']};
+function vAff(){
+  var mgr=me&&me.role==='manager';
+  if(!AFF){ affLoad(); return [h('div',{class:'panel empty'},ui.affErr||'Loading.')]; }
+  var owed=AFF.reduce(function(t,a){ return t+affOwed(a); },0);
+  return [section('Referrals',mgr?btn('Add an affiliate',function(){ editAff(); },'primary small'):null,h('div',null,
+    h('p',{class:'sub'},'Give anyone who sends you guests their own link. When a guest books a room online through it (any time in the next 60 days), the stay is tagged to them and they earn their share of the room price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
+    owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
+    table([
+      {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),a.active?null:h('div',{class:'sub'},'Switched off')); }},
+      {label:'Share',num:true,cell:function(a){ return Number(a.pct)+'%'; }},
+      {label:'Bookings',num:true,cell:function(a){ return String(affCount(a)); }},
+      {label:'Coming',num:true,cell:function(a){ return thb(a.coming)||'0 THB'; }},
+      {label:'Earned',num:true,cell:function(a){ return thb(a.earned)||'0 THB'; }},
+      {label:'Paid',num:true,cell:function(a){ return thb(a.paid)||'0 THB'; }},
+      {label:'To pay',num:true,cell:function(a){ var o=affOwed(a); return o?chip(thb(o),'warn'):'0 THB'; }},
+      {label:'',cell:function(a){ return btn('Copy link',function(){ copyText(affLink(a),'Link copied: '+affLink(a)); },'small'); }}],
+      AFF,'No affiliates yet. Add one and send them their link.')))];
+}
+function editAff(a){
+  a=a||{pct:10,active:true}; var cs=sortBy(S.customers,'name');
+  openForm({title:a.id?'Affiliate: '+a.name:'Add an affiliate',values:{name:a.name||'',code:a.code||'',pct:a.pct,email:a.email||'',phone:a.phone||'',customer_id:a.customer_id||'',note:a.note||'',active:a.active!==false},
+    fields:[{key:'name',label:'Name',required:true,hint:'A person, a hotel, a travel agent, a fighter, a blogger.'},
+      {key:'code',label:'Link code',hint:'Small letters, numbers and dashes. Leave empty to make one from the name. Their link: '+SITE_URL.replace(/^https:\/\//,'')+'/?ref=code'},
+      {key:'pct',label:'Their share of the room price (%)',type:'number',required:true,hint:'For example 10. Changing it later only affects new bookings.'},
+      {key:'customer_id',label:'Their app account',type:'select',options:[['','Not linked']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),hint:'Linked, they see their link and what they have earned in their app.'},
+      {key:'email',label:'Email',type:'email'},{key:'phone',label:'Phone'},
+      {key:'note',label:'Notes',type:'textarea',hint:'For example how you pay them.'},
+      {key:'active',label:'Active (untick to stop new bookings counting)',type:'checkbox'}],
+    saveLabel:a.id?null:'Add',doneMsg:a.id?'Saved.':'Affiliate added. Copy their link from the list.',
+    onSave:function(v){ if(!(Number(v.pct)>=0&&Number(v.pct)<=50)) return 'The share must be between 0 and 50%.';
+      return sb.rpc('affiliate_save',{p:{id:a.id||null,name:v.name,code:v.code,pct:v.pct,email:v.email,phone:v.phone,customer_id:v.customer_id||null,note:v.note,active:!!v.active}}).then(must).then(function(){ AFF=null; affLoad(); }); }});
+}
+function affPay(a){
+  openForm({title:'Pay '+a.name,note:'Earned '+thb(a.earned)+', paid so far '+thb(a.paid||0)+'. It shows in Accounts as money out.',values:{amount:affOwed(a)||null,method:'transfer',on:ymd(new Date()),note:''},
+    fields:[{key:'amount',label:'Amount (THB)',type:'number',required:true},{key:'method',label:'Paid by',type:'select',options:[['transfer','Bank transfer or PromptPay'],['cash','Cash']]},{key:'on',label:'Paid on',type:'date'},{key:'note',label:'Note'}],
+    saveLabel:'Record payment',doneMsg:'Payment recorded.',
+    onSave:function(v){ if(!(v.amount>0)) return 'Type the amount.';
+      return sb.rpc('affiliate_pay',{p_aff:a.id,p_amount:Math.round(v.amount),p_method:v.method,p_note:v.note||null,p_on:v.on||null}).then(must).then(function(){ AFF=null; affLoad(); }); }});
+}
+function affDlg(a){
+  var mgr=me&&me.role==='manager';
+  function close(){ $dlg.close(); }
+  var box=h('div',{class:'billbox'},h('h2',null,a.name),
+    h('p',{class:'sub'},Number(a.pct)+'% of the room price. '+[a.email,a.phone].filter(Boolean).join(', ')),
+    h('div',{class:'panel pad'},h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Their link'),affLink(a)),h('div',null,h('small',null,'Straight to booking'),affBookLink(a))),
+      h('div',{class:'row wrap',style:'margin-top:10px'},btn('Copy link',function(){ copyText(affLink(a),'Link copied.'); },'small'),btn('Copy booking link',function(){ copyText(affBookLink(a),'Link copied.'); },'small'))),
+    h('h3',{class:'billh'},'Bookings'),
+    (a.stays||[]).length?h('div',{class:'panel scroll'},h('table',null,h('tbody',null,(a.stays||[]).map(function(x){ var st=AFFST[x.state]||[x.state,''];
+      return h('tr',null,h('td',null,fmtDate(x.from)+' to '+fmtDate(x.to)),h('td',null,(x.guest||'Guest')+(x.room?', '+x.room:'')),h('td',{class:'num'},x.price!=null?thb(x.price):''),h('td',{class:'num'},thb(x.commission)||'0 THB'),h('td',null,chip(st[0],st[1]))); })))):h('div',{class:'panel empty'},'No bookings yet.'),
+    (a.payouts||[]).length?[h('h3',{class:'billh'},'Paid'),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,a.payouts.map(function(p){
+      return h('tr',null,h('td',null,fmtDate(p.on)),h('td',null,payName(p.method)+(p.note?', '+p.note:'')),h('td',{class:'num'},thb(p.amount)),
+        h('td',null,mgr?h('button',{type:'button',class:'link',onclick:function(){ if(!confirm('Undo this payment of '+thb(p.amount)+'?')) return; sb.rpc('affiliate_payout_undo',{p_id:p.id}).then(must).then(function(){ close(); AFF=null; affLoad(); toast('Payment undone.'); },function(e){ toast(errText(e)); }); }},'Undo'):null)); }))))]:null,
+    h('div',{class:'billsum'},h('span',null,'Earned '+(thb(a.earned)||'0 THB')+(Number(a.coming)?', coming '+thb(a.coming):'')+', paid '+(thb(a.paid)||'0 THB')),h('b',null,affOwed(a)?'To pay '+thb(affOwed(a)):'Nothing to pay')),
+    h('div',{class:'factions'},mgr?btn('Edit',function(){ close(); editAff(a); }):h('span'),
+      h('div',{class:'row'},btn('Close',close),mgr&&affOwed(a)?btn('Record a payment',function(){ close(); affPay(a); },'primary'):null)));
+  $dlg.replaceChildren(box);
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+/* the affiliate's own card in the member app */
+var AFFME=null;
+function affMeCard(){
+  var a=AFFME; if(!a) return null; var link=affLink(a), owed=affOwed(a);
+  return section('Refer a friend, earn '+Number(a.pct)+'%',null,h('div',{class:'panel pad'},
+    h('p',{class:'sub'},'Share your link. When someone books a room at Camp Rooms through it, you earn '+Number(a.pct)+'% of their room price once they arrive.'),
+    h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Your link'),link)),
+    h('div',{class:'row wrap',style:'margin:10px 0'},btn('Copy link',function(){ copyText(link,'Link copied.'); },'primary small'),
+      navigator.share?btn('Share',function(){ navigator.share({title:'Camp Rooms and Muay Fight Gym Muay Thai',url:link}).catch(function(){}); },'small'):null),
+    h('div',{class:'row wrap'},chip('Earned '+(thb(a.earned)||'0 THB'),'ok'),Number(a.coming)?chip('Coming '+thb(a.coming)):null,chip('Paid '+(thb(a.paid)||'0 THB')),owed?chip('To come to you '+thb(owed),'warn'):null),
+    (a.stays||[]).length?h('div',{class:'sub',style:'margin-top:10px'},(a.stays||[]).filter(function(x){ return x.state!=='cancelled'; }).slice(0,8).map(function(x){ return h('div',null,x.guest+', '+fmtDate(x.from)+': '+(thb(x.commission)||'0 THB')+(x.state==='coming'?' (when they arrive)':'')); })):null));
+}
 function vStays(){
   if(MPSYNC===null&&!ui.mpAsked){ ui.mpAsked=true; loadMpSync().catch(function(){}); }
   var day=ymd(new Date()), soon=addDays(day,30);
@@ -2037,9 +2117,10 @@ function vStays(){
   var open=sortBy(S.stays.filter(function(st){ return !st.settled&&(st.status==='out'||(st.status!=='cancelled'&&st.check_out<day))&&billTotal(st)>0; }),'check_out');
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   var view=ui.stayView||'calendar';
-  var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
+  var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills'],['aff','Referrals']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
   var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Check availability',function(){ availability(); }),btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine(),me&&me.role==='resort'?noticesBox():null];
   if(view==='calendar') return head.concat(vCalendar());
+  if(view==='aff') return head.concat(vAff());
   return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
@@ -5718,7 +5799,7 @@ var MAP={
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
-  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked']},
+  stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked','affiliate_id']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
   minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
 };
@@ -5976,7 +6057,7 @@ function scanQR(prompt,onText){
       e&&e.message==='load'?'Could not load the scanner. Check your connection and try again.':'Could not open the camera. Use your normal camera app to scan the poster.';
   });
 }
-function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status'),sb.rpc('prearrival_mine')]).then(function(r){ READY=r[4]&&!r[4].error?r[4].data:null; CU=must(r[0]); if(CU){ CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
+function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status'),sb.rpc('prearrival_mine'),sb.rpc('affiliate_mine')]).then(function(r){ READY=r[4]&&!r[4].error?r[4].data:null; AFFME=r[5]&&!r[5].error?r[5].data:null; CU=must(r[0]); if(CU){ CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
 function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
 function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
 function cuWd(){ return (parseYmd(CU.today).getDay()+6)%7; }
@@ -6210,6 +6291,7 @@ function vCHome(){
     section('Today at the gym',btn('Full timetable',function(){ go('c_classes'); },'small'),cards(todayC.map(function(c){
       return {when:ctime(c),title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:mine.some(function(e){ return e.class_id===c.id; })?chip('Checked in','ok'):null}; }),'No group classes today.')),
     past.length?section('Finished packages',null,cards(past.map(pkgCard),'')):null,
+    affMeCard(),
     section('My details',btn('Edit',editMe,'small'),h('div',{class:'panel pad kv narrow'},
       h('div',null,h('small',null,'Name'),CU.me.name),h('div',null,h('small',null,'Email'),CU.me.email||''),h('div',null,h('small',null,'Phone'),CU.me.phone||'Not given')))];
 }

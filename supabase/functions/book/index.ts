@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
         p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: String(body.note ?? "").slice(0, 400) });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
+      if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref) });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
         const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
