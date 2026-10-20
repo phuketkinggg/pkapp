@@ -909,14 +909,16 @@ function editPurchase(p){
       return save('purchases',p.id,body); },
     extraBtn:me&&me.role==='manager'&&!(p.stay_id&&p.package_name==='Stay: group Muay Thai included')?['Delete (mistake)',function(){ $dlg.close(); deletePurchase(p); }]:null});
 }
+function ctime(c){ return c&&c.time?c.time+(c.end?' - '+c.end:''):''; }
 function editClass(c){ c=c||{};
   openForm({title:c.id?'Edit class':'New class',values:c,fields:[
     {key:'day',label:'Day',type:'select',def:'0',options:DAYS.map(function(d,i){return [String(i),d];})},
     {key:'time',label:'Start time',type:'time'},
+    {key:'end',label:'End time',type:'time',hint:'Optional.'},
     {key:'title',label:'Class name',required:true},
     {key:'discipline',label:'Discipline',type:'select',def:'Muay Thai',options:DISCIPLINES.map(function(d){return [d,d];})},
     {key:'coach_id',label:'Coach',type:'select',options:opts(coaches(),'No set coach')}],
-    onSave:function(v){ return save('classes',c.id,Object.assign({},c,v)); },
+    onSave:function(v){ if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null})); },
     onDelete:c.id?function(){ return db.doc('classes/'+c.id).delete(); }:null});
 }
 function packOpts(customerId,priv){
@@ -5316,7 +5318,7 @@ function vTimetable(){
   DAYS.forEach(function(d,i){
     var rows=sortBy(S.classes.filter(function(c){return Number(c.day)===i;}),'time'); if(!rows.length) return;
     out.push(section(d,null,table([
-      {label:'Time',cell:function(c){return c.time||'To set';}},
+      {label:'Time',cell:function(c){return ctime(c)||'To set';}},
       {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c)];}},
       {label:'Discipline',cell:function(c){return chip(c.discipline||'');}},
       {label:'Coach',cell:function(c){return c.coach_id?nameOf('staff',c.coach_id):'';}},
@@ -5461,7 +5463,7 @@ function vCoach(){
   function moveBtn(p){ return p.reschedule?chip('Move asked, waiting for a manager','warn'):(p.status==='confirmed'?btn('Ask to move',function(){ askMove(p,'coach'); },'small'):null); }
   function doneBtn(p){ return p.status==='confirmed'?h('div',{class:'row'},btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'),moveBtn(p)):chip('Done','ok'); }
   var asks=mine.filter(function(p){ var r=p.reschedule; return r&&r.by==='customer'&&r.needs_coach&&!r.coach_agreed; });
-  var todayRows=classes.map(function(c){return {time:c.time||'',what:c.title,who:'Group class',act:''};})
+  var todayRows=classes.map(function(c){return {time:ctime(c),what:c.title,who:'Group class',act:''};})
     .concat(todayP.map(function(p){return {time:p.time||'',what:'Private',who:pWho(p),act:doneBtn(p)};}));
   todayRows.sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});
   return [pageHead('Coach view',head,pick),
@@ -5681,7 +5683,7 @@ var MAP={
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay']},
-  classes:{t:'classes',r:{time:'start_time'},w:['day','time','title','discipline','coach_id','off_from','off_to','off_note']},
+  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_id','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
@@ -5712,6 +5714,7 @@ function fromRow(col,r){
   var m=MAP[col], o=Object.assign({},r), k;
   for(k in m.r){ o[k]=r[m.r[k]]; delete o[m.r[k]]; }
   if(typeof o.time==='string') o.time=o.time.slice(0,5);
+  if(typeof o.end==='string') o.end=o.end.slice(0,5);
   if(col==='classes') o.day=String(o.day);
   return o;
 }
@@ -5845,7 +5848,7 @@ function vMine(){
   var doneM=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===month; });
   var doneP=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===prev; });
   function card(p,act,right){ return {when:when(p),title:p.customer,note:p.notes,right:right,act:act}; }
-  var todayItems=classes.map(function(c){ return {t:c.time||'',when:c.time||'',title:c.title,note:C('group')}; })
+  var todayItems=classes.map(function(c){ return {t:c.time||'',when:ctime(c),title:c.title,note:C('group')}; })
     .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:C('privWith')(p.customer),right:p.arrived_at?chip((coLang()==='th'?'ลูกค้ามาแล้ว ':'Customer here ')+bkkTime(p.arrived_at),'ok'):null,note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
   return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),myJobs(),
@@ -6175,7 +6178,7 @@ function vCHome(){
         h('div',{class:'cnote'},[f.weight,f.venue,f.corners&&f.corners.length?'Corner: '+f.corners.join(', '):null].filter(Boolean).join('. ')),
         h('div',{class:'fptix'},'Come and support! Buy tickets at reception.',h('span',{class:'th'},'ซื้อตั๋วได้ที่เคาน์เตอร์ต้อนรับ'))); }))):null,
     section('Today at the gym',btn('Full timetable',function(){ go('c_classes'); },'small'),cards(todayC.map(function(c){
-      return {when:c.time||'',title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:mine.some(function(e){ return e.class_id===c.id; })?chip('Checked in','ok'):null}; }),'No group classes today.')),
+      return {when:ctime(c),title:c.title,note:[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:mine.some(function(e){ return e.class_id===c.id; })?chip('Checked in','ok'):null}; }),'No group classes today.')),
     past.length?section('Finished packages',null,cards(past.map(pkgCard),'')):null,
     section('My details',btn('Edit',editMe,'small'),h('div',{class:'panel pad kv narrow'},
       h('div',null,h('small',null,'Name'),CU.me.name),h('div',null,h('small',null,'Email'),CU.me.email||''),h('div',null,h('small',null,'Phone'),CU.me.phone||'Not given')))];
@@ -6189,7 +6192,7 @@ function vCClasses(){
     out.push(section(DAYS[d]+(isToday?', today':''),null,cards(rows.map(function(c){
       var cov=!ps.length||ps.some(function(p){ return !coverReason(p,{kind:'class',day:Number(c.day),discipline:c.discipline,time:c.time||''}); });
       var off=classOff(c,addDays(CU.today,dd));
-      return {when:c.time||'Time to be set',title:c.title,note:off?offText(c):[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:off?chip('Off this time','bad'):cov?null:chip('Not in your package')}; }),'')));
+      return {when:ctime(c)||'Time to be set',title:c.title,note:off?offText(c):[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:off?chip('Off this time','bad'):cov?null:chip('Not in your package')}; }),'')));
   })((wd+i)%7,i===0,i); }
   return out;
 }

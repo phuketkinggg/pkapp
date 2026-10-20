@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   try {
     const [pk, cl, src, ph, tx, ga] = await Promise.all([
       admin.from("packages").select("id,name,price_thb,covers,visit_limit,per_week_limit,duration_days,audience,addon_fz_thb,notes,clock,start_within_days").eq("active", true).not("price_thb", "is", null).order("price_thb"),
-      admin.from("classes").select("day,start_time,title,discipline,off_from,off_to"),
+      admin.from("classes").select("day,start_time,end_time,title,discipline,off_from,off_to"),
       admin.from("booking_sources").select("price_thb").ilike("name", "direct").maybeSingle(),
       admin.from("app_settings").select("value").eq("key", "site_photos").maybeSingle(),
       admin.from("app_settings").select("value").eq("key", "site_texts").maybeSingle(),
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
       packages: (pk.data ?? []).filter((p) => (p.audience || "all") === "all").map((p) => ({
         id: p.id, name: p.name, price: p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_thb, notes: p.notes ?? "",
         pick_start: p.clock === "purchase", start_within: p.start_within_days ?? null })),
-      classes: (cl.data ?? []).map((k) => ({ day: k.day, time: String(k.start_time ?? "").slice(0, 5), title: k.title, discipline: k.discipline,
+      classes: (cl.data ?? []).map((k) => ({ day: k.day, time: String(k.start_time ?? "").slice(0, 5), end: k.end_time ? String(k.end_time).slice(0, 5) : null, title: k.title, discipline: k.discipline,
         off: !!(k.off_from && t >= k.off_from && t <= (k.off_to ?? k.off_from)) })).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time)),
     });
   } catch (e) {

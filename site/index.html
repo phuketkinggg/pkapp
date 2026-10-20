@@ -12,7 +12,7 @@
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=18">
+<link rel="stylesheet" href="site.css?v=19">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":["SportsActivityLocation","HealthClub"],"@id":"https://www.phuketking.com/#gym","name":"Phuket King Muay Thai","alternateName":"PKMT","url":"https://www.phuketking.com/","logo":"https://www.phuketking.com/icons/icon-512.png","image":"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp","description":"Technique first Muay Thai gym in Kathu, Phuket, with group classes, private lessons, a recovery area and lakeside bungalows at Pangea Resort.","email":"hello@phuketking.com","telephone":"+66615155947","priceRange":"฿฿","currenciesAccepted":"THB","paymentAccepted":"Cash, Credit Card, PromptPay","address":{"@type":"PostalAddress","addressLocality":"Kathu","addressRegion":"Phuket","postalCode":"83120","addressCountry":"TH"},"hasMap":"https://maps.google.com/?cid=9002483919313262850","openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"20:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Saturday","opens":"08:00","closes":"18:00"}],"sameAs":["https://www.instagram.com/phuketking","https://www.facebook.com/phuketkingmuaythai/","https://www.youtube.com/@PhuketKing"],"sport":"Muay Thai"},{"@type":"WebSite","@id":"https://www.phuketking.com/#website","url":"https://www.phuketking.com/","name":"Phuket King Muay Thai","publisher":{"@id":"https://www.phuketking.com/#gym"},"inLanguage":"en"}]}</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Phuket King Muay Thai">
@@ -153,11 +153,11 @@ PK.data().then(function(d){
   var wd=PK.weekday(), now=PK.nowHM(), list=d.classes.filter(function(c){ return c.day===wd&&!c.off; }), box2=document.getElementById('today');
   if(!list.length){ var nx=null; for(var i=1;i<7&&!nx;i++){ var dd=(wd+i)%7, l=d.classes.filter(function(c){ return c.day===dd&&!c.off; }); if(l.length) nx={day:dd,c:l[0]}; }
     box2.innerHTML='<div class="cls"><div>No classes today.'+(nx?' Next: '+DAYS[nx.day]+' '+nx.c.time+', '+PK.esc(nx.c.title)+'.':'')+'</div></div>'; }
-  else list.forEach(function(c){ box2.appendChild(PK.el('div','cls'+(c.time<now?' past':''),'<time>'+c.time+'</time><div><div class="k">'+PK.esc(c.discipline||'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); });
+  else list.forEach(function(c){ box2.appendChild(PK.el('div','cls'+(c.time<now?' past':''),'<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); });
   var wk=document.getElementById('week');
   for(var w=0;w<7;w++){ var l2=d.classes.filter(function(c){ return c.day===w; }); if(!l2.length) continue;
     wk.appendChild(PK.el('h3',null,DAYS[w])).style.margin='18px 0 8px';
-    l2.forEach(function(c){ wk.appendChild(PK.el('div','cls','<time>'+c.time+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(c.off?' · not on this week':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); }); }
+    l2.forEach(function(c){ wk.appendChild(PK.el('div','cls','<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(c.off?' · not on this week':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); }); }
 }).catch(function(){ document.getElementById('popular').innerHTML='<div class="tile"><p>See <a href="prices.html">all prices</a>.</p></div>'; document.getElementById('today').innerHTML='<div class="cls">The timetable could not load. WhatsApp us for today\'s classes.</div>'; });
 document.getElementById('weekBtn').addEventListener('click',function(){ var w=document.getElementById('week'); w.hidden=!w.hidden; this.textContent=w.hidden?'See the whole week':'Hide the week'; });
 })();
