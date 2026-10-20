@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
         seasons: R.seasons.map((s) => ({ id: s.id, name: s.name, ranges: s.ranges || [], base: s.id === R.base })),
         groups: R.groups.map((g) => ({ id: g.id, name: g.name, note: g.note || "", prices: g.prices })),
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
-        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
+        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
       });
     }

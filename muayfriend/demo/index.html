@@ -80,6 +80,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .chip.fbchip{background:#E7EEFC;color:#1B4FBF}.chip.igchip{background:#FBE7F1;color:#A3195B}
 .msgmedia{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.msgmedia img{max-width:220px;max-height:220px;border-radius:10px;display:block}
 .msgfail{color:#B3132A;font-size:12px;margin-top:4px}
+.excat{margin:14px 0 6px;font-size:15px;padding-left:10px;border-left:4px solid var(--line)}.excat.c-cafe{border-color:#2E7D32;color:#2E7D32}.excat.c-training{border-color:#C62828;color:#C62828}.excat.c-recovery{border-color:#1565C0;color:#1565C0}.excat.c-gear{border-color:#B8892E;color:#8A6420}.excat.c-misc{border-color:#607D8B;color:#455A64}
 .aibar{height:8px;border-radius:99px;background:var(--sunken);overflow:hidden;margin:6px 0 10px}.aibar i{display:block;height:100%;background:var(--gold)}.aibar i.hot{background:#C0392B}
 .thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .demobar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 16px;background:#17213C;color:#fff;border-bottom:3px solid #2759DA;font-size:15px}
@@ -1516,27 +1517,52 @@ function mapView(o){
   return h('div',{class:'rmapwrap'},box,h('div',{class:'row'},ctr,legend));
 }
 /* extras guests can add on the booking page; prices are checked again on the server */
+var EXCATS=[['cafe','Cafe'],['training','Training'],['recovery','Recovery'],['gear','Muay Thai gear'],['misc','Other']];
+function exCatName(c){ var x=EXCATS.filter(function(k){ return k[0]===c; })[0]; return x?x[1]:'Other'; }
+function exOptsText(e){ return (e.options||[]).map(function(o){ return o.name+' = '+o.price; }).join('\n'); }
+function exParseOpts(t,old){ var out=[], err=null;
+  String(t||'').split(/\n+/).map(function(l){ return l.trim(); }).filter(Boolean).forEach(function(l,i){
+    var m=l.match(/^(.+?)\s*[=:]\s*([\d,. ]+)\s*(thb|baht)?$/i); if(!m){ err='Write each choice as: name = price. For example: 10 sessions = 15000'; return; }
+    var name=m[1].trim(), price=Math.round(Number(m[2].replace(/[ ,]/g,''))), n=name.match(/^(\d+)/), prev=(old||[]).filter(function(o){ return o.name===name; })[0];
+    out.push({id:prev?prev.id:'o'+Date.now().toString(36)+i,name:name,price:price,limit:n?Number(n[1]):(prev?prev.limit:null)}); });
+  if(!err&&!out.length) err='Add at least one choice.'; return err?{err:err}:{opts:out}; }
 function editExtra(e){
-  var vals={name:e.name,note:e.note||'',price:e.price,addon:e.addon?e.addon.price:null,max:e.max}, fields=[{key:'name',label:'Name',required:true},{key:'note',label:'Short description'}];
-  if(e.kind!=='pick'&&!(e.tiers&&e.tiers.length)) fields.push({key:'price',label:e.kind==='day'?'Price per day (THB)':'Price each (THB)',type:'number',required:true});
+  var isNew=!e; e=e||{kind:'qty',cat:'gear',covers:[]};
+  var tiers=e.tiers&&e.tiers.length;
+  var vals={cat:e.cat||'misc',name:e.name||'',note:e.note||'',kind:e.kind,price:e.price,opts:exOptsText(e),unit:e.unit||'',addon:e.addon?e.addon.price:null,max:e.max||null,off:!!e.off};
+  var fields=[{key:'cat',label:'Category',type:'select',options:EXCATS},{key:'name',label:'Name',required:true},{key:'note',label:'Short description',hint:'One line guests see under the name.'}];
+  if(isNew) fields.push({key:'kind',label:'How it is priced',type:'select',options:[['qty','A price each (guests choose how many)'],['pick','A choice of options (for example 1 session or 10 sessions)'],['day','A price per day of the stay']],
+    onChange:function(v,set,get,o,show){ show('price',v!=='pick'); show('opts',v==='pick'); show('max',v==='qty'); show('unit',v==='qty'); }});
+  if(!tiers) fields.push({key:'price',label:'Price (THB)',type:'number',hide:e.kind==='pick',hint:'Each, or per day.'});
   (e.tiers||[]).forEach(function(t,i){ var lo=i?e.tiers[i-1].max+1:1; vals['t'+i]=t.price; fields.push({key:'t'+i,label:'Price per day for '+(t.max>=999?lo+' days or more':lo+' to '+t.max+' days')+' (THB)',type:'number',required:true}); });
-  (e.options||[]).forEach(function(o,i){ vals['o'+i]=o.price; fields.push({key:'o'+i,label:o.name+' (THB)',type:'number',required:true}); });
+  fields.push({key:'opts',label:'Choices and prices',type:'textarea',hide:e.kind!=='pick',hint:'One choice per line, written as name = price. For example, 1 session = 2000 on one line, and 10 sessions = 15000 on the next.'});
   if(e.addon) fields.push({key:'addon',label:'Extra per day '+e.addon.name+' (THB)',type:'number'});
-  if(e.kind==='qty') fields.push({key:'max',label:'Most a guest can add',type:'number'});
-  fields.push({key:'off',label:'Hide from the booking page',type:'checkbox'}); vals.off=!!e.off;
-  openForm({title:'Booking page: '+e.name,values:vals,fields:fields,doneMsg:'Saved.',onSave:function(v){
-    var n=JSON.parse(JSON.stringify(RATES)), x=(n.extras||[]).filter(function(y){ return y.id===e.id; })[0]; if(!x) return 'Not found.';
-    x.name=v.name; x.note=v.note||''; x.off=!!v.off; if(v.price!=null) x.price=Math.round(v.price); if(e.kind==='qty'&&v.max) x.max=Math.max(1,Math.round(v.max));
-    (x.tiers||[]).forEach(function(t,i){ t.price=Math.round(v['t'+i]); }); (x.options||[]).forEach(function(o,i){ o.price=Math.round(v['o'+i]); }); if(x.addon&&v.addon!=null) x.addon.price=Math.round(v.addon);
-    return saveRates(n); }});
+  fields.push({key:'unit',label:'Price is per',hide:e.kind!=='qty',hint:'Optional, for example: each way. Leave empty for each.'});
+  fields.push({key:'max',label:'Most a guest can add',type:'number',hide:e.kind!=='qty'});
+  fields.push({key:'off',label:'Hide from the booking page',type:'checkbox'});
+  openForm({title:isNew?'Add an extra':'Booking page: '+e.name,values:vals,fields:fields,saveLabel:isNew?'Add':null,doneMsg:'Saved. It shows on the booking page straight away.',
+    onDelete:isNew?null:function(){ var n=JSON.parse(JSON.stringify(RATES)); n.extras=(n.extras||[]).filter(function(y){ return y.id!==e.id; }); return saveRates(n); },
+    onSave:function(v){
+      var n=JSON.parse(JSON.stringify(RATES)); n.extras=n.extras||[];
+      var x=isNew?{id:'x'+Date.now().toString(36),kind:v.kind||'qty',covers:[]}:n.extras.filter(function(y){ return y.id===e.id; })[0]; if(!x) return 'Not found.';
+      x.cat=v.cat||'misc'; x.name=String(v.name||'').trim(); x.note=String(v.note||'').trim(); x.off=!!v.off;
+      if(x.kind==='pick'){ var o=exParseOpts(v.opts,x.options); if(o.err) return o.err; x.options=o.opts; }
+      else if(!(x.tiers&&x.tiers.length)){ var pr=Math.round(Number(v.price)); if(!(pr>0)) return 'Type the price.'; x.price=pr; }
+      (x.tiers||[]).forEach(function(t,i){ t.price=Math.round(v['t'+i]); }); if(x.addon&&v.addon!=null) x.addon.price=Math.round(v.addon);
+      if(x.kind==='qty'){ x.unit=String(v.unit||'').trim()||undefined; x.max=v.max?Math.max(1,Math.round(v.max)):10; }
+      if(isNew) n.extras.push(x);
+      return saveRates(n); }});
 }
 function extrasSettings(){
-  var r=needRates(), mgr=me&&me.role==='manager'; if(!r||!(r.extras||[]).length) return null;
+  var r=needRates(), mgr=me&&me.role==='manager'; if(!r) return null;
   function priceText(e){ if(e.options) return e.options.map(function(o){ return o.name+' '+thb(o.price); }).join(', ');
     if(e.tiers) return e.tiers.map(function(t,i){ var lo=i?e.tiers[i-1].max+1:1; return (t.max>=999?lo+'+':lo+' to '+t.max)+' days '+thb(t.price); }).join(', ')+' a day';
     return thb(e.price)+(e.kind==='day'?' a day':e.unit?' '+e.unit:' each')+(e.addon?', '+e.addon.name+' +'+thb(e.addon.price):''); }
-  return section('Booking page extras',null,h('div',null,h('p',{class:'sub'},'What guests can add to a room on the Book your stay page. They pay for it with the room, and it shows on the stay bill.'),
-    table([{label:'Extra',cell:function(e){ return mgr?linkBtn(e.name,function(){ editExtra(e); }):e.name; }},{label:'Price',cell:priceText},{label:'',cell:function(e){ return e.off?chip('Hidden','warn'):chip('Showing','ok'); }}],r.extras,'')));
+  var ex=r.extras||[];
+  return section('Booking page extras',mgr?btn('Add an extra',function(){ editExtra(null); },'primary small'):null,h('div',null,h('p',{class:'sub'},'What guests can add to a room on the Book your stay page, grouped by category. They pay for it with the room, and it shows on the stay bill.'),
+    EXCATS.map(function(k){ var list=ex.filter(function(e){ return (e.cat||'misc')===k[0]; }); if(!list.length) return null;
+      return [h('h3',{class:'excat c-'+k[0]},k[1]),table([{label:'Extra',cell:function(e){ return mgr?linkBtn(e.name,function(){ editExtra(e); }):e.name; }},{label:'Price',cell:priceText},{label:'',cell:function(e){ return e.off?chip('Hidden','warn'):chip('Showing','ok'); }}],list,'')]; }),
+    ex.length?null:h('div',{class:'panel empty'},'No extras yet. Tap Add an extra.')));
 }
 function mapSettings(){
   var r=needRates(), mgr=me&&me.role==='manager'; if(!r) return null;
