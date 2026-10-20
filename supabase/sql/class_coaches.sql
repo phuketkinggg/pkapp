@@ -53,7 +53,7 @@ begin
     declare f text := d; src text;
     begin
       src := pg_get_functiondef(f::regprocedure);
-      src := replace(src, '''coach'', s.name,', '''coach'', (select string_agg(s2.name, '', '' order by s2.name) from public.staff s2 where s2.id = any(k.coach_ids) and s2.active and not private.on_holiday(s2.id, private.bkk_today())),');
+      src := replace(src, '''coach'', s.name, ''off_from''', '''coach'', (select string_agg(s2.name, '', '' order by s2.name) from public.staff s2 where s2.id = any(k.coach_ids) and s2.active and not private.on_holiday(s2.id, private.bkk_today())), ''off_from''');  -- classes only, not privates
       execute src;
     end;
   end loop;
