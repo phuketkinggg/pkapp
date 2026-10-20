@@ -130,3 +130,11 @@ create or replace function public.meta_out(p_id uuid) returns jsonb language sql
 $f$;
 revoke all on function public.meta_out(uuid) from public, anon, authenticated;
 grant execute on function public.meta_out(uuid) to service_role;
+
+-- the webhook verify token Meta sends when the callback is set up (kept in the database, not in the code)
+insert into private.sync_settings(key, value) values ('meta_verify', replace(gen_random_uuid()::text, '-', '')) on conflict (key) do nothing;
+create or replace function public.meta_verify_ok(p_token text) returns boolean language sql stable security definer set search_path='' as $f$
+  select coalesce(p_token,'') <> '' and exists (select 1 from private.sync_settings where key='meta_verify' and value=p_token)
+$f$;
+revoke all on function public.meta_verify_ok(text) from public, anon, authenticated;
+grant execute on function public.meta_verify_ok(text) to service_role;

@@ -3,7 +3,7 @@
 // POST (Meta webhook, signed)     new messages: saved to Messages, desk phones get a notification. Signature checked with META_APP_SECRET.
 // POST {mode:'send', id}          x-sync-token (the database, when staff reply): sends the reply through Meta and records the result
 // POST {mode:'check'|'subscribe'} x-sync-token: is the token working / switch on webhooks for the page
-// Secrets: META_PAGE_TOKEN (system user or page token), META_APP_SECRET, META_VERIFY_TOKEN, META_APP_ID
+// Secrets: META_PAGE_TOKEN (system user or page token), META_APP_SECRET. The webhook verify token is kept in the database (private.sync_settings 'meta_verify').
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
@@ -79,7 +79,7 @@ async function incoming(body: { object?: string; entry?: { id?: string; messagin
     for (const ev of en.messaging ?? []) {
       const m = ev.message; if (!m) continue;
       const echo = !!m.is_echo;
-      if (echo && m.app_id && String(m.app_id) === env("META_APP_ID")) continue; // our own reply coming back
+      if (echo && m.app_id && String(m.app_id) === (env("META_APP_ID") || "1116664774235703")) continue; // our own reply coming back
       const sid = echo ? ev.recipient?.id : ev.sender?.id;
       if (!sid || sid === en.id) continue;
       const media = (m.attachments ?? []).map((a) => ({ type: a.type ?? "file", url: a.payload?.url ?? null })).filter((a) => a.url);
@@ -122,8 +122,10 @@ async function send(id: string) {
 Deno.serve(async (req) => {
   if (req.method === "GET") {
     const u = new URL(req.url);
-    if (u.searchParams.get("hub.mode") === "subscribe" && env("META_VERIFY_TOKEN") && u.searchParams.get("hub.verify_token") === env("META_VERIFY_TOKEN"))
-      return new Response(u.searchParams.get("hub.challenge") ?? "", { status: 200 });
+    if (u.searchParams.get("hub.mode") === "subscribe") {
+      const { data: ok } = await admin.rpc("meta_verify_ok", { p_token: u.searchParams.get("hub.verify_token") ?? "" });
+      if (ok === true) return new Response(u.searchParams.get("hub.challenge") ?? "", { status: 200 });
+    }
     return new Response("Forbidden", { status: 403 });
   }
   if (req.method !== "POST") return new Response("Use POST", { status: 405 });
@@ -141,7 +143,7 @@ Deno.serve(async (req) => {
     if (b.mode === "send") return json(await send(String(b.id ?? "")));
     if (b.mode === "check") {
       const p = await thePage();
-      return json({ ok: true, page: p.name, page_id: p.id, instagram: p.ig_name, instagram_id: p.ig, secret: !!env("META_APP_SECRET"), verify: !!env("META_VERIFY_TOKEN"), app_id: env("META_APP_ID") || null });
+      return json({ ok: true, page: p.name, page_id: p.id, instagram: p.ig_name, instagram_id: p.ig, secret: !!env("META_APP_SECRET"), app_id: (env("META_APP_ID") || "1116664774235703") });
     }
     if (b.mode === "subscribe") {
       const p = await thePage();
