@@ -77,6 +77,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .rdrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pasets{justify-content:space-between;gap:12px;margin-bottom:12px}.pasets.edit{display:flex;flex-direction:column;align-items:stretch}.pasets h3{margin:0}
 .pacol{display:flex;flex-direction:column;gap:6px}.pakv{margin-top:6px}
+.chip.fbchip{background:#E7EEFC;color:#1B4FBF}.chip.igchip{background:#FBE7F1;color:#A3195B}
+.msgmedia{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.msgmedia img{max-width:220px;max-height:220px;border-radius:10px;display:block}
+.msgfail{color:#B3132A;font-size:12px;margin-top:4px}
 .aibar{height:8px;border-radius:99px;background:var(--sunken);overflow:hidden;margin:6px 0 10px}.aibar i{display:block;height:100%;background:var(--gold)}.aibar i.hot{background:#C0392B}
 .thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .demobar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 16px;background:#17213C;color:#fff;border-bottom:3px solid #2759DA;font-size:15px}
@@ -2256,7 +2259,7 @@ function chatTime(at){
 }
 function chatItem(c){
   return h('button',{type:'button',class:'chatitem'+(c.unread>0&&c.in_chat?' unread':''),onclick:function(){ openChat(c); }},
-    h('div',{class:'chatrow'},h('b',null,c.title),h('span',{class:'sub'},c.kind==='web'&&c.visitor&&c.visitor.here?h('span',{class:'chip ok'},'On the website now'):null,' ',c.last?chatTime(c.last.at):'')),
+    h('div',{class:'chatrow'},h('b',null,c.title),h('span',{class:'sub'},c.kind==='web'&&c.visitor&&c.visitor.here?h('span',{class:'chip ok'},'On the website now'):null,c.kind==='fb'||c.kind==='ig'?h('span',{class:'chip '+(c.kind==='ig'?'igchip':'fbchip')},c.kind==='ig'?'Instagram':'Facebook'):null,' ',c.last?chatTime(c.last.at):'')),
     h('div',{class:'chatrow'},h('span',{class:'sub chatprev'},c.last?(c.last.who+': '+c.last.body):M('empty')),
       c.unread>0&&c.in_chat?h('span',{class:'chatbadge'},String(c.unread)):null));
 }
@@ -2333,7 +2336,7 @@ function openChat(c){
   var head=h('div',{class:'chathead'},btn(M('back'),closeChat,'small'),
     h('div',{class:'chattitle'},h('b',null,c.title||'Chat'),
       c.kind==='group'?h('span',{class:'sub'},(c.members||[]).map(function(m){ return m.name; }).join(', ')):
-      c.kind==='web'?webVisitorLine(c):
+      c.kind==='web'?webVisitorLine(c):c.kind==='fb'||c.kind==='ig'?metaLine(c):
       !c.in_chat&&mgr?h('span',{class:'sub'},'You are reading this as a manager.'):null),
     mgr&&c.kind==='group'?btn('Edit',function(){ chatGroup(c); },'small'):h('span'));
   var wrap=h('div',{class:'chatwrap'},h('div',{class:'chatbox'},head,msgs,
@@ -2346,15 +2349,24 @@ function openChat(c){
     var e=msgs.querySelector('.chatempty'); if(e) e.remove();
     var atEnd=msgs.scrollHeight-msgs.scrollTop-msgs.clientHeight<80;
     list.forEach(function(m){
-      if(msgs.querySelector('[data-id="'+m.id+'"]')) return;
-      msgs.appendChild(h('div',{class:'msg'+(m.mine?' mine':'')+(m.staff&&!m.mine?' team':''),'data-id':m.id},
-        m.mine?null:h('div',{class:'msgwho'},m.who),h('div',{class:'msgbody'},m.body),h('div',{class:'msgtime'},chatTime(m.at))));
-      last=m.at;
+      var old=msgs.querySelector('[data-id="'+m.id+'"]');
+      if(old&&old.getAttribute('data-st')===String(m.status||'')) return;
+      var media=(m.media||[]).filter(function(x){ return x&&x.url; });
+      var node=h('div',{class:'msg'+(m.mine?' mine':'')+(m.staff&&!m.mine?' team':''),'data-id':m.id,'data-st':String(m.status||'')},
+        m.mine?null:h('div',{class:'msgwho'},m.who),
+        media.length?h('div',{class:'msgmedia'},media.map(function(x){ return x.type==='image'?h('a',{href:x.url,target:'_blank',rel:'noopener'},h('img',{src:x.url,alt:'Photo',loading:'lazy'})):h('a',{href:x.url,target:'_blank',rel:'noopener'},x.type==='video'?'Open the video':x.type==='audio'?'Play the voice message':'Open the file'); })):null,
+        m.body&&!(media.length&&/^\[(Photo or file|Message)\]$/.test(m.body))?h('div',{class:'msgbody'},m.body):null,
+        h('div',{class:'msgtime'},chatTime(m.at),m.status==='sending'?' · Sending':m.status==='sent'&&m.mine?' · Delivered to Meta':null),
+        m.status==='failed'?h('div',{class:'msgfail'},m.error||'Not delivered.'):null);
+      if(old) old.replaceWith(node); else msgs.appendChild(node);
+      if(m.status==='sending') pending[m.id]=1; else delete pending[m.id];
+      if(!old) last=m.at;
     });
     if(atEnd||list.some(function(m){ return m.mine; })) msgs.scrollTop=msgs.scrollHeight;
   }
+  var pending={};
   function load(){
-    return sb.rpc('chat_messages',{p_chat:c.id,p_after:last}).then(function(res){
+    return sb.rpc('chat_messages',{p_chat:c.id,p_after:Object.keys(pending).length?null:last}).then(function(res){
       if(res.error){ err.textContent=errText(res.error); err.hidden=false; return; }
       err.hidden=true; add(res.data);
     },function(){});
@@ -2380,6 +2392,9 @@ function closeChat(){
 /* ---------- website live chat: visitors on the website chat with the desk. Hours and phone notifications. ---------- */
 var WEBCHAT=null;
 function isDeskRole(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
+function metaLine(c){ var v=c.visitor||{}, ig=c.kind==='ig', hrs=v.last_in?Math.max(0,24-Math.floor((Date.now()-new Date(v.last_in).getTime())/36e5)):0;
+  return h('span',{class:'sub'},(ig?'Instagram':'Facebook Messenger')+' message. Your reply goes to their '+(ig?'Instagram':'Messenger')+'. ',
+    v.open?h('span',null,'You can reply for about '+hrs+' more hour'+(hrs===1?'':'s')+'.'):h('b',null,'More than 24 hours since their last message, so Meta may not deliver a reply. Ask them to message again, or contact them another way.')); }
 function webVisitorLine(c){
   var v=c.visitor||{}, ct=(v.contact||'').trim(), link=null;
   if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ct)) link=h('a',{href:'mailto:'+ct},ct);
