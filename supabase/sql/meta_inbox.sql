@@ -138,3 +138,8 @@ create or replace function public.meta_verify_ok(p_token text) returns boolean l
 $f$;
 revoke all on function public.meta_verify_ok(text) from public, anon, authenticated;
 grant execute on function public.meta_verify_ok(text) to service_role;
+
+-- the verify token, for the meta function when it sets the app's webhook subscriptions
+create or replace function public.meta_verify_value() returns text language sql stable security definer set search_path='' as $f$ select value from private.sync_settings where key='meta_verify' $f$;
+revoke all on function public.meta_verify_value() from public, anon, authenticated;
+grant execute on function public.meta_verify_value() to service_role;

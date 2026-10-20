@@ -72,11 +72,11 @@ async function who(kind: string, id: string) {
   } catch { return { name: "", pic: null }; }
 }
 type Ev = { sender?: { id: string }; recipient?: { id: string }; timestamp?: number; message?: { mid?: string; text?: string; is_echo?: boolean; app_id?: number | string; attachments?: { type?: string; payload?: { url?: string } }[] } };
-async function incoming(body: { object?: string; entry?: { id?: string; messaging?: Ev[] }[] }) {
+async function incoming(body: { object?: string; entry?: { id?: string; messaging?: Ev[]; standby?: Ev[] }[] }) {
   const kind = body.object === "instagram" ? "ig" : body.object === "page" ? "fb" : null;
   if (!kind) return;
   for (const en of body.entry ?? []) {
-    for (const ev of en.messaging ?? []) {
+    for (const ev of [...(en.messaging ?? []), ...(en.standby ?? [])]) {
       const m = ev.message; if (!m) continue;
       const echo = !!m.is_echo;
       if (echo && m.app_id && String(m.app_id) === (env("META_APP_ID") || "1116664774235703")) continue; // our own reply coming back
@@ -145,9 +145,21 @@ Deno.serve(async (req) => {
       const p = await thePage();
       return json({ ok: true, page: p.name, page_id: p.id, instagram: p.ig_name, instagram_id: p.ig, secret: !!env("META_APP_SECRET"), app_id: (env("META_APP_ID") || "1116664774235703") });
     }
+    if (b.mode === "appsubs") {
+      const appId = env("META_APP_ID") || "1116664774235703", tok = `${appId}|${env("META_APP_SECRET")}`;
+      if (b.set) {
+        const { data: v } = await admin.rpc("meta_verify_value");
+        const cb = Deno.env.get("SUPABASE_URL") + "/functions/v1/meta";
+        for (const [object, fields] of [["page", "messages,message_echoes,standby"], ["instagram", "messages,standby"]]) {
+          try { await call(`${appId}/subscriptions`, { object, callback_url: cb, verify_token: String(v ?? ""), fields, include_values: "true" }, "POST", tok); }
+          catch (e) { return json({ error: object + ": " + (e as Error).message }); }
+        }
+      }
+      return json(await call(`${appId}/subscriptions`, {}, "GET", tok));
+    }
     if (b.mode === "subscribe") {
       const p = await thePage();
-      const r = await call(`${p.id}/subscribed_apps`, { subscribed_fields: "messages,message_echoes" }, "POST", p.token);
+      const r = await call(`${p.id}/subscribed_apps`, { subscribed_fields: "messages,message_echoes,standby" }, "POST", p.token);
       const list = await call(`${p.id}/subscribed_apps`, {}, "GET", p.token);
       return json({ ok: true, r, list });
     }
