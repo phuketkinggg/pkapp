@@ -3552,7 +3552,7 @@ function accOverview(lines,all,d){
 function accIn(lines){ var L=lines.filter(function(l){ return l.t==='in'; });
   if(!L.length) return h('div',{class:'panel empty'},'No money in for this period.');
   return accGroup(L,function(l){ return l.b+'|'+l.dep; }).map(function(g){ var p=g.k.split('|');
-    return section(p[1]+(ACC.biz==='all'?', '+p[0]:'')+': '+accThb(g.sum),null,table([{label:'What sold',cell:function(x){ return x.k; }},{label:'Times',num:true,cell:function(x){ return String(x.n); }},{label:'Total',num:true,cell:function(x){ return accThb(x.sum); }}],
+    return section(p[1]+(ACC.biz==='all'?', '+p[0]:'')+': '+accThb(g.sum),null,table([{label:'What sold',cell:function(x){ return x.k; }},{label:'Times',num:true,cell:function(x){ var seen={}; x.list.forEach(function(l){ seen[l.pk||l.id]=1; }); var n=Object.keys(seen).length; return h('span',null,String(n),n<x.n?h('div',{class:'sub'},x.n+' payments'):null); }},{label:'Total',num:true,cell:function(x){ return accThb(x.sum); }}],
       accGroup(g.list,function(l){ return l.src==='entry'?(l.cat||'Other income'):l.what; }),'')); }); }
 function accOut(lines,d){ var L=lines.filter(function(l){ return l.t==='out'; });
   return [d.unsorted?h('div',{class:'panel pad accnotes'},h('p',null,d.unsorted+' receipt'+(d.unsorted>1?'s are':' is')+' not sorted into a category yet.'),btn('Sort receipts',function(){ ACC.tab='receipts'; schedule(); },'small')):null,
