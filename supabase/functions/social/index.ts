@@ -78,8 +78,10 @@ async function write(b: Record<string, unknown>) {
 }
 
 // ---------- Meta ----------
+// the secret can be a page token or a system user token; for a system user token the page's own token is fetched once
+let pageTok = "";
 async function graph(path: string, params: Record<string, string> = {}, method = "POST") {
-  const q = new URLSearchParams({ ...params, access_token: PAGE_TOKEN() });
+  const q = new URLSearchParams({ ...params, access_token: pageTok || PAGE_TOKEN() });
   const r = await fetch(method === "GET" ? `${G}/${path}?${q}` : `${G}/${path}`, method === "GET" ? {} : { method, body: q });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || j.error) throw new Error(j?.error?.error_user_msg ?? j?.error?.message ?? `Meta said ${r.status}`);
@@ -88,7 +90,17 @@ async function graph(path: string, params: Record<string, string> = {}, method =
 let acct: { page: string; name: string; ig: string | null; ig_name: string | null } | null = null;
 async function account() {
   if (acct) return acct;
-  const j = await graph("me", { fields: "id,name,instagram_business_account{id,username}" }, "GET");
+  pageTok = "";
+  const me = await graph("me", { fields: "id,name" }, "GET");
+  let j: { id: string; name: string; access_token?: string; instagram_business_account?: { id: string; username: string } };
+  try { j = await graph(me.id, { fields: "id,name,instagram_business_account{id,username}" }, "GET"); }
+  catch {
+    // a system user token: use the first page it manages, with that page's own token
+    const acc = await graph("me/accounts", { fields: "id,name,access_token,instagram_business_account{id,username}" }, "GET");
+    j = (acc.data ?? [])[0];
+    if (!j) throw new Error("The token cannot see any Facebook page. Assign the page to the system user.");
+    pageTok = j.access_token ?? "";
+  }
   acct = { page: j.id, name: j.name, ig: j.instagram_business_account?.id ?? null, ig_name: j.instagram_business_account?.username ?? null };
   return acct;
 }
