@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Invoice</title>
+<script src="vendor/qrcode-generator-1.4.4.js"></script>
+<script src="invdoc.js?v=1"></script>
+<style>
+:root{--bg:#F2F0EB;--ink:#1d1d1f;--muted:#666;--gold:#B8892E;--line:#ddd}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif}
+.bar{position:sticky;top:0;z-index:2;background:#1d1d1f;color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.bar b{font-size:15px}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+button,a.btn{font:inherit;font-weight:600;font-size:14px;padding:10px 16px;border-radius:10px;border:1px solid #555;background:#2a2a2c;color:#fff;cursor:pointer;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+button.primary{background:var(--gold);border-color:var(--gold);color:#1d1d1f}
+.msg{max-width:820px;margin:14px auto 0;padding:12px 16px;border-radius:10px;background:#E8F5E9;color:#1B5E20;display:none}
+.msg.err{background:#FDECEA;color:#B71C1C}
+.paper{max-width:820px;margin:16px auto 32px;background:#fff;border-radius:12px;box-shadow:0 2px 14px rgba(0,0,0,.08);overflow:hidden}
+iframe{display:block;width:100%;border:0;min-height:1100px;background:#fff}
+@media (max-width:600px){.paper{margin:10px 8px 24px}}
+</style>
+</head>
+<body>
+<div class="bar"><b id="ttl">Invoice</b><div class="acts" id="acts"></div></div>
+<div class="msg" id="msg" role="status"></div>
+<div class="paper"><iframe id="doc" title="Invoice"></iframe></div>
+<script>
+(function(){
+  var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/invoice';
+  var q=new URLSearchParams(location.search), t=q.get('t')||'', D=null, mode='invoice';
+  var acts=document.getElementById('acts'), msg=document.getElementById('msg'), frame=document.getElementById('doc');
+  function say(text,err){ msg.textContent=text; msg.className='msg'+(err?' err':''); msg.style.display=text?'block':'none'; }
+  function call(body){ return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); return d; }); }
+  function btn(label,fn,cls){ var b=document.createElement('button'); b.type='button'; b.textContent=label; if(cls) b.className=cls; b.onclick=fn; return b; }
+  function draw(){
+    var inv=D.invoice, paid=inv.status==='paid', T=INVDOC.tplOf(D.template,inv.business);
+    if(paid&&mode!=='invoice') mode='receipt';
+    var no=mode==='receipt'?INVDOC.num(T.receipt_prefix,inv.receipt_number,T.pad):INVDOC.num(T.prefix,inv.number,T.pad);
+    document.title=(mode==='receipt'?'Receipt ':'Invoice ')+no; document.getElementById('ttl').textContent=T.name+', '+(mode==='receipt'?'receipt ':'invoice ')+no;
+    frame.srcdoc=INVDOC.html(inv,D.template,{mode:mode,payUrl:location.origin+location.pathname+'?t='+t,promptpay:D.promptpay});
+    frame.onload=function(){ try{ frame.style.height=(frame.contentDocument.body.scrollHeight+40)+'px'; }catch(e){} };
+    acts.innerHTML='';
+    if(!paid&&inv.pay_card) acts.appendChild(btn('Pay by card, THB '+Number(inv.total).toLocaleString('en-US'),function(){ var b=this; b.disabled=true; b.textContent='Opening the payment page...';
+      call({mode:'pay',t:t,back:location.origin+location.pathname}).then(function(d){ location.href=d.url; },function(e){ say(e.message,true); b.disabled=false; b.textContent='Pay by card'; }); },'primary'));
+    if(paid) acts.appendChild(btn(mode==='receipt'?'Show the invoice':'Show the receipt',function(){ mode=mode==='receipt'?'invoice':'receipt'; draw(); }));
+    acts.appendChild(btn('Print or save as PDF',function(){ try{ frame.contentWindow.focus(); frame.contentWindow.print(); }catch(e){ window.print(); } }));
+  }
+  if(!t){ say('This invoice link is missing its code. Ask us for the link again.',true); return; }
+  if(q.get('paid')==='1') say('Thank you, your payment went through. Your receipt is below.');
+  function load(n){ return call({mode:'view',t:t}).then(function(d){ D=d;
+      if(q.get('paid')==='1'&&D.invoice.status!=='paid'&&n<6){ return new Promise(function(ok){ setTimeout(ok,2000); }).then(function(){ return load(n+1); }); }
+      draw(); }); }
+  load(0).catch(function(e){ say(e.message,true); });
+})();
+</script>
+</body>
+</html>

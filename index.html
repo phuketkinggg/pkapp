@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <script src="vendor/supabase-js-2.117.2.js"></script>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
+<script src="invdoc.js?v=1"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -79,6 +80,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .chip.fbchip{background:#E7EEFC;color:#1B4FBF}.chip.igchip{background:#FBE7F1;color:#A3195B}
 .msgmedia{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.msgmedia img{max-width:220px;max-height:220px;border-radius:10px;display:block}
 .msgfail{color:#B3132A;font-size:12px;margin-top:4px}
+.invedit .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.invhead,.invline{display:grid;grid-template-columns:minmax(0,1fr) 70px 110px 40px;gap:8px;align-items:center}
+.invhead{font-size:12px;color:var(--muted);margin-bottom:4px}.invlines{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.invtot{font-weight:700;margin:6px 0 12px}.invframe{width:100%;height:62vh;border:1px solid var(--line);border-radius:10px;background:#fff;margin:10px 0}
+.invview{max-width:860px}
+@media (max-width:600px){.invedit .grid2{grid-template-columns:1fr}.invhead,.invline{grid-template-columns:minmax(0,1fr) 54px 84px 36px}}
 .accbar2{height:5px;background:var(--line);border-radius:3px;margin-top:4px;min-width:60px}.accbar2 span{display:block;height:100%;border-radius:3px}.accbar2 .bin{background:#2E7D32}.accbar2 .bout{background:#C62828}
 .wid{display:flex;flex-direction:column;gap:14px;border-left:4px solid var(--wc,var(--line));padding-left:14px}
 .wid .sechead h2{color:var(--wc)}
@@ -3612,10 +3619,10 @@ function vAccounts(){
   var period=h('div',{class:'panel pad accbar'},h('div',{class:'row'},h('label',{for:'acc-from'},'From'),from,h('label',{for:'acc-to'},'to'),to),
     h('div',{class:'row'},[['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
     h('div',{class:'ctabs small'},[['all','Both businesses']].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
-  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
+  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
   var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
     h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Google Sheet',accSheetDlg),btn('Download for the accountant',function(){ accCsv(all); })));
-  var body=ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
+  var body=ACC.tab==='invoices'?vInvoices():ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
   return [head,period,tabs,body];
 }
 function accOverview(lines,all,d){
@@ -3639,6 +3646,129 @@ function accOverview(lines,all,d){
     section('Money by payment method',null,table([{label:'Method',cell:function(x){ return x.k; }},{label:'In',num:true,cell:function(x){ return accThb(x.i); }},{label:'Out',num:true,cell:function(x){ return accThb(x.o); }},{label:'Difference',num:true,cell:function(x){ return accThb(x.i-x.o); }}],methods,'Nothing in this period.')),
     h('p',{class:'sub narrow'},'Check these against the cash box and the bank statement. Scan (PromptPay) and Transfer both land in the bank account.'),
     notes.length?h('div',{class:'panel pad accnotes'},notes.map(function(n){ return h('p',null,n); })):null];
+}
+/* ---------- invoices and receipts ---------- */
+var IVC={list:null,tpl:null,busy:false,err:null,f:'open'};
+function invLoad(){ if(IVC.busy) return; IVC.busy=true;
+  Promise.all([sb.rpc('invoices_list').then(must),sb.from('app_settings').select('value').eq('key','invoice_template').maybeSingle()]).then(function(r){
+    IVC.busy=false; IVC.err=null; IVC.list=r[0]||[]; try{ IVC.tpl=r[1]&&r[1].data&&r[1].data.value?JSON.parse(r[1].data.value):{}; }catch(e){ IVC.tpl={}; } schedule(); },
+    function(e){ IVC.busy=false; IVC.err=errText(e); schedule(); }); }
+function invNo(i,receipt){ var T=INVDOC.tplOf(IVC.tpl,i.business); return receipt?INVDOC.num(T.receipt_prefix,i.receipt_number,T.pad):INVDOC.num(T.prefix,i.number,T.pad); }
+function invLink(i){ return 'https://app.phuketking.com/invoice.html?t='+i.token; }
+function invStatus(i){ var late=i.status==='unpaid'&&i.due_date&&i.due_date<ymd(new Date());
+  return i.status==='paid'?chip('Paid '+fmtDate(i.paid_on),'ok'):i.status==='cancelled'?chip('Cancelled'):late?chip('Overdue','bad'):chip('Not paid','warn'); }
+function vInvoices(){
+  if(!IVC.list){ invLoad(); return h('div',{class:'panel empty'},IVC.err||'Loading.'); }
+  var L=IVC.list.filter(function(i){ return IVC.f==='all'||(IVC.f==='open'?i.status==='unpaid':i.status===IVC.f); });
+  var owed=IVC.list.filter(function(i){ return i.status==='unpaid'; }).reduce(function(t,i){ return t+Number(i.total); },0);
+  return [h('div',{class:'row wrap',style:'justify-content:space-between'},h('div',{class:'ctabs small'},[['open','Not paid'],['paid','Paid'],['all','All']].map(function(x){ return h('button',{type:'button',class:'ctab'+(IVC.f===x[0]?' on':''),onclick:function(){ IVC.f=x[0]; schedule(); }},x[1]); })),
+      h('div',{class:'row'},btn('Invoice design and bank details',invTemplate,'small'),btn('New invoice',function(){ invEdit(null); },'primary'))),
+    owed?h('p',null,chip('Waiting for payment: '+thb(owed),'warn')):null,
+    table([{label:'No.',cell:function(i){ return linkBtn(invNo(i),function(){ invView(i); }); }},{label:'Date',cell:function(i){ return fmtDate(i.issue_date); }},
+      {label:'To',cell:function(i){ return h('span',null,i.to_company||i.to_name,i.to_company&&i.to_name&&i.to_name!==i.to_company?h('div',{class:'sub'},i.to_name):null); }},
+      {label:'Business',cell:function(i){ return h('span',{class:'sub'},i.business+(i.department?', '+i.department:'')); }},
+      {label:'Total',num:true,cell:function(i){ return thb(i.total); }},{label:'',cell:invStatus}],L,IVC.f==='open'?'No invoices waiting for payment. Tap New invoice to make one.':'No invoices here yet.')];
+}
+function invEdit(i0){
+  var i=i0?JSON.parse(JSON.stringify(i0)):{business:BIZ[0],items:[{desc:'',qty:1,price:''}],pay_bank:true,pay_card:false,pay_promptpay:false,vat_rate:0,discount:0,issue_date:ymd(new Date()),due_date:addDays(ymd(new Date()),7)};
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}); function bad(m){ err.textContent=m; err.hidden=false; }
+  function inp(k,attrs){ var e=h('input',Object.assign({id:'iv-'+k},attrs||{})); e.value=i[k]==null?'':i[k]; e.addEventListener('input',function(){ i[k]=e.value; if(k==='discount') sum(); }); return e; }
+  function fld(label,k,el,hint){ return h('div',{class:'field'},h('label',{for:'iv-'+k},label),el,hint?h('small',null,hint):null); }
+  var biz=h('select',{id:'iv-business'},BIZ.map(function(b){ return h('option',{value:b},b); })); biz.value=i.business||BIZ[0];
+  var dep=h('select',{id:'iv-department'}); function deps(){ dep.replaceChildren.apply(dep,[h('option',{value:''},'Choose')].concat((ACC_DEPTS[biz.value]||[]).map(function(x){ return h('option',{value:x},x); }))); dep.value=i.department||''; }
+  biz.addEventListener('change',function(){ i.business=biz.value; i.department=''; deps(); }); dep.addEventListener('change',function(){ i.department=dep.value; }); deps();
+  var cs=sortBy(S.customers.filter(function(c){ return !c.is_agency; }),'name');
+  var pick=h('select',{id:'iv-pick','aria-label':'Fill in from a customer'},[h('option',{value:''},'Fill in from a customer (optional)')].concat(cs.map(function(c){ return h('option',{value:c.id},c.name+(c.email?' ('+c.email+')':'')); })));
+  var nameI=inp('to_name'), emailI=inp('to_email',{type:'email'}), phoneI=inp('to_phone');
+  pick.addEventListener('change',function(){ var c=byId('customers',pick.value); if(!c) return; i.customer_id=c.id; i.to_name=nameI.value=c.name||''; i.to_email=emailI.value=c.email||''; i.to_phone=phoneI.value=c.phone||''; });
+  var addr=h('textarea',{id:'iv-to_address',rows:'2'}); addr.value=i.to_address||''; addr.addEventListener('input',function(){ i.to_address=addr.value; });
+  var notes=h('textarea',{id:'iv-notes',rows:'2'}); notes.value=i.notes||''; notes.addEventListener('input',function(){ i.notes=notes.value; });
+  var lines=h('div',{class:'invlines'}), totals=h('div',{class:'invtot'});
+  function sum(){ var sub=i.items.reduce(function(t,x){ return t+(Number(x.qty)||0)*(Number(x.price)||0); },0), d=Number(i.discount)||0, v=Math.round((sub-d)*(Number(i.vat_rate)||0))/100;
+    totals.textContent='Subtotal '+thb(sub)+(d?', discount '+thb(d):'')+(v?', VAT '+thb(v):'')+'. Total '+(thb(sub-d+v)||'0 THB')+'.'; }
+  function drawLines(){ lines.replaceChildren.apply(lines,i.items.map(function(x,k){
+      var d=h('input',{'aria-label':'Line '+(k+1)+' description',placeholder:'What it is for'}); d.value=x.desc||''; d.addEventListener('input',function(){ x.desc=d.value; });
+      var q=h('input',{type:'number',min:'0',step:'any','aria-label':'Line '+(k+1)+' quantity'}); q.value=x.qty==null?1:x.qty; q.addEventListener('input',function(){ x.qty=q.value; sum(); });
+      var p=h('input',{type:'number',min:'0',step:'any','aria-label':'Line '+(k+1)+' price in THB',placeholder:'Price THB'}); p.value=x.price==null?'':x.price; p.addEventListener('input',function(){ x.price=p.value; sum(); });
+      return h('div',{class:'invline'},d,q,p,i.items.length>1?h('button',{type:'button',class:'btn small','aria-label':'Remove line '+(k+1),onclick:function(){ i.items.splice(k,1); drawLines(); }},'×'):h('span')); }).concat([btn('Add a line',function(){ i.items.push({desc:'',qty:1,price:''}); drawLines(); },'small')])); sum(); }
+  drawLines();
+  var vat=h('input',{type:'checkbox',id:'iv-vat'}); vat.checked=Number(i.vat_rate)===7; vat.addEventListener('change',function(){ i.vat_rate=vat.checked?7:0; sum(); });
+  function payCb(k,label){ var c=h('input',{type:'checkbox',id:'iv-'+k}); c.checked=!!i[k]; c.addEventListener('change',function(){ i[k]=c.checked; }); return h('label',{class:'check',for:'iv-'+k},c,h('span',null,label)); }
+  function close(){ $dlg.close(); }
+  var saveB=btn(i0?'Save':'Make the invoice',function(){ err.hidden=true; saveB.disabled=true;
+    var p=Object.assign({},i,{issue_date:document.getElementById('iv-issue_date').value,due_date:document.getElementById('iv-due_date').value});
+    sb.rpc('invoice_save',{p:p}).then(must).then(function(r){ close(); IVC.list=null; invLoad(); toast(i0?'Saved.':'Invoice '+invNo(r)+' made.'); setTimeout(function(){ invView(r); },400); },function(e){ bad(errText(e)); saveB.disabled=false; }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox invedit'},h('h2',null,i0?'Edit invoice '+invNo(i0):'New invoice'),
+    h('div',{class:'grid2'},fld('From','business',biz),fld('Department (for Accounts)','department',dep)),
+    h('h3',{class:'billh'},'Bill to'),pick,
+    h('div',{class:'grid2'},fld('Company','to_company',inp('to_company')),fld('Name','to_name',nameI),fld('Email','to_email',emailI),fld('Phone','to_phone',phoneI),fld('Tax ID','to_tax_id',inp('to_tax_id'),'If they need it on the invoice.')),
+    fld('Address','to_address',addr),
+    h('div',{class:'grid2'},fld('Invoice date','issue_date',inp('issue_date',{type:'date'})),fld('Due date','due_date',inp('due_date',{type:'date'}))),
+    h('h3',{class:'billh'},'Lines'),h('div',{class:'invhead'},h('span',null,'Description'),h('span',null,'Qty'),h('span',null,'Price THB'),h('span')),lines,
+    h('div',{class:'grid2'},fld('Discount (THB)','discount',inp('discount',{type:'number',min:'0',step:'any'})),h('div',{class:'field'},h('label',{class:'check',for:'iv-vat'},vat,h('span',null,'Add VAT 7%')))),totals,
+    h('fieldset',{class:'field checks'},h('legend',null,'How they can pay (choose any)'),h('div',{class:'checkgrid'},payCb('pay_bank','Bank transfer (your account details)'),payCb('pay_card','Card (Stripe payment link)'),payCb('pay_promptpay','PromptPay QR'))),
+    fld('Notes on the invoice','notes',notes),
+    err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',close),saveB))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function invDocFor(i,mode){ return INVDOC.html(i,IVC.tpl,{mode:mode,payUrl:invLink(i),promptpay:PP?ppFor('gym'):null}); }
+function invPrint(i,mode){ var f=document.createElement('iframe'); f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  f.srcdoc=invDocFor(i,mode); f.onload=function(){ setTimeout(function(){ try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ toast('Could not open printing.'); } setTimeout(function(){ f.remove(); },60000); },300); }; }
+function invView(i){
+  if(!PP){ loadPP().then(function(){ invView(i); },function(){ PP=[]; invView(i); }); return; }
+  var paid=i.status==='paid', mode=paid?'receipt':'invoice';
+  var frame=h('iframe',{class:'invframe',title:'Preview'}); function show(){ frame.srcdoc=invDocFor(i,mode); } show();
+  function close(){ $dlg.close(); }
+  function reload(r){ IVC.list=null; invLoad(); close(); setTimeout(function(){ invView(r); },300); }
+  var who=i.to_company||i.to_name, link=invLink(i), msg='Hi '+(i.to_name||who).split(' ')[0]+', here is '+(paid?'your receipt '+invNo(i,true):'invoice '+invNo(i)+' for '+thb(i.total))+': '+link;
+  var ph=String(i.to_phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1);
+  var acts=[btn(paid?'Print or PDF: receipt':'Print or PDF',function(){ invPrint(i,mode); },'small')];
+  if(paid) acts.push(btn('Print or PDF: invoice',function(){ invPrint(i,'invoice'); },'small'));
+  acts.push(btn('Copy link',function(){ copyText(link,'Link copied. The customer can see, pay and print it.'); },'small'));
+  if(i.to_email) acts.push(btn('Email',function(){ location.href='mailto:'+i.to_email+'?subject='+encodeURIComponent((paid?'Receipt ':'Invoice ')+(paid?invNo(i,true):invNo(i)))+'&body='+encodeURIComponent(msg); },'small'));
+  if(ph.length>=8) acts.push(btn('WhatsApp',function(){ window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener'); },'small'));
+  var main=[];
+  if(i.status==='unpaid') main=[btn('Edit',function(){ close(); invEdit(i); },'small'),btn('Cancel invoice',function(){ if(!confirm('Cancel invoice '+invNo(i)+'?')) return; sb.rpc('invoice_cancel',{p_id:i.id}).then(must).then(reload,function(e){ toast(errText(e)); }); },'small'),
+    btn('Payment received',function(){ invPaid(i); },'primary')];
+  else if(paid) main=[btn('Mark not paid',function(){ if(!confirm('Mark it not paid? The receipt and the money in Accounts are taken off.')) return; sb.rpc('invoice_unpaid',{p_id:i.id}).then(must).then(reload,function(e){ toast(errText(e)); }); },'small')];
+  $dlg.replaceChildren(h('div',{class:'billbox invview'},h('h2',null,(paid?'Receipt '+invNo(i,true):'Invoice '+invNo(i))),
+    h('p',null,invStatus(i),' ',who+', '+thb(i.total)+(paid?'. Paid by '+(INVDOC.METHOD[i.paid_method]||i.paid_method)+'.':'')),
+    paid?h('div',{class:'row'},btn('Show the receipt',function(){ mode='receipt'; show(); },'small'),btn('Show the invoice',function(){ mode='invoice'; show(); },'small')):null,
+    frame,h('div',{class:'row wrap'},acts),h('div',{class:'factions'},btn('Close',close),h('div',{class:'row'},main))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function invPaid(i){
+  openForm({title:'Payment received: '+invNo(i),note:(i.to_company||i.to_name)+', '+thb(i.total)+'. A receipt is made and it shows in Accounts as money in.',values:{method:'transfer',on:ymd(new Date()),note:''},
+    fields:[{key:'method',label:'Paid by',type:'select',options:[['transfer','Bank transfer'],['qr','PromptPay'],['cash','Cash'],['card','Card machine'],['cheque','Cheque'],['other','Other']]},{key:'on',label:'Date paid',type:'date'},{key:'note',label:'Note',hint:'Optional, for example the bank reference.'}],
+    saveLabel:'Make the receipt',doneMsg:'Paid. The receipt is ready.',
+    onSave:function(v){ return sb.rpc('invoice_paid',{p_id:i.id,p_method:v.method,p_on:v.on||null,p_note:v.note||null}).then(must).then(function(r){ IVC.list=null; invLoad(); ACC.data=null; setTimeout(function(){ invView(r); },400); }); }});
+}
+function invTemplate(){
+  var t=JSON.parse(JSON.stringify(IVC.tpl||{})); t.biz=t.biz||{};
+  var which=BIZ[0];
+  function vals(){ var T=INVDOC.tplOf(t,which), b=t.biz[which]||{}; var o={}; ['name','address','tax_id','phone','email','website','logo','bank_name','bank_account_name','bank_account_number','bank_branch','bank_swift','promptpay_id'].forEach(function(k){ o[k]=b[k]!=null?b[k]:T[k]; });
+    ['prefix','receipt_prefix','color','terms','footer'].forEach(function(k){ o[k]=T[k]; }); o.which=which; return o; }
+  function open(){ var logo=vals().logo;
+    openForm({title:'Invoice design and bank details',values:vals(),saveLabel:'Save',doneMsg:'Saved. New and old invoices use it.',
+      note:'One design for every invoice and receipt. Each business has its own name, logo and bank account.',
+      fields:[{key:'which',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; }),onChange:function(v){ keep(); which=v; $dlg.close(); setTimeout(open,50); }},
+        {key:'name',label:'Name on the invoice',required:true},{key:'address',label:'Address',type:'textarea'},{key:'tax_id',label:'Tax ID'},
+        {key:'phone',label:'Phone'},{key:'email',label:'Email'},{key:'website',label:'Website'},
+        {key:'logo',label:'Logo link',hint:'Use Upload a logo below, or paste a link to a PNG or JPG.'},
+        {key:'bank_name',label:'Bank'},{key:'bank_account_name',label:'Account name'},{key:'bank_account_number',label:'Account number'},{key:'bank_branch',label:'Branch'},{key:'bank_swift',label:'SWIFT code',hint:'For payments from abroad.'},
+        {key:'promptpay_id',label:'PromptPay ID',hint:'The phone number or tax ID your PromptPay is on. Empty uses the shop QR from Settings.'},
+        {key:'prefix',label:'Invoice number starts with',hint:'For example INV-. Numbers count up by themselves.'},{key:'receipt_prefix',label:'Receipt number starts with',hint:'For example RC-.'},
+        {key:'color',label:'Colour (hex)',hint:'Titles and lines, for example #B8892E.'},{key:'terms',label:'Payment terms',type:'textarea'},{key:'footer',label:'Footer',type:'textarea'}],
+      onSave:function(v){ var b=t.biz[which]=t.biz[which]||{}; ['name','address','tax_id','phone','email','website','logo','bank_name','bank_account_name','bank_account_number','bank_branch','bank_swift','promptpay_id'].forEach(function(k){ b[k]=String(v[k]||'').trim(); });
+        ['prefix','receipt_prefix','color','terms','footer'].forEach(function(k){ t[k]=String(v[k]||'').trim(); });
+        if(t.color&&!/^#[0-9a-f]{6}$/i.test(t.color)) return 'Type the colour as # and 6 letters or numbers, for example #B8892E.';
+        var val=JSON.stringify(t);
+        return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','invoice_template').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; IVC.tpl=t; schedule(); }); }});
+    var up=btn('Upload a logo',function(){ blogPhoto(function(url){ var el=document.getElementById('f-logo'); if(el) el.value=url; }); },'small');
+    var lf=document.getElementById('f-logo'); if(lf&&lf.parentNode) lf.parentNode.appendChild(up);
+    function keep(){ var b=t.biz[which]=t.biz[which]||{}; ['name','address','tax_id','phone','email','website','logo','bank_name','bank_account_name','bank_account_number','bank_branch','bank_swift','promptpay_id'].forEach(function(k){ var el=document.getElementById('f-'+k); if(el) b[k]=el.value.trim(); }); }
+  }
+  open();
 }
 /* department breakdown: money in, money out and profit for each department */
 function accDepts(lines){
@@ -3680,7 +3810,7 @@ function accSheetDlg(){
     var feeds=[['entries','Every entry'],['departments','By department and month'],['checks','Things to check']];
     box.replaceChildren(h('h2',null,'Google Sheet'),
       h('p',{class:'sub'},'Your accounts in a Google Sheet that fills itself from the app. Google refreshes it about every hour. It has tabs for every entry, departments by month, department totals and things to check.'),
-      url?h('p',null,h('a',{class:'btn primary',href:url,target:'_blank',rel:'noopener'},'Open the sheet')):null,
+      url?h('p',null,btn('Open the sheet',function(){ window.open(url,'_blank','noopener'); },'primary')):null,
       h('p',{class:'sub'},'The first time you open it, Google asks to allow the sheet to fetch data. Tap Allow access.'),
       h('h3',{class:'billh'},'Links for another sheet'),
       h('div',{class:'panel pad'},feeds.map(function(f){ var formula='=IMPORTDATA("'+base+f[0]+'")';

@@ -116,6 +116,8 @@ def main():
     json.dump(man, open(os.path.join(OUT, 'manifest.webmanifest'), 'w', encoding='utf-8'), indent=2)
 
     shutil.copytree(os.path.join(ROOT, 'vendor'), os.path.join(OUT, 'vendor'))
+    # invoice and receipt design (the demo gym's own details come from its template)
+    open(os.path.join(OUT, 'invdoc.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'invdoc.js'), encoding='utf-8').read()))
     icons()
     print('Demo built in muayfriend/demo/')
 
