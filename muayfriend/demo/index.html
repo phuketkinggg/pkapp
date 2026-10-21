@@ -80,6 +80,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .chip.fbchip{background:#E7EEFC;color:#1B4FBF}.chip.igchip{background:#FBE7F1;color:#A3195B}
 .msgmedia{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.msgmedia img{max-width:220px;max-height:220px;border-radius:10px;display:block}
 .msgfail{color:#B3132A;font-size:12px;margin-top:4px}
+.accbar2{height:5px;background:var(--line);border-radius:3px;margin-top:4px;min-width:60px}.accbar2 span{display:block;height:100%;border-radius:3px}.accbar2 .bin{background:#2E7D32}.accbar2 .bout{background:#C62828}
 .wid{display:flex;flex-direction:column;gap:14px;border-left:4px solid var(--wc,var(--line));padding-left:14px}
 .wid .sechead h2{color:var(--wc)}
 .widlab{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--wc);margin-bottom:-6px}
@@ -3591,6 +3592,7 @@ function accRange(k){ var t=ymd(new Date()), y=t.slice(0,4), m=Number(t.slice(5,
   if(k==='quarter'){ var q=Math.floor((m-1)/3)*3; return [ymd(new Date(Number(y),q,1)),t]; }
   return [t.slice(0,8)+'01',t]; }
 function accLoad(){ if(!ACC.from){ var r=accRange('month'); ACC.from=r[0]; ACC.to=r[1]; } ACC.busy=true;
+  sb.rpc('acc_checks_list',{p_from:ACC.from,p_to:ACC.to}).then(must).then(function(c){ ACC.checks=c||[]; schedule(); },function(){ ACC.checks=null; });
   return sb.rpc('accounts_data',{p_from:ACC.from,p_to:ACC.to}).then(must).then(function(d){ ACC.busy=false; ACC.data=d; ACC.err=null; schedule(); })
     .catch(function(e){ ACC.busy=false; ACC.err=errText(e); schedule(); }); }
 function accReload(){ ACC.data=null; return accLoad(); }
@@ -3613,7 +3615,7 @@ function vAccounts(){
     h('div',{class:'ctabs small'},[['all','Both businesses']].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
   var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
   var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
-    h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Download for the accountant',function(){ accCsv(all); })));
+    h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Google Sheet',accSheetDlg),btn('Download for the accountant',function(){ accCsv(all); })));
   var body=ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
   return [head,period,tabs,body];
 }
@@ -3631,13 +3633,62 @@ function accOverview(lines,all,d){
   if(Number(d.before_app)) notes.push(accThb(d.before_app)+' was recorded as paid before the app, so it is not counted here (it is in your old spreadsheet).');
   if(d.no_amount) notes.push(d.no_amount+' receipt'+(d.no_amount>1?'s have':' has')+' no amount yet, so '+(d.no_amount>1?'they are':'it is')+' not counted. Use Sort receipts.');
   if(Number(d.room_sales)&&(ACC.biz==='all'||ACC.biz==='Camp Rooms')) notes.push('Rooms sold for nights in this period: '+accThb(d.room_sales)+'. Room money shows here when it is paid. For Booking.com, Agoda or Airbnb, add each payout with Add money in, as "Booking site payout".');
-  return [h('div',{class:'acccards'},cards),
+  return [h('div',{class:'acccards'},cards),accDepts(lines),accChecks(),
     mk.length>1?section('Last 12 months',null,h('div',{class:'panel pad'},pChart([{label:'Money in',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].i)}; })},{label:'Money out',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].o)}; })}],'THB'),
       table([{label:'Month',cell:function(m){ return parseYmd(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }},{label:'In',num:true,cell:function(m){ return accThb(months[m].i); }},{label:'Out',num:true,cell:function(m){ return accThb(months[m].o); }},
         {label:'Profit',num:true,cell:function(m){ var p=months[m].i-months[m].o; return h('span',{class:p>=0?'accin':'accout'},accThb(p)); }}],mk.slice().reverse(),''))):null,
     section('Money by payment method',null,table([{label:'Method',cell:function(x){ return x.k; }},{label:'In',num:true,cell:function(x){ return accThb(x.i); }},{label:'Out',num:true,cell:function(x){ return accThb(x.o); }},{label:'Difference',num:true,cell:function(x){ return accThb(x.i-x.o); }}],methods,'Nothing in this period.')),
     h('p',{class:'sub narrow'},'Check these against the cash box and the bank statement. Scan (PromptPay) and Transfer both land in the bank account.'),
     notes.length?h('div',{class:'panel pad accnotes'},notes.map(function(n){ return h('p',null,n); })):null];
+}
+/* department breakdown: money in, money out and profit for each department */
+function accDepts(lines){
+  var L=lines.filter(function(l){ return !l.move; }); if(!L.length) return null;
+  var g={}; L.forEach(function(l){ var k=l.b+'|'+(l.dep||'No department'); var x=g[k]=g[k]||{b:l.b,dep:l.dep||'No department',i:0,o:0,list:[]}; if(l.t==='in') x.i+=l.a; else x.o+=l.a; x.list.push(l); });
+  var rows=Object.keys(g).map(function(k){ return g[k]; }).sort(function(a,b){ return a.b===b.b?(b.i+b.o)-(a.i+a.o):(a.b<b.b?-1:1); });
+  var maxV=rows.reduce(function(m,r){ return Math.max(m,r.i,r.o); },1);
+  function bar(v,cls){ return h('div',{class:'accbar2'},h('span',{class:cls,style:'width:'+Math.max(2,Math.round(v/maxV*100))+'%'})); }
+  return section('By department',null,table([
+    {label:'Department',cell:function(r){ return h('span',null,linkBtn(r.dep,function(){ accDeptDlg(r); }),ACC.biz==='all'?h('div',{class:'sub'},r.b):null); }},
+    {label:'Money in',num:true,cell:function(r){ return h('div',null,h('span',{class:'accin'},accThb(r.i)),r.i?bar(r.i,'bin'):null); }},
+    {label:'Money out',num:true,cell:function(r){ return h('div',null,h('span',{class:'accout'},accThb(r.o)),r.o?bar(r.o,'bout'):null); }},
+    {label:'Profit',num:true,cell:function(r){ return h('b',{class:r.i-r.o>=0?'accin':'accout'},accThb(r.i-r.o)); }}],rows,''));
+}
+function accDeptDlg(r){
+  function close(){ $dlg.close(); }
+  var list=r.list.slice().sort(function(a,b){ return a.d<b.d?1:-1; });
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,r.dep),h('p',{class:'sub'},r.b+'. '+fmtDate(ACC.from)+' to '+fmtDate(ACC.to)+'. In '+accThb(r.i)+', out '+accThb(r.o)+'.'),
+    h('div',{class:'panel scroll'},h('table',null,h('tbody',null,list.slice(0,300).map(function(l){ return h('tr',null,h('td',null,fmtDate(l.d)),h('td',null,l.what,h('div',{class:'sub'},(l.cat||'')+(l.m?', '+accM(l.m):''))),h('td',{class:'num '+(l.t==='in'?'accin':'accout')},(l.t==='in'?'':'-')+accThb(l.a))); })))),
+    h('div',{class:'factions'},h('span'),btn('Close',close))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+/* things to check: possible duplicates and odd entries */
+function accChecks(){
+  var c=ACC.checks; if(!c||!c.length) return c?h('p',{class:'sub'},'Checks: no possible duplicates or odd entries in this period.'):null;
+  var checks=c.filter(function(x){ return x.level==='check'; }), todo=c.filter(function(x){ return x.level!=='check'; });
+  var byKind={}; todo.forEach(function(x){ byKind[x.kind]=(byKind[x.kind]||0)+1; });
+  return section('Things to check ('+c.length+')',btn('Sort receipts',function(){ ACC.tab='receipts'; schedule(); },'small'),h('div',{class:'panel pad accnotes'},
+    checks.length?table([{label:'What',cell:function(x){ return chip(x.kind,'warn'); }},{label:'Date',cell:function(x){ return fmtDate(x.d); }},{label:'Entry',cell:function(x){ return h('span',null,x.what,h('div',{class:'sub'},x.why)); }},{label:'Amount',num:true,cell:function(x){ return x.a!=null?accThb(x.a):''; }}],checks,''):null,
+    Object.keys(byKind).length?h('p',{class:'sub'},'To tidy up: '+Object.keys(byKind).map(function(k){ return k+' '+byKind[k]; }).join(', ')+'.'):null));
+}
+/* the Google Sheet that pulls the accounts from the app */
+function accSheetDlg(){
+  var box=h('div',{class:'billbox'},h('h2',null,'Google Sheet'),h('p',{class:'sub'},'Loading.')); $dlg.replaceChildren(box);
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  function close(){ $dlg.close(); }
+  Promise.all([sb.rpc('acc_feed_link',{p_new:false}).then(must),sb.from('app_settings').select('value').eq('key','acc_sheet_url').maybeSingle()]).then(function(r){ draw(r[0],r[1]&&r[1].data&&r[1].data.value); },function(e){ box.replaceChildren(h('h2',null,'Google Sheet'),h('p',{class:'ferr'},errText(e)),btn('Close',close)); });
+  function draw(tok,url){ var base=SB_URL+'/functions/v1/accounts-feed?t='+tok+'&kind=';
+    var feeds=[['entries','Every entry'],['departments','By department and month'],['checks','Things to check']];
+    box.replaceChildren(h('h2',null,'Google Sheet'),
+      h('p',{class:'sub'},'Your accounts in a Google Sheet that fills itself from the app. Google refreshes it about every hour. It has tabs for every entry, departments by month, department totals and things to check.'),
+      url?h('p',null,h('a',{class:'btn primary',href:url,target:'_blank',rel:'noopener'},'Open the sheet')):null,
+      h('p',{class:'sub'},'The first time you open it, Google asks to allow the sheet to fetch data. Tap Allow access.'),
+      h('h3',{class:'billh'},'Links for another sheet'),
+      h('div',{class:'panel pad'},feeds.map(function(f){ var formula='=IMPORTDATA("'+base+f[0]+'")';
+        return h('div',{class:'row',style:'justify-content:space-between;gap:12px;margin-bottom:8px'},h('span',null,f[1]),btn('Copy formula',function(){ copyText(formula,'Copied. Paste it into cell A1 of an empty tab.'); },'small')); })),
+      h('p',{class:'sub'},'These links show your accounts to anyone who has them. Keep them private. If one is shared by mistake, make a new link: the old ones stop working, and you paste the new formulas into the sheet.'),
+      h('div',{class:'factions'},btn('Make a new link',function(){ if(!confirm('Make a new link? The sheet stops updating until you paste the new formulas in.')) return; sb.rpc('acc_feed_link',{p_new:true}).then(must).then(function(t){ draw(t,url); toast('New link made. Copy the formulas into the sheet.'); },function(e){ toast(errText(e)); }); },'small'),btn('Close',close)));
+  }
 }
 function accIn(lines){ var L=lines.filter(function(l){ return l.t==='in'; });
   if(!L.length) return h('div',{class:'panel empty'},'No money in for this period.');
