@@ -7,7 +7,10 @@ language sql stable security definer set search_path = '' as $f$
   with r as (select * from public.expense_receipts where status <> 'removed' and day between p_from and p_to),
        e as (select * from public.acc_entries where not voided and day between p_from and p_to),
        p as (select p.*, c.name cname from public.payments p left join public.customers c on c.id = p.customer_id
-             where not p.voided and p.method <> 'before_app' and p.day between p_from and p_to and p.amount_thb > 0)
+             where not p.voided and p.method <> 'before_app' and p.day between p_from and p_to and p.amount_thb > 0),
+       y as (select day, business, coalesce(supplier,'Receipt') what, coalesce(nullif(category,''),'Not sorted') cat, amount_thb amount, id from r where amount_thb > 0
+             union all select day, business, coalesce(nullif(party,''),category), coalesce(category,'Other'), amount, id from e where kind = 'out' and amount > 0),
+       ym as (select cat, percentile_cont(0.5) within group (order by amount) med, count(*) n from y group by cat)
   -- the same receipt twice: same amount, same supplier (or no supplier), within 3 days
   select 'check', 'Possible duplicate receipt', r1.day, r1.business, coalesce(r1.supplier,'Receipt') || coalesce(' (' || r1.note || ')',''), r1.amount_thb, r1.id,
          'Same amount ' || to_char(r1.amount_thb,'FM999,999,990') || ' THB as another receipt on ' || to_char(r2.day,'FMDD Mon') || coalesce(' from ' || r2.supplier,'')
@@ -43,9 +46,7 @@ language sql stable security definer set search_path = '' as $f$
   -- much bigger than usual for its category (over 3 times the typical amount, and over 5,000 THB)
   select 'check', 'Much bigger than usual', x.day, x.business, x.what || ' [' || x.cat || ']', x.amount, x.id,
          'Usually about ' || to_char(x.med,'FM999,999,990') || ' THB for ' || x.cat || '. Check for a typing mistake.'
-  from (select y.*, percentile_cont(0.5) within group (order by y.amount) over (partition by y.cat) med, count(*) over (partition by y.cat) n
-        from (select day, business, coalesce(supplier,'Receipt') what, coalesce(nullif(category,''),'Not sorted') cat, amount_thb amount, id from r where amount_thb > 0
-              union all select day, business, coalesce(nullif(party,''),category), coalesce(category,'Other'), amount, id from e where kind = 'out' and amount > 0) y) x
+  from (select y.*, ym.med, ym.n from y join ym using (cat)) x
   where x.n >= 4 and x.amount > 5000 and x.amount > 3 * x.med
 $f$;
 
