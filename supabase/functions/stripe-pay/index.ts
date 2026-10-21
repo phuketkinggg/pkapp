@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     const amount = Number(q.amount);
     if (!(amount >= 20)) return json({ error: "Card payments need at least 20 THB." });
     // a customer paying for themselves (member app), or anyone on the kiosk, pays the card fee; staff making a link choose on their own form
-    const { data: who } = await user.auth.getUser();
+    const { data: who } = await admin.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
     const { data: st } = who?.user ? await admin.from("staff").select("id").eq("user_id", who.user.id).eq("active", true).maybeSingle() : { data: null };
     const pct = (!st || body.kiosk === true) ? await cardPct() : 0, fee = Math.round(amount * pct / 100);
     const m = await make(amount, String(q.what ?? "Phuket King"), { kind: String(body.kind), id: String(body.kind === "customer" ? q.customer_id : body.id), amount: String(amount), fee: String(fee) }, q.email ?? null, backUrl(body.back), fee, pct);
