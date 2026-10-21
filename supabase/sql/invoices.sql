@@ -56,7 +56,7 @@ begin
 end $f$;
 
 create or replace function public.invoice_save(p jsonb) returns jsonb language plpgsql security definer set search_path = '' as $f$
-declare v_id uuid := nullif(p->>'id','')::uuid; o public.invoices; it jsonb; items jsonb := '[]'::jsonb; sub numeric := 0; q numeric; pr numeric;
+declare v_id uuid := nullif(p->>'id','')::uuid; o public.invoices; it jsonb; v_items jsonb := '[]'::jsonb; sub numeric := 0; q numeric; pr numeric;
   disc numeric := greatest(0, coalesce(nullif(p->>'discount','')::numeric, 0)); rate numeric := coalesce(nullif(p->>'vat_rate','')::numeric, 0); v numeric; tot numeric; n integer;
 begin
   if coalesce(private.staff_role(),'') <> 'manager' then raise exception 'Only a manager can make invoices.'; end if;
@@ -66,10 +66,10 @@ begin
     if trim(coalesce(it->>'desc','')) = '' then continue; end if;
     q := coalesce(nullif(it->>'qty','')::numeric, 1); pr := coalesce(nullif(it->>'price','')::numeric, 0);
     if q <= 0 then raise exception 'Each line needs a quantity above 0.'; end if;
-    items := items || jsonb_build_array(jsonb_build_object('desc', left(trim(it->>'desc'), 300), 'qty', q, 'price', round(pr, 2), 'amount', round(q * pr, 2)));
+    v_items := v_items || jsonb_build_array(jsonb_build_object('desc', left(trim(it->>'desc'), 300), 'qty', q, 'price', round(pr, 2), 'amount', round(q * pr, 2)));
     sub := sub + round(q * pr, 2);
   end loop;
-  if jsonb_array_length(items) = 0 then raise exception 'Add at least one line.'; end if;
+  if jsonb_array_length(v_items) = 0 then raise exception 'Add at least one line.'; end if;
   if disc > sub then raise exception 'The discount is more than the total.'; end if;
   v := round((sub - disc) * rate / 100, 2); tot := sub - disc + v;
   if not (coalesce((p->>'pay_bank')::boolean,false) or coalesce((p->>'pay_card')::boolean,false) or coalesce((p->>'pay_promptpay')::boolean,false)) then
@@ -90,7 +90,7 @@ begin
     to_address = nullif(trim(p->>'to_address'),''), to_email = nullif(lower(trim(p->>'to_email')),''), to_phone = nullif(trim(p->>'to_phone'),''),
     customer_id = nullif(p->>'customer_id','')::uuid,
     issue_date = coalesce(nullif(p->>'issue_date','')::date, private.bkk_today()), due_date = nullif(p->>'due_date','')::date,
-    items = items, discount = disc, vat_rate = rate, subtotal = sub, vat = v, total = tot, notes = nullif(trim(p->>'notes'),''),
+    items = v_items, discount = disc, vat_rate = rate, subtotal = sub, vat = v, total = tot, notes = nullif(trim(p->>'notes'),''),
     pay_bank = coalesce((p->>'pay_bank')::boolean,false), pay_card = coalesce((p->>'pay_card')::boolean,false), pay_promptpay = coalesce((p->>'pay_promptpay')::boolean,false),
     status = case when status = 'cancelled' then 'unpaid' else status end, updated_at = now()
   where id = v_id returning * into o;
