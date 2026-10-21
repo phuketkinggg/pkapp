@@ -1,6 +1,6 @@
 // The customer's invoice page (invoice.html) talks to this. No sign in: the long token in the link is the key.
 // POST {mode:'view', t}            the invoice, the template and the PromptPay QR details
-// POST {mode:'pay', t, back}       a Stripe card payment page for what is still owed
+// POST {mode:'pay', t, back}       a Stripe card payment page for what is to pay now (the deposit, or the rest)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -29,7 +29,8 @@ Deno.serve(async (req) => {
     if (inv.status === "paid") return json({ error: "This invoice is already paid." });
     if (!inv.pay_card) return json({ error: "Card payment is not offered on this invoice." });
     if (!KEY) return json({ error: "Card payments are not set up yet." });
-    const amount = Number(inv.total);
+    const amount = Number(inv.due_now ?? inv.total), part = inv.status === "unpaid" && Number(inv.deposit) > 0 ? "deposit" : inv.status === "deposit_paid" ? "balance" : "";
+    if (!(amount > 0)) return json({ error: "Nothing is owed on this invoice." });
     if (!(amount >= 20)) return json({ error: "Card payments need at least 20 THB." });
     const tpl = data.template ?? {}, prefix = tpl.prefix || "INV-", pad = Number(tpl.pad) || 4;
     const no = prefix + String(inv.number).padStart(pad, "0");
@@ -37,12 +38,12 @@ Deno.serve(async (req) => {
     const where = back(b.back);
     const p = new URLSearchParams();
     p.set("mode", "payment");
-    p.set("success_url", `${where}?t=${t}&paid=1`);
+    p.set("success_url", `${where}?t=${t}&paid=1${part ? "&part=" + part : ""}`);
     p.set("cancel_url", `${where}?t=${t}`);
     p.set("line_items[0][quantity]", "1");
     p.set("line_items[0][price_data][currency]", "thb");
     p.set("line_items[0][price_data][unit_amount]", String(Math.round(amount * 100)));
-    p.set("line_items[0][price_data][product_data][name]", `${biz}, invoice ${no}`.slice(0, 120));
+    p.set("line_items[0][price_data][product_data][name]", `${biz}, invoice ${no}${part ? " " + part : ""}`.slice(0, 120));
     p.set("payment_method_types[0]", "card");
     if (inv.to_email) p.set("customer_email", inv.to_email);
     for (const [k, v] of Object.entries({ kind: "invoice", id: inv.id, amount: String(amount) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }

@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <title>Invoice</title>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
-<script src="invdoc.js?v=1"></script>
+<script src="invdoc.js?v=2"></script>
 <style>
 :root{--bg:#F2F0EB;--ink:#1d1d1f;--muted:#666;--gold:#B8892E;--line:#ddd}
 *{box-sizing:border-box}
@@ -30,28 +30,34 @@ iframe{display:block;width:100%;border:0;min-height:1100px;background:#fff}
 <script>
 (function(){
   var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/invoice';
-  var q=new URLSearchParams(location.search), t=q.get('t')||'', D=null, mode='invoice';
+  var q=new URLSearchParams(location.search), t=q.get('t')||'', D=null, mode='auto', part=q.get('part')||'';
   var acts=document.getElementById('acts'), msg=document.getElementById('msg'), frame=document.getElementById('doc');
   function say(text,err){ msg.textContent=text; msg.className='msg'+(err?' err':''); msg.style.display=text?'block':'none'; }
   function call(body){ return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); return d; }); }
   function btn(label,fn,cls){ var b=document.createElement('button'); b.type='button'; b.textContent=label; if(cls) b.className=cls; b.onclick=fn; return b; }
   function draw(){
-    var inv=D.invoice, paid=inv.status==='paid', T=INVDOC.tplOf(D.template,inv.business);
-    if(paid&&mode!=='invoice') mode='receipt';
-    var no=mode==='receipt'?INVDOC.num(T.receipt_prefix,inv.receipt_number,T.pad):INVDOC.num(T.prefix,inv.number,T.pad);
-    document.title=(mode==='receipt'?'Receipt ':'Invoice ')+no; document.getElementById('ttl').textContent=T.name+', '+(mode==='receipt'?'receipt ':'invoice ')+no;
+    var inv=D.invoice, paid=inv.status==='paid', depPaid=!!inv.deposit_paid_on, due=INVDOC.dueNow(inv), T=INVDOC.tplOf(D.template,inv.business);
+    if(mode==='auto') mode=paid?'receipt':'invoice';
+    if(mode==='receipt'&&!paid) mode='invoice'; if(mode==='deposit'&&!depPaid) mode='invoice';
+    var no=mode==='receipt'?INVDOC.num(T.receipt_prefix,inv.receipt_number,T.pad):mode==='deposit'?INVDOC.num(T.receipt_prefix,inv.deposit_receipt,T.pad):INVDOC.num(T.prefix,inv.number,T.pad);
+    var word=mode==='receipt'?'receipt ':mode==='deposit'?'deposit receipt ':'invoice ';
+    document.title=word.charAt(0).toUpperCase()+word.slice(1)+no; document.getElementById('ttl').textContent=T.name+', '+word+no;
     frame.srcdoc=INVDOC.html(inv,D.template,{mode:mode,payUrl:location.origin+location.pathname+'?t='+t,promptpay:D.promptpay});
     frame.onload=function(){ try{ frame.style.height=(frame.contentDocument.body.scrollHeight+40)+'px'; }catch(e){} };
     acts.innerHTML='';
-    if(!paid&&inv.pay_card) acts.appendChild(btn('Pay by card, THB '+Number(inv.total).toLocaleString('en-US'),function(){ var b=this; b.disabled=true; b.textContent='Opening the payment page...';
+    var payLabel=(Number(inv.deposit)>0&&!depPaid?'Pay the deposit by card, THB ':depPaid?'Pay the balance by card, THB ':'Pay by card, THB ')+due.toLocaleString('en-US');
+    if(!paid&&inv.pay_card&&due>0) acts.appendChild(btn(payLabel,function(){ var b=this; b.disabled=true; b.textContent='Opening the payment page...';
       call({mode:'pay',t:t,back:location.origin+location.pathname}).then(function(d){ location.href=d.url; },function(e){ say(e.message,true); b.disabled=false; b.textContent='Pay by card'; }); },'primary'));
-    if(paid) acts.appendChild(btn(mode==='receipt'?'Show the invoice':'Show the receipt',function(){ mode=mode==='receipt'?'invoice':'receipt'; draw(); }));
+    if(mode!=='invoice') acts.appendChild(btn('Show the invoice',function(){ mode='invoice'; draw(); }));
+    if(depPaid&&mode!=='deposit') acts.appendChild(btn('Show the deposit receipt',function(){ mode='deposit'; draw(); }));
+    if(paid&&mode!=='receipt') acts.appendChild(btn('Show the receipt',function(){ mode='receipt'; draw(); }));
     acts.appendChild(btn('Print or save as PDF',function(){ try{ frame.contentWindow.focus(); frame.contentWindow.print(); }catch(e){ window.print(); } }));
   }
   if(!t){ say('This invoice link is missing its code. Ask us for the link again.',true); return; }
-  if(q.get('paid')==='1') say('Thank you, your payment went through. Your receipt is below.');
+  if(q.get('paid')==='1'){ say(part==='deposit'?'Thank you, your deposit went through. Your deposit receipt is below.':'Thank you, your payment went through. Your receipt is below.'); if(part==='deposit') mode='deposit'; }
   function load(n){ return call({mode:'view',t:t}).then(function(d){ D=d;
-      if(q.get('paid')==='1'&&D.invoice.status!=='paid'&&n<6){ return new Promise(function(ok){ setTimeout(ok,2000); }).then(function(){ return load(n+1); }); }
+      var done=part==='deposit'?!!D.invoice.deposit_paid_on:D.invoice.status==='paid';
+      if(q.get('paid')==='1'&&!done&&n<6){ return new Promise(function(ok){ setTimeout(ok,2000); }).then(function(){ return load(n+1); }); }
       draw(); }); }
   load(0).catch(function(e){ say(e.message,true); });
 })();

@@ -56,7 +56,7 @@ begin
   select greatest(coalesce(max(receipt_number),0), coalesce(max(deposit_receipt),0)) + 1 into n from public.invoices;
   if o.status = 'unpaid' and o.deposit > 0 and not coalesce(p_whole,false) then
     insert into public.acc_entries(kind, day, business, department, category, amount, method, party, note)
-    values ('in', d, o.business, o.department, 'Invoice', o.deposit, m, coalesce(o.to_company, o.to_name), 'Invoice ' || lpad(o.number::text, 4, '0') || ' deposit')
+    values ('in', d, o.business, coalesce(nullif(o.department,''),'Other'), 'Invoice', o.deposit, m, coalesce(o.to_company, o.to_name), 'Invoice ' || lpad(o.number::text, 4, '0') || ' deposit')
     returning id into e;
     update public.invoices set status = 'deposit_paid', deposit_paid_on = d, deposit_method = m, deposit_note = nullif(trim(p_note),''),
       deposit_receipt = n, deposit_acc_entry = e, deposit_session = p_session, updated_at = now()
@@ -65,7 +65,7 @@ begin
   end if;
   amt := o.total - case when o.deposit_paid_on is not null then o.deposit else 0 end;
   insert into public.acc_entries(kind, day, business, department, category, amount, method, party, note)
-  values ('in', d, o.business, o.department, 'Invoice', amt, m, coalesce(o.to_company, o.to_name),
+  values ('in', d, o.business, coalesce(nullif(o.department,''),'Other'), 'Invoice', amt, m, coalesce(o.to_company, o.to_name),
           'Invoice ' || lpad(o.number::text, 4, '0') || case when o.deposit_paid_on is not null then ' balance' else '' end)
   returning id into e;
   update public.invoices set status = 'paid', paid_on = d, paid_method = m, paid_note = nullif(trim(p_note),''),
