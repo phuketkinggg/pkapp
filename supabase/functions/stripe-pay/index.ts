@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
       const { data } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
       if (data !== true) return json({ error: "Not allowed." }, 401);
       const m = await make(20, "Test, not charged", { kind: "test", id: "test", amount: "20" }, null, APP);
-      return json({ ok: true, promptpay: m.promptpay, livemode: m.s.livemode });
+      return json({ ok: true, promptpay: m.promptpay, livemode: m.s.livemode, account: KEY_TH ? "thai" : "main", currency_default: m.s.currency });
     }
     const auth = req.headers.get("authorization") ?? "";
     const user = createClient(URL_, ANON, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
