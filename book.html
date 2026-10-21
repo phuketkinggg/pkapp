@@ -155,6 +155,8 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
       <label>Phone or WhatsApp<input id="g-phone" type="tel" autocomplete="tel" maxlength="30"></label>
       <label>Guests<select id="g-guests"><option>1 adult</option><option>2 adults</option><option>2 adults, 1 child</option></select></label>
       <label class="wide">Anything we should know<textarea id="g-note" maxlength="400" placeholder="Arrival time, airport pick up, training plans"></textarea></label>
+      <label>Pay in<select id="g-cur"><option value="thb">Thai baht (THB)</option></select></label>
+      <p class="sub wide" id="curnote" hidden></p>
       <p class="sub wide">You pay the whole stay now by card on the next page, through Stripe. Your room is held for 30 minutes while you pay.</p>
       <p class="err wide" id="gerr" role="alert" hidden></p>
       <div class="wide"><button class="btn primary" type="submit" id="pay">Pay by card</button></div>
@@ -188,6 +190,10 @@ function $(id){ return document.getElementById(id); }
 function el(tag,attrs){ var e=document.createElement(tag); if(attrs) for(var k in attrs){ if(k==='text') e.textContent=attrs[k]; else if(k==='cls') e.className=attrs[k]; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),attrs[k]); else e.setAttribute(k,attrs[k]); }
   for(var i=2;i<arguments.length;i++){ var c=arguments[i]; if(c==null) continue; (Array.isArray(c)?c:[c]).forEach(function(x){ if(x!=null) e.appendChild(typeof x==='string'?document.createTextNode(x):x); }); } return e; }
 function thb(n){ return Number(n).toLocaleString('en-US')+' THB'; }
+/* paying in another currency: the THB price at today's rate (from the server, margin included), rounded per line like the card page */
+var CURN={thb:'Thai baht (THB)',usd:'US dollars (USD)',gbp:'British pounds (GBP)',eur:'Euros (EUR)'}, CURS={usd:'$',gbp:'£',eur:'€'};
+function cur(){ var e=$('g-cur'); return e&&e.value||'thb'; }
+function inCur(amounts){ var c=cur(), r=INFO&&INFO.fx&&INFO.fx[c]; if(c==='thb'||!r) return null; var cents=amounts.reduce(function(t,a){ return t+Math.round(a*r*100); },0); return CURS[c]+(cents/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+c.toUpperCase(); }
 function addDays(d,n){ return new Date(Date.parse(d+'T00:00:00Z')+n*864e5).toISOString().slice(0,10); }
 function fmt(d){ return new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}); }
 function md(m){ return new Date('2026-'+m+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}); }
@@ -295,9 +301,12 @@ function summary(){
   var lines=[el('div',null,el('span',null,'Room, '+Q.nights+' night'+(Q.nights===1?'':'s')),el('span',null,thb(r.total)))];
   (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name),el('span',null,thb(pr)))); });
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
+  var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); });
+  var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
+  $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';
   $('chosen').innerHTML='';
   $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines)));
-  $('pay').textContent='Pay '+thb(tot)+' by card'; pick.total=tot;
+  $('pay').textContent='Pay '+(fc||thb(tot))+' by card'; pick.total=tot; pick.label=fc||thb(tot);
 }
 function choose(rid){
   var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r||r.state!=='free') return;
@@ -322,9 +331,9 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
   b.disabled=true; b.textContent='Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
+  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,currency:cur(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
     .then(function(d){ location.href=d.url; })
-    .catch(function(x){ b.disabled=false; b.textContent='Pay '+thb(pick.total)+' by card'; err.textContent=x.message; err.hidden=false;
+    .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+' by card'; err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
 
 function afterPay(ref,paid){
@@ -341,7 +350,9 @@ function afterPay(ref,paid){
 var qp=new URLSearchParams(location.search), today=new Date(Date.now()+7*3600e3).toISOString().slice(0,10);
 $('from').min=today; $('to').min=addDays(today,1);
 if(qp.get('ref')&&/^[0-9a-f-]{36}$/.test(qp.get('ref'))){ afterPay(qp.get('ref'),qp.get('paid')==='1'); }
-call({mode:'info'}).then(function(d){ INFO=d; seasonLine(); MAP=mapView(mapPick); if(MAP){ $('map').appendChild(MAP.node); paintMap(); }
+call({mode:'info'}).then(function(d){ INFO=d;
+  (function(){ var sel=$('g-cur'); ['usd','gbp','eur'].forEach(function(c){ if(d.fx&&d.fx[c]) sel.appendChild(el('option',{value:c},CURN[c])); }); sel.onchange=function(){ summary(); }; if(sel.options.length<2) sel.parentNode.hidden=true; })();
+  seasonLine(); MAP=mapView(mapPick); if(MAP){ $('map').appendChild(MAP.node); paintMap(); }
   var f=qp.get('from'), t=qp.get('to'); if(f&&t&&!qp.get('ref')){ $('from').value=f; $('to').value=t; $('dates').requestSubmit(); } })
   .catch(function(){ $('derr').textContent='Booking is not available right now. Email hello@phuketking.com.'; $('derr').hidden=false; });
 })();

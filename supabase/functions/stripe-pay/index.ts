@@ -1,7 +1,10 @@
 // Makes a Stripe Checkout page for something a customer owes. The database works out the amount; the phone never sets it.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const KEY = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+// Thai baht payments go to the Thai Stripe account once its key is set (STRIPE_TH_SECRET_KEY), so no currency is lost. Until then, the main account.
+const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
+const KEY = KEY_TH || KEY_MAIN;
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });

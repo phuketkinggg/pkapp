@@ -6,7 +6,36 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-const KEY = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+// Thai baht goes to the Thai Stripe account (STRIPE_TH_SECRET_KEY) once it is set. US dollars, pounds and euros go to the main account.
+const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
+const KEY = KEY_TH || KEY_MAIN;
+const keyFor = (cur: string) => (cur === "thb" ? KEY_TH || KEY_MAIN : KEY_MAIN);
+const CURS = ["thb", "usd", "gbp", "eur"];
+// exchange rates: how much of each currency for 1 THB, refreshed every 12 hours, plus a small margin (app_settings fx.margin, in %)
+async function fx(): Promise<Record<string, number>> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "fx").maybeSingle();
+  let c: { at?: string; rates?: Record<string, number>; margin?: number } = {};
+  try { c = JSON.parse(data?.value ?? "{}"); } catch { /* empty */ }
+  let rates = c.rates;
+  if (!(c.at && rates && Date.now() - Date.parse(c.at) < 12 * 3600e3)) {
+    const tries: [string, (j: { rates?: Record<string, number> }) => Record<string, number> | null][] = [
+      ["https://api.frankfurter.dev/v1/latest?base=THB&symbols=USD,GBP,EUR", (j) => j?.rates?.USD ? { usd: j.rates.USD, gbp: j.rates.GBP, eur: j.rates.EUR } : null],
+      ["https://open.er-api.com/v6/latest/THB", (j) => j?.rates?.USD ? { usd: j.rates.USD, gbp: j.rates.GBP, eur: j.rates.EUR } : null],
+    ];
+    for (const [u, pick] of tries) {
+      try { const r = await fetch(u); const got = pick(await r.json()); if (got) { rates = got; break; } } catch { /* next */ }
+    }
+    if (rates && rates !== c.rates) {
+      const v = JSON.stringify({ ...c, at: new Date().toISOString(), rates });
+      const { data: up } = await admin.from("app_settings").update({ value: v }).eq("key", "fx").select("key");
+      if (!up?.length) await admin.from("app_settings").insert({ key: "fx", value: v });
+    }
+  }
+  if (!rates) return { thb: 1 };
+  const m = 1 + (Number.isFinite(Number(c.margin)) ? Number(c.margin) : 3) / 100;
+  return { thb: 1, usd: rates.usd * m, gbp: rates.gbp * m, eur: rates.eur * m };
+}
 const PAGE = "https://phuketkinggg.github.io/pkapp/book.html";
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -110,7 +139,7 @@ function backUrl(u: unknown): string {
   } catch { /* fall through */ }
   return PAGE;
 }
-async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string) {
+async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string, cur = "thb", rate = 1) {
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1&ref=" + stayId);
@@ -118,15 +147,16 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   p.set("expires_at", String(Math.floor(Date.now() / 1000) + 30 * 60 + 30));
   lines.forEach((l, i) => {
     p.set(`line_items[${i}][quantity]`, "1");
-    p.set(`line_items[${i}][price_data][currency]`, "thb");
-    p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(l.amount * 100)));
+    p.set(`line_items[${i}][price_data][currency]`, cur);
+    p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(l.amount * rate * 100)));
     p.set(`line_items[${i}][price_data][product_data][name]`, l.name.slice(0, 120));
   });
   p.set("payment_method_types[0]", "card");
   p.set("customer_email", email);
-  for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
+  // amount is always the THB value; the app records the stay in THB whatever currency was charged
+  for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount), currency: cur, amount_cur: (lines.reduce((t, l) => t + Math.round(l.amount * rate * 100), 0) / 100).toFixed(2) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p,
+    method: "POST", headers: { Authorization: `Bearer ${keyFor(cur)}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p,
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j?.error?.message ?? `Stripe said ${r.status}`);
@@ -149,6 +179,7 @@ Deno.serve(async (req) => {
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
         extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
+        fx: await fx(),
       });
     }
     if (body.mode === "quote") {
@@ -166,6 +197,9 @@ Deno.serve(async (req) => {
     }
     if (body.mode === "reserve") {
       if (!KEY) return json({ error: "Card payments are not set up yet. Message us to book." });
+      const cur = CURS.includes(String(body.currency ?? "thb").toLowerCase()) ? String(body.currency ?? "thb").toLowerCase() : "thb";
+      const FX = await fx(), rate = FX[cur];
+      if (!rate) return json({ error: "Paying in that currency is not available right now. Choose Thai baht." });
       const bad = checkDates(body.from, body.to); if (bad) return json({ error: bad });
       const from = body.from as string, to = body.to as string, roomId = String(body.room_id ?? "");
       const g = R.groups.find((x) => x.rooms.includes(roomId)); if (!g) return json({ error: "That room can not be booked online." });
@@ -181,7 +215,7 @@ Deno.serve(async (req) => {
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
         const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
-        const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back));
+        const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate);
         return json({ url, stay_id: stayId, total });
       } catch (e) {
         await admin.from("stays").update({ status: "cancelled", hold_until: null, notes: "Website booking, card payment could not start." }).eq("id", stayId);

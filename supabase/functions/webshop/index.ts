@@ -5,7 +5,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-const KEY = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+// Thai baht payments go to the Thai Stripe account once its key is set (STRIPE_TH_SECRET_KEY), so no currency is lost. Until then, the main account.
+const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
+const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
+const KEY = KEY_TH || KEY_MAIN;
 const PAGE = "https://phuketkinggg.github.io/pkapp/pk/shop.html";
 const cors = {
   "Access-Control-Allow-Origin": "*",

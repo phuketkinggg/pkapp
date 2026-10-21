@@ -614,7 +614,9 @@ function startPurchase(p,day){ var o={starts_on:day}; if(p.duration_days) o.expi
 function coachShare(price,pct){ return Math.round((Number(price)||0)*(pct==null?50:Number(pct))/100); }
 /* card payment fee and tax: price_thb is what the customer pays; fee_thb and tax_thb are the parts that are not ours to share */
 var PX=null;
-function loadPayExtras(){ return sb.from('app_settings').select('value').eq('key','pay_extras').maybeSingle().then(function(r){ try{ PX=r.data&&r.data.value?JSON.parse(r.data.value):null; }catch(e){ PX=null; } },function(){}); }
+var FXS=null;
+function loadPayExtras(){ return Promise.all([sb.from('app_settings').select('value').eq('key','pay_extras').maybeSingle(),sb.from('app_settings').select('value').eq('key','fx').maybeSingle()]).then(function(r){ try{ PX=r[0].data&&r[0].data.value?JSON.parse(r[0].data.value):null; }catch(e){ PX=null; } try{ FXS=r[1].data&&r[1].data.value?JSON.parse(r[1].data.value):null; }catch(e){ FXS=null; } },function(){}); }
+function fxMargin(){ var m=FXS&&FXS.margin!=null?Number(FXS.margin):3; return isNaN(m)?3:m; }
 function pxRate(k){ var d={card_pct:3,tax_pct:7}, v=PX&&PX[k]!=null?Number(PX[k]):d[k]; return isNaN(v)?d[k]:v; }
 function netPrice(p){ return Math.max(0,(Number(p&&p.price_thb)||0)-(Number(p&&p.fee_thb)||0)-(Number(p&&p.tax_thb)||0)); }
 function pxNote(p){ var f=Number(p&&p.fee_thb)||0, t=Number(p&&p.tax_thb)||0; return f||t?'incl. '+[f?'card fee '+thb(f):null,t?'tax '+thb(t):null].filter(Boolean).join(', '):''; }
@@ -6073,11 +6075,14 @@ function pxSettings(){
   return section('Card fee and tax',btn('Change',function(){
     openForm({title:'Card fee and tax',note:'When you tick Add card payment fee or Add tax on a sale, a private or a payment, these rates fill in the amount. You can still change the amount each time.',values:{card_pct:pxRate('card_pct'),tax_pct:pxRate('tax_pct')},fields:[
       {key:'card_pct',label:'Card payment fee (%)',type:'number',required:true,hint:'For example 3 for what the bank or Stripe takes.'},
-      {key:'tax_pct',label:'Tax (%)',type:'number',required:true,hint:'For example 7 for VAT.'}],
-      onSave:function(v){ if(v.card_pct<0||v.card_pct>20||v.tax_pct<0||v.tax_pct>30) return 'Check the numbers.';
+      {key:'tax_pct',label:'Tax (%)',type:'number',required:true,hint:'For example 7 for VAT.'},
+      {key:'fx_margin',label:'Booking page, extra on US dollars, pounds and euros (%)',type:'number',required:true,def:fxMargin(),hint:'Guests can pay a stay in USD, GBP or EUR. The price is our Thai baht price at today\'s rate plus this much, to cover what the change costs. Thai baht payments go to the Thai Stripe account.'}],
+      onSave:function(v){ if(v.card_pct<0||v.card_pct>20||v.tax_pct<0||v.tax_pct>30||v.fx_margin<0||v.fx_margin>10) return 'Check the numbers.';
+        var fxv=JSON.stringify(Object.assign({},FXS||{},{margin:Number(v.fx_margin)}));
+        sb.from('app_settings').update({value:fxv,updated_at:new Date().toISOString()}).eq('key','fx').select('key').then(function(r){ if(!r.error&&(!r.data||!r.data.length)) sb.from('app_settings').insert({key:'fx',value:fxv}).then(function(){}); FXS=JSON.parse(fxv); });
         var val=JSON.stringify({card_pct:Number(v.card_pct),tax_pct:Number(v.tax_pct)});
         return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','pay_extras').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'pay_extras',value:val}).then(must); }).then(function(){ PX=JSON.parse(val); schedule(); }); }});
-  },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+pxRate('card_pct')+'%, tax '+pxRate('tax_pct')+'%.'),
+  },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+pxRate('card_pct')+'%, tax '+pxRate('tax_pct')+'%. Booking page in USD, GBP and EUR: today\'s rate plus '+fxMargin()+'%.'),
     h('p',{class:'sub'},'Tick boxes on Sell a package, Book a private and Take payment add them on top of the price. The customer pays them, Accounts shows them as Card fees charged and Tax collected, and they are never part of a coach share.')));
 }
 function vSettings(){
