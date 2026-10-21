@@ -252,7 +252,7 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .cl-amt{text-align:right;font-variant-numeric:tabular-nums}
 .carttot div{display:flex;justify-content:space-between}
 .carttot .big,.rc-tot .big{font-size:20px;font-weight:700;margin-top:4px}
-.paybtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.paybtns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.paybtns .btn{white-space:normal}
 .paybtns .btn:first-child{grid-column:1/-1;min-height:48px;font-size:17px}
 .paytotal{font-size:26px;font-weight:700;margin:0}
 .paychange{font-size:20px;font-weight:700;color:var(--ok);min-height:1em;margin:0}
@@ -4471,7 +4471,7 @@ function vHours(){
 
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
 var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
-var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['staff','Staff tab'],['stripe','Stripe card link']];
+var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['bill','Bill to customer'],['staff','Staff tab'],['stripe','Stripe card link']];
 function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)'})[m]||(m||''); }
 function isBoss(){ return me&&(me.role==='manager'||me.role==='resort'); }
 function loadShop(){ ui.shopBusy=true; if(!PP) loadPP(); return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
@@ -4619,12 +4619,34 @@ function tillStripe(){
   sb.rpc('shop_sell',{p:p}).then(must).then(function(r){ clearCart(); shopRefresh(); toast('Sale #'+r.number+' is waiting for the card payment.'); stripePay('order',r.id,'Sale #'+r.number); }).catch(function(e){ toast(errText(e)); });
 }
 function payDlg(method,waitingOrder){
-  if(method==='stripe'){ if(waitingOrder) return stripePay('order',waitingOrder.id,'Sale #'+waitingOrder.number); return tillStripe(); }
-  var total=waitingOrder?waitingOrder.total:cartSub()-cartDisc();
+  var base=waitingOrder?(waitingOrder.subtotal!=null?Number(waitingOrder.subtotal)-(Number(waitingOrder.discount)||0):Number(waitingOrder.total)-(Number(waitingOrder.fee)||0)-(Number(waitingOrder.tax)||0)):cartSub()-cartDisc();
+  var total=base;
   if(!waitingOrder&&!cart().length){ toast('Add something first.'); return; }
-  var err=h('p',{class:'ferr',role:'alert',hidden:true}), extra=[], given=null, stay=null, change=h('p',{class:'paychange'});
+  var err=h('p',{class:'ferr',role:'alert',hidden:true}), extra=[], given=null, stay=null, change=h('p',{class:'paychange'}), totEl=h('p',{class:'paytotal'},'Total '+thb(total));
+  var ppHolder=null, ppNode=null, fx=null;
+  /* card fee and tax: type a percent, the amount is worked out */
+  function fxRow(key,label,pct){ var cb=h('input',{type:'checkbox',id:'px-'+key}), pc=h('input',{type:'number',id:'px-'+key+'-pct',min:'0',step:'any',inputmode:'decimal','aria-label':label+' percent',style:'width:80px'}), amt=h('input',{type:'number',id:'px-'+key+'-amt',min:'0',step:'1',inputmode:'numeric','aria-label':label+' amount in THB',style:'width:110px'});
+    pc.value=String(pct); function calc(){ amt.value=cb.checked?Math.round(base*(Number(pc.value)||0)/100):''; upd(); }
+    cb.onchange=calc; pc.oninput=function(){ cb.checked=true; calc(); }; amt.oninput=function(){ cb.checked=true; upd(); };
+    return {cb:cb,amt:amt,el:h('div',{class:'row wrap',style:'align-items:center;gap:8px;margin:6px 0'},h('label',{class:'check',for:'px-'+key},cb,h('span',null,label)),pc,h('span',null,'%'),amt,h('span',null,'THB'))}; }
+  function fees(){ return {fee:fx&&fx.fee.cb.checked?Math.max(0,Math.round(Number(fx.fee.amt.value)||0)):0,tax:fx&&fx.tax.cb.checked?Math.max(0,Math.round(Number(fx.tax.amt.value)||0)):0}; }
+  function upd(){ var f=fees(); total=base+f.fee+f.tax; totEl.textContent='Total '+thb(total)+(f.fee||f.tax?' ('+thb(base)+(f.fee?' + card fee '+thb(f.fee):'')+(f.tax?' + tax '+thb(f.tax):'')+')':''); if(given&&given.oninput) given.oninput(); if(ppHolder) ppHolder.replaceChildren(ppNode()); }
+  if(method==='card'||method==='stripe'||method==='transfer'||method==='qr'){
+    fx={fee:fxRow('fee','Add card fee',pxRate('card_pct')),tax:fxRow('tax','Add tax',pxRate('tax_pct'))};
+    extra.push(h('div',{class:'panel pad'},fx.fee.el,fx.tax.el,h('p',{class:'sub'},'Tick, or type the percent, and the amount is worked out. You can also type the amount.')));
+  }
+  if(method==='stripe'){
+    var goLink=function(){ var f=fees(), b=this; if(total<20){ err.textContent='Stripe needs at least 20 THB.'; err.hidden=false; return; } if(b) b.disabled=true;
+      var job=waitingOrder?sb.rpc('shop_order_extras',{p_order:waitingOrder.id,p_fee:f.fee,p_tax:f.tax}).then(must).then(function(){ return {id:waitingOrder.id,number:waitingOrder.number}; })
+        :sb.rpc('shop_sell',{p:{location_id:shopLoc(),method:'stripe',discount:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null,items:cartItems(),customer_id:cartCust(),fee:f.fee,tax:f.tax}}).then(must).then(function(r){ clearCart(); toast('Sale #'+r.number+' is waiting for the card payment.'); return r; });
+      job.then(function(r){ $dlg.close(); shopRefresh(); stripePay('order',r.id,'Sale #'+r.number); }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; }); };
+    shopDlg(h('div',{class:'billbox'},h('h2',null,'Stripe card link'),totEl,extra,err,
+      h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Make the card link',goLink,'primary')))));
+    return;
+  }
   if(method==='qr'){ var acc=ppFor(locName(shopLoc())||'');
-    extra.push(acc?h('div',null,ppBox(acc,total),h('p',{class:'sub'},'The customer scans this with their bank app. Check the money is in, then tap Payment received.')):h('p',{class:'sub'},'Tip: add your PromptPay QR in Settings and the exact amount shows here as a QR.')); }
+    if(acc){ ppNode=function(){ return ppBox(acc,total); }; ppHolder=h('div',null,ppNode()); }
+    extra.push(acc?h('div',null,ppHolder,h('p',{class:'sub'},'The customer scans this with their bank app. Check the money is in, then tap Payment received.')):h('p',{class:'sub'},'Tip: add your PromptPay QR in Settings and the exact amount shows here as a QR.')); }
   if(method==='cash'){
     given=h('input',{id:'pay-given',type:'number',inputmode:'numeric',placeholder:String(total)});
     given.oninput=function(){ var g=Number(given.value)||0; change.textContent=g>=total?'Change: '+thb(g-total):g?'Not enough':''; };
@@ -4638,6 +4660,15 @@ function payDlg(method,waitingOrder){
     staffSel=h('select',{id:'pay-staff'},[h('option',{value:''},'Choose who')].concat(team.map(function(x){ return h('option',{value:x.id},x.name+(ROLES[x.role]?' ('+ROLES[x.role]+')':'')); })));
     extra.push(field('pay-staff','Who is it for',staffSel),h('p',{class:'sub'},'Goes on their staff tab. A manager settles it later, in cash or from their wages.'));
   }
+  var custSel=null, custNew=null;
+  if(method==='bill'){
+    var cs=sortBy(S.customers.filter(function(c){ return !c.is_agency; }),'name'), cc=cartCust();
+    custSel=h('select',{id:'pay-cust'},[h('option',{value:''},'Choose the customer')].concat(cs.map(function(c){ return h('option',{value:c.id},c.name+(c.phone?' ('+c.phone+')':c.email?' ('+c.email+')':'')); })));
+    if(cc) custSel.value=cc;
+    custNew=h('input',{id:'pay-newcust',type:'text',placeholder:'Or type a new name'});
+    extra.push(field('pay-cust','Whose bill',custSel),field('pay-newcust','New customer',custNew,'Only if they are not in the list.'),
+      h('p',{class:'sub'},'Nothing is paid now. The sale waits under Waiting for payment, and on the customer, until they pay. Stock and the kitchen go ahead now.'));
+  }
   if(method==='room'){
     var rooms=SHOP.in_house||[];
     if(!rooms.length){ toast('Nobody is checked in to a room right now.'); return; }
@@ -4649,19 +4680,24 @@ function payDlg(method,waitingOrder){
     if(waitingOrder) p.order_id=waitingOrder.id; else { p.items=cartItems(); p.customer_id=cartCust(); }
     if(given&&given.value) p.cash_given=Number(given.value);
     if(stay) p.stay_id=stay.value;
+    var f0=fees(); if(f0.fee) p.fee=f0.fee; if(f0.tax) p.tax=f0.tax;
+    if(custSel){ if(cartCust()&&custSel.value&&custSel.value!==cartCust()){ err.textContent='This sale already has a package for '+nameOf('customers',cartCust())+'. Choose them.'; err.hidden=false; return; }
+      if(!custSel.value&&!custNew.value.trim()){ err.textContent='Choose the customer, or type a new name.'; err.hidden=false; return; } }
     if(staffSel){ if(!staffSel.value){ err.textContent='Choose who it is for.'; err.hidden=false; return; } p.staff_id=staffSel.value; }
     var b=this; if(b) b.disabled=true;
     var hadPk=!waitingOrder&&cart().some(function(l){ return l.pkg; });
-    sb.rpc('shop_sell',{p:p}).then(must).then(function(r){
+    var first=custSel&&!custSel.value?sb.from('customers').insert({name:custNew.value.trim(),tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ reload('customers'); return d.id; }):Promise.resolve(custSel?custSel.value:null);
+    first.then(function(cid){ if(cid) p.customer_id=cid; return sb.rpc('shop_sell',{p:p}); }).then(must).then(function(r){
+      if(method==='bill'){ clearCart(); $dlg.close(); toast('Sale #'+r.number+' is on '+(custSel.value?nameOf('customers',custSel.value):custNew.value.trim())+'\'s bill.'); shopRefresh(); loadShop(); if(hadPk) reload('purchases'); return; }
       var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
       var disc=waitingOrder?0:cartDisc(); if(!waitingOrder) clearCart();
       $dlg.close(); toast('Sale #'+r.number+' done.'+(r.change?' Change '+thb(r.change)+'.':''));
-      receiptDlg({loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:total+disc,discount:disc,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
+      receiptDlg({loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:base+disc,discount:disc,fee:p.fee||0,tax:p.tax||0,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
       shopRefresh(); loadShop(); if(hadPk) reload('purchases');
     }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; });
   }
-  shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),h('p',{class:'paytotal'},'Total '+thb(total)),extra,err,
-    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(method==='room'?'Charge to room':method==='staff'?'Put on their tab':'Payment received',go,'primary')))));
+  shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),totEl,extra,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(method==='room'?'Charge to room':method==='staff'?'Put on their tab':method==='bill'?'Put on their bill':'Payment received',go,'primary')))));
   if(given) setTimeout(function(){ given.focus(); },30);
 }
 function receiptNode(o){
@@ -4673,6 +4709,8 @@ function receiptNode(o){
     h('div',{class:'rc-tot'},
       o.discount?h('div',null,h('span',null,'Subtotal'),h('span',null,thb(o.subtotal))):null,
       o.discount?h('div',null,h('span',null,'Discount'),h('span',null,'-'+thb(o.discount))):null,
+      o.fee?h('div',null,h('span',null,'Card fee'),h('span',null,thb(o.fee))):null,
+      o.tax?h('div',null,h('span',null,'Tax'),h('span',null,thb(o.tax))):null,
       h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(o.total))),
       vat?h('div',null,h('span',null,'Includes VAT '+vat.rate+'%'),h('span',null,thb(Math.round(o.total*vat.rate/(100+vat.rate))))):null,
       h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
@@ -4967,17 +5005,17 @@ function vShop(){
     head,
     pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
       act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
-    waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:thb(o.total),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
+    waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
-      act:[shift?PAYS.filter(function(m){ return m[0]!=='room'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
+      act:[shift?PAYS.filter(function(m){ return m[0]!=='room'&&m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
     h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
         cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); }),
         gymTill(loc)?btn('Training packages',function(){ ui.shopCat='__pk'; ui.shopQ=''; schedule(); },pkMode?'primary small':'small'):null):null,grid),cartBox),
     section('Sales today',null,cards(today.slice(0,40).map(function(o){
-      var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip('Not paid','warn'):chip(payName(o.method),'ok');
+      var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip(o.billed?'On their bill':'Not paid','warn'):chip(payName(o.method)+(o.fee?', card fee '+thb(o.fee):''),'ok');
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
-        act:[btn('Receipt',function(){ receiptDlg({loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
+        act:[btn('Receipt',function(){ receiptDlg({loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
           o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null,
           o.status==='paid'||o.status==='room'||o.status==='waiting'?btn('Mistake',function(){ saleMistake(o); },'small'):null]}; }),'No sales yet today.'))];
 }
@@ -5551,6 +5589,14 @@ function vToday(){
   ].concat(todayWidgets(PART));
 }
 
+/* shop sales put on the customer's bill, waiting to be paid */
+function custBills(c){
+  if(!SALES&&!ui.salesAsked&&me&&['manager','front_desk','resort'].indexOf(me.role)>=0){ ui.salesAsked=true; shopRefresh().then(function(){ schedule(); }); }
+  var L=(SALES&&SALES.waiting||[]).filter(function(o){ return o.customer_id===c.id; }); if(!L.length) return null;
+  var tot=L.reduce(function(t,o){ return t+Number(o.total||0); },0);
+  return h('div',{class:'panel pad owebox'},h('div',{class:'row'},h('b',null,'Shop bill not paid: '+thb(tot)),btn('Take payment in Shop',function(){ ui.tab='shop'; ui.shopView=''; schedule(); window.scrollTo(0,0); },'primary small')),
+    h('ul',{class:'plain'},L.map(function(o){ return h('li',{class:'sub'},'#'+o.number+', '+fmtDate(ymd(new Date(o.at)))+': '+o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+', '+thb(o.total)); })));
+}
 function openCustomer(id){ ackCustomer(id); ui.tab='customers'; ui.customerId=id; schedule(); }
 var REVIEW_URL='https://muayfriend.com/#contact';
 function reviewPhone(c){ var ph=String(c&&c.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1); return ph.length>=8?ph:''; }
@@ -5629,6 +5675,7 @@ function vCustomers(){
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
       pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      custBills(c),
       customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       h('div',{class:'panel pad kv'},
         h('div',null,h('small',null,'Level'),TIERS[c.tier]||'Train'),h('div',null,h('small',null,'Pricing'),GROUPS[c.price_group||'standard']),h('div',null,h('small',null,'Email'),c.email||'Not given'),
