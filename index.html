@@ -700,7 +700,7 @@ var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
 var TIERS={train:'Train',progress:'Progress',pangea:'Pangea'};
 var GROUPS={standard:'Standard',local:'Local resident',thai:'Thai'};
-var ROLES={manager:'Manager',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping',kitchen:'Kitchen',maintenance:'Maintenance',investor:'Investor'};
+var ROLES={manager:'Manager',admin:'Admin',front_desk:'Front desk',coach:'Coach',resort:'Resort',housekeeping:'Housekeeping',kitchen:'Kitchen',maintenance:'Maintenance',investor:'Investor'};
 var PSTATUS={requested:'Requested',confirmed:'Confirmed',done:'Done',cancelled:'Cancelled'};
 var ui={tab:'today',q:'',cq:'',customerId:null,target:'',targetAuto:true,pfilter:'upcoming',coachId:'',month:ymd(new Date()).slice(0,7)};
 var $view=document.getElementById('view'), $nav=document.getElementById('nav'), $dlg=document.getElementById('dlg'), $toast=document.getElementById('toast'), $banner=document.getElementById('banner'), $who=document.getElementById('who');
@@ -859,12 +859,15 @@ function editPackage(p){ p=p||{};
       return save('packages',p.id,body); },
     onDelete:p.id?function(){ return db.doc('packages/'+p.id).delete(); }:null});
 }
-function editStaff(s){ s=s||{};
-  var sv=Object.assign({},s,{work_days:(s.work_days||[]).map(String),work_start:s.work_start?String(s.work_start).slice(0,5):'',work_end:s.work_end?String(s.work_end).slice(0,5):''});
+function editStaff(s){ s=s||{}; var own=isOwner();
+  if(!own&&(s.role==='manager'||s.role==='admin')){ toast('Only the owner can change owners and admins.'); return; }
+  var sv=Object.assign({},s,{x_areas:(s.access&&s.access.areas)||[],x_perms:(s.access&&s.access.perms)||(s.id?[]:['edit']),work_days:(s.work_days||[]).map(String),work_start:s.work_start?String(s.work_start).slice(0,5):'',work_end:s.work_end?String(s.work_end).slice(0,5):''});
   openForm({title:s.id?'Edit staff member':'New staff member',values:sv,fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
-    {key:'role',label:'Role',type:'select',def:'coach',options:[['coach','Coach'],['front_desk','Front desk'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['maintenance','Maintenance: jobs to fix, check in and out'],['investor','Investor: sees the numbers only, for the parts you tick below'],['manager','Manager']]},
+    {key:'role',onChange:function(v,set,get,o,show){ show('x_areas',own&&(v==='admin'||v==='front_desk')); show('x_perms',own&&v==='admin'); },label:'Role',type:'select',def:'coach',options:(own?[['manager','Owner: everything'],['admin','Admin: only the departments and rights you tick below']]:[]).concat([['coach','Coach'],['front_desk','Front desk: only the departments you tick below'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['maintenance','Maintenance: jobs to fix, check in and out'],['investor','Investor: sees the numbers only, for the parts you tick below']])},
+    {key:'x_areas',label:'Departments',type:'checks',hide:!(own&&(s.role==='admin'||s.role==='front_desk')),options:[['gym','Gym: training, classes, privates, gym shop'],['spa','Spa'],['resort','Pangea Resort: rooms, stays, housekeeping'],['cafe','Pangea Cafe']],hint:'What they look after. Tick none for all departments.'},
+    {key:'x_perms',label:'What they can do',type:'checks',hide:!(own&&s.role==='admin'),options:[['edit','Change things (without this they can only look)'],['refunds','Refunds, discounts and fixing mistakes'],['money','Accounts, receipts, invoices and money reports'],['staff','Staff, hours, pay and commission'],['settings','Settings, packages, prices and website'],['marketing','Newsletters, social media and contacts']]},
     {key:'investor_zones',label:'Investor can see',type:'checks',options:[['gym','Gym'],['spa','Spa'],['cafe','Cafe'],['resort','Resort']],hint:'Only for investors. They see totals and numbers, never customer names.'},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches.'},
     {key:'phone',label:'Phone'},
@@ -873,7 +876,8 @@ function editStaff(s){ s=s||{};
     {key:'work_end',label:'Finishes at',type:'time'},
     {key:'active',label:'Working here now',type:'checkbox',def:true}],
     onSave:function(v){ if(v.work_end&&!v.work_start) return 'Add the start time too.'; if(v.work_start&&v.work_end&&v.work_end<=v.work_start) return 'The finish time must be after the start time.';
-      var b=Object.assign({},s,v); b.work_days=(v.work_days||[]).length?v.work_days.map(Number):null; b.work_start=v.work_start||null; b.work_end=v.work_end||null; delete b.work_days_s; return save('staff',s.id,b); },
+      var b=Object.assign({},s,v); b.work_days=(v.work_days||[]).length?v.work_days.map(Number):null; b.work_start=v.work_start||null; b.work_end=v.work_end||null; delete b.work_days_s;
+      if(own){ b.access=v.role==='admin'||v.role==='front_desk'?{areas:v.x_areas||[],perms:v.role==='admin'?(v.x_perms||[]):[]}:null; if(v.role==='admin'&&!(v.x_perms||[]).length&&!confirm('No rights ticked: they can only look. Save?')) return 'Tick what they can do.'; } delete b.x_areas; delete b.x_perms; return save('staff',s.id,b); },
     onDelete:s.id?function(){ return db.doc('staff/'+s.id).delete(); }:null});
 }
 var LEADSRC=['Website','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
@@ -4474,9 +4478,14 @@ function vHours(){
 var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
 var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['bill','Bill to customer'],['staff','Staff tab'],['stripe','Stripe card link']];
 function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)'})[m]||(m||''); }
-function isBoss(){ return me&&(me.role==='manager'||me.role==='resort'); }
+function isBoss(){ return me&&((me.role==='manager'&&can('refunds'))||me.role==='resort'); }
+/* access: the owner has everything; an admin has the rights ticked; departments limit admins and front desk */
+function can(p){ return !!me&&(!me.admin||((me.access&&me.access.perms)||[]).indexOf(p)>=0); }
+function isOwner(){ return !!me&&me.role==='manager'&&!me.admin; }
+function inArea(a){ var A=me&&me.access&&me.access.areas||[]; return !A.length||A.indexOf(a)>=0; }
+function locAllowed(l){ return /cafe/i.test(l.name||'')?(inArea('cafe')||inArea('resort')):(inArea('gym')||inArea('spa')); }
 function loadShop(){ ui.shopBusy=true; if(!PP) loadPP(); return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
-  ui.shopBusy=false; if(r[0].error) throw r[0].error; SHOP=r[0].data; SALES=r[1].error?null:r[1].data; APPROVALS=r[2].error?[]:(r[2].data||[]); ui.shopErr=null; schedule(); })
+  ui.shopBusy=false; if(r[0].error) throw r[0].error; SHOP=r[0].data; if(SHOP&&SHOP.locations) SHOP.locations=SHOP.locations.filter(locAllowed); SALES=r[1].error?null:r[1].data; APPROVALS=r[2].error?[]:(r[2].data||[]); ui.shopErr=null; schedule(); })
   .catch(function(e){ ui.shopBusy=false; ui.shopErr=errText(e); schedule(); }); }
 function shopRefresh(){ return Promise.all([sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
   var changed=false; if(!r[0].error&&JSON.stringify(r[0].data)!==JSON.stringify(SALES)){ SALES=r[0].data; changed=true; }
@@ -5470,7 +5479,8 @@ function todayOrder(lay){ lay=lay||TLAY||{}; var ids=TW.map(function(w){ return 
   ids.forEach(function(id){ if(o.indexOf(id)<0) o.push(id); }); return o; }
 function twEmpty(x){ if(x==null||x===false) return true; if(Array.isArray(x)) return x.every(twEmpty); return false; }
 function todayWidgets(P){ var hid=(TLAY&&TLAY.hidden)||[];
-  return todayOrder().filter(function(id){ return hid.indexOf(id)<0&&P[id]; }).map(function(id){ var w=twOf(id), b=P[id]();
+  var need={checkin:'gym',checkedin:'gym',privates:'gym',renewals:'gym',housekeeping:'resort'};
+  return todayOrder().filter(function(id){ return hid.indexOf(id)<0&&P[id]&&(!need[id]||inArea(need[id])); }).map(function(id){ var w=twOf(id), b=P[id]();
     return twEmpty(b)?null:h('div',{class:'wid wc-'+w[2],'data-w':id},['staff','urgent','notices','housekeeping'].indexOf(id)>=0?h('div',{class:'widlab'},w[1]):null,b); }); }
 function todaySales(day){
   if(!SALES&&!ui.salesAsked&&me&&(me.role==='manager'||me.role==='front_desk')){ ui.salesAsked=true; shopRefresh(); }
@@ -5503,9 +5513,10 @@ function todayArrange(){
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
   var entries=entriesOf(day), todays=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&!classOff(c,day);}),'time');
-  var pToday=sortBy(S.privates.filter(function(p){return p.date===day&&p.status!=='cancelled'&&p.status!=='requested';}),'time');
-  var waiting=sortBy(S.privates.filter(function(p){return p.status==='requested';}),'date','time');
-  var moves=sortBy(S.privates.filter(function(p){return p.reschedule&&p.status!=='cancelled';}),'date','time');
+  var gymOn=inArea('gym'), PV=gymOn?S.privates:[];
+  var pToday=sortBy(PV.filter(function(p){return p.date===day&&p.status!=='cancelled'&&p.status!=='requested';}),'time');
+  var waiting=sortBy(PV.filter(function(p){return p.status==='requested';}),'date','time');
+  var moves=sortBy(PV.filter(function(p){return p.reschedule&&p.status!=='cancelled';}),'date','time');
   var orders=sortBy(S.purchases.filter(function(p){ var hs=p.for_stay&&byId('stays',p.for_stay); return unpaidOrder(p)&&!(hs&&hs.hold_until)&&!p.cancelled; }),'purchased_on');
   var q=ui.q.trim().toLowerCase(), hits=[];
   if(q) hits=sortBy(S.customers.filter(function(c){ return !c.is_agency&&[c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
@@ -5585,8 +5596,8 @@ function vToday(){
     housekeeping:function(){ return [dashHk()]; }
   };
   return [
-    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'?btn('Arrange',todayArrange,'small'):null,btn('Desk mode',startDeskMode))),
-    h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null)
+    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'&&can('settings')?btn('Arrange',todayArrange,'small'):null,gymOn?btn('Desk mode',startDeskMode):null)),
+    h('div',{class:'stats'},gymOn?h('span',null,h('b',null,entries.length),'checked in'):null,gymOn?h('span',null,h('b',null,pToday.length),'privates today'):null,h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null)
   ].concat(todayWidgets(PART));
 }
 
@@ -5818,7 +5829,9 @@ function vStaff(){
   return [pageHead('Staff',null,btn('Add staff member',function(){ editStaff(); },'primary')),
     table([
       {label:'Name',cell:function(s){return [linkBtn(s.name,function(){ editStaff(s); }),exChip(s)];}},
-      {label:'Role',cell:function(s){return ROLES[s.role]||s.role;}},
+      {label:'Role',cell:function(s){ var A=s.access&&s.access.areas||[], P=s.access&&s.access.perms||[], AN={gym:'Gym',spa:'Spa',resort:'Resort',cafe:'Cafe'}, PN={edit:'change',refunds:'refunds',money:'money',staff:'staff',settings:'settings',marketing:'marketing'};
+        var extra=s.role==='admin'||s.role==='front_desk'?(A.length?A.map(function(x){ return AN[x]||x; }).join(', '):'All departments')+(s.role==='admin'?'. '+(P.length?(P.indexOf('edit')<0?'View only, ':'')+P.filter(function(x){ return x!=='edit'; }).map(function(x){ return PN[x]; }).join(', '):'View only'):''):'';
+        return h('span',null,s.role==='manager'?'Owner':ROLES[s.role]||s.role,extra?h('div',{class:'sub'},extra):null); }},
       {label:'Share of privates',num:true,cell:function(s){return s.role==='coach'?(s.commission_pct==null?50:s.commission_pct)+'%':'';}},
       {label:'Phone',cell:function(s){return s.phone||'';}},
       {label:'Working now',cell:function(s){return s.active===false?chip('No'):chip('Yes','ok');}},
@@ -6030,7 +6043,7 @@ function icalLine(){
 }
 /* ---------- backups: download everything as one file, and see the nightly copies ---------- */
 var BK=null;
-var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,work_days,work_start,work_end';
+var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,work_days,work_start,work_end,access';
 function cols(t){ return t==='staff'?STAFF_COLS:'*'; }
 var BACKUP_TABLES=['staff','customers','packages','purchases','classes','checkins','booking_sources','privates','holidays','rooms','stays','room_charges','minibar_items','room_cleanings','room_issues','app_settings'];
 function downloadBackup(){
@@ -6161,7 +6174,7 @@ var SB_URL='https://jijnshwduhgegacfvpkh.supabase.co', SB_KEY='sb_publishable_Y-
 var sb=null, me=null, currentUser=null, lastLoad=0;
 var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit']},
-  staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end']},
+  staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
   classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note']},
@@ -7272,7 +7285,26 @@ function vKiosk(){
     ui.kintent&&!q?h('p',{class:'sub'},'Now type your name above and tap it.'):null,
     !q?promoBoard():null,foot];
 }
-function staffTabs(row){ var keep=row.role==='resort'?['stays','housekeeping','actions','customers','shop','kitchen']:['today','shop','kitchen','stays','actions','customers','timetable','privates','fights'].concat(row.role==='coach'?['coaching']:[]); return row.role==='manager'?ALLTABS:ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
+function staffTabs(row){
+  if(row.role==='manager') return ALLTABS;
+  var A=(row.access&&row.access.areas)||[], P=(row.access&&row.access.perms)||[];
+  function has(a){ return !A.length||A.indexOf(a)>=0; } function cp(x){ return P.indexOf(x)>=0; }
+  var keep;
+  if(row.role==='resort') keep=['stays','housekeeping','actions','customers','shop','kitchen'];
+  else { keep=['today','actions','customers'];
+    if(has('gym')||has('spa')||has('cafe')||has('resort')) keep.push('shop');
+    if(has('cafe')||has('resort')) keep.push('kitchen');
+    if(has('resort')) keep.push('stays');
+    if(has('gym')) keep.push('timetable','privates','fights');
+    if(row.role==='coach') keep.push('coaching');
+    if(row.role==='admin'){
+      if(has('resort')) keep.push('housekeeping');
+      if(has('gym')) keep.push('coach','coaching','courses');
+      if(cp('money')) keep.push('accounts','receipts');
+      if(cp('staff')) keep.push('staff','hours'); if(cp('staff')&&has('gym')) keep.push('commission');
+      if(cp('settings')) keep.push('settings','packages','webpages');
+      if(cp('marketing')) keep.push('contacts','email','social','webpages'); } }
+  return ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
@@ -7486,7 +7518,8 @@ function enter(user){
     if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
     if(row.role==='maintenance'){ document.getElementById('mode').textContent='Maintenance'; me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'jobs'; setMtLang(mtLang()); return loadActions().then(function(){ allReady=true; schedule(); }); }
     if(row.role==='coach'){ me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
-    me=row; db=makeDb();
+    me=row.role==='admin'?Object.assign({},row,{role:'manager',admin:true}):row; db=makeDb();
+    if(me.admin&&!can('edit')) $who.firstChild.appendChild(h('span',{class:'chip warn',style:'margin-left:6px'},'View only'));
     TABS=staffTabs(row);
     if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
     if(!TABS.some(function(t){return t[0]===ui.tab;})&&!(ui.tab==='chat'&&ui.openChatId)) ui.tab=TABS[0][0];
