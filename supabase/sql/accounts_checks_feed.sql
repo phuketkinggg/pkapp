@@ -25,7 +25,7 @@ language sql stable security definer set search_path = '' as $f$
          'Paid the same amount twice on the same day. Fine if they bought two things, check if not.'
   from p p1 join p p2 on p2.id <> p1.id and p2.customer_id = p1.customer_id and p2.amount_thb = p1.amount_thb and p2.day = p1.day
     and coalesce(p2.purchase_id::text, p2.stay_id::text, p2.private_id::text, '') = coalesce(p1.purchase_id::text, p1.stay_id::text, p1.private_id::text, '')
-    and (p2.created_at, p2.id) < (p1.created_at, p1.id)
+    and p2.id < p1.id
   union all
   select 'todo', 'Receipt with no amount', r.day, r.business, coalesce(r.supplier,'Receipt'), null, r.id, 'Not counted until it has an amount. Open Sort receipts.'
   from r where r.amount_thb is null
