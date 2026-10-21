@@ -1,0 +1,110 @@
+# Builds the Android apps in the cloud.
+# Run it from GitHub: Actions, "Android apps", Run workflow. Or push a change under native/.
+# Gives two files per app (Actions, the run, Artifacts):
+#   .aab  for Google Play (upload it in Play Console)
+#   .apk  to install straight on an Android phone for testing
+# Needs repository secrets ANDROID_KEYSTORE_B64 and ANDROID_KEYSTORE_PASSWORD (the upload key, alias "upload").
+# Without them it still makes a test .apk (signed with a throwaway key), but no Play file.
+# Apps built: the folders listed in .github/android-apps.txt (one per line). Each gym's app is its own folder.
+name: Android apps
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Which app (folder name), or all
+        required: true
+        default: all
+  push:
+    branches: [main]
+    paths: ['native/**', '.github/workflows/android.yml']
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.l.outputs.apps }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: l
+        run: |
+          want="${{ github.event.inputs.app || 'all' }}"
+          apps=$(grep -v '^\s*#' .github/android-apps.txt | sed '/^\s*$/d' | while read a; do if [ "$want" = all ] || [ "$want" = "$a" ]; then echo "$a"; fi; done | jq -R . | jq -sc .)
+          echo "apps=$apps" >> $GITHUB_OUTPUT
+          echo "Building: $apps"
+  build:
+    needs: list
+    if: needs.list.outputs.apps != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.list.outputs.apps) }}
+    env:
+      APP: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - name: Make the Android project
+        working-directory: native
+        run: |
+          set -eo pipefail
+          cp apps/$APP/capacitor.config.json capacitor.config.json
+          rm -rf www && cp -R apps/$APP/www www
+          npm install --no-audit --no-fund
+          npx cap add android
+          mkdir -p assets
+          cp apps/$APP/icon.png assets/icon.png
+          cp apps/$APP/icon.png assets/icon-only.png
+          cp apps/$APP/splash.png assets/splash.png
+          cp apps/$APP/splash.png assets/splash-dark.png
+          npx capacitor-assets generate --android
+          npx cap sync android
+          M=android/app/src/main/AndroidManifest.xml
+          for perm in CAMERA RECORD_AUDIO ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION POST_NOTIFICATIONS; do
+            grep -q "android.permission.$perm\"" $M || sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#<uses-permission android:name=\"android.permission.INTERNET\" />\n    <uses-permission android:name=\"android.permission.$perm\" />#" $M
+          done
+          grep -c uses-permission $M
+          VC=$(( ${{ github.run_number }} + 100 ))
+          sed -i -E "s/versionCode [0-9]+/versionCode $VC/; s/versionName \"[^\"]+\"/versionName \"1.0.$VC\"/" android/app/build.gradle
+          grep -E "versionCode|versionName|applicationId" android/app/build.gradle
+      - name: Signing key
+        id: key
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ] && [ -n "$KS_PW" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            echo "pw=$KS_PW" >> $GITHUB_OUTPUT; echo "play=1" >> $GITHUB_OUTPUT
+          else
+            echo "::warning title=key::No upload key in the secrets yet. Making a test APK only, signed with a throwaway key."
+            PW=throwaway$RANDOM$RANDOM
+            keytool -genkeypair -keystore "$RUNNER_TEMP/upload.jks" -alias upload -keyalg RSA -keysize 2048 -validity 365 -storepass $PW -keypass $PW -dname "CN=Test" >/dev/null
+            echo "pw=$PW" >> $GITHUB_OUTPUT; echo "play=0" >> $GITHUB_OUTPUT
+          fi
+      - name: Build
+        working-directory: native/android
+        run: |
+          set -eo pipefail
+          SIGN="-Pandroid.injected.signing.store.file=$RUNNER_TEMP/upload.jks -Pandroid.injected.signing.store.password=${{ steps.key.outputs.pw }} -Pandroid.injected.signing.key.alias=upload -Pandroid.injected.signing.key.password=${{ steps.key.outputs.pw }}"
+          T="assembleRelease"; [ "${{ steps.key.outputs.play }}" = 1 ] && T="bundleRelease assembleRelease"
+          ./gradlew --no-daemon $T $SIGN > "$RUNNER_TEMP/gradle.log" 2>&1 || { grep -E "error|Error|FAILED|What went wrong" -A3 "$RUNNER_TEMP/gradle.log" | tail -n 40 | while IFS= read -r l; do echo "::error title=gradle::$l"; done; exit 1; }
+          mkdir -p "$RUNNER_TEMP/out"
+          cp app/build/outputs/apk/release/*.apk "$RUNNER_TEMP/out/$APP.apk"
+          [ -d app/build/outputs/bundle/release ] && cp app/build/outputs/bundle/release/*.aab "$RUNNER_TEMP/out/$APP.aab" || true
+          ls -la "$RUNNER_TEMP/out"
+          echo "::notice title=$APP::Built $(ls $RUNNER_TEMP/out | tr '\n' ' ')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-${{ matrix.app }}
+          path: ${{ runner.temp }}/out/
+          retention-days: 30
+      - name: Clean up the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"

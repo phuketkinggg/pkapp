@@ -1,0 +1,3 @@
+# Android apps to build (folders in native/apps). Muay Friend gyms each get their own app named after the gym:
+# make one with: python3 tools/gym_app.py <gym id from muayfriend/gyms.json>
+phuketking
