@@ -302,11 +302,12 @@ function summary(){
   (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name),el('span',null,thb(pr)))); });
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); });
+  var pct=Number(INFO.card_pct)||0, fee=Math.round(tot*pct/100); if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%)'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,'You pay by card'),el('b',null,thb(tot+fee)))); amts.push(fee); }
   var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
   $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';
   $('chosen').innerHTML='';
   $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines)));
-  $('pay').textContent='Pay '+(fc||thb(tot))+' by card'; pick.total=tot; pick.label=fc||thb(tot);
+  $('pay').textContent='Pay '+(fc||thb(tot+fee))+' by card'; pick.total=tot; pick.label=fc||thb(tot+fee);
 }
 function choose(rid){
   var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r||r.state!=='free') return;

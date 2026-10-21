@@ -33,10 +33,16 @@ Deno.serve(async (req) => {
   if (!md.kind || !md.id || md.kind === "test") return new Response("no app payment");
   // paid in another currency (US dollars, pounds, euros): the app keeps the THB value we priced it at
   const cur = String(s.currency ?? "thb").toLowerCase();
-  const amount = cur === "thb" ? Math.round(Number(s.amount_total ?? 0) / 100) : Math.round(Number(md.amount ?? 0));
+  // the card fee (its own line on the Stripe page) is recorded on its own, as a card fee
+  const fee = Math.max(0, Math.round(Number(md.fee ?? 0)) || 0);
+  const amount = cur === "thb" ? Math.round(Number(s.amount_total ?? 0) / 100) - fee : Math.round(Number(md.amount ?? 0));
   if (!(amount > 0)) return new Response("no amount");
   const { data, error } = await admin.rpc("stripe_record", { p_session: s.id, p_kind: md.kind, p_id: md.id, p_amount: amount, p_method: "stripe" });
   if (error) return new Response(`could not record: ${error.message}`, { status: 500 });
+  if (fee > 0) {
+    const { error: fe } = await admin.rpc("stripe_fee_record", { p_session: s.id, p_kind: md.kind, p_id: md.id, p_fee: fee });
+    if (fe) return new Response(`could not record the card fee: ${fe.message}`, { status: 500 });
+  }
   if (cur !== "thb") {
     const paid = `${cur.toUpperCase()} ${(Number(s.amount_total ?? 0) / 100).toFixed(2)}`;
     const { data: ps } = await admin.from("payments").select("id, note").like("stripe_session", `${s.id}%`);

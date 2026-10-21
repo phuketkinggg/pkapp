@@ -45,7 +45,7 @@ iframe{display:block;width:100%;border:0;min-height:1100px;background:#fff}
     frame.srcdoc=INVDOC.html(inv,D.template,{mode:mode,payUrl:location.origin+location.pathname+'?t='+t,promptpay:D.promptpay});
     frame.onload=function(){ try{ frame.style.height=(frame.contentDocument.body.scrollHeight+40)+'px'; }catch(e){} };
     acts.innerHTML='';
-    var payLabel=(Number(inv.deposit)>0&&!depPaid?'Pay the deposit by card, THB ':depPaid?'Pay the balance by card, THB ':'Pay by card, THB ')+due.toLocaleString('en-US');
+    var payLabel=(Number(inv.deposit)>0&&!depPaid?'Pay the deposit by card, THB ':depPaid?'Pay the balance by card, THB ':'Pay by card, THB ')+due.toLocaleString('en-US')+' + card fee';
     if(!paid&&inv.pay_card&&due>0) acts.appendChild(btn(payLabel,function(){ var b=this; b.disabled=true; b.textContent='Opening the payment page...';
       call({mode:'pay',t:t,back:location.origin+location.pathname}).then(function(d){ location.href=d.url; },function(e){ say(e.message,true); b.disabled=false; b.textContent='Pay by card'; }); },'primary'));
     if(mode!=='invoice') acts.appendChild(btn('Show the invoice',function(){ mode='invoice'; draw(); }));

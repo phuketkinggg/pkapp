@@ -1309,10 +1309,11 @@ function ppSettings(){
 var stripeBusy=false;
 function stripePay(kind,id,label){
   if(stripeBusy) return; stripeBusy=true; toast('Opening the card payment page.');
-  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:location.origin+location.pathname}}).then(function(res){
+  var kiosk=document.body.classList.contains('kiosk');
+  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:location.origin+location.pathname,kiosk:kiosk}}).then(function(res){
     stripeBusy=false;
     var d=res.data||{}; if(res.error||d.error||!d.url){ toast(d.error||'Card payment could not start. Try again.'); return; }
-    if(me&&me.role!=='customer'&&!CU) return stripeLinkDlg(d.url,d.amount,label);
+    if(me&&me.role!=='customer'&&!CU) return stripeLinkDlg(d.url,d.total||d.amount,label+(d.fee?', includes card fee '+thb(d.fee):''));
     location.href=d.url;
   },function(){ stripeBusy=false; toast('Card payment could not start. Check the connection.'); });
 }
@@ -4639,11 +4640,12 @@ function payDlg(method,waitingOrder){
   function fxRow(key,label,pct){ var cb=h('input',{type:'checkbox',id:'px-'+key}), pc=h('input',{type:'number',id:'px-'+key+'-pct',min:'0',step:'any',inputmode:'decimal','aria-label':label+' percent',style:'width:80px'}), amt=h('input',{type:'number',id:'px-'+key+'-amt',min:'0',step:'1',inputmode:'numeric','aria-label':label+' amount in THB',style:'width:110px'});
     pc.value=String(pct); function calc(){ amt.value=cb.checked?Math.round(base*(Number(pc.value)||0)/100):''; upd(); }
     cb.onchange=calc; pc.oninput=function(){ cb.checked=true; calc(); }; amt.oninput=function(){ cb.checked=true; upd(); };
-    return {cb:cb,amt:amt,el:h('div',{class:'row wrap',style:'align-items:center;gap:8px;margin:6px 0'},h('label',{class:'check',for:'px-'+key},cb,h('span',null,label)),pc,h('span',null,'%'),amt,h('span',null,'THB'))}; }
+    return {cb:cb,amt:amt,calc:calc,el:h('div',{class:'row wrap',style:'align-items:center;gap:8px;margin:6px 0'},h('label',{class:'check',for:'px-'+key},cb,h('span',null,label)),pc,h('span',null,'%'),amt,h('span',null,'THB'))}; }
   function fees(){ return {fee:fx&&fx.fee.cb.checked?Math.max(0,Math.round(Number(fx.fee.amt.value)||0)):0,tax:fx&&fx.tax.cb.checked?Math.max(0,Math.round(Number(fx.tax.amt.value)||0)):0}; }
   function upd(){ var f=fees(); total=base+f.fee+f.tax; totEl.textContent='Total '+thb(total)+(f.fee||f.tax?' ('+thb(base)+(f.fee?' + card fee '+thb(f.fee):'')+(f.tax?' + tax '+thb(f.tax):'')+')':''); if(given&&given.oninput) given.oninput(); if(ppHolder) ppHolder.replaceChildren(ppNode()); }
   if(method==='card'||method==='stripe'||method==='transfer'||method==='qr'){
     fx={fee:fxRow('fee','Add card fee',pxRate('card_pct')),tax:fxRow('tax','Add tax',pxRate('tax_pct'))};
+    if(method==='card'||method==='stripe'){ fx.fee.cb.checked=true; fx.fee.calc(); }
     extra.push(h('div',{class:'panel pad'},fx.fee.el,fx.tax.el,h('p',{class:'sub'},'Tick, or type the percent, and the amount is worked out. You can also type the amount.')));
   }
   if(method==='stripe'){
@@ -5083,7 +5085,7 @@ function vCFood(){
   }
   return [pageHead('Food','Order from the gym cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
     cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
@@ -6540,7 +6542,7 @@ function pkgCard(p){
 }
 function orderCard(p){
   return {when:p.package_name,right:thb(p.price_thb),note:'Pay by card now, or at the front desk. It is ready to use as soon as it is paid.',
-    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
+    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
 }
 function editMe(){
   openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone,news:CU.me.marketing_ok!==false},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'},{key:'news',label:'Send me the Muay Fight Gym newsletter by email',type:'checkbox'}],
@@ -6550,7 +6552,7 @@ function cuStay(){
   var st=CU.stay, lines=st.charges||[];
   var head={when:st.room,right:chip(st.status==='in'?'Staying now':'Booked',st.status==='in'?'ok':null),note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)};
   var items=[head].concat(lines.map(function(c){ return {when:c.what,right:thb(c.amount),note:fmtDate(c.day)}; }));
-  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card',function(){ stripePay('stay',st.id); },'small'):null]:null});
+  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('stay',st.id); },'small'):null]:null});
   return section('Your stay',null,cards(items,''));
 }
 /* the guest's room cleaning: what is planned today, and asking for an extra clean, no clean, towels or something else */
@@ -6659,7 +6661,7 @@ function vCHome(){
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
   return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day),window.pkCanInstall&&window.pkCanInstall()&&!PV?btn('Install app',function(){ window.pkInstall(); },'small'):null),
     readyCard(),
-    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card',function(){ stripePay('customer',null); },'small')):null,
+    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here. Card payments have a '+pxRate('card_pct')+'% card fee.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('customer',null); },'small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
     cuHk(),
@@ -7186,7 +7188,7 @@ function kPrivate(c){
   function coachesFor(d){ return allCh.filter(function(x){ return !S.holidays.some(function(hd){ return hd.staff_id===x.id&&hd.status==='approved'&&hd.from<=d&&d<=hd.to; }); }); }
   function paysFor(d){ var pk=byId('purchases',(packOpts(c.id,{date:d}).slice(1).filter(function(o){ var k=byId('purchases',o[0]); return !k.expires_on||k.expires_on>=d; })[0]||[])[0]), st=(S.stays||[]).filter(function(x){ return x.customer_id===c.id&&stayOn(x,d)&&!x.settled; })[0];
     var o=[]; if(pk) o.push(['pack','From my pack ('+(pk.class_limit-packUsed(pk))+' sessions left)']);
-    if(price!=null){ o.push(['card','Pay now by card, '+thb(price)],['qr','Pay now by PromptPay, '+thb(price)]); if(st) o.push(['room','On my room bill, '+thb(price)]); o.push(['desk','Pay at the front desk, '+thb(price)]); }
+    if(price!=null){ o.push(['card','Pay now by card, '+thb(price)+' + '+thb(Math.round(price*pxRate('card_pct')/100))+' card fee'],['qr','Pay now by PromptPay, '+thb(price)]); if(st) o.push(['room','On my room bill, '+thb(price)]); o.push(['desk','Pay at the front desk, '+thb(price)]); }
     return {opts:o,pack:pk}; }
   var d0=days[0][0]; if(!timesFor(d0).length) d0=days[1][0];
   var p0=paysFor(d0), c0=coachesFor(d0);
@@ -7217,7 +7219,7 @@ function kBuy(c){
   var day=ymd(new Date()), group=c.price_group||'standard', st=kStay(c,day);
   var list=sortBy(S.packages.filter(function(p){ return p.active!==false&&canBuy(p,group)&&!tiersFor(p,group)&&Number(priceFor(p,group))>0&&!isMealOnly(p)&&(p.covers||[]).length&&(p.covers||[]).indexOf(MEAL)<0; }),'name');
   if(!list.length){ ui.kerr='Packages can not be bought here yet. See the front desk.'; schedule(); return; }
-  var pays=[['card','Card (scan a code with your phone)'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk','Cash or card at the front desk']]);
+  var pays=[['card','Card (scan a code with your phone), +'+pxRate('card_pct')+'% card fee'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk','Cash or card at the front desk']]);
   kIdle(120000);
   openForm({title:'Buy a package',note:c.name+(group!=='standard'?', '+GROUPS[group]+' prices':'')+'.',saveLabel:'Buy',values:{package_id:list[0].id,pay:'card'},fields:[
     {key:'package_id',label:'Package',type:'select',options:list.map(function(p){ return [p.id,p.name+', '+thb(priceFor(p,group))]; })},

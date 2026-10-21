@@ -10,6 +10,12 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
+
+// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3%), shown as its own line on the Stripe page
+async function cardPct(): Promise<number> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
+  try { const v = Number(JSON.parse(data?.value ?? "{}").card_pct); return Number.isFinite(v) && v >= 0 && v <= 20 ? v : 3; } catch { return 3; }
+}
 const keyFor = (cur: string) => (cur === "thb" ? KEY_TH || KEY_MAIN : KEY_MAIN);
 const CURS = ["thb", "usd", "gbp", "eur"];
 // exchange rates: how much of each currency for 1 THB, refreshed every 12 hours, plus a small margin (app_settings fx.margin, in %)
@@ -153,8 +159,10 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   });
   p.set("payment_method_types[0]", "card");
   p.set("customer_email", email);
+  const pct = await cardPct(), fee = Math.round(amount * pct / 100);
+  if (fee > 0) { const i = lines.length; p.set(`line_items[${i}][quantity]`, "1"); p.set(`line_items[${i}][price_data][currency]`, cur); p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(fee * rate * 100))); p.set(`line_items[${i}][price_data][product_data][name]`, `Card fee (${pct}%)`); }
   // amount is always the THB value; the app records the stay in THB whatever currency was charged
-  for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount), currency: cur, amount_cur: (lines.reduce((t, l) => t + Math.round(l.amount * rate * 100), 0) / 100).toFixed(2) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
+  for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount), currency: cur, fee: String(fee), amount_cur: ((lines.reduce((t, l) => t + Math.round(l.amount * rate * 100), 0) + (fee > 0 ? Math.round(fee * rate * 100) : 0)) / 100).toFixed(2) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST", headers: { Authorization: `Bearer ${keyFor(cur)}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p,
   });
@@ -180,6 +188,7 @@ Deno.serve(async (req) => {
         extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
         fx: await fx(),
+        card_pct: await cardPct(),
       });
     }
     if (body.mode === "quote") {

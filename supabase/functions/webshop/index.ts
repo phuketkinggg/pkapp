@@ -9,6 +9,12 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
+
+// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3%), shown as its own line on the Stripe page
+async function cardPct(): Promise<number> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
+  try { const v = Number(JSON.parse(data?.value ?? "{}").card_pct); return Number.isFinite(v) && v >= 0 && v <= 20 ? v : 3; } catch { return 3; }
+}
 const PAGE = "https://phuketkinggg.github.io/pkapp/pk/shop.html";
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +33,8 @@ function backUrl(u: unknown): string {
   return PAGE;
 }
 async function stripeSession(lines: { name: string; qty: number; price: number }[], amount: number, orderId: string, email: string, back: string) {
+  const pct = await cardPct(), fee = Math.round(amount * pct / 100);
+  if (fee > 0) lines = lines.concat([{ name: `Card fee (${pct}%)`, qty: 1, price: fee }]);
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1&ref=" + orderId);
@@ -40,7 +48,7 @@ async function stripeSession(lines: { name: string; qty: number; price: number }
   });
   p.set("payment_method_types[0]", "card");
   p.set("customer_email", email);
-  for (const [k, v] of Object.entries({ kind: "order", id: orderId, amount: String(amount) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
+  for (const [k, v] of Object.entries({ kind: "order", id: orderId, amount: String(amount), fee: String(fee) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p,
   });

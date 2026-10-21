@@ -8,6 +8,12 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
+
+// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3%), shown as its own line on the Stripe page
+async function cardPct(): Promise<number> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
+  try { const v = Number(JSON.parse(data?.value ?? "{}").card_pct); return Number.isFinite(v) && v >= 0 && v <= 20 ? v : 3; } catch { return 3; }
+}
 const PAGE = "https://app.phuketking.com/invoice.html";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
@@ -47,9 +53,11 @@ Deno.serve(async (req) => {
     p.set("line_items[0][price_data][currency]", "thb");
     p.set("line_items[0][price_data][unit_amount]", String(Math.round(amount * 100)));
     p.set("line_items[0][price_data][product_data][name]", `${biz}, invoice ${no}${part ? " " + part : ""}`.slice(0, 120));
+    const pct = await cardPct(), fee = Math.round(amount * pct / 100);
+    if (fee > 0) { p.set("line_items[1][quantity]", "1"); p.set("line_items[1][price_data][currency]", "thb"); p.set("line_items[1][price_data][unit_amount]", String(fee * 100)); p.set("line_items[1][price_data][product_data][name]", `Card fee (${pct}%)`); }
     p.set("payment_method_types[0]", "card");
     if (inv.to_email) p.set("customer_email", inv.to_email);
-    for (const [k, v] of Object.entries({ kind: "invoice", id: inv.id, amount: String(amount) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
+    for (const [k, v] of Object.entries({ kind: "invoice", id: inv.id, amount: String(amount), fee: String(fee) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
     const r = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p });
     const j = await r.json();
     if (!r.ok) return json({ error: "Stripe: " + (j?.error?.message ?? r.status) });

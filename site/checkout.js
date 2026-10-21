@@ -18,7 +18,7 @@ var html='<dialog class="basket" id="cbuy" aria-labelledby="cbuyTitle"><div clas
   '<form id="cbuyForm" novalidate><label>Full name<input id="cb-name" autocomplete="name" required maxlength="80"></label>'+
   '<label>Email<input id="cb-email" type="email" autocomplete="email" required maxlength="120"></label>'+
   '<label>Phone or WhatsApp<input id="cb-phone" type="tel" autocomplete="tel" maxlength="30"></label>'+
-  '<fieldset class="paypick"><legend>How do you want to pay?</legend><label><input type="radio" name="cbpay" value="card" checked> Card (Visa, Mastercard and more), on the secure Stripe page</label>'+
+  '<fieldset class="paypick"><legend>How do you want to pay?</legend><label><input type="radio" name="cbpay" value="card" checked> Card (Visa, Mastercard and more), on the secure Stripe page. A 3% card fee is added.</label>'+
   '<label><input type="radio" name="cbpay" value="pp"> PromptPay QR from any Thai bank app</label></fieldset>'+
   '<p class="sub">Use this email to sign in to the Phuket King app: the course opens there in the Learn tab. We never see your card number.</p>'+
   '<p class="err" id="cberr" role="alert" hidden></p><button class="btn red" type="submit" id="cbPay">Pay</button></form></dialog>'+
