@@ -78,7 +78,7 @@ begin
   if v_id is null then
     lock table public.invoices in share row exclusive mode;
     select coalesce(max(number), 0) + 1 into n from public.invoices;
-    insert into public.invoices(number) values (n) returning * into o; v_id := o.id;
+    insert into public.invoices(number, to_name) values (n, '') returning * into o; v_id := o.id;
   else
     select * into o from public.invoices where id = v_id for update;
     if not found then raise exception 'Invoice not found.'; end if;
