@@ -67,6 +67,29 @@ jobs:
           pb NSMicrophoneUsageDescription string "Record sound with training videos for your coach."
           pb NSLocationWhenInUseUsageDescription string "Show gyms near you."
           pb ITSAppUsesNonExemptEncryption bool false
+      - name: Check the App Store Connect key
+        if: steps.pick.outputs.go == '1'
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          pip3 install --quiet --break-system-packages pyjwt cryptography >/dev/null 2>&1 || pip3 install --quiet pyjwt cryptography >/dev/null
+          python3 - <<'PY'
+          import os, time, json, urllib.request, jwt
+          kid=os.environ.get('ASC_KEY_ID','').strip(); iss=os.environ.get('ASC_ISSUER_ID','').strip(); p8=os.environ.get('ASC_KEY_P8','').strip()
+          print(f"::notice title=key::Key ID length {len(kid)} ending {kid[-3:]}, Issuer ID length {len(iss)}, p8 has BEGIN line: {'BEGIN PRIVATE KEY' in p8}, p8 length {len(p8)}")
+          try:
+              tok=jwt.encode({'iss':iss,'iat':int(time.time()),'exp':int(time.time())+600,'aud':'appstoreconnect-v1'},p8,algorithm='ES256',headers={'kid':kid,'typ':'JWT'})
+          except Exception as e:
+              print(f"::error title=key::The .p8 text could not be read as a private key: {e}"); raise SystemExit(1)
+          try:
+              r=urllib.request.urlopen(urllib.request.Request('https://api.appstoreconnect.apple.com/v1/apps?limit=10',headers={'Authorization':'Bearer '+tok}))
+              apps=[a['attributes']['bundleId'] for a in json.load(r)['data']]
+              print(f"::notice title=key::Apple accepted the key. Apps: {', '.join(apps)}")
+          except urllib.error.HTTPError as e:
+              print(f"::error title=key::Apple refused the key ({e.code}): {e.read().decode()[:300]}"); raise SystemExit(1)
+          PY
       - name: Install the iOS platform
         if: steps.pick.outputs.go == '1'
         run: |
