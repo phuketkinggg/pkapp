@@ -79,6 +79,15 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .chip.fbchip{background:#E7EEFC;color:#1B4FBF}.chip.igchip{background:#FBE7F1;color:#A3195B}
 .msgmedia{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}.msgmedia img{max-width:220px;max-height:220px;border-radius:10px;display:block}
 .msgfail{color:#B3132A;font-size:12px;margin-top:4px}
+.wid{display:flex;flex-direction:column;gap:14px;border-left:4px solid var(--wc,var(--line));padding-left:14px}
+.wid .sechead h2{color:var(--wc)}
+.widlab{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--wc);margin-bottom:-6px}
+.wc-green{--wc:#2E7D32}.wc-blue{--wc:#1565C0}.wc-red{--wc:#C62828}.wc-orange{--wc:#D84315}.wc-gold{--wc:#8A6420}.wc-teal{--wc:#00796B}.wc-purple{--wc:#6A1B9A}.wc-pink{--wc:#AD1457}.wc-slate{--wc:#455A64}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .wc-green{--wc:#66BB6A}:root:not([data-theme="light"]) .wc-blue{--wc:#64B5F6}:root:not([data-theme="light"]) .wc-red{--wc:#EF5350}:root:not([data-theme="light"]) .wc-orange{--wc:#FF8A65}:root:not([data-theme="light"]) .wc-gold{--wc:#D4AF37}:root:not([data-theme="light"]) .wc-teal{--wc:#4DB6AC}:root:not([data-theme="light"]) .wc-purple{--wc:#BA68C8}:root:not([data-theme="light"]) .wc-pink{--wc:#F06292}:root:not([data-theme="light"]) .wc-slate{--wc:#90A4AE}}
+:root[data-theme="dark"] .wc-green{--wc:#66BB6A}:root[data-theme="dark"] .wc-blue{--wc:#64B5F6}:root[data-theme="dark"] .wc-red{--wc:#EF5350}:root[data-theme="dark"] .wc-orange{--wc:#FF8A65}:root[data-theme="dark"] .wc-gold{--wc:#D4AF37}:root[data-theme="dark"] .wc-teal{--wc:#4DB6AC}:root[data-theme="dark"] .wc-purple{--wc:#BA68C8}:root[data-theme="dark"] .wc-pink{--wc:#F06292}:root[data-theme="dark"] .wc-slate{--wc:#90A4AE}
+.warr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.warr li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-left:5px solid var(--wc);border-radius:10px}
+.warrname{font-weight:700;color:var(--wc)}
 .excat{margin:14px 0 6px;font-size:15px;padding-left:10px;border-left:4px solid var(--line)}.excat.c-cafe{border-color:#2E7D32;color:#2E7D32}.excat.c-training{border-color:#C62828;color:#C62828}.excat.c-recovery{border-color:#1565C0;color:#1565C0}.excat.c-gear{border-color:#B8892E;color:#8A6420}.excat.c-misc{border-color:#607D8B;color:#455A64}
 .aibar{height:8px;border-radius:99px;background:var(--sunken);overflow:hidden;margin:6px 0 10px}.aibar i{display:block;height:100%;background:var(--gold)}.aibar i.hot{background:#C0392B}
 .thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
@@ -5174,6 +5183,46 @@ function vHousekeeping(){
 }
 
 /* ---------- views ---------- */
+/* ---------- Today widgets: each part has a coloured title, and a manager sets the order for everyone ---------- */
+var TW=[['checkin','Check in','green'],['staff','Staff and coaches','blue'],['urgent','Needs action now','red'],['sales','Sales today','gold'],['notices','Notices and jobs','orange'],
+  ['checkedin','Checked in today','teal'],['privates','Privates today','purple'],['renewals','Renewals coming up','pink'],['housekeeping','Housekeeping','slate']];
+var TLAY=null;
+function loadTodayLayout(){ return sb.from('app_settings').select('value').eq('key','today_layout').maybeSingle().then(function(res){ try{ TLAY=res.data&&res.data.value?JSON.parse(res.data.value):null; }catch(e){ TLAY=null; } schedule(); },function(){}); }
+function twOf(id){ return TW.filter(function(w){ return w[0]===id; })[0]; }
+function todayOrder(lay){ lay=lay||TLAY||{}; var ids=TW.map(function(w){ return w[0]; }), o=(lay.order||[]).filter(function(id){ return ids.indexOf(id)>=0; });
+  ids.forEach(function(id){ if(o.indexOf(id)<0) o.push(id); }); return o; }
+function twEmpty(x){ if(x==null||x===false) return true; if(Array.isArray(x)) return x.every(twEmpty); return false; }
+function todayWidgets(P){ var hid=(TLAY&&TLAY.hidden)||[];
+  return todayOrder().filter(function(id){ return hid.indexOf(id)<0&&P[id]; }).map(function(id){ var w=twOf(id), b=P[id]();
+    return twEmpty(b)?null:h('div',{class:'wid wc-'+w[2],'data-w':id},['staff','urgent','notices','housekeeping'].indexOf(id)>=0?h('div',{class:'widlab'},w[1]):null,b); }); }
+function todaySales(day){
+  if(!SALES&&!ui.salesAsked&&me&&(me.role==='manager'||me.role==='front_desk')){ ui.salesAsked=true; shopRefresh(); }
+  var orders=SALES&&SALES.orders?SALES.orders:[], ok=orders.filter(function(o){ return o.status==='paid'||o.status==='room'; });
+  var till=ok.reduce(function(t,o){ return t+Number(o.total||0); },0);
+  var pk=S.purchases.filter(function(p){ return p.purchased_on===day&&!p.cancelled; }), pkT=pk.reduce(function(t,p){ return t+Number(p.price_thb||0); },0);
+  var by={}; ok.forEach(function(o){ var m=payName(o.method)||'Other'; by[m]=(by[m]||0)+Number(o.total||0); });
+  return section('Sales today',btn('Open the till',function(){ ui.tab='shop'; schedule(); },'small'),h('div',{class:'panel pad'},
+    h('div',{class:'stats'},h('span',null,h('b',null,thb(till)||'0 THB'),'shop and cafe, '+ok.length+' sale'+(ok.length===1?'':'s')),
+      h('span',null,h('b',null,thb(pkT)||'0 THB'),pk.length+' package'+(pk.length===1?'':'s')+' sold'),
+      h('span',null,h('b',null,thb(till+pkT)||'0 THB'),'together')),
+    Object.keys(by).length?h('p',{class:'sub'},'Till by payment: '+Object.keys(by).map(function(m){ return m+' '+thb(by[m]); }).join(', ')+'.'):null)); }
+function todayArrange(){
+  var lay={order:todayOrder(),hidden:((TLAY&&TLAY.hidden)||[]).slice()};
+  var list=h('ol',{class:'warr'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function draw(){ list.replaceChildren.apply(list,lay.order.map(function(id,i){ var w=twOf(id), cb=h('input',{type:'checkbox',id:'tw-'+id}); cb.checked=lay.hidden.indexOf(id)<0;
+      cb.addEventListener('change',function(){ lay.hidden=lay.hidden.filter(function(x){ return x!==id; }); if(!cb.checked) lay.hidden.push(id); });
+      return h('li',{class:'wc-'+w[2]},h('label',{class:'check',for:cb.id},cb,h('span',{class:'warrname'},w[1])),
+        h('span',{class:'row'},h('button',{type:'button',class:'btn small','aria-label':'Move '+w[1]+' up',disabled:i===0?'':null,onclick:function(){ lay.order.splice(i-1,0,lay.order.splice(i,1)[0]); draw(); }},'Up'),
+          h('button',{type:'button',class:'btn small','aria-label':'Move '+w[1]+' down',disabled:i===lay.order.length-1?'':null,onclick:function(){ lay.order.splice(i+1,0,lay.order.splice(i,1)[0]); draw(); }},'Down'))); })); }
+  draw();
+  function close(){ $dlg.close(); }
+  var saveB=btn('Save for everyone',function(){ saveB.disabled=true; var v=JSON.stringify(lay);
+    sb.from('app_settings').update({value:v,updated_at:new Date().toISOString()}).eq('key','today_layout').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'today_layout',value:v}).then(must); })
+      .then(function(){ TLAY=lay; close(); toast('Saved. Everyone sees Today in this order.'); schedule(); },function(e){ err.textContent=errText(e); err.hidden=false; saveB.disabled=false; }); },'primary');
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Arrange Today'),h('p',{class:'sub'},'Put the parts in the order that matters most. Untick a part to hide it. Parts with nothing in them are hidden by themselves.'),
+    list,err,h('div',{class:'factions'},btn('Back to the usual order',function(){ lay={order:TW.map(function(w){ return w[0]; }),hidden:[]}; draw(); },'small'),h('div',{class:'row'},btn('Cancel',close),saveB))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
   var entries=entriesOf(day), todays=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&!classOff(c,day);}),'time');
@@ -5216,55 +5265,54 @@ function vToday(){
   S.purchases.forEach(function(p){ var st=stateOf(p,day); if(st.status!=='active'&&st.status!=='week_limit') return;
     var why=[]; if(p.expires_on&&p.expires_on<=soon) why.push('expires '+fmtDate(p.expires_on)); if(p.class_limit&&left(p)<=2) why.push(left(p)+' visits left');
     if(why.length) renew.push({p:p,why:why.join(', ')}); });
-  return [
-    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),btn('Desk mode',startDeskMode)),
-    h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null),
-    claimsSection(),
-    noticesBox(),
-    dashTodo(),
-    staffToday(false),
-    coachBoardToday(),
-    section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
-      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows)),
-    orders.length?section('App orders waiting for payment',null,table([
+  var PART={
+    checkin:function(){ return [section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
+      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows))]; },
+    staff:function(){ return [staffToday(false),coachBoardToday()]; },
+    urgent:function(){ return [claimsSection(),orders.length?section('App orders waiting for payment',null,table([
       {label:'Customer',cell:function(p){return linkBtn(nameOf('customers',p.customer_id),function(){ openCustomer(p.customer_id); });}},
       {label:'Package',cell:function(p){return p.package_name;}},
       {label:'To pay',num:true,cell:function(p){return thb(p.price_thb);}},
       {label:'Ordered',cell:function(p){return fmtDate(p.purchased_on);}},
-      {label:'',cell:function(p){return btn('Take payment',function(){ takePayment(p); },'primary small');}}],orders,'')):null,
-    waiting.length?section('Privates waiting for approval',null,table([
+      {label:'',cell:function(p){return btn('Take payment',function(){ takePayment(p); },'primary small');}}],orders,'')):null,waiting.length?section('Privates waiting for approval',null,table([
       {label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return coachCell(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Note',cell:function(p){return p.notes||'';}},
-      {label:'',cell:function(p){return h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small'));}}],waiting,'')):null,
-    moves.length?section('Requests to move a private',null,table([
+      {label:'',cell:function(p){return h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small'));}}],waiting,'')):null,moves.length?section('Requests to move a private',null,table([
       {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
       {label:'Wants',cell:function(p){return h('b',null,fmtDate(p.reschedule.date)+' '+p.reschedule.time);}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Asked by',cell:function(p){ var r=p.reschedule; return [r.by==='coach'?'Coach':'Customer',' ',r.by==='coach'?null:(r.needs_coach?(r.coach_agreed?chip('Coach agreed','ok'):chip('Late, waiting for coach','warn')):chip('In time','ok')),r.note?' '+r.note:null]; }},
-      {label:'',cell:function(p){ return h('div',{class:'row'},moveReady(p.reschedule)?btn('Authorize',function(){ authorizeMove(p); },'primary small'):null,btn('Refuse',function(){ refuseMove(p); },'small')); }}],moves,'')):null,
-    section('Checked in today',null,table([
+      {label:'',cell:function(p){ return h('div',{class:'row'},moveReady(p.reschedule)?btn('Authorize',function(){ authorizeMove(p); },'primary small'):null,btn('Refuse',function(){ refuseMove(p); },'small')); }}],moves,'')):null]; },
+    notices:function(){ return [noticesBox(),dashTodo()]; },
+    sales:function(){ return todaySales(day); },
+    checkedin:function(){ return [section('Checked in today',null,table([
       {label:'Time',cell:function(e){return e.time;}},
       {label:'Customer',cell:function(e){return nameOf('customers',e.customer_id);}},
       {label:'For',cell:entryWhat},
       {label:'Package',cell:function(e){ var p=byId('purchases',e.purchase_id); return p?p.package_name:''; }},
-      {label:'',cell:function(e){return btn('Undo',function(){ undoCheckIn(e); },'small');}}],entries.slice().reverse(),'Nobody has checked in yet today. Search for a customer above to check in the first one.')),
-    section('Privates today',btn('Book a private',function(){ editPrivate(); },'small'),table([
+      {label:'',cell:function(e){return btn('Undo',function(){ undoCheckIn(e); },'small');}}],entries.slice().reverse(),'Nobody has checked in yet today. Search for a customer above to check in the first one.'))]; },
+    privates:function(){ return [section('Privates today',btn('Book a private',function(){ editPrivate(); },'small'),table([
       {label:'Time',cell:function(p){return p.time||'';}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null),arrivedChip(p));}},
-      {label:'',cell:function(p){return h('span',{class:'row'},!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null);}}],pToday,'No privates booked for today.')),
-    renew.length?section('Renewals coming up',null,table([
+      {label:'',cell:function(p){return h('span',{class:'row'},!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null);}}],pToday,'No privates booked for today.'))]; },
+    renewals:function(){ return [renew.length?section('Renewals coming up',null,table([
       {label:'Customer',cell:function(r){return linkBtn(nameOf('customers',r.p.customer_id),function(){ openCustomer(r.p.customer_id); });}},
       {label:'Package',cell:function(r){return r.p.package_name;}},
-      {label:'Why',cell:function(r){return chip(r.why,'warn');}}],renew,'')):null,
-    dashHk()
-  ];
+      {label:'Why',cell:function(r){return chip(r.why,'warn');}}],renew,'')):null]; },
+    housekeeping:function(){ return [dashHk()]; }
+  };
+  return [
+    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'?btn('Arrange',todayArrange,'small'):null,btn('Desk mode',startDeskMode))),
+    h('div',{class:'stats'},h('span',null,h('b',null,entries.length),'checked in'),h('span',null,h('b',null,pToday.length),'privates today'),h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null)
+  ].concat(todayWidgets(PART));
 }
+
 function openCustomer(id){ ackCustomer(id); ui.tab='customers'; ui.customerId=id; schedule(); }
 var REVIEW_URL='https://search.google.com/local/writereview?placeid=ChIJP3H551swUDARAlnVam0_73w';
 function reviewPhone(c){ var ph=String(c&&c.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1); return ph.length>=8?ph:''; }
@@ -5859,7 +5907,7 @@ function reload(col){
   }
   return sb.from(MAP[col].t).select(cols(MAP[col].t)).then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
-function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')){ jobs.push(loadReviewMsg().catch(function(){})); jobs.push(loadRenewMsg().catch(function(){})); } return Promise.all(jobs); }
+function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); jobs.push(loadTodayLayout()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')){ jobs.push(loadReviewMsg().catch(function(){})); jobs.push(loadRenewMsg().catch(function(){})); } return Promise.all(jobs); }
 function makeDb(){
   function changed(res){ var d=must(res); if(!d||!d.length) throw {message:'You do not have permission to change this, or it no longer exists.'}; }
   function then(q,col){ return q.select('id').then(changed).then(function(){ return reload(col); }); }
