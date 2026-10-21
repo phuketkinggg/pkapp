@@ -124,3 +124,6 @@ begin
     if n <> d then execute n; end if;
   end if;
 end $$;
+
+-- the app reads the access column (the staff table has column by column read rights)
+grant select (access) on public.staff to authenticated;
