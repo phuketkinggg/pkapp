@@ -107,14 +107,25 @@ async function account() {
 
 type Media = { url: string; type: "image" | "video" };
 type Res = { id?: string; url?: string; error?: string; container?: string };
-type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res> };
+type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null };
 
 async function toFacebook(p: Post, a: { page: string }): Promise<Res> {
   const m = p.media ?? [], cap = p.caption ?? "";
   let id: string;
   if (m[0]?.type === "video") {
-    const j = await graph(`${a.page}/videos`, { file_url: m[0].url, description: cap });
-    id = j.id; return { id, url: `https://www.facebook.com/${a.page}/videos/${id}` };
+    // a Reel on Facebook: start an upload, Facebook fetches the file from our storage, then publish
+    try {
+      const st = await graph(`${a.page}/video_reels`, { upload_phase: "start" });
+      const up = await fetch(`https://rupload.facebook.com/video-upload/v23.0/${st.video_id}`, { method: "POST", headers: { Authorization: `OAuth ${pageTok || PAGE_TOKEN()}`, file_url: m[0].url } });
+      const uj = await up.json().catch(() => ({}));
+      if (!up.ok || uj.success === false) throw new Error(uj?.debug_info?.message ?? `upload ${up.status}`);
+      await graph(`${a.page}/video_reels`, { upload_phase: "finish", video_id: st.video_id, video_state: "PUBLISHED", description: cap });
+      return { id: st.video_id, url: `https://www.facebook.com/reel/${st.video_id}` };
+    } catch {
+      // not a shape Facebook takes as a Reel (for example landscape or over 90 seconds): post it as a normal video
+      const j = await graph(`${a.page}/videos`, { file_url: m[0].url, description: cap });
+      id = j.id; return { id, url: `https://www.facebook.com/${a.page}/videos/${id}` };
+    }
   }
   if (m.length === 1) { const j = await graph(`${a.page}/photos`, { url: m[0].url, message: cap }); id = j.post_id ?? j.id; }
   else if (m.length > 1) {
@@ -134,7 +145,13 @@ async function toInstagram(p: Post, a: { ig: string | null }, prev: Res | undefi
   if (!m.length) return { error: "Instagram needs a photo or video." };
   let container = prev?.container;
   if (!container) {
-    if (m[0].type === "video") container = (await graph(`${a.ig}/media`, { media_type: "REELS", video_url: m[0].url, caption: cap, share_to_feed: "true" })).id;
+    if (m[0].type === "video") {
+      const prm: Record<string, string> = { media_type: "REELS", video_url: m[0].url, caption: cap };
+      // a Trial Reel is shown to people who do not follow you first; MANUAL: you share it to followers in the Instagram app, SS_PERFORMANCE: Instagram does it if it does well
+      if (p.kind === "trial") prm.trial_params = JSON.stringify({ graduation_strategy: p.trial_strategy === "SS_PERFORMANCE" ? "SS_PERFORMANCE" : "MANUAL" });
+      else prm.share_to_feed = "true";
+      container = (await graph(`${a.ig}/media`, prm)).id;
+    }
     else if (m.length === 1) container = (await graph(`${a.ig}/media`, { image_url: m[0].url, caption: cap })).id;
     else {
       const kids: string[] = [];

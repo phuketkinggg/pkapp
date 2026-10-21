@@ -3745,7 +3745,7 @@ function vSocial(){
     c.ai?'':' The AI writer is not set up yet.'].join('');
   function rows(list,empty){ return table([{label:'',cell:function(p){ return h('span',{class:'socmini'},socThumb((p.media||[])[0])); }},
       {label:'Post',cell:function(p){ return linkBtn(socFirst(p),function(){ socEdit(p); }); }},
-      {label:'Where',cell:function(p){ return (p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '); }},
+      {label:'Where',cell:function(p){ return h('span',null,(p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '),p.kind==='reel'||p.kind==='trial'?h('div',{class:'sub'},p.kind==='trial'?'Trial reel':'Reel'):null); }},
       {label:'',cell:function(p){ return socStatus(p); }}],list,empty); }
   var L=SOC.list, up=L.filter(function(p){ return p.status==='scheduled'||p.status==='posting'; }).sort(function(a,b){ return Date.parse(a.post_at)-Date.parse(b.post_at); });
   return [pageHead('Social media',conn,btn('New post',function(){ socEdit(); },'primary')),
@@ -3787,11 +3787,29 @@ function socEdit(p0){
       fs=fs.slice(0,10-media.length); err.hidden=true; busy=fs.length; drawMedia();
       fs.reduce(function(pr,f){ return pr.then(function(){
         var job=/^video\//.test(f.type)
-          ? (f.size>250*1024*1024?Promise.reject({plain:true,message:f.name+' is over 250 MB.'}):Promise.all([socUp(f,/quicktime/.test(f.type)?'mov':'mp4',f.type),socFrame(f).then(function(b){ return b?socUp(b,'jpg','image/jpeg'):null; })]).then(function(r){ media.push({url:r[0],type:'video',thumb:r[1]}); }))
+          ? (f.size>250*1024*1024?Promise.reject({plain:true,message:f.name+' is over 250 MB.'}):Promise.all([socUp(f,/quicktime/.test(f.type)?'mov':'mp4',f.type),socFrame(f).then(function(b){ return b?socUp(b,'jpg','image/jpeg'):null; })]).then(function(r){ media.push({url:r[0],type:'video',thumb:r[1]}); if(kind==='post') setKind('reel'); }))
           : socFitPhoto(f).then(function(b){ return socUp(b,'jpg','image/jpeg'); }).then(function(u){ media.push({url:u,type:'image'}); });
         return job.catch(function(e){ bad(errText(e)); }).then(function(){ busy--; drawMedia(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
   var pls=['facebook','instagram'].map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
+  /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
+  var kind=p.kind||((media[0]&&media[0].type==='video')?'reel':'post'), trial=p.trial_strategy==='SS_PERFORMANCE'?'SS_PERFORMANCE':'MANUAL', fbWas=null;
+  var kindBox=h('div',{class:'seg',role:'group','aria-label':'Post type'}), trialBox=h('div',{class:'field'}), kindNote=h('small',null,'');
+  function drawKind(){
+    kindBox.replaceChildren.apply(kindBox,[['post','Post'],['reel','Reel'],['trial','Trial reel']].map(function(o){ return h('button',{type:'button','aria-pressed':kind===o[0]?'true':'false',disabled:locked?'':null,onclick:function(){ setKind(o[0]); }},o[1]); }));
+    kindNote.textContent=kind==='post'?'Photos (one or up to 10). A video always goes out as a Reel.':kind==='reel'?'One upright video (9:16, 3 to 90 seconds). Goes out as a Reel on Instagram and Facebook, and shows to your followers.':'Instagram only. One upright video. Shown to people who do not follow you first, so you can test it before your followers see it.';
+    trialBox.hidden=kind!=='trial';
+    trialBox.replaceChildren(h('fieldset',{class:'field checks'},h('legend',null,'After the trial'),
+      [['MANUAL','I share it to my followers myself in the Instagram app'],['SS_PERFORMANCE','Share it to my followers automatically if it does well']].map(function(o){
+        var r=h('input',{type:'radio',name:'soc-trial',value:o[0],id:'soc-tr-'+o[0]}); r.checked=trial===o[0]; r.disabled=locked; r.addEventListener('change',function(){ if(r.checked) trial=o[0]; });
+        return h('label',{class:'check',for:r.id},r,h('span',null,o[1])); })),
+      h('small',null,'Trial reels need a public professional Instagram account, and Instagram turns the feature on account by account.'));
+    var fb=pls[0], ig=pls[1];
+    if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
+    else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
+  }
+  function setKind(k){ kind=k; drawKind(); }
+  drawKind();
   var brief=h('textarea',{id:'soc-brief',rows:'3',placeholder:'For example: Saturday sparring with the fight team, Tom and Kru Max coaching, open to all levels'}); brief.value=p.brief||''; brief.disabled=locked;
   var cap=h('textarea',{id:'soc-cap',rows:'10',maxlength:'2200'}); cap.value=p.caption||''; cap.disabled=locked;
   var count=h('small',null,''); function cnt(){ count.textContent=cap.value.length+' of 2200 characters'; } cap.addEventListener('input',cnt); cnt();
@@ -3811,8 +3829,11 @@ function socEdit(p0){
   var when=h('input',{id:'soc-when',type:'datetime-local'}); when.value=p.post_at?bkkInput(p.post_at):socDefaultTime(); when.disabled=locked;
   var now=h('input',{type:'checkbox',id:'soc-now'}); now.disabled=locked; now.addEventListener('change',function(){ when.disabled=now.checked; });
   function vals(approve){ return {id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
-      post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve}; }
-  function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true; b.disabled=true;
+      post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null}; }
+  function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true;
+    if(approve&&kind!=='post'&&!(media[0]&&media[0].type==='video')){ bad('A '+(kind==='trial'?'trial reel':'Reel')+' needs one video. Add a video, or choose Post.'); return; }
+    if(kind==='post'&&media[0]&&media[0].type==='video') kind='reel';
+    b.disabled=true;
     sb.rpc('social_save',{p:vals(approve)}).then(must).then(function(r){
       var soon=approve&&Date.parse(r.post_at)<=Date.now()+60e3;
       close(); toast(approve?(soon?'Approved. Posting now.':'Approved. It goes out '+bkkWhen(r.post_at)+'.'):'Draft saved.');
@@ -3827,10 +3848,11 @@ function socEdit(p0){
     if(p.status==='scheduled') return sb.rpc('social_unschedule',{p_id:p.id}).then(must).then(function(){ close(); toast('Back to draft. It will not go out.'); SOC.list=null; socLoad(); }).catch(function(e){ bad(errText(e)); });
     if(!this.dataset.armed){ this.dataset.armed='1'; this.textContent='Tap again to delete'; return; }
     sb.rpc('social_remove',{p_id:p.id}).then(must).then(function(){ close(); toast('Deleted.'); SOC.list=null; socLoad(); }).catch(function(e){ bad(errText(e)); }); },'small'):
-    locked&&p.status==='posted'?btn('Copy as new',function(){ close(); setTimeout(function(){ socEdit({brief:p.brief,caption:p.caption,media:p.media,platforms:p.platforms,status:'draft'}); },50); },'small'):h('span');
+    locked&&p.status==='posted'?btn('Copy as new',function(){ close(); setTimeout(function(){ socEdit({brief:p.brief,caption:p.caption,media:p.media,platforms:p.platforms,kind:p.kind,trial_strategy:p.trial_strategy,status:'draft'}); },50); },'small'):h('span');
   $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,p.id?(locked?'Social post':'Edit post'):'New social post'),
     p.status!=='draft'&&p.id?h('p',null,socStatus(p)):null, p.error&&p.status==='failed'?h('p',{class:'ferr'},p.error):null, res,
-    h('div',{class:'field'},h('label',null,'Photos or video'),strip,locked?null:h('div',{class:'row'},addB),h('small',null,'Up to 10 photos, or one video (MP4 or MOV, upright 9:16 works best for Reels). The first photo is the cover.')),
+    h('div',{class:'field'},h('label',null,'Photos or video'),strip,locked?null:h('div',{class:'row'},addB),h('small',null,'Up to 10 photos, or one video (MP4 or MOV). The first photo is the cover.')),
+    h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
     h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
     locked?null:h('div',{class:'row'},aiB), opts,
