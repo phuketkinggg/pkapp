@@ -34,9 +34,9 @@ create or replace function private.area_ok(p_b text, p_dep text) returns boolean
                                from public.staff s where s.user_id = (select auth.uid()) and s.active limit 1) end x)
   select case when (select x from a) is null then true else
     (coalesce(p_dep,'') = 'Spa' and (select x from a) ? 'spa')
-    or (coalesce(p_dep,'') = 'Pangea Cafe' and (select x from a) ? 'cafe')
-    or (coalesce(p_b,'') = 'Pangea Resort' and coalesce(p_dep,'') not in ('Pangea Cafe','Spa') and (select x from a) ? 'resort')
-    or (coalesce(p_b,'') <> 'Pangea Resort' and coalesce(p_dep,'') not in ('Pangea Cafe','Spa') and (select x from a) ? 'gym') end
+    or (coalesce(p_dep,'') ilike '%cafe%' and (select x from a) ? 'cafe')
+    or (coalesce(p_b,'') not ilike '%gym%' and coalesce(p_dep,'') <> 'Spa' and coalesce(p_dep,'') not ilike '%cafe%' and (select x from a) ? 'resort')
+    or (coalesce(p_b,'') ilike '%gym%' and coalesce(p_dep,'') <> 'Spa' and coalesce(p_dep,'') not ilike '%cafe%' and (select x from a) ? 'gym') end
 $f$;
 
 -- view only admins: nothing in the main tables can be changed
