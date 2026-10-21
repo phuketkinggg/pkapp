@@ -1,0 +1,11 @@
+{
+  "appId": "com.phuketking.app",
+  "appName": "Phuket King",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.phuketking.com",
+    "allowNavigation": ["app.phuketking.com", "www.phuketking.com", "phuketking.com", "*.supabase.co", "checkout.stripe.com"]
+  },
+  "ios": { "contentInset": "never", "backgroundColor": "#101311", "scheme": "Phuket King" },
+  "android": { "backgroundColor": "#101311" }
+}

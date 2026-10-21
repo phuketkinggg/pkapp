@@ -1,0 +1,108 @@
+# Builds the iPhone apps on a cloud Mac and uploads them to TestFlight.
+# Run it from GitHub: Actions, "iOS apps", Run workflow, choose the app. Or push a change under native/.
+# Needs repository secrets ASC_ISSUER_ID, ASC_KEY_ID, ASC_KEY_P8 (an App Store Connect API key).
+name: iOS apps
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Which app
+        required: true
+        default: all
+        type: choice
+        options: [all, phuketking, muayapp]
+  push:
+    branches: [main]
+    paths: ['native/**', '.github/workflows/ios.yml']
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [phuketking, muayapp]
+    env:
+      APP: ${{ matrix.app }}
+      TEAM_ID: SXB929XRR9
+    steps:
+      - name: Skip apps not chosen
+        id: pick
+        run: |
+          want="${{ github.event.inputs.app || 'all' }}"
+          if [ "$want" = "all" ] || [ "$want" = "$APP" ]; then echo "go=1" >> $GITHUB_OUTPUT; else echo "go=0" >> $GITHUB_OUTPUT; fi
+      - uses: actions/checkout@v4
+        if: steps.pick.outputs.go == '1'
+      - uses: maxim-lobanov/setup-xcode@v1
+        if: steps.pick.outputs.go == '1'
+        with: { xcode-version: latest-stable }
+      - uses: actions/setup-node@v4
+        if: steps.pick.outputs.go == '1'
+        with: { node-version: '22' }
+      - name: Make the iOS project
+        if: steps.pick.outputs.go == '1'
+        working-directory: native
+        run: |
+          set -eo pipefail
+          cp apps/$APP/capacitor.config.json capacitor.config.json
+          rm -rf www && cp -R apps/$APP/www www
+          npm install --no-audit --no-fund
+          npx cap add ios
+          mkdir -p assets
+          cp apps/$APP/icon.png assets/icon.png
+          cp apps/$APP/splash.png assets/splash.png
+          cp apps/$APP/splash.png assets/splash-dark.png
+          npx capacitor-assets generate --ios
+          npx cap sync ios
+          P=ios/App/App/Info.plist
+          NAME=$(node -p "require('./capacitor.config.json').appName")
+          pb(){ /usr/libexec/PlistBuddy -c "Delete :$1" "$P" 2>/dev/null || true; /usr/libexec/PlistBuddy -c "Add :$1 $2 $3" "$P"; }
+          pb CFBundleDisplayName string "$NAME"
+          pb NSCameraUsageDescription string "Scan the check in code at the gym and add photos of your meals and training."
+          pb NSPhotoLibraryUsageDescription string "Choose photos and videos to share with your coach."
+          pb NSPhotoLibraryAddUsageDescription string "Save photos from the app."
+          pb NSMicrophoneUsageDescription string "Record sound with training videos for your coach."
+          pb NSLocationWhenInUseUsageDescription string "Show gyms near you."
+          pb ITSAppUsesNonExemptEncryption bool false
+      - name: Build and upload to TestFlight
+        if: steps.pick.outputs.go == '1'
+        working-directory: native
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          set -eo pipefail
+          mkdir -p ~/private_keys
+          KEY=~/private_keys/AuthKey_$ASC_KEY_ID.p8
+          printf '%s\n' "$ASC_KEY_P8" > "$KEY"
+          AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID"
+          BUNDLE=$(node -p "require('./capacitor.config.json').appId")
+          BUILD=$(( ${{ github.run_number }} + 100 ))
+          if [ -d ios/App/App.xcworkspace ]; then TGT="-workspace ios/App/App.xcworkspace"; else TGT="-project ios/App/App.xcodeproj"; fi
+          xcodebuild $TGT -scheme App -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" archive $AUTH \
+            DEVELOPMENT_TEAM=$TEAM_ID CODE_SIGN_STYLE=Automatic PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE \
+            CURRENT_PROJECT_VERSION=$BUILD MARKETING_VERSION=1.0 | tail -n 60
+          cat > "$RUNNER_TEMP/export.plist" <<PL
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PL
+          sed -i '' 's/^          //' "$RUNNER_TEMP/export.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" $AUTH | tail -n 60
+          echo "Uploaded $BUNDLE build $BUILD to TestFlight"
+      - name: Clean up the key
+        if: always()
+        run: rm -rf ~/private_keys

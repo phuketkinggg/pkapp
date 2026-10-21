@@ -1,0 +1,12 @@
+{
+  "name": "pk-native",
+  "private": true,
+  "description": "Store app shells (Capacitor) for Phuket King and Muay App. The apps load the live web app, so updates need no new store release.",
+  "dependencies": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/cli": "8.5.3",
+    "@capacitor/assets": "3.0.5"
+  }
+}

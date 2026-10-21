@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Muay App</title>
+<style>
+:root{--bg:#101A2E;--card:#1A2640;--line:#2C3A58;--ink:#F3F5F9;--muted:#A9B3C7;--blue:#2759DA}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,system-ui,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 28px) 18px calc(env(safe-area-inset-bottom) + 28px)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.06em;font-size:18px}
+.brand svg{width:34px;height:auto}
+h1{font-size:28px;line-height:1.15;margin:26px 0 6px}
+p.sub{color:var(--muted);margin:0 0 18px;line-height:1.45}
+label.srch{display:block}
+input{width:100%;font:inherit;font-size:17px;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);outline:none}
+input:focus{border-color:var(--blue)}
+ul{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+button.gym{width:100%;display:flex;align-items:center;gap:14px;text-align:left;padding:12px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;min-height:68px;cursor:pointer}
+button.gym:active{transform:scale(.99)}
+.logo{width:46px;height:46px;border-radius:12px;flex:0 0 46px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;overflow:hidden;background:#33415f}
+.logo img{width:100%;height:100%;object-fit:cover}
+.gname{font-weight:700;font-size:17px}
+.gwhere{color:var(--muted);font-size:14px;margin-top:2px}
+.empty{color:var(--muted);padding:18px 4px;line-height:1.5}
+.foot{color:var(--muted);font-size:13px;margin-top:28px;line-height:1.5}
+.go{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:var(--muted)}
+.go.on{display:flex}
+.go .logo{width:72px;height:72px;flex-basis:72px;border-radius:18px;font-size:28px}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><svg viewBox="40 66 226 178" aria-hidden="true"><g fill="#2759DA" stroke="#2759DA" stroke-width="8" stroke-linejoin="round"><path d="M55 95 L145 142 L148 229 L54 170 Z"/><path d="M168 119 L250 79 L251 117 L166 168 Z"/><path d="M172 179 L222 153 L220 195 L169 226 Z"/></g></svg>MUAY APP</div>
+  <h1>Find your gym</h1>
+  <p class="sub">Choose the gym you train at. You can switch gym any time.</p>
+  <label class="srch"><span style="position:absolute;left:-9999px">Search gyms</span><input id="q" type="search" placeholder="Search by gym name or town" autocomplete="off"></label>
+  <ul id="list" aria-live="polite"></ul>
+  <p class="foot">Your gym not here yet? Ask them about Muay App, or tell us at hello@muayfriend.com.</p>
+</main>
+<div class="go" id="go" role="status"><div class="logo" id="golog"></div><div id="gotxt">Opening your gym...</div></div>
+<script>
+(function(){
+  // gyms come from muayfriend.com, with this list as a fallback when offline
+  var FALLBACK=[
+    {id:'phuketking',name:'Phuket King Muay Thai',where:'Kathu, Phuket',url:'https://app.phuketking.com/',color:'#C9A24A',logo:'https://app.phuketking.com/icons/icon-192.png'},
+    {id:'demo',name:'Muay Fight Gym (demo)',where:'Try the app with a sample gym',url:'https://muayfriend.com/demo/',color:'#2759DA',logo:''}
+  ];
+  var GYMS=FALLBACK, list=document.getElementById('list'), q=document.getElementById('q');
+  function store(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+  function read(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function logoEl(g,big){ var d=document.createElement('div'); d.className='logo'; d.style.background=g.color||'#33415f';
+    if(g.logo){ var i=document.createElement('img'); i.alt=''; i.src=g.logo; i.onerror=function(){ i.remove(); d.textContent=(g.name||'?').charAt(0); }; d.appendChild(i); } else d.textContent=(g.name||'?').charAt(0);
+    return d; }
+  function open(g){ store('muayapp_gym',JSON.stringify(g)); var go=document.getElementById('go'), gl=document.getElementById('golog');
+    gl.replaceWith(Object.assign(logoEl(g),{id:'golog'})); document.getElementById('gotxt').textContent='Opening '+g.name+'...'; go.className='go on';
+    location.href=g.url; }
+  function draw(){ var t=(q.value||'').trim().toLowerCase(); list.innerHTML='';
+    var hits=GYMS.filter(function(g){ return !t||(g.name+' '+(g.where||'')).toLowerCase().indexOf(t)>=0; });
+    if(!hits.length){ var e=document.createElement('li'); e.className='empty'; e.textContent='No gym found with that name yet.'; list.appendChild(e); return; }
+    hits.forEach(function(g){ var li=document.createElement('li'), b=document.createElement('button'); b.type='button'; b.className='gym';
+      var tx=document.createElement('div'), n=document.createElement('div'), w=document.createElement('div'); n.className='gname'; n.textContent=g.name; w.className='gwhere'; w.textContent=g.where||'';
+      tx.appendChild(n); tx.appendChild(w); b.appendChild(logoEl(g)); b.appendChild(tx); b.onclick=function(){ open(g); }; li.appendChild(b); list.appendChild(li); }); }
+  q.addEventListener('input',draw);
+  // straight into the gym chosen last time, unless the gym app sent people back here to switch
+  var switching=/[?&]switch/.test(location.search), saved=null; try{ saved=JSON.parse(read('muayapp_gym')||'null'); }catch(e){}
+  if(saved&&saved.url&&!switching){ open(saved); return; }
+  if(switching) store('muayapp_gym',null);
+  draw();
+  fetch('https://muayfriend.com/gyms.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){ if(Array.isArray(d)&&d.length){ GYMS=d; draw(); } }).catch(function(){});
+})();
+</script>
+</body>
+</html>
