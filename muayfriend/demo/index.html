@@ -1254,7 +1254,7 @@ function claimsSection(){
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
 /* new things the desk should know about: app sign ups, first app sign ins, packages sold, stays booked */
-var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad'],prearrival:['Ready for camp','ok']};
+var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad'],prearrival:['Ready for camp','ok'],pangea_service:['Fight Camp plan','ok']};
 function seesNotices(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
 function loadNotices(){ if(!seesNotices()) return Promise.resolve(); return sb.rpc('notices_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(NOTI); NOTI=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
 setInterval(function(){ if(allReady&&seesNotices()&&!CU&&document.visibilityState!=='hidden') loadNotices(); },30000);
@@ -3327,10 +3327,28 @@ function coClient(){
       return h('label',{class:'check',for:'cc-'+s.id},cb,h('span',null,s.name+(s.role==='manager'?' (manager)':''))); })),h('small',{class:'sub'},'Managers can always see every client.'))
     :h('p',{class:'sub'},'Coaches: '+(d.coaches.map(function(c){ return c.name; }).join(', ')||'none'));
   var waiting=d.forms.filter(function(f){ return !f.reply; }).length;
-  var tabs=[['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['logs','Workout logs'+((d.logs||[]).some(function(l){ return l.hurt&&l.day>=cAdd(t,-14); })?' (pain)':'')],['videos','Videos'+(waiting?' ('+waiting+')':'')]];
+  var tabs=[['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['logs','Workout logs'+((d.logs||[]).some(function(l){ return l.hurt&&l.day>=cAdd(t,-14); })?' (pain)':'')],['videos','Videos'+(waiting?' ('+waiting+')':'')],['pangea','Fight Camp']];
   var sub=h('div',{class:'ctabs'},tabs.map(function(x){ return h('button',{type:'button',class:'ctab'+(COACH.sub===x[0]?' on':''),onclick:function(){ COACH.sub=x[0]; schedule(); }},x[1]); }));
-  var body=COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):coHabits(d);
+  var body=COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):COACH.sub==='pangea'?coFight Camp(d):coHabits(d);
   return [back,pageHead(d.customer.name,'Coaching. Private to this client, their coaches and the managers.'),coaches,sub,body];
+}
+/* Fight Camp app data for this client (pangea/index.html): level, health numbers, blood tests, yearly plan */
+var PGK={bp:['Blood pressure','mmHg'],rhr:['Resting heart rate','bpm'],sleep:['Sleep','hours'],steps:['Steps',''],waist:['Waist','cm'],bodyfat:['Body fat','%'],energy:['Energy','of 5'],mood:['Mood','of 5'],stress:['Stress','of 5'],
+  glucose:['Fasting glucose','mmol/L'],hba1c:['HbA1c','%'],chol:['Total cholesterol','mmol/L'],ldl:['LDL','mmol/L'],hdl:['HDL','mmol/L'],trig:['Triglycerides','mmol/L'],vitd:['Vitamin D','ng/mL'],crp:['CRP','mg/L'],testo:['Testosterone','nmol/L'],ferritin:['Ferritin','ng/mL'],bloods:['Blood test file','']};
+function coFight Camp(d){
+  var cid=d.customer.id, mgr=me&&me.role==='manager';
+  if(!COACH.pg||COACH.pg.cid!==cid){ COACH.pg={cid:cid,data:null}; sb.rpc('pangea_client',{p_customer:cid}).then(must).then(function(x){ if(COACH.pg&&COACH.pg.cid===cid){ COACH.pg.data=x; schedule(); } }).catch(function(e){ toast(errText(e)); }); }
+  var x=COACH.pg.data; if(!x) return h('div',{class:'panel empty'},'Loading.');
+  var LV=[['app','Fight Camp App (habits, programs, health, plan)'],['coach','Fight Camp Coach (with a coach)'],['pangea','Fight Camp Complete (coach, bloods, yearly service)']];
+  var lv=mgr?h('select',{id:'pg-level',onchange:function(ev){ var v=ev.target.value; sb.rpc('pangea_level_set',{p_customer:cid,p_level:v}).then(must).then(function(){ x.level=v; toast('Fight Camp level saved.'); }).catch(function(e){ toast(errText(e)); }); }},
+    LV.map(function(o){ return h('option',{value:o[0],selected:x.level===o[0]},o[1]); })):h('b',null,(LV.filter(function(o){ return o[0]===x.level; })[0]||LV[0])[1]);
+  var nums=x.health.filter(function(m){ return m.kind!=='bloods'; }), files=x.health.filter(function(m){ return m.kind==='bloods'; });
+  function val(m){ return m.kind==='bp'?Math.round(m.value)+'/'+Math.round(m.value2):String(+Number(m.value).toFixed(2)); }
+  return [h('div',{class:'panel pad'},h('label',{for:'pg-level'},'Fight Camp app level'),lv,h('p',{class:'sub'},'The client uses the Fight Camp app (this app address with /pangea at the end) with the same sign in. Coach and Complete show their coaches in the app so they can message them.')),
+    section('Yearly plan',null,x.service.length?h('div',{class:'panel pad'},x.service.map(function(s){ return h('div',null,h('b',null,String(s.year)),' ',s.location+(s.month?', '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][s.month-1]:'')+(s.note?'. '+s.note:'')); })):h('div',{class:'panel empty'},'No plan yet.')),
+    section('Blood tests',null,files.length?h('div',{class:'panel pad'},files.map(function(f){ return h('div',{class:'row'},h('span',null,(f.note||'Blood test')+', '+fmtDate(String(f.at).slice(0,10))),btn('Open',function(){ sb.storage.from('coaching').createSignedUrl(f.path,3600).then(function(r){ if(r.error) return toast(errText(r.error)); window.open(r.data.signedUrl,'_blank','noopener'); }); },'small')); })):h('div',{class:'panel empty'},'None uploaded.')),
+    section('Health numbers',null,nums.length?h('div',{class:'panel pad'},nums.slice(0,60).map(function(m){ var k=PGK[m.kind]||[m.kind,''];
+      return h('div',{class:'row'},h('span',{style:'flex:1'},k[0]),h('b',null,val(m)+(k[1]?' '+k[1]:'')),h('small',{class:'sub'},fmtDate(String(m.at).slice(0,10)))); })):h('div',{class:'panel empty'},'Nothing logged yet.'))];
 }
 /* habits (coach) */
 function coHabits(d){

@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pangea</title>
+<meta name="description" content="Pangea Global Wellness. Your habits, health, coach and yearly service in one place.">
+<meta name="theme-color" content="#18352D">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pangea">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#B88A44;--gold2:#E2C27E;--black:#101311;--green:#18352D;--green2:#24503F;--stone:#F2EFE7;--stone2:#E7E2D6;--char:#343936;--white:#fff;--muted:#6B716D;--ok:#2F7A54;--bad:#A2463A;--r:18px;--sh:0 1px 2px rgba(16,19,17,.05),0 6px 20px rgba(16,19,17,.06)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--stone);color:var(--black);font:15px/1.5 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;letter-spacing:.2px;margin:0}
+h1{font-size:30px;line-height:1.15}h2{font-size:23px}h3{font-size:19px}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--green)}
+.wrap{max-width:560px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px 20px}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.top img{width:34px;height:34px}
+.brand{font-family:"Cormorant Garamond",Georgia,serif;font-size:21px;font-weight:600;letter-spacing:3px}
+.brand small{display:block;font:500 10px Inter,sans-serif;letter-spacing:1.6px;color:var(--gold);text-transform:uppercase}
+.sub{color:var(--muted);font-size:13.5px}
+.card{background:var(--white);border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin:12px 0}
+.card.dark{background:var(--green);color:var(--stone)}
+.card.dark .sub{color:#C9D3CC}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.grow{flex:1;min-width:0}
+.btn{border:0;border-radius:999px;padding:11px 18px;background:var(--green);color:var(--white);font-weight:600;cursor:pointer;min-height:44px}
+.btn.gold{background:var(--gold);color:var(--black)}
+.btn.ghost{background:transparent;color:var(--green);box-shadow:inset 0 0 0 1.5px var(--green)}
+.btn.small{padding:7px 13px;min-height:36px;font-size:13.5px}
+.btn.link{background:none;color:var(--green);padding:6px 4px;min-height:0;font-weight:600}
+.btn:disabled{opacity:.55}
+.full{width:100%}
+label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px;color:var(--char)}
+input,select,textarea{width:100%;border:1.5px solid var(--stone2);border-radius:12px;padding:11px 12px;background:var(--white);min-height:44px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--stone2);color:var(--char)}
+.pill.gold{background:#F3E6CF;color:#7A5726}.pill.green{background:#DCE9E1;color:var(--green)}
+.habit{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--stone)}
+.habit:first-child{border-top:0}
+.tick{width:34px;height:34px;flex:0 0 34px;border-radius:50%;border:2px solid var(--stone2);background:var(--white);display:grid;place-items:center;cursor:pointer;padding:0}
+.tick.on{background:var(--green);border-color:var(--green)}
+.tick svg{width:18px;height:18px;stroke:#fff;stroke-width:3;fill:none;opacity:0}
+.tick.on svg{opacity:1}
+.hname{font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--stone2);background:var(--white);border-radius:999px;padding:7px 12px;cursor:pointer;font-size:13.5px;min-height:36px}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.metric{background:var(--white);border-radius:16px;padding:12px;box-shadow:var(--sh);cursor:pointer;border:0;text-align:left;width:100%}
+.metric b{display:block;font-size:20px;font-family:"Cormorant Garamond",Georgia,serif}
+.metric span{font-size:12px;color:var(--muted)}
+.spark{display:block;width:100%;height:30px;margin-top:6px}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--stone2);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:5}
+nav.tabs button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 8px;min-width:58px;cursor:pointer}
+nav.tabs button.on{color:var(--green)}
+nav.tabs svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ring{width:64px;height:64px;flex:0 0 64px}
+.sheet-bg{position:fixed;inset:0;background:rgba(16,19,17,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--stone);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom))}
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--black);color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:40;max-width:90vw}
+.msgs{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding:4px 0}
+.msg{max-width:82%;padding:9px 12px;border-radius:14px;background:var(--white);box-shadow:var(--sh);white-space:pre-wrap;word-wrap:break-word}
+.msg.mine{align-self:flex-end;background:var(--green);color:#fff}
+.msg small{display:block;font-size:11px;opacity:.7;margin-bottom:2px}
+.hero{border-radius:var(--r);padding:20px 18px;background:linear-gradient(140deg,#18352D 0%,#101311 100%);color:var(--stone);margin:6px 0 12px;position:relative;overflow:hidden}
+.hero h1{color:#fff}.hero .sub{color:#C9D3CC}
+.hero:after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;border-radius:50%;border:1.5px solid rgba(184,138,68,.45)}
+.loc{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--stone)}
+.loc:first-child{border-top:0}
+.dot{width:10px;height:10px;border-radius:50%;margin-top:7px;flex:0 0 10px;background:var(--stone2)}
+.dot.open{background:var(--gold)}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.center{text-align:center}
+.auth{max-width:420px;margin:0 auto;padding:calc(40px + env(safe-area-inset-top)) 20px 40px}
+.auth .logo{width:84px;height:84px;display:block;margin:0 auto 10px}
+.err{color:var(--bad);font-size:14px;margin-top:8px}
+.list-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--stone)}
+.list-row:first-child{border-top:0}
+.lib{display:grid;gap:8px}
+.lib button{text-align:left;background:var(--white);border:0;border-radius:14px;padding:12px;box-shadow:var(--sh);cursor:pointer}
+.lib button b{display:block}
+.lib button span{font-size:13px;color:var(--muted)}
+.ex{font-size:14px;padding:6px 0;border-top:1px dashed var(--stone2)}
+.ex:first-child{border-top:0}
+@media (prefers-reduced-motion:no-preference){.card,.metric{transition:transform .15s}.metric:active{transform:scale(.98)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="../vendor/supabase-js-2.117.2.js"></script>
+<script>
+'use strict';
+var SB_URL='https://jijnshwduhgegacfvpkh.supabase.co', SB_KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
+var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+var $app=document.getElementById('app');
+var S={tab:(location.hash||'#today').slice(1),data:null,session:null,chat:null,signed:{}};
+if(['today','health','journey','coach','me'].indexOf(S.tab)<0) S.tab='today';
+
+/* ---------- small helpers ---------- */
+function h(tag,attrs){ var e=document.createElement(tag); if(attrs) for(var k in attrs){ var v=attrs[k]; if(v==null||v===false) continue;
+  if(k==='class') e.className=v; else if(k==='html') e.innerHTML=v; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),v); else e.setAttribute(k,v===true?'':v); }
+  for(var i=2;i<arguments.length;i++) add(e,arguments[i]); return e; }
+function add(e,c){ if(c==null||c===false) return; if(Array.isArray(c)) c.forEach(function(x){ add(e,x); }); else e.appendChild(c.nodeType?c:document.createTextNode(String(c))); }
+function svg(path,cls){ var s=document.createElementNS('http://www.w3.org/2000/svg','svg'); s.setAttribute('viewBox','0 0 24 24'); if(cls) s.setAttribute('class',cls); s.innerHTML=path; return s; }
+var IC={today:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  health:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/><path d="M3 12h4l2-3 3 6 2-3h7"/>',
+  journey:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>',
+  coach:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'};
+var CHECK='<path d="M5 12.5l4.5 4.5L19 7"/>';
+function toast(t){ var o=document.querySelector('.toast'); if(o) o.remove(); var e=h('div',{class:'toast',role:'status'},t); document.body.appendChild(e); setTimeout(function(){ e.remove(); },3200); }
+function errText(e){ var m=(e&&(e.message||e.error_description))||String(e||''); if(/Failed to fetch|NetworkError/i.test(m)) return 'No connection. Try again.'; if(/Invalid login/i.test(m)) return 'That email and password do not match.'; if(/Email not confirmed/i.test(m)) return 'Open the confirm link we emailed you first.'; return m.replace(/^.*?: /,''); }
+function must(r){ if(r.error) throw r.error; return r.data; }
+function rpc(n,a){ return sb.rpc(n,a||{}).then(must); }
+function pad(n){ return (n<10?'0':'')+n; }
+function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function parseYmd(s){ var p=String(s).slice(0,10).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function addDays(s,n){ var d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
+function wd(s){ return (parseYmd(s).getDay()+6)%7+1; }
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var DAYN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function nice(s){ var d=parseYmd(s); return d.getDate()+' '+MON[d.getMonth()]; }
+function niceT(t){ var d=new Date(t); return d.getDate()+' '+MON[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():''); }
+function today(){ return S.data&&S.data.coaching&&S.data.coaching.today||ymd(new Date()); }
+function first(n){ return String(n||'').trim().split(/\s+/)[0]||'there'; }
+function cap(s){ s=String(s||''); return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ---------- what can be logged ---------- */
+var KINDS={
+  bp:{name:'Blood pressure',unit:'mmHg',two:true,hint:'For example 120 over 80',good:'Under 120 over 80'},
+  rhr:{name:'Resting heart rate',unit:'bpm',good:'60 or lower is fit'},
+  sleep:{name:'Sleep',unit:'hours',good:'7 to 9 hours'},
+  steps:{name:'Steps',unit:'steps',good:'8,000 or more'},
+  waist:{name:'Waist',unit:'cm'},
+  bodyfat:{name:'Body fat',unit:'%'},
+  energy:{name:'Energy',unit:'of 5',scale:true},
+  mood:{name:'Mood',unit:'of 5',scale:true},
+  stress:{name:'Stress',unit:'of 5',scale:true,low:true},
+  glucose:{name:'Fasting glucose',unit:'mmol/L',lab:true,good:'3.9 to 5.5'},
+  hba1c:{name:'HbA1c',unit:'%',lab:true,good:'Under 5.7'},
+  chol:{name:'Total cholesterol',unit:'mmol/L',lab:true,good:'Under 5.0'},
+  ldl:{name:'LDL',unit:'mmol/L',lab:true,good:'Under 3.0'},
+  hdl:{name:'HDL',unit:'mmol/L',lab:true,good:'Over 1.0'},
+  trig:{name:'Triglycerides',unit:'mmol/L',lab:true,good:'Under 1.7'},
+  vitd:{name:'Vitamin D',unit:'ng/mL',lab:true,good:'30 to 60'},
+  crp:{name:'CRP (inflammation)',unit:'mg/L',lab:true,good:'Under 1.0'},
+  testo:{name:'Testosterone',unit:'nmol/L',lab:true},
+  ferritin:{name:'Ferritin',unit:'ng/mL',lab:true}
+};
+var BODY=['bp','rhr','sleep','steps','waist','bodyfat'];
+var FEEL=['energy','mood','stress'];
+var LABS=['glucose','hba1c','chol','ldl','hdl','trig','vitd','crp','testo','ferritin'];
+
+var LIBRARY=[
+  {name:'Drink 2 litres of water',details:'Spread across the day. Start with a big glass when you wake.'},
+  {name:'Walk 8,000 steps',details:'Any steps count. A walk after meals helps blood sugar too.'},
+  {name:'Sleep 7 hours or more',details:'Same bedtime each night. Dark, cool room.'},
+  {name:'Morning sunlight, 10 minutes',details:'Outside within an hour of waking. Sets your body clock.'},
+  {name:'10 minutes of mobility',details:'Hips, spine and shoulders. Little and often.'},
+  {name:'Protein with every meal',details:'A palm sized portion at breakfast, lunch and dinner.'},
+  {name:'No seed oils today',details:'Cook with butter, ghee, olive oil or coconut oil.'},
+  {name:'Five minutes of slow breathing',details:'In for 4, out for 6. Before bed or when stressed.'},
+  {name:'No screens the hour before bed',details:'Read, stretch or talk instead.'},
+  {name:'Cold shower or ice bath',details:'Start with 30 seconds and build up.'},
+  {name:'Train or move with intent',details:'A class, a run, a session. Tick it when it is done.',freq:'week',times:4},
+  {name:'Write three things you are grateful for',details:'Two minutes in a notebook or your phone.'},
+  {name:'Eat vegetables at two meals',details:'Half the plate, colourful.'},
+  {name:'No alcohol today',details:'Better sleep, better recovery.'}
+];
+
+/* ---------- auth ---------- */
+function authView(mode){
+  mode=mode||'in';
+  var email=h('input',{type:'email',autocomplete:'email',placeholder:'you@email.com',id:'em'});
+  var pw=h('input',{type:'password',autocomplete:mode==='up'?'new-password':'current-password',id:'pw'});
+  var msg=h('div',{class:'err',role:'alert'}), go=h('button',{class:'btn full',type:'submit',style:'margin-top:16px'},
+    mode==='in'?'Sign in':mode==='up'?'Create my account':mode==='reset'?'Send a reset link':'Email me a sign in link');
+  var f=h('form',{class:'auth'},
+    h('img',{class:'logo',src:'logo.svg',alt:''}),
+    h('div',{class:'center'},h('div',{class:'brand'},'PANGEA',h('small',null,'Global Wellness')),
+      h('p',{class:'sub',style:'margin:10px 0 18px'},'People. Places. Longer lives. Your habits, health, coach and yearly service, all in one place.')),
+    h('label',{for:'em'},'Email'),email,
+    (mode==='in'||mode==='up')?[h('label',{for:'pw'},'Password'),pw]:null,
+    go,msg,
+    h('div',{class:'center',style:'margin-top:14px;display:grid;gap:4px'},
+      mode!=='in'?h('button',{type:'button',class:'btn link',onclick:function(){ authView('in'); }},'I have an account, sign in'):null,
+      mode!=='up'?h('button',{type:'button',class:'btn link',onclick:function(){ authView('up'); }},'New here? Create an account'):null,
+      mode==='in'?h('button',{type:'button',class:'btn link',onclick:function(){ authView('link'); }},'Email me a sign in link instead'):null,
+      mode==='in'?h('button',{type:'button',class:'btn link',onclick:function(){ authView('reset'); }},'Forgot password'):null,
+      h('p',{class:'sub',style:'margin-top:8px'},'Already in the Phuket King app? Use the same email and password.')));
+  f.addEventListener('submit',function(ev){ ev.preventDefault(); var v=email.value.trim(), p=pw.value, back=location.origin+location.pathname;
+    if(!v){ msg.textContent='Enter your email.'; return; }
+    if((mode==='in'||mode==='up')&&!p){ msg.textContent='Enter your password.'; return; }
+    if(mode==='up'&&p.length<8){ msg.textContent='Use at least 8 characters.'; return; }
+    go.disabled=true; msg.textContent='';
+    var job=mode==='in'?sb.auth.signInWithPassword({email:v,password:p}):mode==='up'?sb.auth.signUp({email:v,password:p,options:{emailRedirectTo:back}}):
+      mode==='reset'?sb.auth.resetPasswordForEmail(v,{redirectTo:back}):sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:back}});
+    job.then(function(r){ if(r.error){ msg.textContent=errText(r.error); return; }
+      if(mode==='up'&&!(r.data&&r.data.session)){ msg.style.color='var(--green)'; msg.textContent='Check your inbox and open the link to confirm your email. After that you sign in with your password.'; }
+      else if(mode==='reset'||mode==='link'){ msg.style.color='var(--green)'; msg.textContent='Check your inbox. It can take a minute.'; } },
+      function(){ msg.textContent='No connection. Try again.'; }).then(function(){ go.disabled=false; });
+  });
+  $app.replaceChildren(f);
+}
+function newPasswordView(){
+  var pw=h('input',{type:'password',autocomplete:'new-password',id:'np'}), msg=h('div',{class:'err'});
+  var f=h('form',{class:'auth'},h('img',{class:'logo',src:'logo.svg',alt:''}),h('h2',{class:'center'},'Set a new password'),
+    h('label',{for:'np'},'New password (8 or more characters)'),pw,h('button',{class:'btn full',style:'margin-top:16px'},'Save password'),msg);
+  f.addEventListener('submit',function(ev){ ev.preventDefault(); if(pw.value.length<8){ msg.textContent='Use at least 8 characters.'; return; }
+    sb.auth.updateUser({password:pw.value}).then(function(r){ if(r.error) msg.textContent=errText(r.error); else { toast('Password saved.'); load(); } }); });
+  $app.replaceChildren(f);
+}
+
+/* ---------- data ---------- */
+function load(){
+  return sb.rpc('customer_hello').then(function(){ return rpc('pangea_home'); }).then(function(d){ S.data=d; render(); signPaths(); })
+    .catch(function(e){ var m=errText(e);
+      if(/Sign in first/i.test(m)) $app.replaceChildren(h('div',{class:'auth center'},h('img',{class:'logo',src:'logo.svg',alt:''}),h('h2',null,'Almost there'),
+        h('p',{class:'sub'},'Your account is not linked yet. Open the confirm email we sent you, then come back and sign in.'),
+        h('button',{class:'btn',onclick:function(){ sb.auth.signOut(); }},'Sign out')));
+      else { toast(m); if(!S.data) $app.replaceChildren(h('div',{class:'auth center'},h('p',null,m),h('button',{class:'btn',onclick:load},'Try again'))); } });
+}
+function refresh(){ return rpc('pangea_home').then(function(d){ S.data=d; render(); signPaths(); }).catch(function(e){ toast(errText(e)); }); }
+function signPaths(){
+  var d=S.data; if(!d) return; var list=[];
+  (d.health||[]).forEach(function(x){ if(x.path&&!S.signed[x.path]) list.push(x.path); });
+  ((d.coaching&&d.coaching.food)||[]).slice(0,12).forEach(function(x){ if(x.path&&!S.signed[x.path]) list.push(x.path); });
+  if(!list.length) return;
+  sb.storage.from('coaching').createSignedUrls(list,3600).then(function(r){ (r.data||[]).forEach(function(x){ if(x.signedUrl) S.signed[x.path]=x.signedUrl; }); render(); });
+}
+
+/* ---------- habits ---------- */
+function weekStart(s){ return addDays(s,1-wd(s)); }
+function habitState(x){
+  var t=today(), logs=x.logs||[], doneToday=logs.indexOf(t)>=0, due=false, label='', countWeek=0;
+  if(x.freq==='daily'){ due=true; label='Every day'; }
+  else if(x.freq==='days'){ due=(x.days||[]).indexOf(wd(t))>=0; label=(x.days||[]).map(function(n){ return DAYN[n-1]; }).join(', '); }
+  else { var ws=weekStart(t); countWeek=logs.filter(function(l){ return l>=ws&&l<=t; }).length; due=countWeek<(x.times||1)||doneToday; label=countWeek+' of '+(x.times||1)+' this week'; }
+  var streak=0, d=doneToday?t:addDays(t,-1);
+  if(x.freq==='daily'){ while(logs.indexOf(d)>=0){ streak++; d=addDays(d,-1); } }
+  return {due:due,done:doneToday,label:label,streak:streak};
+}
+function markHabit(x,btn){
+  var st=habitState(x), on=!st.done; btn.disabled=true;
+  rpc('habit_mark',{p_habit:x.id,p_day:today(),p_done:on}).then(function(){
+    if(on) x.logs=(x.logs||[]).concat([today()]); else x.logs=(x.logs||[]).filter(function(l){ return l!==today(); });
+    if(on&&navigator.vibrate) navigator.vibrate(12); render(); }).catch(function(e){ toast(errText(e)); btn.disabled=false; });
+}
+function habitSheet(){
+  var name=h('input',{id:'hn',placeholder:'For example: Stretch for 10 minutes'}), det=h('textarea',{id:'hd',rows:'2',placeholder:'Optional notes'});
+  var freq='daily', days=[], times=3, dayChips=h('div',{class:'chips'}), timesSel=h('select',{id:'ht'});
+  for(var i=1;i<=7;i++) timesSel.appendChild(h('option',{value:i,selected:i===3},i+(i===1?' time':' times')+' a week'));
+  function drawDays(){ dayChips.replaceChildren.apply(dayChips,DAYN.map(function(n,i){ var on=days.indexOf(i+1)>=0; return h('button',{type:'button',class:'chip'+(on?' on':''),onclick:function(){ if(on) days=days.filter(function(x){ return x!==i+1; }); else days.push(i+1); drawDays(); }},n); })); }
+  var fwrap=h('div'), fchips=h('div',{class:'chips'});
+  function drawF(){ fchips.replaceChildren.apply(fchips,[['daily','Every day'],['days','Some days'],['week','Times a week']].map(function(o){ return h('button',{type:'button',class:'chip'+(freq===o[0]?' on':''),onclick:function(){ freq=o[0]; drawF(); }},o[1]); }));
+    fwrap.replaceChildren(freq==='days'?dayChips:freq==='week'?timesSel:''); if(freq==='days') drawDays(); }
+  drawF();
+  function save(p){ return rpc('pangea_habit_add',{p:p}).then(function(){ close(); toast('Habit added.'); refresh(); }).catch(function(e){ toast(errText(e)); }); }
+  var close=sheet(h('div',null,
+    h('div',{class:'row between'},h('h2',null,'Add a habit'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    h('p',{class:'sub'},'Small things, done often. Pick one of ours or write your own. Your coach can add more for you.'),
+    h('h3',{style:'margin:14px 0 8px'},'Pangea favourites'),
+    h('div',{class:'lib'},LIBRARY.filter(function(l){ return !((S.data.coaching.habits||[]).some(function(x){ return x.name===l.name; })); }).map(function(l){
+      return h('button',{type:'button',onclick:function(ev){ ev.currentTarget.disabled=true; save({name:l.name,details:l.details,freq:l.freq||'daily',times:l.times||1}); }},h('b',null,l.name),h('span',null,l.details)); })),
+    h('h3',{style:'margin:18px 0 4px'},'Your own'),
+    h('label',{for:'hn'},'Habit'),name,h('label',{for:'hd'},'Notes'),det,h('label',null,'How often'),fchips,h('div',{style:'margin-top:8px'},fwrap),
+    h('button',{class:'btn full',style:'margin-top:14px',onclick:function(){ if(!name.value.trim()) return toast('Give the habit a name.');
+      save({name:name.value.trim(),details:det.value.trim(),freq:freq,days:days,times:+timesSel.value}); }},'Add habit')));
+}
+function habitDetail(x){
+  var st=habitState(x), own=!x.group;
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,x.name),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    x.details?h('p',null,x.details):null,
+    h('p',{class:'sub'},st.label+(st.streak?' · '+st.streak+' day streak':'')+' · '+(x.total||0)+' done in total'),
+    (x.links||[]).map(function(l){ return h('p',null,h('a',{href:l.url,target:'_blank',rel:'noopener'},l.name||l.url)); }),
+    heat(x),
+    own?h('button',{class:'btn ghost small',style:'margin-top:14px',onclick:function(){ rpc('pangea_habit_stop',{p_id:x.id}).then(function(){ close(); toast('Habit stopped.'); refresh(); }).catch(function(e){ toast(errText(e)); }); }},'Stop this habit'):null));
+}
+function heat(x){
+  var t=today(), wrap=h('div',{style:'display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px'});
+  var startD=addDays(weekStart(t),-35);
+  for(var d=startD; d<=addDays(weekStart(t),6); d=addDays(d,1)){ var on=(x.logs||[]).indexOf(d)>=0, fut=d>t;
+    wrap.appendChild(h('div',{title:nice(d),style:'aspect-ratio:1;border-radius:6px;background:'+(fut?'transparent':on?'var(--green)':'var(--stone2)')+(d===t?';box-shadow:inset 0 0 0 2px var(--gold)':'')})); }
+  return h('div',null,h('div',{style:'display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;color:var(--muted);text-align:center;margin-top:12px'},DAYN.map(function(n){ return h('div',null,n[0]); })),wrap);
+}
+
+/* ---------- health ---------- */
+function marks(kind){ return (S.data.health||[]).filter(function(x){ return x.kind===kind; }); }
+function lastMark(kind){ var m=marks(kind); return m[m.length-1]; }
+function fmt(kind,m){ if(!m) return '–'; var n=Number(m.value); return kind==='bp'?Math.round(n)+'/'+Math.round(m.value2):kind==='steps'?n.toLocaleString():String(+n.toFixed(2)); }
+function sparkline(vals){ if(vals.length<2) return null; var w=120,hh=30,mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals),rg=mx-mn||1;
+  var pts=vals.map(function(v,i){ return (i*(w/(vals.length-1))).toFixed(1)+','+(hh-3-((v-mn)/rg)*(hh-6)).toFixed(1); }).join(' ');
+  var s=document.createElementNS('http://www.w3.org/2000/svg','svg'); s.setAttribute('viewBox','0 0 '+w+' '+hh); s.setAttribute('class','spark'); s.setAttribute('preserveAspectRatio','none');
+  s.innerHTML='<polyline points="'+pts+'" fill="none" stroke="#B88A44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'; return s; }
+function metricCard(kind){ var k=KINDS[kind], m=lastMark(kind), vals=marks(kind).slice(-14).map(function(x){ return Number(x.value); });
+  return h('button',{class:'metric',onclick:function(){ healthSheet(kind); }},h('span',null,k.name),h('b',null,fmt(kind,m),' ',h('span',null,m?k.unit:'')),
+    h('span',null,m?niceT(m.at):'Tap to log'),sparkline(vals)); }
+function weightCard(){ var w=(S.data.coaching.weights||[]), m=w[w.length-1], vals=w.slice(-14).map(function(x){ return Number(x.kg); });
+  return h('button',{class:'metric',onclick:weightSheet},h('span',null,'Weight'),h('b',null,m?String(+Number(m.kg).toFixed(1)):'–',' ',h('span',null,m?'kg':'')),h('span',null,m?niceT(m.at):'Tap to log'),sparkline(vals)); }
+function weightSheet(){
+  var kg=h('input',{id:'kg',inputmode:'decimal',placeholder:'72.4'}), w=(S.data.coaching.weights||[]).slice().reverse(), goal=S.data.coaching.goal;
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,'Weight'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    goal?h('p',{class:'sub'},'Goal: '+goal.kg+' kg'+(goal.on?' by '+nice(goal.on):'')):null,
+    h('label',{for:'kg'},'Today, in kg'),kg,h('button',{class:'btn full',style:'margin-top:12px',onclick:function(ev){ var b=ev.currentTarget; b.disabled=true;
+      rpc('weight_add',{p:{kg:kg.value.replace(',','.')}}).then(function(){ close(); toast('Saved.'); refresh(); }).catch(function(e){ toast(errText(e)); b.disabled=false; }); }},'Save'),
+    h('h3',{style:'margin:18px 0 6px'},'History'),w.length?w.slice(0,20).map(function(x){ return h('div',{class:'list-row'},h('div',{class:'grow'},niceT(x.at)),h('b',null,+Number(x.kg).toFixed(1)+' kg')); }):h('p',{class:'empty'},'Nothing yet.')));
+  setTimeout(function(){ kg.focus(); },60);
+}
+function healthSheet(kind){
+  var k=KINDS[kind], a=h('input',{id:'va',inputmode:'decimal',placeholder:k.two?'120':''}), b=k.two?h('input',{id:'vb',inputmode:'decimal',placeholder:'80'}):null;
+  var note=h('input',{id:'vn',placeholder:'Optional'}), date=h('input',{id:'vd',type:'date',value:today(),max:today()}), sc=null, scale=h('div',{class:'chips'});
+  if(k.scale){ for(var i=1;i<=5;i++)(function(i){ scale.appendChild(h('button',{type:'button',class:'chip',onclick:function(ev){ sc=i; [].forEach.call(scale.children,function(c){ c.classList.remove('on'); }); ev.currentTarget.classList.add('on'); }},String(i))); })(i); }
+  var hist=marks(kind).slice().reverse();
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,k.name),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    k.good?h('p',{class:'sub'},'A healthy range: '+k.good+(k.lab?'. Ask your doctor or coach what is right for you.':'')):null,
+    k.scale?[h('label',null,k.low?'1 is calm, 5 is very stressed':'1 is low, 5 is great'),scale]:
+      k.two?h('div',{class:'grid2'},h('div',null,h('label',{for:'va'},'Top number'),a),h('div',null,h('label',{for:'vb'},'Bottom number'),b)):[h('label',{for:'va'},k.unit),a],
+    h('div',{class:'grid2'},h('div',null,h('label',{for:'vd'},'Date'),date),h('div',null,h('label',{for:'vn'},'Note'),note)),
+    h('button',{class:'btn full',style:'margin-top:12px',onclick:function(ev){ var bt=ev.currentTarget, v=k.scale?sc:a.value.replace(',','.');
+      if(v==null||v==='') return toast(k.scale?'Pick a number.':'Type a number.');
+      bt.disabled=true; var at=date.value===today()?null:date.value+'T12:00:00+07:00';
+      rpc('pangea_health_add',{p:{kind:kind,value:v,value2:b?b.value:null,note:note.value,at:at}}).then(function(){ close(); toast('Saved.'); refresh(); }).catch(function(e){ toast(errText(e)); bt.disabled=false; }); }},'Save'),
+    h('h3',{style:'margin:18px 0 6px'},'History'),
+    hist.length?hist.slice(0,30).map(function(x){ return h('div',{class:'list-row'},h('div',{class:'grow'},niceT(x.at),x.note?h('div',{class:'sub'},x.note):null,x.coach?h('div',{class:'sub'},'Added by your coach'):null),
+      h('b',null,fmt(kind,x)),h('button',{class:'btn link',title:'Remove',onclick:function(){ rpc('pangea_health_remove',{p_id:x.id}).then(function(){ close(); refresh(); }).catch(function(e){ toast(errText(e)); }); }},'Remove')); }):h('p',{class:'empty'},'Nothing yet.')));
+  if(!k.scale) setTimeout(function(){ a.focus(); },60);
+}
+function uploadBloods(){
+  var inp=h('input',{type:'file',accept:'image/*,application/pdf'});
+  inp.onchange=function(){ var f=inp.files[0]; if(!f) return; if(f.size>15e6) return toast('That file is over 15 MB.');
+    var ext=(f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'jpg', path=S.data.me.id+'/health/bloods-'+Date.now()+'.'+ext;
+    toast('Uploading.');
+    sb.storage.from('coaching').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error;
+      return rpc('pangea_health_add',{p:{kind:'bloods',path:path,note:f.name.slice(0,120)}}); }).then(function(){ toast('Blood test saved. Your coach can see it.'); refresh(); }).catch(function(e){ toast(errText(e)); }); };
+  inp.click();
+}
+
+/* ---------- meals ---------- */
+function shrink(f,max){ return new Promise(function(res,rej){ var img=new Image(), u=URL.createObjectURL(f); img.onload=function(){ var s=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement('canvas');
+  c.width=Math.round(img.width*s); c.height=Math.round(img.height*s); c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(u); c.toBlob(function(b){ b?res(b):rej(new Error('Could not read that photo.')); },'image/jpeg',.82); };
+  img.onerror=function(){ rej(new Error('Could not read that photo.')); }; img.src=u; }); }
+function logMeal(){
+  var kinds=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner'],['snack','Snack'],['drink','Drink']], kind=(function(){ var hr=new Date().getHours(); return hr<11?'breakfast':hr<16?'lunch':hr<21?'dinner':'snack'; })();
+  var chips=h('div',{class:'chips'}), note=h('input',{id:'mn',placeholder:'What is it? (optional)'}), file=null, prev=h('div');
+  function drawK(){ chips.replaceChildren.apply(chips,kinds.map(function(k){ return h('button',{type:'button',class:'chip'+(kind===k[0]?' on':''),onclick:function(){ kind=k[0]; drawK(); }},k[1]); })); } drawK();
+  var pick=h('input',{type:'file',accept:'image/*',capture:'environment',style:'display:none'});
+  pick.onchange=function(){ file=pick.files[0]; if(file) prev.replaceChildren(h('img',{src:URL.createObjectURL(file),style:'width:100%;border-radius:14px;margin-top:10px;max-height:260px;object-fit:cover'})); };
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,'Log a meal'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    h('p',{class:'sub'},'A quick photo is enough. Your coach sees it and can reply.'),
+    pick,h('button',{class:'btn ghost full',onclick:function(){ pick.click(); }},'Take or choose a photo'),prev,
+    h('label',null,'Which meal'),chips,h('label',{for:'mn'},'Note'),note,
+    h('button',{class:'btn full',style:'margin-top:14px',onclick:function(ev){ if(!file) return toast('Add a photo first.'); var b=ev.currentTarget; b.disabled=true;
+      var path=S.data.me.id+'/food/'+Date.now()+'.jpg';
+      shrink(file,1600).then(function(blob){ return sb.storage.from('coaching').upload(path,blob,{contentType:'image/jpeg',upsert:false}); })
+        .then(function(r){ if(r.error) throw r.error; return rpc('food_add',{p:{path:path,kind:kind,note:note.value}}); })
+        .then(function(){ close(); toast('Meal logged.'); refresh(); }).catch(function(e){ toast(errText(e)); b.disabled=false; }); }},'Save meal')));
+}
+
+/* ---------- workouts ---------- */
+function todaysWorkouts(){ var c=S.data.coaching, d=wd(today()), out=[];
+  (c.programs||[]).forEach(function(p){ (p.routines||[]).forEach(function(r){ if(!r.day||Number(r.day)===d) out.push({p:p,r:r}); }); }); return out; }
+function workoutDone(p,r){ return (S.data.coaching.workouts||[]).some(function(w){ return w.program_id===p.id&&w.routine_id===r.id&&w.day===today(); }); }
+function workoutSheet(p,r){
+  var done=workoutDone(p,r);
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,r.name||'Workout'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    h('p',{class:'sub'},p.name),p.notes?h('p',null,p.notes):null,
+    (r.items||[]).map(function(it){ return it.kind==='section'?h('h3',{style:'margin:14px 0 4px'},it.name):
+      h('div',{class:'ex'},h('b',null,it.name||'Exercise'),h('div',{class:'sub'},[it.sets&&it.sets+' sets',it.reps&&it.reps+' reps',it.intensity,it.rest&&'rest '+it.rest].filter(Boolean).join(' · ')),
+        it.notes?h('div',{class:'sub'},it.notes):null,it.video?h('a',{href:it.video,target:'_blank',rel:'noopener'},'Watch'):null); }),
+    h('button',{class:'btn full'+(done?' ghost':''),style:'margin-top:16px',onclick:function(ev){ ev.currentTarget.disabled=true;
+      rpc('workout_mark',{p_program:p.id,p_routine:r.id,p_day:today(),p_done:!done,p_note:''}).then(function(){ close(); toast(done?'Unmarked.':'Workout done. Well done.'); refresh(); }).catch(function(e){ toast(errText(e)); }); }},done?'Mark as not done':'Mark as done')));
+}
+
+/* ---------- chat ---------- */
+var chatTimer=null;
+function openChat(opts,title){
+  rpc('chat_start',opts).then(function(id){ S.chat={id:id,title:title,msgs:[],last:null}; pollChat(true); }).catch(function(e){ toast(errText(e)); });
+}
+function pollChat(first){
+  if(!S.chat) return; var c=S.chat;
+  rpc('chat_messages',{p_chat:c.id,p_after:first?null:c.last}).then(function(m){ if(S.chat!==c) return;
+    if(m&&m.length){ c.msgs=first?m:c.msgs.concat(m); c.last=c.msgs[c.msgs.length-1].at; }
+    if(first||(m&&m.length)) render();
+    clearTimeout(chatTimer); chatTimer=setTimeout(pollChat,8000); }).catch(function(){ clearTimeout(chatTimer); chatTimer=setTimeout(pollChat,15000); });
+}
+function chatView(){
+  var c=S.chat, box=h('div',{class:'msgs'}), inp=h('textarea',{rows:'2',placeholder:'Write a message',id:'cm'});
+  c.msgs.forEach(function(m){ box.appendChild(h('div',{class:'msg'+(m.mine?' mine':'')},!m.mine?h('small',null,m.who):null,m.body||'')); });
+  if(!c.msgs.length) box.appendChild(h('p',{class:'empty center'},'Say hello. We usually reply the same day.'));
+  setTimeout(function(){ box.scrollTop=box.scrollHeight; },0);
+  return h('div',null,h('div',{class:'row between'},h('button',{class:'btn link',onclick:function(){ S.chat=null; clearTimeout(chatTimer); render(); }},'Back'),h('h2',null,c.title),h('span')),
+    h('div',{class:'card'},box),
+    h('div',{class:'row'},h('div',{class:'grow'},inp),h('button',{class:'btn',onclick:function(ev){ var b=inp.value.trim(); if(!b) return; ev.currentTarget.disabled=true;
+      rpc('chat_send',{p_chat:c.id,p_body:b}).then(function(){ inp.value=''; pollChat(false); }).catch(function(e){ toast(errText(e)); }).then(function(){ ev.target.disabled=false; }); }},'Send')));
+}
+
+/* ---------- journey ---------- */
+function serviceSheet(s){
+  var d=S.data, y=new Date().getFullYear(), loc=h('select',{id:'sl'}), yr=h('select',{id:'sy'}), mo=h('select',{id:'sm'}), note=h('input',{id:'sn',placeholder:'Anything we should know'});
+  d.locations.forEach(function(l){ loc.appendChild(h('option',{value:l.id,selected:s&&s.location_id===l.id},l.name+(l.status==='soon'?' (coming soon)':''))); });
+  for(var i=0;i<6;i++) yr.appendChild(h('option',{value:y+i,selected:s?s.year===y+i:i===0},String(y+i)));
+  mo.appendChild(h('option',{value:''},'Not sure yet'));
+  MON.forEach(function(m,i){ mo.appendChild(h('option',{value:i+1,selected:s&&s.month===i+1},m)); });
+  if(s) note.value=s.note||'';
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,s?'Change your plan':'Plan your Pangea service'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    h('p',{class:'sub'},'Like servicing a car, once a year you come back to a Pangea location to reset, test and level up. We will send you gentle reminders.'),
+    h('label',{for:'sl'},'Where'),loc,h('div',{class:'grid2'},h('div',null,h('label',{for:'sy'},'Year'),yr),h('div',null,h('label',{for:'sm'},'Month'),mo)),
+    h('label',{for:'sn'},'Note'),note,
+    h('button',{class:'btn full',style:'margin-top:14px',onclick:function(ev){ ev.currentTarget.disabled=true;
+      rpc('pangea_service_save',{p:{location_id:loc.value,year:yr.value,month:mo.value,note:note.value}}).then(function(){ close(); toast('Saved to your plan.'); refresh(); }).catch(function(e){ toast(errText(e)); ev.target.disabled=false; }); }},'Save'),
+    s?h('button',{class:'btn ghost full',style:'margin-top:8px',onclick:function(){ rpc('pangea_service_remove',{p_id:s.id}).then(function(){ close(); refresh(); }).catch(function(e){ toast(errText(e)); }); }},'Remove this year'):null));
+}
+
+/* ---------- sheets ---------- */
+function sheet(content){ var bg=h('div',{class:'sheet-bg',onclick:function(ev){ if(ev.target===bg) close(); }},h('div',{class:'sheet',role:'dialog','aria-modal':'true'},content));
+  function close(){ bg.remove(); document.body.style.overflow=''; } document.body.appendChild(bg); document.body.style.overflow='hidden'; return close; }
+
+/* ---------- screens ---------- */
+function ring(done,total){ var r=26,c=2*Math.PI*r,p=total?done/total:0, s=document.createElementNS('http://www.w3.org/2000/svg','svg'); s.setAttribute('viewBox','0 0 64 64'); s.setAttribute('class','ring');
+  s.innerHTML='<circle cx="32" cy="32" r="'+r+'" fill="none" stroke="#E7E2D6" stroke-width="6"/><circle cx="32" cy="32" r="'+r+'" fill="none" stroke="#B88A44" stroke-width="6" stroke-linecap="round" stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+(c*(1-p)).toFixed(1)+'" transform="rotate(-90 32 32)"/><text x="32" y="37" text-anchor="middle" font-family="Inter,sans-serif" font-weight="600" font-size="15" fill="#101311">'+done+'/'+total+'</text>'; return s; }
+function greet(){ var hr=new Date().getHours(); return hr<12?'Good morning':hr<18?'Good afternoon':'Good evening'; }
+
+function todayView(){
+  var d=S.data, c=d.coaching, hab=(c.habits||[]).filter(function(x){ return !x.stopped_on; }), st=hab.map(function(x){ return {x:x,s:habitState(x)}; });
+  var due=st.filter(function(o){ return o.s.due; }), done=due.filter(function(o){ return o.s.done; }).length, rest=st.filter(function(o){ return !o.s.due; });
+  var t=today(), stay=d.stay;
+  var feel=FEEL.map(function(k){ var m=lastMark(k), todayVal=m&&String(m.at).slice(0,10)===t?Number(m.value):null, chips=h('div',{class:'chips'});
+    for(var i=1;i<=5;i++)(function(i){ chips.appendChild(h('button',{type:'button',class:'chip'+(todayVal===i?' on':''),'aria-label':KINDS[k].name+' '+i,onclick:function(){
+      rpc('pangea_health_add',{p:{kind:k,value:i}}).then(function(){ toast(KINDS[k].name+' saved.'); refresh(); }).catch(function(e){ toast(errText(e)); }); }},String(i))); })(i);
+    return h('div',{class:'row between',style:'margin-top:8px'},h('div',{style:'font-weight:600;width:70px'},KINDS[k].name),chips); });
+  var wo=todaysWorkouts();
+  return h('div',null,
+    h('div',{class:'hero'},h('div',{class:'sub'},DAYN[wd(t)-1]+' '+nice(t)),h('h1',null,greet()+', '+first(d.me.name)),
+      h('p',{class:'sub',style:'margin:6px 0 0'},due.length?(done===due.length?'Everything ticked today. That is how lives get longer.':'Small things, done often. '+(due.length-done)+' to go today.'):'Add a habit to start building your day.')),
+    stay?h('div',{class:'card dark'},h('div',{class:'sub'},String(stay.check_in)<=t?'You are staying with us':'Your next stay'),
+      h('h3',{style:'color:#fff;margin:2px 0'},(stay.room||'Pangea Phuket King')),h('div',{class:'sub'},nice(stay.check_in)+' to '+nice(stay.check_out))):null,
+    h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('h2',null,'Today'),h('div',{class:'sub'},'Tap the circle when it is done')),due.length?ring(done,due.length):null),
+      h('div',{style:'margin-top:6px'},due.length?due.map(function(o){ var x=o.x,s=o.s, b=h('button',{class:'tick'+(s.done?' on':''),'aria-label':(s.done?'Untick ':'Tick ')+x.name,onclick:function(ev){ markHabit(x,ev.currentTarget); }},svg(CHECK));
+        return h('div',{class:'habit'},b,h('div',{class:'grow',style:'cursor:pointer',onclick:function(){ habitDetail(x); }},h('div',{class:'hname'},x.name),h('div',{class:'sub'},s.label+(s.streak>1?' · '+s.streak+' day streak':'')))); }):h('p',{class:'empty'},'No habits for today yet.')),
+      rest.length?h('div',{class:'sub',style:'margin-top:8px'},'Not today: '+rest.map(function(o){ return o.x.name; }).join(', ')):null,
+      h('button',{class:'btn ghost small',style:'margin-top:10px',onclick:habitSheet},'Add a habit')),
+    wo.length?h('div',{class:'card'},h('h2',null,'Training'),wo.map(function(o){ var dn=workoutDone(o.p,o.r);
+      return h('div',{class:'habit',style:'cursor:pointer',onclick:function(){ workoutSheet(o.p,o.r); }},h('div',{class:'tick'+(dn?' on':'')},svg(CHECK)),h('div',{class:'grow'},h('div',{class:'hname'},o.r.name||'Workout'),h('div',{class:'sub'},o.p.name+' · '+(o.r.items||[]).filter(function(i){ return i.kind!=='section'; }).length+' exercise'+((o.r.items||[]).filter(function(i){ return i.kind!=='section'; }).length===1?'':'s')))); })):null,
+    h('div',{class:'card'},h('h2',null,'How do you feel?'),h('div',{class:'sub'},'1 is low, 5 is great. For stress, 5 is very stressed.'),feel,
+      h('div',{class:'row',style:'margin-top:14px;gap:8px;flex-wrap:wrap'},h('button',{class:'btn small',onclick:function(){ healthSheet('sleep'); }},'Log sleep'),h('button',{class:'btn small ghost',onclick:weightSheet},'Log weight'),h('button',{class:'btn small ghost',onclick:logMeal},'Log a meal'))),
+    (c.food||[]).length?h('div',{class:'card'},h('h3',null,'Recent meals'),h('div',{style:'display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px'},
+      c.food.slice(0,6).map(function(f){ var u=S.signed[f.path]; return h('div',{style:'aspect-ratio:1;border-radius:12px;background:var(--stone2) center/cover'+(u?' url('+JSON.stringify(u)+')':''),title:(f.note||f.kind)+(f.coach_note?' · Coach: '+f.coach_note:'')}); })),
+      c.food.some(function(f){ return f.coach_note; })?h('p',{class:'sub',style:'margin:8px 0 0'},'Coach: '+c.food.filter(function(f){ return f.coach_note; })[0].coach_note):null):null);
+}
+function healthView(){
+  var bl=marks('bloods').slice().reverse();
+  return h('div',null,h('h1',null,'Health'),h('p',{class:'sub'},'Your numbers in one place. Log them yourself or your coach can add them.'),
+    h('h3',{style:'margin:16px 0 8px'},'Body'),h('div',{class:'grid2'},weightCard(),BODY.map(metricCard)),
+    h('h3',{style:'margin:18px 0 8px'},'Feeling'),h('div',{class:'grid2'},FEEL.map(metricCard)),
+    h('h3',{style:'margin:18px 0 8px'},'Blood markers'),h('div',{class:'grid2'},LABS.map(metricCard)),
+    h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('h3',null,'Blood tests'),h('div',{class:'sub'},'Upload a photo or PDF of your results.')),h('button',{class:'btn small',onclick:uploadBloods},'Upload')),
+      bl.length?bl.map(function(x){ var u=S.signed[x.path]; return h('div',{class:'list-row'},h('div',{class:'grow'},h('div',{style:'font-weight:600'},x.note||'Blood test'),h('div',{class:'sub'},niceT(x.at))),
+        u?h('a',{class:'btn small ghost',href:u,target:'_blank',rel:'noopener'},'Open'):h('span',{class:'sub'},'…')); }):h('p',{class:'empty'},'None yet. Bring your last results, or book bloods on your next Pangea stay.')),
+    h('p',{class:'sub center',style:'margin-top:16px'},'Pangea is not a medical service. Talk to your doctor about your results.'));
+}
+function journeyView(){
+  var d=S.data, plan=d.service||[];
+  return h('div',null,h('h1',null,'Your journey'),
+    h('div',{class:'card dark'},h('p',{style:'margin:0;font-size:16px'},'Pangea is not a retreat or a one time escape. It is a lifestyle we help you build, and we stay with you.'),
+      h('p',{class:'sub',style:'margin:10px 0 0'},'Every year you choose a Pangea location for your service: train, test, rest and come home with a plan. The sport is the vessel, not the end.')),
+    h('div',{class:'card'},h('div',{class:'row between'},h('h2',null,'My Pangea plan'),h('button',{class:'btn small',onclick:function(){ serviceSheet(null); }},'Add a year')),
+      plan.length?plan.map(function(s){ return h('div',{class:'list-row',style:'cursor:pointer',onclick:function(){ serviceSheet(s); }},h('div',{style:'font-family:Cormorant Garamond,Georgia,serif;font-size:24px;font-weight:600;width:62px'},String(s.year)),
+        h('div',{class:'grow'},h('div',{style:'font-weight:600'},s.location),h('div',{class:'sub'},(s.month?MON[s.month-1]+' · ':'')+s.focus+(s.note?' · '+s.note:''))),h('span',{class:'sub'},'Change')); }):
+        h('p',{class:'empty'},'Pick where and when your next service will be. We will remind you as it gets close.')),
+    h('div',{class:'card'},h('h2',null,'Pangea locations'),d.locations.map(function(l){ return h('div',{class:'loc'},h('div',{class:'dot'+(l.status==='open'?' open':'')}),
+      h('div',{class:'grow'},h('div',{class:'row between'},h('b',null,l.name),h('span',{class:'pill'+(l.status==='open'?' gold':'')},l.status==='open'?'Open':'Coming soon')),
+        h('div',{class:'sub'},l.focus+(l.place?' · '+l.place:'')),l.status==='open'&&l.blurb?h('p',{style:'margin:6px 0 0;font-size:14px'},l.blurb):null)); }),
+      h('a',{class:'btn gold full',style:'display:block;text-align:center;text-decoration:none;margin-top:12px;line-height:22px',href:'https://me.pangeaglobalwellness.com/phuket',target:'_blank',rel:'noopener'},'Book Pangea Phuket King')));
+}
+var LEVELS={app:['Pangea App','Habits, programs, your health numbers and your yearly plan.'],coach:['Pangea Coach','Everything in the app plus your own coach who checks in, reviews meals and sets your habits.'],pangea:['Pangea Complete','Your coach, bloods and full wellness care, with your yearly service at a Pangea location.']};
+function coachView(){
+  if(S.chat) return chatView();
+  var d=S.data, lv=d.me.level||'app', coaches=d.coaching.coaches||[];
+  return h('div',null,h('h1',null,'Coach'),
+    lv==='app'?h('div',{class:'card dark'},h('h2',{style:'color:#fff'},'Want a coach in your pocket?'),
+      h('p',{class:'sub'},'With Pangea Coach, a real person sets your habits, reviews your meals and checks in with you every week. The app is nothing without the humans behind it.'),
+      h('button',{class:'btn gold',style:'margin-top:6px',onclick:function(){ openChat({p_desk:true},'Pangea team'); }},'Ask about coaching')):null,
+    coaches.length?h('div',{class:'card'},h('h2',null,'Your coach'+(coaches.length>1?'es':'')),coaches.map(function(s){
+      return h('div',{class:'list-row'},h('div',{class:'grow'},h('b',null,s.name)),h('button',{class:'btn small',onclick:function(){ openChat({p_staff:s.id},s.name); }},'Message')); })):
+      lv!=='app'?h('div',{class:'card'},h('p',{class:'empty'},'Your coach will appear here once they are assigned.')):null,
+    h('div',{class:'card'},h('h3',null,'Pangea team'),h('p',{class:'sub'},'Questions about bookings, stays or your plan.'),h('button',{class:'btn ghost small',onclick:function(){ openChat({p_desk:true},'Pangea team'); }},'Message the team')),
+    h('div',{class:'card'},h('h3',null,'Levels'),Object.keys(LEVELS).map(function(k){ return h('div',{class:'list-row'},h('div',{class:'grow'},h('b',null,LEVELS[k][0]),h('div',{class:'sub'},LEVELS[k][1])),k===lv?h('span',{class:'pill green'},'You'):null); })));
+}
+function meView(){
+  var d=S.data, lv=LEVELS[d.me.level||'app'];
+  return h('div',null,h('h1',null,d.me.name||'Me'),h('p',{class:'sub'},d.me.email||''),
+    h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('div',{class:'sub'},'Your level'),h('h3',null,lv[0])),h('span',{class:'pill gold'},'Member')),h('p',{class:'sub',style:'margin:6px 0 0'},lv[1])),
+    h('div',{class:'card'},h('h3',null,'Phuket King'),h('p',{class:'sub'},'Check in, book privates, classes and your room in the Phuket King app. Same account.'),h('a',{class:'btn ghost small',href:'../',style:'display:inline-block;text-decoration:none;line-height:20px'},'Open Phuket King')),
+    h('div',{class:'card'},h('p',{class:'sub',style:'margin-top:0'},'Add Pangea to your home screen: in Safari tap Share, then Add to Home Screen.'),
+      h('button',{class:'btn ghost small',onclick:function(){ sb.auth.signOut(); }},'Sign out')),
+    h('p',{class:'sub center'},'Pangea Global Wellness · People | Places | Longer Lives'));
+}
+
+var TABS=[['today','Today'],['health','Health'],['journey','Journey'],['coach','Coach'],['me','Me']];
+function render(){
+  if(!S.data) return;
+  var view={today:todayView,health:healthView,journey:journeyView,coach:coachView,me:meView}[S.tab]();
+  var y=window.scrollY;
+  $app.replaceChildren(h('div',{class:'wrap'},h('div',{class:'top'},h('img',{src:'logo.svg',alt:''}),h('div',{class:'brand'},'PANGEA',h('small',null,'Global Wellness'))),view),
+    h('nav',{class:'tabs','aria-label':'Sections'},TABS.map(function(t){ return h('button',{class:S.tab===t[0]?'on':null,'aria-current':S.tab===t[0]?'page':null,onclick:function(){
+      if(S.tab!==t[0]){ S.tab=t[0]; if(t[0]!=='coach'){ S.chat=null; clearTimeout(chatTimer); } history.replaceState(null,'','#'+t[0]); render(); window.scrollTo(0,0); } }},svg(IC[t[0]]),t[1]); })));
+  window.scrollTo(0,y);
+}
+
+/* ---------- start ---------- */
+var recovery=/type=recovery/.test(location.hash);
+sb.auth.onAuthStateChange(function(ev,session){ setTimeout(function(){ onAuth(ev,session); },0); });
+function onAuth(ev,session){
+  if(ev==='PASSWORD_RECOVERY'){ recovery=true; newPasswordView(); return; }
+  var had=!!S.session; S.session=session;
+  if(!session){ S.data=null; authView('in'); return; }
+  if(recovery) return;
+  if(!had) load();
+}
+document.addEventListener('visibilitychange',function(){ if(!document.hidden&&S.data&&!S.chat) refresh(); });
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body>
+</html>

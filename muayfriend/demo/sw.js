@@ -1,22 +1,23 @@
 // Keeps the app installable and opens the last copy when there is no signal.
 // Always tries the network first, so updates show up straight away. Data calls are never cached.
-const CACHE = 'mf-demo-v66';
+const CACHE = 'mf-demo-v68';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './vendor/supabase-js-2.117.2.js', './vendor/qrcode-generator-1.4.4.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && !k.startsWith('pangea-')).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
   e.respondWith(fetch(req).then((res) => {
     // only the app itself is kept as the offline copy, never other pages (invoice, booking)
-    const appPage = req.mode === 'navigate' && (/\/$/.test(url.pathname) || /\/index\.html$/.test(url.pathname));
+    const root = new URL('./', self.location).pathname;
+    const appPage = req.mode === 'navigate' && (url.pathname === root || url.pathname === root + 'index.html');
     if (res.ok && (appPage || (req.mode !== 'navigate' && SHELL.some((p) => url.pathname.endsWith(p.replace('./', '/')))))) {
       const copy = res.clone(); caches.open(CACHE).then((c) => c.put(appPage ? './' : req, copy));
     }
     return res;
-  }).catch(() => caches.match(req.mode === 'navigate' ? (/\/$|\/index\.html$/.test(url.pathname) ? './' : req) : req).then((r) => r || caches.match('./'))));
+  }).catch(() => { const root = new URL('./', self.location).pathname; return caches.match(req.mode === 'navigate' ? ((url.pathname === root || url.pathname === root + 'index.html') ? './' : req) : req).then((r) => r || (url.pathname.startsWith(root + 'pangea/') ? r : caches.match('./'))); }));
 });
 
 // Website chat notifications for the desk (turned on in the app: Messages, Website chat).

@@ -216,3 +216,6 @@ do $$ declare d text := pg_get_functiondef('public.chat_start(uuid,uuid,boolean)
     execute d;
   end if;
 end $$;
+
+alter table public.notices drop constraint if exists notices_kind_check2;
+alter table public.notices add constraint notices_kind_check2 check (kind in ('signup','first_signin','package','stay','refund','shop','prearrival','pangea_service'));
