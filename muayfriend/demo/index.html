@@ -695,7 +695,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -3964,16 +3964,17 @@ function accAi(x){ x._ai='busy'; schedule();
     .then(function(d){ if(d.error) throw {plain:true,message:d.error}; x._ai=d; x._f=Object.assign({},x._f||{},{supplier:d.supplier||x.supplier||'',day:d.day||x.day,amount:d.amount!=null?d.amount:x.amount,method:d.method||x.method,category:d.category||x.category||'',business:d.business||x.business,department:d.department||x.department,note:d.note||x.note||''}); schedule(); })
     .catch(function(e){ x._ai=null; toast(errText(e)); schedule(); throw e; }); }
 function accRcCard(x){
-  var f=x._f=x._f||{supplier:x.supplier||'',day:x.day,amount:x.amount,method:x.method,category:x.category||'',business:x.business,department:x.department,note:x.note||''}, id='ar'+x.id;
+  var f=x._f=x._f||{supplier:x.supplier||'',day:x.day,amount:x.amount,method:x.method,category:x.category||'',business:x.business,department:x.department,note:x.note||'',purpose:x.purpose||'',place_id:x.place_id||''}, id='ar'+x.id;
+  if(f.purpose===undefined) f.purpose=x.purpose||''; if(f.place_id===undefined) f.place_id=x.place_id||'';
   function inp(k,a){ a=a||{}; var e=h('input',{id:id+k,type:a.type||'text',step:a.type==='number'?'0.01':null,placeholder:a.ph||null}); e.value=f[k]==null?'':f[k]; e.addEventListener('input',function(){ f[k]=e.value; }); return e; }
   function sel(k,opts){ var e=h('select',{id:id+k,onchange:function(ev){ f[k]=ev.target.value; if(k==='business') schedule(); }},opts.map(function(o){ return h('option',{value:o[0]},o[1]); })); e.value=f[k]||''; return e; }
   var deps=(ACC_DEPTS[f.business]||[]).concat(['Gym','Gym shop','Spa','Camp Rooms','Fight Cafe','Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other']).filter(function(v,i,a){ return a.indexOf(v)===i; });
   var img=h('div',{class:'accrcimg'},'Loading the photo');
   if(x.photo_path){ if(x._url) img.replaceChildren(h('img',{src:x._url,alt:'Receipt'})); else if(!x._urlAsked){ x._urlAsked=true; sb.storage.from('receipts').createSignedUrl(x.photo_path,3600).then(function(r){ if(r.data&&r.data.signedUrl){ x._url=r.data.signedUrl; schedule(); } }); } }
   var save=btn('Save',function(){ var a=f.amount===''||f.amount==null?null:Number(f.amount); if(a==null||isNaN(a)){ toast('Type the amount.'); return; } if(!f.category){ toast('Choose a category.'); return; } save.disabled=true;
-    sb.rpc('receipt_save',{p:{id:x.id,day:f.day,amount:a,method:f.method,supplier:f.supplier,note:f.note,status:'checked'}}).then(must)
+    sb.rpc('receipt_save',{p:{id:x.id,day:f.day,amount:a,method:f.method,supplier:f.supplier,note:f.note,purpose:f.purpose,place_id:f.place_id||null,status:'checked'}}).then(must)
       .then(function(){ return sb.rpc('receipt_category',{p_id:x.id,p_category:f.category,p_business:f.business,p_department:f.department}).then(must); })
-      .then(function(){ toast('Saved.'); Object.assign(x,{amount:a,category:f.category,business:f.business,department:f.department,supplier:f.supplier,day:f.day,status:'checked'}); ACC.data=null; accLoad(); schedule(); })
+      .then(function(){ toast('Saved.'); Object.assign(x,{amount:a,category:f.category,business:f.business,department:f.department,supplier:f.supplier,day:f.day,purpose:f.purpose,place_id:f.place_id,status:'checked'}); WORK=null; ACC.data=null; accLoad(); schedule(); })
       .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
   return h('div',{class:'panel pad accrc'+(ACC.rcFocus===x.id?' focus':'')},
     h('a',{class:'accrcimgw',href:x._url||null,target:'_blank',rel:'noopener'},x._url?h('img',{src:x._url,alt:'Receipt photo'}):img),
@@ -3983,6 +3984,8 @@ function accRcCard(x){
         h('div',{class:'field'},h('label',{for:id+'category'},'Category'),sel('category',[['','Choose']].concat(ACC_OUT.map(function(c){ return [c,c]; })))),
         h('div',{class:'field'},h('label',{for:id+'business'},'Business'),sel('business',BIZ.map(function(b){ return [b,b]; }))),
         h('div',{class:'field'},h('label',{for:id+'department'},'Department'),sel('department',deps.map(function(v){ return [v,v]; }))),
+        h('div',{class:'field'},h('label',{for:id+'purpose'},'What is it for'),inp('purpose',{ph:'For example: fix the bathroom leak'})),
+        h('div',{class:'field'},h('label',{for:id+'place_id'},'Where (room or area)'),(function(){ var e=placeSelect(id+'place_id','Not for one place',f.place_id); e.addEventListener('change',function(){ f.place_id=e.value; }); return e; })()),
         h('div',{class:'field'},h('label',{for:id+'note'},'Note'),inp('note'))),
       h('div',{class:'row'},btn(x._ai==='busy'?'Reading...':x._ai?'Read again':'Read with AI',function(){ accAi(x).catch(function(){}); },'small'),save))); }
 function accCsv(all){
@@ -4309,7 +4312,7 @@ var KTX={
       in:'Check in',out:'Check out',notIn:'မဝင်ရသေး',inNow:'ဝင်ချိန်',doneTxt:'ပြီးပြီ',inOk:'ဝင်ချိန်',outOk:'ထွက်ချိန်',pDone:'',privates:'',classes:'',shift:'ကျွန်ုပ်၏ အလုပ်ချိန်',shiftIn:'အလုပ်စ',shiftOut:'အလုပ်ပြီး',none:'ဒီနေ့ မရှိပါ။',noShift:'အလုပ်မစရသေး'}};
 function clkLang(){ return me&&me.role==='coach'?coLang():me&&me.role==='housekeeping'?hkLang():me&&me.role==='maintenance'?mtLang():'en'; }
 function mtLang(){ var l=pref('pk_lang_mt'); return l==='th'||l==='my'?l:'en'; }
-function setMtLang(l){ pref('pk_lang_mt',l==='en'?null:l); document.documentElement.lang=l; TABS=[['jobs',AX('jobsTab')],['clock',K('tab')]]; schedule(); }
+function setMtLang(l){ pref('pk_lang_mt',l==='en'?null:l); document.documentElement.lang=l; TABS=[['jobs',AX('jobsTab')],['work',WX('tab')],['clock',K('tab')]]; schedule(); }
 function K(k){ var l=KTX[clkLang()]||KTX.en; return l[k]||KTX.en[k]; }
 function devId(){ try{ var d=localStorage.getItem('pk_dev'); if(!d){ d=Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); localStorage.setItem('pk_dev',d); } return d; }catch(e){ return 'no-storage'; } }
 function staffCodeOk(){ return !!(STAFFCODE&&Date.now()-STAFFCODE.t<10*60000); }
@@ -5167,13 +5170,13 @@ function vContacts(){
 /* ---------- receipts: anyone photographs a receipt, the manager checks them and downloads them for the accounts ---------- */
 var RDEPTS=['Gym','Gym shop','Spa','Camp Rooms','Fight Cafe','Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other'];
 var RXT={
-  en:{cam:'Take a photo',gal:'From gallery or files',btn:'Receipt',title:'Add a receipt',note:'Take a photo of the receipt. The manager sees it and it goes into the accounts.',photo:'Photo of the receipt',dept:'Department',amount:'Total paid (THB)',what:'Shop, or what it was for',paid:'Paid by',day:'Date on the receipt',save:'Send',cancel:'Cancel',sent:'Receipt sent. Thank you.',needPhoto:'Take a photo of the receipt first.',needDept:'Choose the department.',sending:'Sending...',
+  en:{cam:'Take a photo',gal:'From gallery or files',btn:'Receipt',title:'Add a receipt',note:'Take a photo of the receipt. The manager sees it and it goes into the accounts.',photo:'Photo of the receipt',dept:'Department',amount:'Total paid (THB)',what:'Shop or supplier',paid:'Paid by',day:'Date on the receipt',save:'Send',cancel:'Cancel',sent:'Receipt sent. Thank you.',needPhoto:'Take a photo of the receipt first.',needDept:'Choose the department.',sending:'Sending...',for:'What is it for',forHint:'For example: fix the leak in the bathroom, new tap',where:'Where (room or area)',whereNone:'Not for one place',
     m:{transfer:'Transfer or PromptPay',scan:'Scan QR',cash:'Cash',card:'Card'},
     d:{'Gym':'Gym','Gym shop':'Gym shop','Spa':'Spa','Camp Rooms':'Camp Rooms','Fight Cafe':'Fight Cafe','Housekeeping':'Housekeeping','Maintenance':'Maintenance','Office':'Office','Marketing':'Marketing','Visa and DTV':'Visa and DTV','Other':'Other'}},
-  th:{cam:'ถ่ายรูป',gal:'เลือกจากคลังรูปหรือไฟล์',btn:'ใบเสร็จ',title:'เพิ่มใบเสร็จ',note:'ถ่ายรูปใบเสร็จ ผู้จัดการจะเห็นและนำเข้าบัญชี',photo:'รูปใบเสร็จ',dept:'แผนก',amount:'ยอดที่จ่าย (บาท)',what:'ร้าน หรือ ซื้ออะไร',paid:'จ่ายโดย',day:'วันที่ในใบเสร็จ',save:'ส่ง',cancel:'ยกเลิก',sent:'ส่งใบเสร็จแล้ว ขอบคุณ',needPhoto:'ถ่ายรูปใบเสร็จก่อน',needDept:'เลือกแผนก',sending:'กำลังส่ง...',
+  th:{for:'ซื้อเพื่ออะไร',forHint:'เช่น ซ่อมท่อรั่วในห้องน้ำ, ก๊อกน้ำใหม่',where:'ที่ไหน (ห้อง หรือ พื้นที่)',whereNone:'ไม่ได้ใช้ที่ใดที่หนึ่ง',cam:'ถ่ายรูป',gal:'เลือกจากคลังรูปหรือไฟล์',btn:'ใบเสร็จ',title:'เพิ่มใบเสร็จ',note:'ถ่ายรูปใบเสร็จ ผู้จัดการจะเห็นและนำเข้าบัญชี',photo:'รูปใบเสร็จ',dept:'แผนก',amount:'ยอดที่จ่าย (บาท)',what:'ร้าน หรือ ซื้ออะไร',paid:'จ่ายโดย',day:'วันที่ในใบเสร็จ',save:'ส่ง',cancel:'ยกเลิก',sent:'ส่งใบเสร็จแล้ว ขอบคุณ',needPhoto:'ถ่ายรูปใบเสร็จก่อน',needDept:'เลือกแผนก',sending:'กำลังส่ง...',
     m:{transfer:'โอน หรือ พร้อมเพย์',scan:'สแกน QR',cash:'เงินสด',card:'บัตร'},
     d:{'Gym':'ยิม','Gym shop':'ร้านค้ายิม','Spa':'สปา','Camp Rooms':'รีสอร์ท Fight Camp','Fight Cafe':'คาเฟ่ Fight Camp','Housekeeping':'แม่บ้าน','Maintenance':'ซ่อมบำรุง','Office':'ออฟฟิศ','Marketing':'การตลาด','Visa and DTV':'วีซ่า และ DTV','Other':'อื่นๆ'}},
-  my:{cam:'ဓာတ်ပုံရိုက်ရန်',gal:'ဓာတ်ပုံများ သို့မဟုတ် ဖိုင်မှ ရွေးရန်',btn:'ပြေစာ',title:'ပြေစာ ထည့်ရန်',note:'ပြေစာကို ဓာတ်ပုံရိုက်ပါ။ မန်နေဂျာ မြင်ပြီး စာရင်းထဲ ထည့်ပါမည်။',photo:'ပြေစာ ဓာတ်ပုံ',dept:'ဌာန',amount:'ပေးခဲ့သော စုစုပေါင်း (ဘတ်)',what:'ဆိုင် သို့မဟုတ် ဘာအတွက်',paid:'ပေးချေနည်း',day:'ပြေစာပါ ရက်စွဲ',save:'ပို့ရန်',cancel:'မလုပ်တော့ပါ',sent:'ပြေစာ ပို့ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',needPhoto:'ပြေစာကို အရင် ဓာတ်ပုံရိုက်ပါ။',needDept:'ဌာန ရွေးပါ။',sending:'ပို့နေသည်...',
+  my:{for:'ဘာအတွက်လဲ',forHint:'ဥပမာ ရေချိုးခန်း ယိုစိမ့်မှု ပြင်ရန်',where:'ဘယ်နေရာ (အခန်း သို့မဟုတ် နေရာ)',whereNone:'နေရာတစ်ခုအတွက် မဟုတ်ပါ',cam:'ဓာတ်ပုံရိုက်ရန်',gal:'ဓာတ်ပုံများ သို့မဟုတ် ဖိုင်မှ ရွေးရန်',btn:'ပြေစာ',title:'ပြေစာ ထည့်ရန်',note:'ပြေစာကို ဓာတ်ပုံရိုက်ပါ။ မန်နေဂျာ မြင်ပြီး စာရင်းထဲ ထည့်ပါမည်။',photo:'ပြေစာ ဓာတ်ပုံ',dept:'ဌာန',amount:'ပေးခဲ့သော စုစုပေါင်း (ဘတ်)',what:'ဆိုင် သို့မဟုတ် ဘာအတွက်',paid:'ပေးချေနည်း',day:'ပြေစာပါ ရက်စွဲ',save:'ပို့ရန်',cancel:'မလုပ်တော့ပါ',sent:'ပြေစာ ပို့ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',needPhoto:'ပြေစာကို အရင် ဓာတ်ပုံရိုက်ပါ။',needDept:'ဌာန ရွေးပါ။',sending:'ပို့နေသည်...',
     m:{transfer:'ငွေလွှဲ / PromptPay',scan:'QR စကန်',cash:'ငွေသား',card:'ကတ်'},
     d:{'Gym':'ဂျင်','Gym shop':'ဂျင် ဆိုင်','Spa':'စပါ','Camp Rooms':'Fight Camp ရီဆော့','Fight Cafe':'Fight Camp ကဖေး','Housekeeping':'အိမ်ထိန်း','Maintenance':'ပြုပြင်ထိန်းသိမ်းရေး','Office':'ရုံး','Marketing':'စျေးကွက်','Visa and DTV':'ဗီဇာ နှင့် DTV','Other':'အခြား'}}};
 function RX(k){ var l=RXT[clkLang()]||RXT.en; return l[k]!==undefined?l[k]:RXT.en[k]; }
@@ -5192,6 +5195,7 @@ function expReceipt(){
   var dept=h('select',{id:'rx-dept'},[h('option',{value:''},'')].concat(RDEPTS.map(function(d){ return h('option',{value:d},RX('d')[d]||d); })));
   var amt=h('input',{type:'number',id:'rx-amt',inputmode:'decimal',min:'0',step:'any'}), what=h('input',{type:'text',id:'rx-what'}), day=h('input',{type:'date',id:'rx-day',value:ymd(new Date()),max:ymd(new Date())});
   var meth=h('select',{id:'rx-m'},['transfer','scan','cash','card'].map(function(k){ return h('option',{value:k},RX('m')[k]); }));
+  var purpose=h('input',{type:'text',id:'rx-for',placeholder:RX('forHint')}), where=placeSelect('rx-where',RX('whereNone'),ui.workPlace&&ui.tab==='work'?ui.workPlace:'');
   var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
   function bad(m){ err.textContent=m; err.hidden=false; }
   var go=btn(RX('save'),function(){
@@ -5200,15 +5204,109 @@ function expReceipt(){
     busy=true; go.disabled=true; go.textContent=RX('sending');
     shrinkImage(f).then(function(blob){ var ext=blob.type==='application/pdf'?'pdf':'jpg', path=currentUser+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
       return sb.storage.from('receipts').upload(path,blob,{contentType:blob.type||'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return path; }); })
-    .then(function(path){ return sb.rpc('receipt_add',{p:{photo_path:path,department:dept.value,amount:amt.value||null,method:meth.value,supplier:what.value||null,day:day.value||null}}).then(must); })
-    .then(function(){ $dlg.close(); toast(RX('sent')); if(me&&me.role==='manager'){ RCPT=null; schedule(); } })
+    .then(function(path){ return sb.rpc('receipt_add',{p:{photo_path:path,department:dept.value,amount:amt.value||null,method:meth.value,supplier:what.value||null,day:day.value||null,purpose:purpose.value||null,place_id:where.value||null}}).then(must); })
+    .then(function(){ $dlg.close(); toast(RX('sent')); WORK=null; if(me&&me.role==='manager'){ RCPT=null; schedule(); } })
     .catch(function(e){ busy=false; go.disabled=false; go.textContent=RX('save'); bad(errText(e)); });
   },'primary');
   shopDlg(h('div',{class:'billbox'},h('h2',null,RX('title')),h('p',{class:'sub'},RX('note')),
-    h('div',{class:'field'},h('label',null,RX('photo')),pick,fname),prev,field('rx-dept',RX('dept'),dept),field('rx-amt',RX('amount'),amt),field('rx-what',RX('what'),what),field('rx-m',RX('paid'),meth),field('rx-day',RX('day'),day),err,
+    h('div',{class:'field'},h('label',null,RX('photo')),pick,fname),prev,field('rx-dept',RX('dept'),dept),field('rx-amt',RX('amount'),amt),field('rx-what',RX('what'),what),field('rx-for',RX('for'),purpose),field('rx-where',RX('where'),where),field('rx-m',RX('paid'),meth),field('rx-day',RX('day'),day),err,
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(RX('cancel'),function(){ $dlg.close(); }),go))));
 }
 function receiptBtn(){ return h('button',{type:'button',class:'btn small',onclick:expReceipt},RX('btn')); }
+/* ---------- places and the work log: every room and area, the work done there, and the receipts for it ---------- */
+var PLACES=null, PLACES_P=null, WORK=null;
+function loadPlaces(){ if(PLACES) return Promise.resolve(PLACES); if(PLACES_P) return PLACES_P;
+  PLACES_P=sb.rpc('places_list').then(must).then(function(l){ PLACES=l; PLACES_P=null; return l; },function(e){ PLACES_P=null; throw e; }); return PLACES_P; }
+function placeName(id){ var p=(PLACES||[]).filter(function(x){ return x.id===id; })[0]; return p?p.name:''; }
+function placeSelect(id,noneLabel,value){
+  var e=h('select',{id:id});
+  function fill(){ var rooms=(PLACES||[]).filter(function(p){ return p.room&&(p.active||p.id===value); }), areas=(PLACES||[]).filter(function(p){ return !p.room&&(p.active||p.id===value); });
+    e.replaceChildren(h('option',{value:''},noneLabel||''),rooms.length?h('optgroup',{label:WX('rooms')},rooms.map(function(p){ return h('option',{value:p.id},p.name); })):null,
+      areas.length?h('optgroup',{label:WX('areas')},areas.map(function(p){ return h('option',{value:p.id},p.name); })):null); e.value=value||''; }
+  if(PLACES) fill(); else { e.appendChild(h('option',{value:''},'...')); loadPlaces().then(fill,function(){}); }
+  return e; }
+var WXT={
+  en:{tab:'Work log',title:'Work log',sub:'Work done in every room and area, with the receipts for it.',report:'Report work done',where:'Where',when:'Date',what:'What was done',whatHint:'For example: fixed the shower, painted the walls',details:'Details',who:'Who did it',cost:'Labour or other cost not on a receipt (THB)',photos:'Photos',addPhoto:'Add a photo',save:'Save',cancel:'Cancel',saved:'Saved. Thank you.',needWhere:'Choose where.',needWhat:'Write what was done.',
+    rooms:'Rooms',areas:'Areas',all:'All places',jobs:'jobs',job:'job',spent:'spent',last:'Last work',none:'Nothing logged here yet.',back:'All places',receipts:'Receipts',work:'Work done',total:'Total',on:'on receipts',labour:'labour and other',period:'Period',edit:'Edit',remove:'Remove',sure:'Tap Remove again to remove it.',recent:'Recent work',addPlace:'Add a place',noReceipt:'No receipt for this place yet'},
+  th:{tab:'บันทึกงาน',title:'บันทึกงาน',sub:'งานที่ทำในแต่ละห้องและพื้นที่ พร้อมใบเสร็จ',report:'รายงานงานที่ทำ',where:'ที่ไหน',when:'วันที่',what:'ทำอะไร',whatHint:'เช่น ซ่อมฝักบัว ทาสีผนัง',details:'รายละเอียด',who:'ใครทำ',cost:'ค่าแรงหรือค่าใช้จ่ายอื่นที่ไม่มีใบเสร็จ (บาท)',photos:'รูปภาพ',addPhoto:'เพิ่มรูป',save:'บันทึก',cancel:'ยกเลิก',saved:'บันทึกแล้ว ขอบคุณ',needWhere:'เลือกสถานที่',needWhat:'เขียนว่าทำอะไร',
+    rooms:'ห้องพัก',areas:'พื้นที่',all:'ทุกที่',jobs:'งาน',job:'งาน',spent:'ใช้จ่าย',last:'งานล่าสุด',none:'ยังไม่มีบันทึก',back:'ทุกที่',receipts:'ใบเสร็จ',work:'งานที่ทำ',total:'รวม',on:'จากใบเสร็จ',labour:'ค่าแรงและอื่นๆ',period:'ช่วงเวลา',edit:'แก้ไข',remove:'ลบ',sure:'กดลบอีกครั้งเพื่อลบ',recent:'งานล่าสุด',addPlace:'เพิ่มสถานที่',noReceipt:'ยังไม่มีใบเสร็จ'},
+  my:{tab:'အလုပ်မှတ်တမ်း',title:'အလုပ်မှတ်တမ်း',sub:'အခန်းနှင့် နေရာတိုင်းတွင် လုပ်ခဲ့သော အလုပ်နှင့် ပြေစာများ',report:'လုပ်ခဲ့သော အလုပ် တင်ရန်',where:'ဘယ်နေရာ',when:'ရက်စွဲ',what:'ဘာလုပ်ခဲ့လဲ',whatHint:'ဥပမာ ရေပန်း ပြင်သည်၊ နံရံ ဆေးသုတ်သည်',details:'အသေးစိတ်',who:'ဘယ်သူ လုပ်ခဲ့လဲ',cost:'ပြေစာမပါသော လုပ်အားခ (ဘတ်)',photos:'ဓာတ်ပုံများ',addPhoto:'ဓာတ်ပုံ ထည့်ရန်',save:'သိမ်းရန်',cancel:'မလုပ်တော့ပါ',saved:'သိမ်းပြီးပါပြီ။ ကျေးဇူးတင်ပါသည်',needWhere:'နေရာ ရွေးပါ',needWhat:'ဘာလုပ်ခဲ့လဲ ရေးပါ',
+    rooms:'အခန်းများ',areas:'နေရာများ',all:'နေရာအားလုံး',jobs:'အလုပ်',job:'အလုပ်',spent:'သုံးငွေ',last:'နောက်ဆုံး အလုပ်',none:'မှတ်တမ်း မရှိသေးပါ',back:'နေရာအားလုံး',receipts:'ပြေစာများ',work:'လုပ်ခဲ့သော အလုပ်',total:'စုစုပေါင်း',on:'ပြေစာများမှ',labour:'လုပ်အားခ',period:'ကာလ',edit:'ပြင်ရန်',remove:'ဖျက်ရန်',sure:'ဖျက်ရန် ထပ်နှိပ်ပါ',recent:'မကြာသေးမီ အလုပ်',addPlace:'နေရာ ထည့်ရန်',noReceipt:'ပြေစာ မရှိသေးပါ'}};
+function WX(k){ var l=WXT[mtLang()]||WXT.en; return l[k]!==undefined?l[k]:WXT.en[k]; }
+function workPeriod(){ var p=ui.workPeriod||'365', to=ymd(new Date()); return {to:to,from:p==='all'?'2020-01-01':addDays(to,-Number(p))}; }
+function loadWork(){ var pr=workPeriod(); ui.workBusy=true;
+  return Promise.all([sb.rpc('work_home',{p_from:pr.from,p_to:pr.to}).then(must),loadPlaces()]).then(function(r){ ui.workBusy=false; WORK=r[0]; WORK.key=pr.from; PLACES=WORK.places; schedule(); })
+    .catch(function(e){ ui.workBusy=false; toast(errText(e)); }); }
+function workPhoto(path,cb){ sb.storage.from('receipts').createSignedUrl(path,3600).then(function(r){ if(r.data&&r.data.signedUrl) cb(r.data.signedUrl); }); }
+function workReport(x,placeId){
+  x=x||{}; var photos=(x.photos||[]).slice(), busy=false;
+  var where=placeSelect('wk-where','',x.place_id||placeId||''), day=h('input',{type:'date',id:'wk-day',value:x.day||ymd(new Date()),max:ymd(new Date())});
+  var what=h('input',{type:'text',id:'wk-what',placeholder:WX('whatHint'),value:x.title||''}), det=h('textarea',{id:'wk-det',rows:'3'}), who=h('input',{type:'text',id:'wk-who',value:x.done_by!=null?x.done_by:(me&&me.name)||''});
+  det.value=x.details||'';
+  var cost=h('input',{type:'number',id:'wk-cost',inputmode:'decimal',min:'0',step:'any',value:x.cost!=null?x.cost:''});
+  var pics=h('div',{class:'row wrap'}), cam=h('input',{type:'file',accept:'image/*',hidden:true});
+  function drawPics(){ pics.replaceChildren.apply(pics,photos.map(function(pth,i){ var im=h('img',{alt:'',style:'width:72px;height:72px;object-fit:cover;border-radius:10px;background:#eee'}); workPhoto(pth,function(u){ im.src=u; });
+    return h('div',{style:'position:relative'},im,h('button',{type:'button',class:'btn small',style:'position:absolute;top:-6px;right:-6px;padding:2px 7px;min-height:0','aria-label':WX('remove'),onclick:function(){ photos.splice(i,1); drawPics(); }},'×')); })
+    .concat(photos.length<6?[btn(WX('addPhoto'),function(){ cam.click(); },'small')]:[])); }
+  cam.onchange=function(){ var f=cam.files[0]; cam.value=''; if(!f) return; toast('...');
+    shrinkImage(f).then(function(b){ var path=currentUser+'/work/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.jpg';
+      return sb.storage.from('receipts').upload(path,b,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; photos.push(path); drawPics(); }); }).catch(function(e){ toast(errText(e)); }); };
+  drawPics();
+  var err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var go=btn(WX('save'),function(){ if(busy) return; err.hidden=true;
+    if(!where.value){ err.textContent=WX('needWhere'); err.hidden=false; return; } if(!what.value.trim()){ err.textContent=WX('needWhat'); err.hidden=false; return; }
+    busy=true; go.disabled=true;
+    sb.rpc('work_save',{p:{id:x.id||null,place_id:where.value,day:day.value,title:what.value,details:det.value,done_by:who.value,cost:cost.value===''?null:cost.value,photos:photos}}).then(must)
+      .then(function(){ $dlg.close(); toast(WX('saved')); WORK=null; schedule(); }).catch(function(e){ busy=false; go.disabled=false; err.textContent=errText(e); err.hidden=false; }); },'primary');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,WX('report')),
+    field('wk-where',WX('where'),where),field('wk-day',WX('when'),day),field('wk-what',WX('what'),what),field('wk-det',WX('details'),det),field('wk-who',WX('who'),who),
+    field('wk-cost',WX('cost'),cost),h('div',{class:'ff'},h('label',null,WX('photos')),pics,cam),err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(WX('cancel'),function(){ $dlg.close(); }),go))));
+}
+function workPlaceEdit(p){
+  openForm({title:p&&p.id?'Change place':WX('addPlace'),values:{name:p?p.name:'',business:p?p.business:'Camp Rooms',active:p?p.active!==false:true},saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'name',label:'Name',required:true,hint:'A room, or an area like the pool or car park.'},{key:'business',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; })},
+      p&&p.id?{key:'active',label:'In use (untick to hide it from the lists)',type:'checkbox'}:null].filter(Boolean),
+    onSave:function(v){ return sb.rpc('place_save',{p:Object.assign({id:p&&p.id||null},v)}).then(must).then(function(){ PLACES=null; WORK=null; schedule(); }); }}); }
+function workItem(w,boss){
+  var pics=h('div',{class:'row wrap'}); (w.photos||[]).forEach(function(pth){ var a=h('a',{target:'_blank',rel:'noopener'}), im=h('img',{alt:'',style:'width:64px;height:64px;object-fit:cover;border-radius:8px;background:#eee'}); a.appendChild(im); workPhoto(pth,function(u){ im.src=u; a.href=u; }); pics.appendChild(a); });
+  var mgr=me&&me.role==='manager';
+  return h('div',{class:'panel pad'},h('div',{class:'row',style:'justify-content:space-between;align-items:flex-start'},
+      h('div',null,h('b',null,w.title),h('div',{class:'sub'},fmtDate(w.day)+' · '+placeName(w.place_id)+(w.done_by?' · '+w.done_by:'')+(w.cost!=null&&Number(w.cost)?' · '+thb(w.cost):''))),
+      (w.mine||mgr)?h('div',{class:'row'},btn(WX('edit'),function(){ workReport(w); },'small'),btn(WX('remove'),function(){ if(ui.workRm!==w.id){ ui.workRm=w.id; toast(WX('sure')); return; } ui.workRm=null; run(sb.rpc('work_remove',{p_id:w.id}).then(must).then(function(){ WORK=null; schedule(); }),'Removed.'); },'small')):null),
+    w.details?h('p',{style:'margin:6px 0 0;white-space:pre-wrap'},w.details):null,(w.photos||[]).length?h('div',{style:'margin-top:8px'},pics):null);
+}
+function receiptItem(r){ var a=btn('Photo',function(){ sb.storage.from('receipts').createSignedUrl(r.photo_path,600).then(function(x){ if(x.data&&x.data.signedUrl) window.open(x.data.signedUrl,'_blank','noopener'); else toast('Could not open the photo.'); }); },'small');
+  return h('div',{class:'panel pad row',style:'justify-content:space-between'},h('div',null,h('b',null,r.purpose||r.supplier||'Receipt'),h('div',{class:'sub'},fmtDate(r.day)+(r.supplier&&r.purpose?' · '+r.supplier:'')+(r.category?' · '+r.category:'')+(r.by?' · '+r.by:''))),
+    h('div',{class:'row'},r.amount!=null?h('b',null,thb(r.amount)):null,r.photo_path?a:null)); }
+function vWork(){
+  var pr=workPeriod();
+  if(!WORK||WORK.key!==pr.from){ if(!ui.workBusy) loadWork(); return [pageHead(WX('title'),WX('sub')),h('div',{class:'panel empty'},'...')]; }
+  var boss=WORK.boss, mgr=me&&me.role==='manager', places=(WORK.places||[]).filter(function(p){ return p.active||WORK.work.some(function(w){ return w.place_id===p.id; }); });
+  var per=h('select',{'aria-label':WX('period'),onchange:function(e){ ui.workPeriod=e.target.value; WORK=null; schedule(); }},[['90','3 months'],['180','6 months'],['365','12 months'],['all','All time']].map(function(o){ return h('option',{value:o[0],selected:(ui.workPeriod||'365')===o[0]},o[1]); }));
+  var head=pageHead(WX('title'),WX('sub'),h('div',{class:'row'},btn(WX('report'),function(){ workReport(null,ui.workPlace); },'primary small'),btn(RX('btn'),expReceipt,'small'),per));
+  function sums(pid){ var w=WORK.work.filter(function(x){ return x.place_id===pid; }), r=WORK.receipts.filter(function(x){ return x.place_id===pid; });
+    var rs=r.reduce(function(a,x){ return a+(Number(x.amount)||0); },0), ls=w.reduce(function(a,x){ return a+(Number(x.cost)||0); },0);
+    return {w:w,r:r,rs:rs,ls:ls,last:w.length?w[0].day:null}; }
+  if(ui.workPlace){ var p=places.filter(function(x){ return x.id===ui.workPlace; })[0]||(WORK.places||[]).filter(function(x){ return x.id===ui.workPlace; })[0];
+    if(p){ var s=sums(p.id);
+      return [head,h('div',null,linkBtn(WX('back'),function(){ ui.workPlace=null; schedule(); })),
+        h('div',{class:'panel pad'},h('div',{class:'row',style:'justify-content:space-between'},h('h2',{style:'margin:0'},p.name),mgr?btn(WX('edit'),function(){ workPlaceEdit(p); },'small'):null),
+          h('p',{class:'sub',style:'margin:6px 0 0'},s.w.length+' '+(s.w.length===1?WX('job'):WX('jobs'))+(boss?' · '+WX('total')+' '+thb(Math.round(s.rs+s.ls))+' ('+thb(Math.round(s.rs))+' '+WX('on')+(s.ls?', '+thb(Math.round(s.ls))+' '+WX('labour'):'')+')':''))),
+        section(WX('work'),btn(WX('report'),function(){ workReport(null,p.id); },'small'),s.w.length?s.w.map(function(w){ return workItem(w,boss); }):h('div',{class:'panel empty'},WX('none'))),
+        section(WX('receipts'),null,s.r.length?s.r.map(receiptItem):h('div',{class:'panel empty'},WX('noReceipt')))]; }
+    ui.workPlace=null; }
+  function grid(list){ return h('div',{class:'cardgrid',style:'display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px'},list.map(function(p){ var s=sums(p.id);
+    return h('button',{type:'button',class:'panel pad',style:'text-align:left;cursor:pointer;border:0;font:inherit;color:inherit',onclick:function(){ ui.workPlace=p.id; schedule(); window.scrollTo(0,0); }},
+      h('b',null,p.name),h('div',{class:'sub'},s.w.length+' '+(s.w.length===1?WX('job'):WX('jobs'))+(boss&&(s.rs+s.ls)?' · '+thb(Math.round(s.rs+s.ls)):'')),
+      h('div',{class:'sub'},s.last?WX('last')+': '+fmtDate(s.last):'')); })); }
+  var recent=WORK.work.slice(0,15);
+  return [head,
+    section(WX('rooms'),null,grid(places.filter(function(p){ return p.room; }))),
+    section(WX('areas'),mgr?btn(WX('addPlace'),function(){ workPlaceEdit(null); },'small'):null,grid(places.filter(function(p){ return !p.room; }))),
+    section(WX('recent'),null,recent.length?recent.map(function(w){ return workItem(w,boss); }):h('div',{class:'panel empty'},WX('none')))];
+}
+
 var RCPT=null;
 function rcMonth(){ return ui.rcMonth||ymd(new Date()).slice(0,7); }
 function loadReceipts(){ var m=rcMonth(), from=m+'-01', to=addDays(addDays(from,32).slice(0,7)+'-01',-1); ui.rcBusy=true;
@@ -6155,7 +6253,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the coaching screens.'))))];
 }
-var VIEWS={accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 /* Messages: a floating button on phones, and the first item in the menu on computers, with the unread count */
 var $fab=null;
@@ -7311,8 +7409,8 @@ function staffTabs(row){
   var A=(row.access&&row.access.areas)||[], P=(row.access&&row.access.perms)||[];
   function has(a){ return !A.length||A.indexOf(a)>=0; } function cp(x){ return P.indexOf(x)>=0; }
   var keep;
-  if(row.role==='resort') keep=['stays','housekeeping','actions','customers','shop','kitchen'];
-  else { keep=['today','actions','customers'];
+  if(row.role==='resort') keep=['stays','housekeeping','actions','work','customers','shop','kitchen'];
+  else { keep=['today','actions','work','customers'];
     if(has('gym')||has('spa')||has('cafe')||has('resort')) keep.push('shop');
     if(has('cafe')||has('resort')) keep.push('kitchen');
     if(has('resort')) keep.push('stays');
