@@ -2844,7 +2844,7 @@ function editCourse(c){ c=c||{status:'draft',members_free:true};
 }
 function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
   return [h('div',{class:'row'},btn('All courses',function(){ CRS.edit=null; CRS.list=null; schedule(); },'small')),
-    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),btn('Link groups',function(){ crsGroupsEdit(c); },'small'),
+    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),
       h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
     crsGroupsSection(c),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
