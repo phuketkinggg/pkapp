@@ -151,7 +151,8 @@ function backUrl(u: unknown): string {
   } catch { /* fall through */ }
   return PAGE;
 }
-async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string, cur = "thb", rate = 1) {
+// qr: Thai QR (PromptPay) through the Thai Stripe account, THB only, no card fee. Stripe confirms the payment by itself, like a card.
+async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string, cur = "thb", rate = 1, qr = false) {
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1&ref=" + stayId);
@@ -163,9 +164,9 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
     p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(l.amount * rate * 100)));
     p.set(`line_items[${i}][price_data][product_data][name]`, l.name.slice(0, 120));
   });
-  p.set("payment_method_types[0]", "card");
+  p.set("payment_method_types[0]", qr ? "promptpay" : "card");
   p.set("customer_email", email);
-  const rule = await cardRule(), fee = cardFee(amount, rule);
+  const rule = await cardRule(), fee = qr ? 0 : cardFee(amount, rule);
   if (fee > 0) { const i = lines.length; p.set(`line_items[${i}][quantity]`, "1"); p.set(`line_items[${i}][price_data][currency]`, cur); p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(fee * rate * 100))); p.set(`line_items[${i}][price_data][product_data][name]`, cardLabel(amount, rule)); }
   // amount is always the THB value; the app records the stay in THB whatever currency was charged
   for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount), currency: cur, fee: String(fee), amount_cur: ((lines.reduce((t, l) => t + Math.round(l.amount * rate * 100), 0) + (fee > 0 ? Math.round(fee * rate * 100) : 0)) / 100).toFixed(2) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
         const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
-        const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate);
+        const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
         return json({ url, stay_id: stayId, total });
       } catch (e) {
         await admin.from("stays").update({ status: "cancelled", hold_until: null, notes: "Website booking, card payment could not start." }).eq("id", stayId);
