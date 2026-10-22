@@ -773,7 +773,7 @@ function openForm(spec){
   var vals=spec.values||{}, inputs={}, armed=false;
   var err=h('p',{class:'ferr',role:'alert',hidden:true});
   function showErr(m){ err.textContent=m; err.hidden=false; }
-  function read(f){ var el=inputs[f.key]; if(f.type==='checks') return el.boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;}); if(f.type==='checkbox') return el.checked; if(f.type==='number') return el.value===''?null:Number(el.value); return el.value.trim(); }
+  function read(f){ var el=inputs[f.key]; if(f.type==='info') return el.textContent; if(f.type==='checks') return el.boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;}); if(f.type==='checkbox') return el.checked; if(f.type==='number') return el.value===''?null:Number(el.value); return el.value.trim(); }
   function set(k,v){ var el=inputs[k]; if(!el) return; if(el.tagName==='DIV'){ el.replaceChildren(v&&v.nodeType?v:document.createTextNode(v==null?'':String(v))); return; } if(el.boxes) el.boxes.forEach(function(b){ b.checked=(v||[]).indexOf(b.value)>=0; }); else if(el.type==='checkbox') el.checked=!!v; else el.value=v==null?'':v; }
   function setOpts(k,options){ var el=inputs[k]; if(el) el.replaceChildren.apply(el,options.map(function(o){return h('option',{value:o[0]},o[1]);})); }
   var rowEls={};
