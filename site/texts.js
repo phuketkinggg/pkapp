@@ -549,8 +549,8 @@ window.PK_TEXTS=[{
 "multi": false},{
 "id": "stay_t02",
 "page": "Stay",
-"label": "Text: Lakeside bungalows in Kathu, Phuket, next...",
-"text": "Lakeside bungalows in Kathu, Phuket, next to the gym. Type your dates, see which bungalows are free on the map, and pay by card.",
+"label": "Text: Lakeside bungalows in the middle of Phuket, a...",
+"text": "Lakeside bungalows in the middle of Phuket, a 2 minute walk from the gym. Stay, train, recover and eat well, all in one place.",
 "multi": true},{
 "id": "stay_t03",
 "page": "Stay",
@@ -559,13 +559,73 @@ window.PK_TEXTS=[{
 "multi": false},{
 "id": "stay_t04",
 "page": "Stay",
-"label": "Text: Pangea Resort is a quiet lakeside resort in...",
-"text": "Pangea Resort is a quiet lakeside resort in Kathu, one minute's walk from the Phuket King ring. Eleven air-conditioned bungalows sit in two areas, Mango Grove and Lake View, each with a comfortable bed, an en-suite bathroom and its own outdoor space. No taxis and no commute: wake up, walk to class, and come back to the lake. Pangea Cafe cooks healthy meals on site, the ice baths and herbal sauna are next door, and group Muay Thai is included with every stay.",
+"label": "Text: Pangea Resort is built around the same lake...",
+"text": "Pangea Resort is built around the same lake as the gym, in two zones: Lake View and Mango Grove. Every bungalow is private, air-conditioned and en-suite, right next to the lake, with a comfortable queen or king size bed. You are surrounded by water and nature, with banana trees, coconut palms and mango trees all around, yet you are a stone's throw from the main Muay Thai gym. Need to work? Good internet makes remote working easy. No taxis and no commute: wake up, walk to class, and come back to the lake.",
 "multi": true},{
 "id": "stay_t05",
 "page": "Stay",
-"label": "List (one line each): One minute walk to the gym / Air...",
-"text": "One minute walk to the gym\nAir conditioning and en-suite bathroom\nYour own outdoor space\nGroup Muay Thai included\nHealthy food at Pangea Cafe\nIce baths and herbal sauna",
+"label": "List (one line each): 2 minute walk to the gym / Private...",
+"text": "2 minute walk to the gym\nPrivate AC bungalow with en-suite bathroom\nRight next to the lake\nQueen or king size beds\nGood internet for remote work\nGroup Muay Thai included\nHealthy meal plans at Pangea Cafe\nIce baths and herbal sauna",
+"multi": true},{
+"id": "stay_t06",
+"page": "Stay",
+"label": "Heading: Pangea brings it all back together",
+"text": "Pangea brings it all *back together*",
+"multi": false},{
+"id": "stay_t07",
+"page": "Stay",
+"label": "Text: Most trips split your life into pieces: a...",
+"text": "Most trips split your life into pieces: a hotel here, a gym across town, whatever food you can find. Pangea brings it all back together. Where you sleep, how you train, how you recover, what you eat and how you feel, all in one place, around one lake. You are in the centre of Phuket, yet it feels like somewhere completely different, far from the hustle and bustle.",
+"multi": true},{
+"id": "stay_t08",
+"page": "Stay",
+"label": "Small heading: Stay",
+"text": "Stay",
+"multi": false},{
+"id": "stay_t09",
+"page": "Stay",
+"label": "Text: Private, air-conditioned bungalows by the lake, each with...",
+"text": "Private, air-conditioned bungalows by the lake, each with its own bathroom and plenty of privacy. Comfortable mattresses with queen or king size bedding.",
+"multi": true},{
+"id": "stay_t10",
+"page": "Stay",
+"label": "Small heading: Fitness",
+"text": "Fitness",
+"multi": false},{
+"id": "stay_t11",
+"page": "Stay",
+"label": "Text: Phuket King Muay Thai is on the same...",
+"text": "Phuket King Muay Thai is on the same lake, a 2 minute walk away. Group classes are included with your stay, so you can train whenever you want.",
+"multi": true},{
+"id": "stay_t12",
+"page": "Stay",
+"label": "Small heading: Recovery",
+"text": "Recovery",
+"multi": false},{
+"id": "stay_t13",
+"page": "Stay",
+"label": "Text: Ice baths and a herbal sauna next door,...",
+"text": "Ice baths and a herbal sauna next door, quiet nights and real sleep, so you are ready to go again tomorrow.",
+"multi": true},{
+"id": "stay_t14",
+"page": "Stay",
+"label": "Small heading: Nutrition",
+"text": "Nutrition",
+"multi": false},{
+"id": "stay_t15",
+"page": "Stay",
+"label": "Text: Pangea Cafe makes clean, healthy food fresh on...",
+"text": "Pangea Cafe makes clean, healthy food fresh on site, including juices, drinks and salads. Tell us your aim (lose weight, gain weight or build muscle) and we build your meal plan around it.",
+"multi": true},{
+"id": "stay_t16",
+"page": "Stay",
+"label": "Small heading: Wellness",
+"text": "Wellness",
+"multi": false},{
+"id": "stay_t17",
+"page": "Stay",
+"label": "Text: Wellness starts in the mind. Pangea is a...",
+"text": "Wellness starts in the mind. Pangea is a place to reset, and it feels like a little village: a small community of people who came here to train, eat well and feel better.",
 "multi": true},{
 "id": "dtv_t01",
 "page": "DTV",

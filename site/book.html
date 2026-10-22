@@ -84,6 +84,11 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
   .pkt .nav.open{display:flex}.pkt .nav a{padding:15px 2px;font-size:16px;border-bottom:1px solid #2a2f38;box-shadow:none!important}.pkt .nav .cta{margin:14px 0 0;text-align:center;border:0}}
 @media (max-width:380px){.pkt .logo img.wm{height:24px}}
 /* about the resort, gallery, video */
+.pillars{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));margin-top:14px}
+.pl{background:var(--sunken);border-radius:12px;padding:14px;border-top:3px solid var(--gold)}
+.pl h3{font:700 20px/1.1 var(--display);text-transform:uppercase;margin:0 0 6px}
+.pl p{margin:0;font-size:15px;color:var(--muted)}
+h2 em{font-style:normal;color:var(--gold)}
 .ticks{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .ticks li{display:flex;gap:10px;align-items:baseline}.ticks li::before{content:"";flex:none;width:9px;height:9px;background:var(--gold);transform:rotate(45deg)}
 .gallery{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:16px}
@@ -126,7 +131,7 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
 <header class="hero"><div class="in">
   <div class="brand">PANGEA RESORT · PHUKET KING MUAY THAI</div>
   <h1 data-text="stay_t01">Book your stay</h1>
-  <p data-text="stay_t02">Lakeside bungalows in Kathu, Phuket, next to the gym. Type your dates, see which bungalows are free on the map, and pay by card.</p>
+  <p data-text="stay_t02">Lakeside bungalows in the middle of Phuket, a 2 minute walk from the gym. Stay, train, recover and eat well, all in one place.</p>
 </div></header>
 <main>
   <section class="card" id="step-dates">
@@ -172,6 +177,17 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
   </section>
 
   <section class="card done" id="step-done" hidden aria-live="polite"></section>
+  <section class="card" id="about-pangea">
+    <h2 data-text="stay_t06">Pangea brings it all <em>back together</em></h2>
+    <p data-text="stay_t07">Most trips split your life into pieces: a hotel here, a gym across town, whatever food you can find. Pangea brings it all back together. Where you sleep, how you train, how you recover, what you eat and how you feel, all in one place, around one lake. You are in the centre of Phuket, yet it feels like somewhere completely different, far from the hustle and bustle.</p>
+    <div class="pillars"><div class="pl"><h3 data-text="stay_t08">Stay</h3><p data-text="stay_t09">Private, air-conditioned bungalows by the lake, each with its own bathroom and plenty of privacy. Comfortable mattresses with queen or king size bedding.</p></div><div class="pl"><h3 data-text="stay_t10">Fitness</h3><p data-text="stay_t11">Phuket King Muay Thai is on the same lake, a 2 minute walk away. Group classes are included with your stay, so you can train whenever you want.</p></div><div class="pl"><h3 data-text="stay_t12">Recovery</h3><p data-text="stay_t13">Ice baths and a herbal sauna next door, quiet nights and real sleep, so you are ready to go again tomorrow.</p></div><div class="pl"><h3 data-text="stay_t14">Nutrition</h3><p data-text="stay_t15">Pangea Cafe makes clean, healthy food fresh on site, including juices, drinks and salads. Tell us your aim (lose weight, gain weight or build muscle) and we build your meal plan around it.</p></div><div class="pl"><h3 data-text="stay_t16">Wellness</h3><p data-text="stay_t17">Wellness starts in the mind. Pangea is a place to reset, and it feels like a little village: a small community of people who came here to train, eat well and feel better.</p></div></div>
+  </section>
+  <section class="card" id="about-stay">
+    <h2 data-text="stay_t03">Your home by the lake</h2>
+    <p data-text="stay_t04">Pangea Resort is built around the same lake as the gym, in two zones: Lake View and Mango Grove. Every bungalow is private, air-conditioned and en-suite, right next to the lake, with a comfortable queen or king size bed. You are surrounded by water and nature, with banana trees, coconut palms and mango trees all around, yet you are a stone's throw from the main Muay Thai gym. Need to work? Good internet makes remote working easy. No taxis and no commute: wake up, walk to class, and come back to the lake.</p>
+    <ul class="ticks" data-text="stay_t05"><li>2 minute walk to the gym</li><li>Private AC bungalow with en-suite bathroom</li><li>Right next to the lake</li><li>Queen or king size beds</li><li>Good internet for remote work</li><li>Group Muay Thai included</li><li>Healthy meal plans at Pangea Cafe</li><li>Ice baths and herbal sauna</li></ul>
+    <div class="gallery" id="gallery" aria-label="Photos of the resort"></div>
+  </section>
   <section class="card" id="tour">
     <h2>Take the tour</h2>
     <p class="sub">Walk around the resort before you arrive. On a phone, move it around to look in every direction.</p>
@@ -180,12 +196,6 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
   <section class="card" id="reviews" data-reviews-section hidden>
     <h2>What our guests say</h2>
     <div data-reviews="3" data-btn="btn primary" data-btn2="btn"></div>
-  </section>
-  <section class="card" id="about-stay">
-    <h2 data-text="stay_t03">Your home by the lake</h2>
-    <p data-text="stay_t04">Pangea Resort is a quiet lakeside resort in Kathu, one minute's walk from the Phuket King ring. Eleven air-conditioned bungalows sit in two areas, Mango Grove and Lake View, each with a comfortable bed, an en-suite bathroom and its own outdoor space. No taxis and no commute: wake up, walk to class, and come back to the lake. Pangea Cafe cooks healthy meals on site, the ice baths and herbal sauna are next door, and group Muay Thai is included with every stay.</p>
-    <ul class="ticks" data-text="stay_t05"><li>One minute walk to the gym</li><li>Air conditioning and en-suite bathroom</li><li>Your own outdoor space</li><li>Group Muay Thai included</li><li>Healthy food at Pangea Cafe</li><li>Ice baths and herbal sauna</li></ul>
-    <div class="gallery" id="gallery" aria-label="Photos of the resort"></div>
   </section>
 </main>
 <footer>Pangea Resort, Kathu, Phuket. Questions before you book: <a href="mailto:hello@phuketking.com">hello@phuketking.com</a>. Card payments are handled by Stripe. We never see your card number. <a href="privacy.html">Privacy policy</a>.</footer>
