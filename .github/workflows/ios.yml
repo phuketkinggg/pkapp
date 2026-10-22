@@ -10,7 +10,7 @@ on:
         required: true
         default: all
         type: choice
-        options: [all, phuketking, muayapp]
+        options: [all, phuketking, muayapp, pangea]
   push:
     branches: [main]
     paths: ['native/**', '.github/workflows/ios.yml']
@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [phuketking, muayapp]
+        app: [phuketking, muayapp, pangea]
     env:
       APP: ${{ matrix.app }}
       TEAM_ID: SXB929XRR9
