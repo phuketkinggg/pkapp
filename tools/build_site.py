@@ -106,7 +106,8 @@ def main():
     for f in ["icon-192.png", "icon-512.png", "favicon-48.png", "apple-touch-icon.png"]:
         if os.path.exists(os.path.join(ROOT, "icons", f)):
             shutil.copy2(os.path.join(ROOT, "icons", f), os.path.join(OUT, "icons", f))
-    shutil.copy2(os.path.join(ROOT, "img", "resort-aerial.jpg"), os.path.join(OUT, "img", "resort-aerial.jpg"))
+    for f in ("resort-aerial.jpg", "mango-grove-5.mp4", "mango-grove-5.jpg"):
+        shutil.copy2(os.path.join(ROOT, "img", f), os.path.join(OUT, "img", f))
     # old WordPress addresses forward permanently to the new pages (Cloudflare Pages reads this file)
     r = [
         "/about-us /about 301", "/about-us/ /about 301", "/team /#coaches 301", "/team/ /#coaches 301",

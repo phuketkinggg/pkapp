@@ -103,6 +103,7 @@ h2 em{font-style:normal;color:var(--gold)}
 .gallery button:first-child{grid-column:span 2;grid-row:span 2}
 @media (max-width:640px){.gallery{grid-template-columns:repeat(2,1fr)}}
 .video{margin-top:16px;border-radius:14px;overflow:hidden;aspect-ratio:16/9;background:#000}
+.video video{width:100%;height:100%;display:block;object-fit:cover;background:#000}
 .vph{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;color:#fff;padding:20px;background:radial-gradient(circle at 50% 40%,#2b2f36,#0a0c10)}
 .vph .ring{width:76px;height:76px;border-radius:50%;border:2px solid rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font:700 20px var(--display)}
 .vph b{font:700 22px var(--display);text-transform:uppercase;letter-spacing:.04em}.vph span{opacity:.7;font-size:14px}
@@ -193,8 +194,8 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
   </section>
   <section class="card" id="tour">
     <h2>Take the tour</h2>
-    <p class="sub">Walk around the resort before you arrive. On a phone, move it around to look in every direction.</p>
-    <div class="video" id="video"><div class="vph"><div class="ring">360°</div><b>Video tour coming soon</b><span>Drone and 360 video of the bungalows, the lake and the gym.</span></div></div>
+    <p class="sub">Walk through Mango Grove 5 before you arrive: the bungalow, the bathroom and the view.</p>
+    <div class="video" id="video"><video controls playsinline preload="none" poster="img/mango-grove-5.jpg" aria-label="Video tour of Mango Grove 5"><source src="img/mango-grove-5.mp4" type="video/mp4"></video></div>
   </section>
   <section class="card" id="reviews" data-reviews-section hidden>
     <h2>What our guests say</h2>
