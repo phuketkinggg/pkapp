@@ -1300,7 +1300,7 @@ function claimsSection(){
   if(!me||!CLAIMS&&!ui.claimsAsked){ if(me){ ui.claimsAsked=true; loadClaims(); } return null; }
   if(!CLAIMS||!CLAIMS.length) return null;
   return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' '+fmtDate(c.at.slice(0,10)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
-    note:'They say they paid by PromptPay. Check the bank app first.',
+    note:c.kind==='stay'?(c.expired?'Website stay. The 12 hour hold ran out and the room was given back. If the money is in, Money is in books it again when the room is still free.':'Website stay, paid by Thai QR. Check the bank app first. The room is held until '+new Date(c.held_until).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'. Not received gives the room back.'):'They say they paid by PromptPay. Check the bank app first.',
     act:[btn('Money is in',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:true}).then(must).then(function(){ return Promise.all([loadClaims(),reload('purchases'),reload('privates'),reload('stays')]); }),'Confirmed. It is marked paid.'); },'primary small'),
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }

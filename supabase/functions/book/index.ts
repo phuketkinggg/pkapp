@@ -2,6 +2,8 @@
 // info:    rooms, price groups, seasons and the map (no guest details, ever)
 // quote:   which rooms are free for some dates, and the price for each
 // reserve: hold a room for 30 minutes and open a Stripe card payment for it
+// reserve with pay:"pp": Thai QR (PromptPay) straight to our bank: returns the QR instead of a Stripe page
+// claim:   the guest tapped "I have paid": the room is held 12 hours and the desk checks the bank
 // status:  after paying, the page asks if the booking went through
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -212,8 +214,12 @@ Deno.serve(async (req) => {
       return json({ from, to, nights: Math.round((Date.parse(to) - Date.parse(from)) / 864e5), rooms: out });
     }
     if (body.mode === "reserve") {
-      if (!KEY) return json({ error: "Card payments are not set up yet. Message us to book." });
+      const pp = body.pay === "pp";
+      if (!KEY && !pp) return json({ error: "Card payments are not set up yet. Message us to book." });
       const cur = CURS.includes(String(body.currency ?? "thb").toLowerCase()) ? String(body.currency ?? "thb").toLowerCase() : "thb";
+      if (pp && cur !== "thb") return json({ error: "Thai QR is in Thai baht only. Choose Thai baht, or pay by card." });
+      const acc = pp ? (await admin.rpc("web_stay_promptpay")).data as { payload?: string; name?: string } | null : null;
+      if (pp && !acc?.payload) return json({ error: "Thai QR is not set up yet. Pay by card, or WhatsApp us." });
       const FX = await fx(), rate = FX[cur];
       if (!rate) return json({ error: "Paying in that currency is not available right now. Choose Thai baht." });
       const bad = checkDates(body.from, body.to); if (bad) return json({ error: bad });
@@ -230,6 +236,7 @@ Deno.serve(async (req) => {
       if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref) });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
+        if (pp) return json({ pp: acc, stay_id: stayId, total, what: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}` });
         const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
         const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
         return json({ url, stay_id: stayId, total });
@@ -238,6 +245,12 @@ Deno.serve(async (req) => {
         await admin.from("purchases").update({ cancelled: true }).eq("for_stay", stayId).eq("ordered_in_app", true);
         return json({ error: "Card payment could not start. Try again, or message us. " + (e as Error).message });
       }
+    }
+    if (body.mode === "claim") {
+      if (!/^[0-9a-f-]{36}$/.test(String(body.ref ?? ""))) return json({ error: "Not found." });
+      const { data, error } = await admin.rpc("web_stay_claim", { p_stay: body.ref });
+      if (error) return json({ error: error.message });
+      return json(data);
     }
     if (body.mode === "status") {
       if (!/^[0-9a-f-]{36}$/.test(String(body.ref ?? ""))) return json({ error: "Not found." });

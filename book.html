@@ -6,9 +6,9 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co; connect-src https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Stay at Pangea Resort | Lakeside Bungalows at Phuket King, Kathu</title>
-<meta name="description" content="Book a lakeside bungalow at Pangea Resort, Kathu, Phuket, home of Phuket King Muay Thai. See which rooms are free on the map and pay securely by card.">
+<meta name="description" content="Book a lakeside bungalow at Pangea Resort, Kathu, Phuket, home of Phuket King Muay Thai. See which rooms are free on the map and pay securely by card or Thai QR.">
 <meta property="og:title" content="Book your stay at Pangea Resort, Phuket">
-<meta property="og:description" content="Lakeside bungalows next to Phuket King Muay Thai. Pick your dates, choose your room on the map, pay by card.">
+<meta property="og:description" content="Lakeside bungalows next to Phuket King Muay Thai. Pick your dates, choose your room on the map, pay by card or Thai QR.">
 <meta property="og:image" content="img/resort-aerial.jpg">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -88,6 +88,13 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .pl h3{font:700 20px/1.1 var(--display);text-transform:uppercase;margin:0 0 6px}
 .pl p{margin:0;font-size:15px;color:var(--muted)}
 h2 em{font-style:normal;color:var(--gold)}
+.paywith{border:0;padding:0;margin:0;display:grid;gap:8px;grid-template-columns:1fr 1fr}.paywith legend{font-weight:600;font-size:14px;margin-bottom:6px}
+.pw{flex-direction:row;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font-weight:400}
+.pw input{width:auto;min-height:0;margin-top:3px}.pw span{display:flex;flex-direction:column}.pw small{color:var(--muted);font-size:13px}
+.pw:has(input:checked){border-color:var(--btn);box-shadow:0 0 0 1px var(--btn)}
+@media (max-width:640px){.paywith{grid-template-columns:1fr}}
+.ppqr{max-width:280px;margin:12px auto;background:#fff;padding:10px;border-radius:12px}.ppqr svg{width:100%;height:auto;display:block}
+.ppsteps{padding-left:20px;margin:12px 0;text-align:left}.ppsteps li{margin:0 0 6px}
 .ticks{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .ticks li{display:flex;gap:10px;align-items:baseline}.ticks li::before{content:"";flex:none;width:9px;height:9px;background:var(--gold);transform:rotate(45deg)}
 .gallery{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:16px}
@@ -162,7 +169,11 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
       <label class="wide">Anything we should know<textarea id="g-note" maxlength="400" placeholder="Arrival time, airport pick up, training plans"></textarea></label>
       <label>Pay in<select id="g-cur"><option value="thb">Thai baht (THB)</option></select></label>
       <p class="sub wide" id="curnote" hidden></p>
-      <p class="sub wide">You pay the whole stay now by card on the next page, through Stripe. Your room is held for 30 minutes while you pay.</p>
+      <fieldset class="wide paywith" id="paywith"><legend>Pay with</legend>
+        <label class="pw"><input type="radio" name="pw" value="pp" checked><span><b>Thai QR (PromptPay)</b><small>Scan with any Thai bank app. No card fee.</small></span></label>
+        <label class="pw"><input type="radio" name="pw" value="card"><span><b>Card</b><small>Visa, Mastercard and more, on the secure Stripe page.</small></span></label>
+      </fieldset>
+      <p class="sub wide" id="paynote">You pay the whole stay now. Your room is held for 30 minutes while you pay.</p>
       <p class="err wide" id="gerr" role="alert" hidden></p>
       <div class="wide"><button class="btn primary" type="submit" id="pay">Pay by card</button></div>
     </form>
@@ -190,7 +201,7 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
     <div data-reviews="3" data-btn="btn primary" data-btn2="btn"></div>
   </section>
 </main>
-<footer>Pangea Resort, Kathu, Phuket. Questions before you book: <a href="mailto:hello@phuketking.com">hello@phuketking.com</a>. Card payments are handled by Stripe. We never see your card number. <a href="pk/privacy.html">Privacy policy</a>.</footer>
+<footer>Pangea Resort, Kathu, Phuket. Questions before you book: <a href="mailto:hello@phuketking.com">hello@phuketking.com</a>. Thai QR payments go straight to our bank. Card payments are handled by Stripe. We never see your card number. <a href="pk/privacy.html">Privacy policy</a>.</footer>
 <script>
 (function(){
 'use strict';
@@ -203,6 +214,49 @@ function thb(n){ return Number(n).toLocaleString('en-US')+' THB'; }
 /* paying in another currency: the THB price at today's rate (from the server, margin included), rounded per line like the card page */
 var CURN={thb:'Thai baht (THB)',usd:'US dollars (USD)',gbp:'British pounds (GBP)',eur:'Euros (EUR)'}, CURS={usd:'$',gbp:'£',eur:'€'};
 function cur(){ var e=$('g-cur'); return e&&e.value||'thb'; }
+function payWith(){ if(cur()!=='thb') return 'card'; var x=document.querySelector('input[name=pw]:checked'); return x?x.value:'card'; }
+document.querySelectorAll('input[name=pw]').forEach(function(r){ r.addEventListener('change',function(){ if(pick) summary(); }); });
+/* Thai QR straight to our bank: the QR has the amount in it; the guest taps I have paid, the room is held 12 hours and the front desk confirms */
+function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
+function ppTlv(str){ var out=[], i=0; while(i<str.length){ if(i+4>str.length) return null; var id=str.substr(i,2), n=parseInt(str.substr(i+2,2),10); if(isNaN(n)||i+4+n>str.length) return null; out.push([id,str.substr(i+4,n)]); i+=4+n; } return out; }
+function ppWithAmount(str,amt){ var t=(ppTlv(String(str).trim())||[]).filter(function(x){ return x[0]!=='54'&&x[0]!=='63'; }).map(function(x){ return x[0]==='01'?['01','12']:x; });
+  if(!t.some(function(x){ return x[0]==='01'; })) t.push(['01','12']);
+  var at=-1; t.forEach(function(x,i){ if(x[0]==='53') at=i; }); t.splice(at>=0?at+1:t.length,0,['54',(Math.round(amt*100)/100).toFixed(2)]);
+  var b=t.map(function(x){ return x[0]+String(x[1].length).padStart(2,'0')+x[1]; }).join('')+'6304'; return b+ppCrc(b); }
+function wa(t){ return window.PK&&PK.wa?PK.wa(t):'https://wa.me/66969076150?text='+encodeURIComponent(t); }
+function hm(ts){ return new Date(ts).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'}); }
+function showPP(d){
+  ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
+  try{ localStorage.setItem('pk_stay_pp',JSON.stringify({id:d.stay_id,at:Date.now()})); }catch(e){}
+  var box=$('step-done'), svg=''; box.innerHTML='';
+  try{ var q=window.qrcode(0,'M'); q.addData(ppWithAmount(d.pp.payload,d.total)); q.make(); svg=q.createSvgTag({cellSize:6,margin:2,scalable:true}); }catch(e){ svg=''; }
+  var qr=el('div',{cls:'ppqr'}); qr.innerHTML=svg;
+  var err=el('p',{cls:'err',role:'alert',hidden:''}), b=el('button',{type:'button',cls:'btn primary',style:'width:100%'},'I have paid');
+  box.appendChild(el('h2',null,'Pay with Thai QR'));
+  box.appendChild(el('p',{style:'margin:0'},el('b',null,d.what)));
+  box.appendChild(el('div',{cls:'big'},thb(d.total)));
+  box.appendChild(svg?qr:el('p',{cls:'err'},'The QR could not be drawn. WhatsApp us and we will send it.'));
+  if(d.pp.name) box.appendChild(el('p',{cls:'sub',style:'text-align:center'},'To '+String(d.pp.name).replace(/\.$/,'')+'. Check the name in your bank app before you pay.'));
+  box.appendChild(el('ol',{cls:'ppsteps'},el('li',null,'Screenshot this QR, or scan it with another phone.'),el('li',null,'Open your Thai bank app, scan the QR (from your photos if you took a screenshot) and pay. The amount is already filled in.'),el('li',null,'Come back here and tap ',el('b',null,'I have paid'),'. We hold your room for 12 hours while we check.')));
+  box.appendChild(err); box.appendChild(b);
+  b.onclick=function(){ b.disabled=true; err.hidden=true; call({mode:'claim',ref:d.stay_id}).then(function(){ waitPP(d.stay_id); },function(x){ b.disabled=false; err.textContent=x.message; err.hidden=false; }); };
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function waitPP(ref){
+  ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
+  var box=$('step-done'), tries=0;
+  function draw(s){ box.innerHTML='';
+    if(s&&s.paid){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); return; }
+    if(s&&(s.rejected||s.cancelled)){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'Payment not found'));
+      var a=el('a',{href:wa('Hi Pangea, I paid for my stay by Thai QR on the website. Here is my slip.'),target:'_blank',rel:'noopener'},'WhatsApp us your payment slip');
+      box.appendChild(el('p',null,'We could not find your Thai QR payment in our bank, so the room was let go. If you paid, ',a,' and we will sort it out.')); return; }
+    box.appendChild(el('div',{cls:'big'},'Checking your payment'));
+    box.appendChild(el('p',null,'Your room'+(s&&s.room?', '+s.room+',':'')+' is held for you'+(s&&s.held_until?' until '+hm(s.held_until):' for 12 hours')+' while we check our bank. This usually takes a few minutes in the daytime. You can close this page and open it again later on this phone to see when it is confirmed.'));
+    var a2=el('a',{href:wa('Hi Pangea, I just paid for my stay by Thai QR on the website. Here is my slip.'),target:'_blank',rel:'noopener'},'WhatsApp us your payment slip');
+    box.appendChild(el('p',{cls:'sub'},'Want it quicker? ',a2,'.')); }
+  function poll(){ call({mode:'status',ref:ref}).then(function(s){ draw(s); if(s&&!s.paid&&!s.rejected&&!s.cancelled&&++tries<240) setTimeout(poll,10000); },function(){ if(++tries<240) setTimeout(poll,15000); }); }
+  draw(null); poll();
+}
 function inCur(amounts){ var c=cur(), r=INFO&&INFO.fx&&INFO.fx[c]; if(c==='thb'||!r) return null; var cents=amounts.reduce(function(t,a){ return t+Math.round(a*r*100); },0); return CURS[c]+(cents/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+c.toUpperCase(); }
 function addDays(d,n){ return new Date(Date.parse(d+'T00:00:00Z')+n*864e5).toISOString().slice(0,10); }
 function fmt(d){ return new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}); }
@@ -312,12 +366,13 @@ function summary(){
   (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name),el('span',null,thb(pr)))); });
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); });
-  var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&tot<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=tot>0?Math.round(tot*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,'You pay by card'),el('b',null,thb(tot+fee)))); amts.push(fee); }
+  var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&tot<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=tot>0&&payWith()==='card'?Math.round(tot*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,'You pay by card'),el('b',null,thb(tot+fee)))); amts.push(fee); }
   var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
   $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';
   $('chosen').innerHTML='';
   $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines)));
-  $('pay').textContent='Pay '+(fc||thb(tot+fee))+' by card'; pick.total=tot; pick.label=fc||thb(tot+fee);
+  $('paywith').hidden=cur()!=='thb'; pick.how=payWith()==='pp'?' with Thai QR':' by card';
+  $('pay').textContent='Pay '+(fc||thb(tot+fee))+pick.how; pick.total=tot; pick.label=fc||thb(tot+fee);
 }
 function choose(rid){
   var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r||r.state!=='free') return;
@@ -341,10 +396,10 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   var name=$('g-name').value.trim(), email=$('g-email').value.trim();
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
-  b.disabled=true; b.textContent='Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,currency:cur(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
-    .then(function(d){ location.href=d.url; })
-    .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+' by card'; err.textContent=x.message; err.hidden=false;
+  b.disabled=true; b.textContent=payWith()==='pp'?'Making your QR':'Opening the card payment';
+  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,currency:cur(),pay:payWith(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
+    .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
+    .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+(pick.how||' by card'); err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
 
 function afterPay(ref,paid){
@@ -361,6 +416,7 @@ function afterPay(ref,paid){
 var qp=new URLSearchParams(location.search), today=new Date(Date.now()+7*3600e3).toISOString().slice(0,10);
 $('from').min=today; $('to').min=addDays(today,1);
 if(qp.get('ref')&&/^[0-9a-f-]{36}$/.test(qp.get('ref'))){ afterPay(qp.get('ref'),qp.get('paid')==='1'); }
+else (function(){ try{ var m=JSON.parse(localStorage.getItem('pk_stay_pp')||'null'); if(m&&m.id&&Date.now()-m.at<2*864e5) call({mode:'status',ref:m.id}).then(function(s){ if(s&&(s.checking||(s.paid&&Date.now()-m.at<864e5))) waitPP(m.id); else localStorage.removeItem('pk_stay_pp'); },function(){}); }catch(e){} })();
 call({mode:'info'}).then(function(d){ INFO=d;
   (function(){ var sel=$('g-cur'); ['usd','gbp','eur'].forEach(function(c){ if(d.fx&&d.fx[c]) sel.appendChild(el('option',{value:c},CURN[c])); }); sel.onchange=function(){ summary(); }; if(sel.options.length<2) sel.parentNode.hidden=true; })();
   seasonLine(); MAP=mapView(mapPick); if(MAP){ $('map').appendChild(MAP.node); paintMap(); }
@@ -368,6 +424,7 @@ call({mode:'info'}).then(function(d){ INFO=d;
   .catch(function(){ $('derr').textContent='Booking is not available right now. Email hello@phuketking.com.'; $('derr').hidden=false; });
 })();
 </script>
+<script src="pk/qrcode.js?v=1"></script>
 <script src="pk/site.js?v=15"></script>
 <script src="pk/chat.js?v=1" defer></script>
 <script src="pk/reviews.js?v=1" defer></script>
