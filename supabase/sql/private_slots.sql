@@ -51,13 +51,15 @@ begin
   select * into b from private.coach_busy(p_coach, p_date, p_except) x
    where p_time < x.b_to and p_time + make_interval(mins => coalesce(p_minutes,60)) > x.b_from order by x.b_from limit 1;
   if not found then return null; end if;
-  free := private.coach_free_times(p_coach, p_date, p_minutes, p_except);
+  select coalesce(array_agg(f order by f), '{}') into free from (
+    select f from unnest(private.coach_free_times(p_coach, p_date, p_minutes, p_except)) f
+    order by abs(extract(epoch from (f::time - p_time))) limit 6) z;
   select string_agg(s.name, ', ' order by s.name) into others from public.staff s
    where s.role = 'coach' and s.active and s.id <> p_coach
      and not exists (select 1 from private.coach_busy(s.id, p_date, null) y where p_time < y.b_to and p_time + make_interval(mins => coalesce(p_minutes,60)) > y.b_from);
   return case when b.what = 'holiday' then coalesce(n,'The coach') || ' is on holiday that day.'
     else coalesce(n,'The coach') || ' is busy then, with a private from ' || to_char(b.b_from,'HH24:MI') || ' to ' || to_char(b.b_to,'HH24:MI') || '.' end
-    || case when cardinality(free) > 0 then ' Free that day: ' || array_to_string(free[1:8], ', ') || '.' else ' No free time that day.' end
+    || case when cardinality(free) > 0 then ' Nearest free times that day: ' || array_to_string(free, ', ') || '.' else ' No free time that day.' end
     || case when others is not null then ' Free at ' || to_char(p_time,'HH24:MI') || ': ' || others || '.' else '' end;
 end $$;
 
