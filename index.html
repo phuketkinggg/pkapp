@@ -1508,7 +1508,31 @@ function chargesOf(st){ return sortBy(S.charges.filter(function(c){ return c.sta
 function extrasTotal(st){ return chargesOf(st).reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0); }
 function roomDue(st){ return (Number(st.room_price_thb)||0)-(Number(st.room_paid_thb)||0); }
 /* what the guest still owes: the room (price minus what was already paid) plus everything added to the bill */
-function billTotal(st){ return extrasTotal(st)+roomDue(st)-(Number(st.app_paid_thb)||0); }
+function billTotal(st){ return extrasTotal(st)+roomDue(st)-(Number(st.app_paid_thb)||0)-periodsOf(st).reduce(function(t,x){ return t+(Number(x.till)||0); },0); }
+/* weekly bills: parts of the bill already closed and paid (nights and charges before each date) */
+function periodsOf(st){ return (Array.isArray(st.bill_periods)?st.bill_periods:[]).slice().sort(function(a,b){ return a.upto<b.upto?-1:1; }); }
+function paidUpto(st){ var p=periodsOf(st); return p.length?p[p.length-1].upto:null; }
+function closePeriod(st,back){
+  if(!guard()) return;
+  var start=paidUpto(st)||st.check_in, n0=nights(st), def=addDays(start,7); if(def>st.check_out) def=st.check_out;
+  function calc(upto){ if(!upto||upto<=start||upto>st.check_out) return null;
+    var n=Math.round((parseYmd(upto)-parseYmd(start))/864e5), before=periodsOf(st).reduce(function(t,x){ return t+(Number(x.room)||0); },0);
+    var room=st.room_price_thb==null?0:upto===st.check_out?Math.max(0,Number(st.room_price_thb)-before):Math.round(Number(st.room_price_thb)*n/Math.max(1,n0));
+    var ch=chargesOf(st).filter(function(c){ return c.day>=start&&c.day<upto; }), chT=ch.reduce(function(t,c){ return t+(Number(c.amount_thb)||0); },0);
+    var used=periodsOf(st).reduce(function(t,x){ return t+(Number(x.credit)||0); },0), pool=(Number(st.room_paid_thb)||0)+(Number(st.app_paid_thb)||0)-periodsOf(st).reduce(function(t,x){ return t+Math.max(0,(Number(x.total)||0)-(Number(x.till)||0)); },0);
+    var credit=Math.min(Math.max(0,pool-used),room+chT);
+    return {n:n,room:room,ch:chT,count:ch.length,credit:credit,total:room+chT-credit}; }
+  function preview(v,set,get){ var c=calc(get('upto'));
+    set('preview',c?(c.n+' night'+(c.n===1?'':'s')+' from '+fmtDate(start)+': room '+thb(c.room)+'. '+c.count+' charge'+(c.count===1?'':'s')+' on the bill: '+thb(c.ch)+'.'+(c.credit?' Already paid ahead: -'+thb(c.credit)+'.':'')+' To pay now: '+thb(c.total)+'.'):'Pick a date after '+fmtDate(start)+', up to check out on '+fmtDate(st.check_out)+'.'); }
+  openForm({title:'Close the bill up to a date',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+'. They pay the nights and everything on the bill before this date. A new bill starts from it.',
+    saveLabel:'Paid, close this part',doneMsg:'Paid. A new bill starts from here.',values:{upto:def,method:'cash'},fields:[
+    {key:'upto',label:'Paid up to (the first night of the new bill)',type:'date',required:true,onChange:preview,hint:'For a weekly stay this is usually 7 days after the last time they paid.'},
+    {key:'method',label:'Paid by',type:'select',options:[['cash','Cash'],['card','Card'],['transfer','Bank transfer or PromptPay'],['stripe','Card link (Stripe)']]},
+    {key:'preview',label:'This part of the bill',type:'info'}],
+    onSave:function(v){ var c=calc(v.upto); if(!c) return 'Pick a date after '+fmtDate(start)+', up to '+fmtDate(st.check_out)+'.';
+      return sb.rpc('stay_close_period',{p_stay:st.id,p_upto:v.upto,p_method:v.method}).then(must).then(function(){ return Promise.all([reload('stays'),reload('charges')]); }).then(function(){ if(back) setTimeout(function(){ back(byId('stays',st.id)); },80); }); }});
+  setTimeout(function(){ var d=document.getElementById('f-upto'); if(d) d.dispatchEvent(new Event('change')); },60);
+}
 function nights(st){ return Math.round((parseYmd(st.check_out)-parseYmd(st.check_in))/86400000); }
 function mealPlanOf(cid,day){ return S.purchases.filter(function(p){ return p.customer_id===cid&&isMealOnly(p)&&!p.cancelled&&!unpaidOrder(p)&&stateOf(p,day).ok; })[0]||null; }
 /* ---------- room prices: rooms grouped by price, a price per season, seasons by dates of the year ---------- */
@@ -1844,10 +1868,12 @@ function openBill(st,msg,thenOut){
   var lines=chargesOf(st), total=billTotal(st), mgr=me&&me.role==='manager', n=nights(st), ex=stayExtras(st);
   var exOwe=ex.reduce(function(t,x){ return t+x.owe; },0), exPrice=ex.reduce(function(t,x){ return t+x.price; },0), exPaid=exPrice-exOwe;
   var allOwe=Math.max(0,st.settled?0:total)+exOwe;
-  var roomRows=[];
+  var roomRows=[], pers=periodsOf(st), upto=paidUpto(st);
   if(st.room_price_thb!=null) roomRows.push(h('tr',null,h('td',null,fmtDate(st.check_in)),h('td',null,'Room, '+n+' night'+(n===1?'':'s')+(st.training_included!==false?', group Muay Thai included':'')),h('td',{class:'num'},thb(st.room_price_thb)||'0 THB'),h('td')));
   if(Number(st.room_paid_thb)>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Room already paid'),h('td',{class:'num'},'-'+thb(st.room_paid_thb)),h('td')));
-  if(Number(st.app_paid_thb)>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Paid in the app'),h('td',{class:'num'},'-'+thb(st.app_paid_thb)),h('td')));
+  var perPay=pers.reduce(function(t,x){ return t+Math.max(0,(Number(x.total)||0)-(Number(x.till)||0)); },0), perAll=pers.reduce(function(t,x){ return t+(Number(x.total)||0); },0), appOnly=(Number(st.app_paid_thb)||0)-perPay;
+  if(appOnly>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Paid in the app'),h('td',{class:'num'},'-'+thb(appOnly)),h('td')));
+  if(perAll>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Paid up to '+fmtDate(upto)+' (see Paid so far)'),h('td',{class:'num'},'-'+thb(perAll)),h('td')));
   var method=h('select',{id:'bill-method'},[['card','Card'],['cash','Cash'],['transfer','Bank transfer or PromptPay']].map(function(o){ return h('option',{value:o[0]},o[1]); }));
   var err=h('p',{class:'ferr',role:'alert',hidden:true});
   function close(){ $dlg.close(); }
@@ -1863,10 +1889,16 @@ function openBill(st,msg,thenOut){
     msg?h('p',{class:'kerr',style:'font-size:14px'},msg):null,
     h('h3',{class:'billh'},'Room bill'),
     lines.length||roomRows.length?h('div',{class:'panel scroll'},h('table',null,h('tbody',null,roomRows,lines.map(function(c){
+      var closed=upto&&c.day<upto;
       return h('tr',null,h('td',null,fmtDate(c.day)),h('td',null,c.description),h('td',{class:'num'},thb(c.amount_thb)),
-        !st.settled?h('td',null,h('button',{type:'button',class:'link',onclick:function(){ close(); mistakeDlg('Remove from the bill: '+c.description+', '+thb(c.amount_thb),c.order_id?'This removes the whole till sale it came from, puts the stock back and takes it out of the sales, as if it never happened.':'It comes off the bill as if it was never there.',
+        closed?h('td',null,chip('Paid','ok')):!st.settled?h('td',null,h('button',{type:'button',class:'link',onclick:function(){ close(); mistakeDlg('Remove from the bill: '+c.description+', '+thb(c.amount_thb),c.order_id?'This removes the whole till sale it came from, puts the stock back and takes it out of the sales, as if it never happened.':'It comes off the bill as if it was never there.',
           function(pin,why){ return sb.rpc('room_charge_mistake',{p_charge:c.id,p_pin:pin,p_reason:why}).then(must).then(function(){ return Promise.all([reload('charges'),reload('purchases'),reload('privates')]); }).then(function(){ openBill(byId('stays',st.id),msg,thenOut); if(SALES) shopRefresh(); }); }); }},'Remove (mistake)')):h('td'));
     })),h('tfoot',null,h('tr',null,h('td',null,st.settled?'Room bill':'Room bill to pay'),h('td'),h('td',{class:'num'},total<0?'-'+thb(-total):(thb(total)||'0 THB')),h('td'))))):h('div',{class:'panel empty'},'Nothing on the room bill yet. Edit the stay to add the room price.'),
+    pers.length?[h('h3',{class:'billh'},'Paid so far'),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,pers.map(function(x,i){
+      return h('tr',null,h('td',null,fmtDate(x.from)+' to '+fmtDate(addDays(x.upto,-1))),h('td',null,x.nights+' night'+(x.nights===1?'':'s')+' '+thb(x.room)+(Number(x.charges)?', bill '+thb(x.charges):'')+(Number(x.credit)?', paid ahead -'+thb(x.credit):'')+'. Paid by '+x.method+' on '+fmtDate(x.paid_on)+(x.by?' ('+x.by+')':'')),
+        h('td',{class:'num'},thb(x.total)||'0 THB'),h('td',null,mgr&&!st.settled&&i===pers.length-1?h('button',{type:'button',class:'link',onclick:function(){ if(ui.perUndo!==st.id){ ui.perUndo=st.id; toast('Tap Undo again to take this payment back.'); return; } ui.perUndo=null;
+          sb.rpc('stay_undo_period',{p_stay:st.id}).then(must).then(function(){ return reload('stays'); }).then(function(){ openBill(byId('stays',st.id),msg,thenOut); },function(e){ toast(errText(e)); }); }},'Undo'):null)); }))),
+      h('p',{class:'sub'},'Everything before '+fmtDate(upto)+' is paid. Room bill to pay is what is left for the rest of the stay.'))]:null,
     ex.length?[h('h3',{class:'billh'},'Training, privates and extras'),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,ex.map(function(x){
       return h('tr',null,h('td',null,fmtDate(x.day)),h('td',null,x.what),h('td',{class:'num'},thb(x.price)||'0 THB'),h('td',null,x.owe?chip('Owes '+thb(x.owe),'warn'):chip('Paid','ok'))); })),
       h('tfoot',null,h('tr',null,h('td',null,'Paid'),h('td'),h('td',{class:'num'},thb(exPaid)||'0 THB'),h('td',null,exOwe?chip('Owes '+thb(exOwe),'warn'):null)))))]:null,
@@ -1876,7 +1908,8 @@ function openBill(st,msg,thenOut){
     err,
     h('div',{class:'factions'},
       st.settled?(mgr?btn('Reopen bill',function(){ db.doc('stays/'+st.id).update({settled:false,settled_method:null,settled_on:null}).then(function(){ close(); toast('Bill reopened.'); },function(e){ err.textContent=errText(e); err.hidden=false; }); }):h('span'))
-        :btn('Add to bill',function(){ close(); addCharge(st,function(){ openBill(byId('stays',st.id),msg,thenOut); }); }),
+        :h('div',{class:'row'},btn('Add to bill',function(){ close(); addCharge(st,function(){ openBill(byId('stays',st.id),msg,thenOut); }); }),
+          (upto||st.check_in)<st.check_out?btn('Close up to a date (weekly)',function(){ close(); closePeriod(st,function(s2){ openBill(s2,msg,thenOut); }); }):null),
       h('div',{class:'row'},btn('Close',close),
         !st.settled||exOwe?h('label',{class:'row',for:'bill-method'},h('span',{class:'sub'},'Paid by'),method):null,
         !st.settled&&total>=20&&!exOwe?btn('Card link',function(){ close(); stripePay('stay',st.id,nameOf('rooms',st.room_id)); },'small'):null,
