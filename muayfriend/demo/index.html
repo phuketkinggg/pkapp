@@ -988,14 +988,15 @@ function onHol(sid,day){ return (S.holidays||[]).some(function(x){ return x.staf
 function classCoaches(c,day){ return (c.coach_ids||[]).filter(function(id){ var st=byId('staff',id); return st&&st.active!==false&&(!day||!onHol(id,day)); }); }
 function ctime(c){ return c&&c.time?c.time+(c.end?' - '+c.end:''):''; }
 function editClass(c){ c=c||{};
-  openForm({title:c.id?'Edit class':'New class',values:c,fields:[
+  openForm({title:c.id?'Edit class':'New class',values:Object.assign({},c,{checkin:c.no_checkin?'no':'yes'}),fields:[
     {key:'day',label:'Day',type:'select',def:'0',options:DAYS.map(function(d,i){return [String(i),d];})},
     {key:'time',label:'Start time',type:'time'},
     {key:'end',label:'End time',type:'time',hint:'Optional.'},
     {key:'title',label:'Class name',required:true},
     {key:'discipline',label:'Discipline',type:'select',def:'Muay Thai',options:DISCIPLINES.map(function(d){return [d,d];})},
+    {key:'checkin',label:'Check in',type:'select',def:'yes',options:[['yes','Check in needed'],['no','No check in needed']],hint:'No check in needed: the class shows on the timetable, but nobody checks in for it and it never uses a visit from a package.'},
     {key:'coach_ids',label:'Coaches',type:'checks',options:coaches().map(function(x){ return [x.id,x.name]; }),hint:'The coaches ticked here clock in and out for this class. Coaches not ticked do not have to. A coach on approved holiday is left out for those days.'}],
-    onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null})); },
+    onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; var nc=v.checkin==='no'; delete v.checkin; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null,no_checkin:nc})); },
     onDelete:c.id?function(){ return db.doc('classes/'+c.id).delete(); }:null});
 }
 function packOpts(customerId,priv){
@@ -1157,7 +1158,7 @@ function walkIn(name,target){
   var ordered=short.concat(pk.filter(function(k){ return short.indexOf(k)<0; }));
   var first=ordered.filter(function(k){ return /1 session/i.test(k.name); })[0]||ordered[0];
   var src=sortBy(S.sources,'name'), direct=src.filter(function(x){ return /^direct$/i.test(x.name); })[0];
-  var targets=sortBy(S.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); }),'time').map(function(c){ return ['c:'+c.id,(c.time?c.time+' ':'')+c.title]; })
+  var targets=sortBy(S.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day)&&!c.no_checkin; }),'time').map(function(c){ return ['c:'+c.id,(c.time?c.time+' ':'')+c.title]; })
     .concat(FACILITIES.map(function(f){ return ['f:'+f,f]; }));
   targets.push(['','Do not check in yet']);
   var tdef=target?(target.kind==='class'?'c:'+target.id:'f:'+target.name):(targets[0]?targets[0][0]:'');
@@ -1233,7 +1234,7 @@ function customerOwes(cid){ var a=S.purchases.filter(function(p){ return p.custo
 function pastCheckIn(c){
   var today=ymd(new Date()), y=addDays(today,-1);
   function targetsFor(d){ var wd=(parseYmd(d).getDay()+6)%7;
-    return sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,d); }),'time').map(function(k){ return ['c:'+k.id,(k.time?k.time+' ':'')+k.title]; })
+    return sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,d)&&!k.no_checkin; }),'time').map(function(k){ return ['c:'+k.id,(k.time?k.time+' ':'')+k.title]; })
       .concat(FACILITIES.map(function(f){ return ['f:'+f,f]; })); }
   var t0=targetsFor(y);
   openForm({title:'Check '+c.name+' in for a past day',note:'For a class they did but did not check in for. The right package is used, with its visits and weekly limit for that day.',saveLabel:'Check in',doneMsg:'Checked in.',
@@ -5787,7 +5788,7 @@ function vToday(){
   var q=ui.q.trim().toLowerCase(), hits=[];
   if(q) hits=sortBy(S.customers.filter(function(c){ return !c.is_agency&&[c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
   var search=h('input',{id:'q',class:'search',type:'search',placeholder:'Type a name, email or phone',value:ui.q,'aria-label':'Find a customer to check in',oninput:function(ev){ ui.q=ev.target.value; schedule(); }});
-  var targets=todays.map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
+  var targets=todays.filter(function(c){ return !c.no_checkin; }).map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
     .concat([{key:'p:private',kind:'private',label:'Private lesson'}])
     .concat(FACILITIES.map(function(f){ return {key:'f:'+f,kind:'facility',name:f,label:f}; }));
   if(ui.targetAuto||!targets.some(function(t){return t.key===ui.target;})){
@@ -6063,7 +6064,7 @@ function vTimetable(){
     var rows=sortBy(S.classes.filter(function(c){return Number(c.day)===i;}),'time'); if(!rows.length) return;
     out.push(section(d,null,table([
       {label:'Time',cell:function(c){return ctime(c)||'To set';}},
-      {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c)];}},
+      {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c),c.no_checkin?chip('No check in needed'):null];}},
       {label:'Discipline',cell:function(c){return chip(c.discipline||'');}},
       {label:'Coaches',cell:function(c){ var ids=classCoaches(c,null); return ids.length?ids.map(function(id){ return nameOf('staff',id); }).join(', '):h('span',{class:'sub'},'Nobody has to clock in'); }},
       {label:'',cell:function(c){ var on=c.off_from&&(c.off_to||c.off_from)>=ymd(new Date()); return on?h('div',{class:'row'},chip(offText(c),'warn'),btn('Turn back on',function(){ resumeClass(c); },'small')):btn('Pause',function(){ pauseClass(c); },'small'); }}],rows,'')));
@@ -6477,7 +6478,7 @@ var MAP={
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
-  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note']},
+  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
@@ -6753,7 +6754,7 @@ function cuTargets(){
   function usable(t){ return ps.some(function(p){ return canCheckIn(p,cuState(p),t,classToday).ok; }); }
   var out=[];
   CU.classes.forEach(function(c){
-    if(Number(c.day)!==wd||classOff(c,CU.today)) return;
+    if(Number(c.day)!==wd||classOff(c,CU.today)||c.no_checkin) return;
     var t={kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title};
     t.done=mine.some(function(e){ return e.class_id===c.id; });
     if(!t.done&&c.time&&c.time<cut) t.label+=' (earlier today)';
@@ -7013,7 +7014,7 @@ function vCClasses(){
     out.push(section(DAYS[d]+(isToday?', today':''),null,cards(rows.map(function(c){
       var cov=!ps.length||ps.some(function(p){ return !coverReason(p,{kind:'class',day:Number(c.day),discipline:c.discipline,time:c.time||''}); });
       var off=classOff(c,addDays(CU.today,dd));
-      return {when:ctime(c)||'Time to be set',title:c.title,note:off?offText(c):[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:off?chip('Off this time','bad'):cov?null:chip('Not in your package')}; }),'')));
+      return {when:ctime(c)||'Time to be set',title:c.title,note:off?offText(c):[c.discipline,c.coach?'with '+c.coach:null].filter(Boolean).join(', '),right:off?chip('Off this time','bad'):c.no_checkin?chip('No check in needed','ok'):cov?null:chip('Not in your package')}; }),'')));
   })((wd+i)%7,i===0,i); }
   return out;
 }
@@ -7483,7 +7484,7 @@ function kTargets(c,day){
   var wd=(parseYmd(day).getDay()+6)%7, cut=shiftTime(timeNow(),-120), entries=entriesOf(day).filter(function(e){ return e.customer_id===c.id; });
   var classToday=entries.some(function(e){ return !!e.class_id; });
   var ps=S.purchases.filter(function(p){ return p.customer_id===c.id&&kUsable(p,day); });
-  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,ymd(new Date())); }),'time').map(function(k){ return {kind:'class',id:k.id,day:Number(k.day),discipline:k.discipline,time:k.time||'',label:k.title}; })
+  var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,ymd(new Date()))&&!k.no_checkin; }),'time').map(function(k){ return {kind:'class',id:k.id,day:Number(k.day),discipline:k.discipline,time:k.time||'',label:k.title}; })
     .concat(FACILITIES.map(function(f){ return {kind:'facility',name:f,time:'',label:f}; }));
   var out=[];
   ts.forEach(function(t){
