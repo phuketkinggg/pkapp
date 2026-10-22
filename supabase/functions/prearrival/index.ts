@@ -25,43 +25,59 @@ async function settings() {
   return { we: get("welcome_email"), pa: get("prearrival") };
 }
 
-function render(w: Who, link: string, hasVideo: boolean, wa: string) {
+// the email text is editable in the app (Coaching, Arriving soon, Edit the email). {first} is their first name, {arrival} " on Monday 5 November" or nothing.
+type Copy = { subject?: string; heading?: string; intro?: string; asks?: string; gets_title?: string; gets?: string; button?: string; after?: string; footer?: string };
+const DEFAULT_COPY: Required<Copy> = {
+  subject: "Get ready for Phuket King, {first}",
+  heading: "Your training starts now, {first}",
+  intro: "We can't wait to have you{arrival}. Your Phuket King app is ready. Open it now and take about 5 minutes to tell us:",
+  asks: "Why you are coming: fight training, weight loss, fitness or something else\nYour Muay Thai experience and fitness level\nAny injuries, allergies or worries we should know about",
+  gets_title: "Then you get",
+  gets: "A simple daily plan for the next two weeks, so you arrive ready\nCoaches who already know you and your goals when you walk in",
+  button: "Open my app",
+  after: "The button signs you straight in, no password needed. Add the app to your home screen when it asks, so it is one tap away.",
+  footer: "Work hard, Fight easy.\nTeam Phuket King",
+};
+function render(w: Who, link: string, hasVideo: boolean, wa: string, copy: Copy = {}) {
   const G = "#1a3325", C = "#f5f0e8", GOLD = "#c9a84c", INK = "#22201c", MUT = "#6b665c";
+  const c = { ...DEFAULT_COPY } as Required<Copy>;
+  for (const k of Object.keys(DEFAULT_COPY) as (keyof Copy)[]) { const v = copy[k]; if (typeof v === "string" && v.trim()) c[k] = v; }
   const when = w.arrival ? ` on ${day(w.arrival)}` : "";
-  const subject = `Get ready for Phuket King, ${first(w.name)}`;
-  const li = (t: string) => `<tr><td style="padding:0 0 10px;color:${INK};font-size:16px;line-height:1.5"><span style="color:${GOLD};font-weight:bold">&#10003;</span>&nbsp; ${t}</td></tr>`;
-  const gets = [hasVideo ? "A video from Coach Tom introducing your coaches" : "", "A simple daily plan for the next two weeks, so you arrive ready", "Coaches who already know your goals when you walk in"].filter(Boolean);
+  const fill = (t: string) => t.replace(/\{\{?\s*(first|name)\s*\}?\}/gi, first(w.name)).replace(/\{\{?\s*arrival\s*\}?\}/gi, when);
+  const lines = (t: string) => fill(t).split("\n").map((x) => x.replace(/^[-*]\s*/, "").trim()).filter(Boolean);
+  const subject = fill(c.subject);
+  const li = (t: string) => `<tr><td style="padding:0 0 10px;color:${INK};font-size:16px;line-height:1.5"><span style="color:${GOLD};font-weight:bold">&#10003;</span>&nbsp; ${esc(t)}</td></tr>`;
+  const asks = lines(c.asks);
+  const gets = (hasVideo ? ["A video from Coach Tom introducing your coaches"] : []).concat(lines(c.gets));
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
 <body style="margin:0;padding:0;background:${C};font-family:Helvetica,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C}"><tr><td align="center" style="padding:20px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
   <tr><td style="background:${G};border-radius:12px 12px 0 0;padding:28px 24px;color:#ffffff">
     <div style="color:${GOLD};font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Phuket King Muay Thai</div>
-    <div style="font-size:28px;font-weight:bold;margin:8px 0 0">Your training starts now, ${esc(first(w.name))}</div>
+    <div style="font-size:28px;font-weight:bold;margin:8px 0 0">${esc(fill(c.heading))}</div>
   </td></tr>
   <tr><td style="background:#fbf8f2;padding:24px;border-radius:0 0 12px 12px">
-    <p style="margin:0 0 18px;color:${INK};font-size:16px;line-height:1.5">We can't wait to have you${esc(when)}. Your Phuket King app is ready. Open it now and take about 3 minutes to tell us:</p>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px">
-      ${li("Your Muay Thai level, from never trained to fighter")}${li("What you want from your trip")}${li("Your weight now, and any injuries we should know about")}
-    </table>
-    <div style="color:${G};font-size:18px;font-weight:bold;margin:12px 0 10px">Then you get</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px">${gets.map(li).join("")}</table>
+    <p style="margin:0 0 18px;color:${INK};font-size:16px;line-height:1.5">${esc(fill(c.intro)).replace(/\n/g, "<br>")}</p>
+    ${asks.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px">${asks.map(li).join("")}</table>` : ""}
+    ${gets.length ? `<div style="color:${G};font-size:18px;font-weight:bold;margin:12px 0 10px">${esc(fill(c.gets_title))}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px">${gets.map(li).join("")}</table>` : ""}
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 12px"><tr><td style="background:${GOLD};border-radius:10px">
-      <a href="${esc(link)}" style="display:inline-block;color:${G};text-decoration:none;font-weight:bold;font-size:18px;padding:14px 26px">Open my app</a>
+      <a href="${esc(link)}" style="display:inline-block;color:${G};text-decoration:none;font-weight:bold;font-size:18px;padding:14px 26px">${esc(fill(c.button))}</a>
     </td></tr></table>
-    <p style="margin:0 0 22px;color:${MUT};font-size:14px;line-height:1.5">The button signs you straight in, no password needed. Add the app to your home screen when it asks, so it is one tap away.</p>
+    <p style="margin:0 0 22px;color:${MUT};font-size:14px;line-height:1.5">${esc(fill(c.after)).replace(/\n/g, "<br>")}</p>
     <p style="margin:0;color:${INK};font-size:15px;line-height:1.5">Questions before you travel? <a href="https://wa.me/${esc(wa)}" style="color:${G};font-weight:bold">WhatsApp us</a>.</p>
-    <p style="margin:20px 0 0;color:${MUT};font-size:14px">Work hard, Fight easy.<br>Team Phuket King</p>
+    <p style="margin:20px 0 0;color:${MUT};font-size:14px">${esc(fill(c.footer)).replace(/\n/g, "<br>")}</p>
   </td></tr>
 </table></td></tr></table></body></html>`;
-  const text = [`Your training starts now, ${first(w.name)}`, "", `We can't wait to have you${when}. Your Phuket King app is ready. Open it now and take about 3 minutes to tell us your Muay Thai level, what you want from your trip, your weight and any injuries.`,
-    "", "Then you get:", ...gets.map((g) => "- " + g), "", `Open my app: ${link}`, "The link signs you straight in, no password needed.", "", `Questions? WhatsApp us: https://wa.me/${wa}`, "", "Work hard, Fight easy.", "Team Phuket King"].join("\n");
+  const text = [fill(c.heading), "", fill(c.intro), ...asks.map((g) => "- " + g), "", fill(c.gets_title) + ":", ...gets.map((g) => "- " + g), "",
+    `${fill(c.button)}: ${link}`, fill(c.after), "", `Questions? WhatsApp us: https://wa.me/${wa}`, "", fill(c.footer)].join("\n");
   return { subject, html, text };
 }
 
 async function send(w: Who, link: string) {
   const { we, pa } = await settings();
-  const m = render(w, link, !!pa.video_url, String(we.whatsapp || "66969076150").replace(/\D/g, ""));
+  const m = render(w, link, !!pa.video_url, String(we.whatsapp || "66969076150").replace(/\D/g, ""), pa.email || {});
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
