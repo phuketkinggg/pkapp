@@ -10,11 +10,17 @@ const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
 
-// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3%), shown as its own line on the Stripe page
-async function cardPct(): Promise<number> {
+// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page
+type CardRule = { pct: number; fixed: number; under: number };
+// the fee is a percent plus a fixed amount; above "under" baht the fixed part is not charged (we cover it)
+async function cardRule(): Promise<CardRule> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
-  try { const v = Number(JSON.parse(data?.value ?? "{}").card_pct); return Number.isFinite(v) && v >= 0 && v <= 20 ? v : 3; } catch { return 3; }
+  let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* defaults */ }
+  const n = (v: unknown, d: number, max: number) => { const x = Number(v); return v != null && Number.isFinite(x) && x >= 0 && x <= max ? x : d; };
+  return { pct: n(j.card_pct, 3, 20), fixed: n(j.card_fixed, 10, 1000), under: n(j.card_fixed_under, 2000, 10000000) };
 }
+const cardFee = (amount: number, r: CardRule) => amount > 0 ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
+const cardLabel = (amount: number, r: CardRule) => `Card fee (${r.pct}%${r.fixed > 0 && amount < r.under ? ` + ${r.fixed} THB` : ""})`;
 const PAGE = "https://phuketkinggg.github.io/pkapp/pk/shop.html";
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -33,8 +39,8 @@ function backUrl(u: unknown): string {
   return PAGE;
 }
 async function stripeSession(lines: { name: string; qty: number; price: number }[], amount: number, orderId: string, email: string, back: string) {
-  const pct = await cardPct(), fee = Math.round(amount * pct / 100);
-  if (fee > 0) lines = lines.concat([{ name: `Card fee (${pct}%)`, qty: 1, price: fee }]);
+  const rule = await cardRule(), fee = cardFee(amount, rule);
+  if (fee > 0) lines = lines.concat([{ name: cardLabel(amount, rule), qty: 1, price: fee }]);
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1&ref=" + orderId);

@@ -440,6 +440,22 @@ ul.plain{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
 body.kiosk .side{display:none}
 body.kiosk main{padding:24px}
 body.kiosk #view{max-width:1100px;margin:0 auto}
+/* till: the side menu slides away so the till has the whole screen; drag in from the left edge (or tap the line) to bring it back */
+.sidegrip{display:none}
+body.till .side{position:fixed;left:0;top:0;bottom:0;z-index:60;width:240px;flex-direction:column;border-right:1px solid var(--line);border-bottom:0;padding:20px 12px;gap:16px;overflow-y:auto;
+  transform:translateX(-100%);transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s;touch-action:pan-y}
+body.till.side-open .side{transform:none;box-shadow:6px 0 28px rgba(0,0,0,.22)}
+body.till .side.dragging{transition:none}
+body.till .brand{flex-direction:column;align-items:flex-start;gap:2px;padding:0 8px}
+body.till #nav{flex-direction:column;overflow:visible}
+body.till #nav button[aria-current="page"]{box-shadow:inset 3px 0 0 var(--gold)}
+body.till .who{margin:auto 8px 0;flex-direction:column;align-items:flex-start}
+body.till .sidegrip{display:flex;position:fixed;left:0;top:0;bottom:0;width:22px;z-index:59;align-items:center;justify-content:flex-start;padding:0 0 0 3px;border:0;background:transparent;cursor:pointer;touch-action:none}
+.sidegrip span{display:flex;align-items:center;justify-content:center;width:16px;height:84px;border-radius:0 10px 10px 0;background:var(--sunken);border:1px solid var(--gold);border-left:0;color:var(--gold-ink);font-size:18px;font-weight:700;line-height:1;box-shadow:1px 0 4px rgba(0,0,0,.08)}
+.sidegrip:hover span,.sidegrip:focus-visible span{color:var(--gold-ink);border-color:var(--gold)}
+body.till main{padding-left:30px}
+@media (min-width:761px){body.till main{padding-left:40px}}
+@media (prefers-reduced-motion:reduce){body.till .side{transition:none}}
 .khead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 .khead h1{font-size:44px}
 .kbrand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.1em;color:var(--gold-ink)}
@@ -582,6 +598,7 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
     <nav id="nav" aria-label="Sections"></nav>
     <div class="who" id="who"></div>
   </aside>
+  <button type="button" class="sidegrip" id="sidegrip" aria-label="Show the menu" title="Drag or tap to show the menu"><span aria-hidden="true">›</span></button>
   <main>
     <div id="banner" hidden></div>
     <div id="view"><div class="panel empty">Loading. The sign in screen will appear here.</div></div>
@@ -619,7 +636,12 @@ var PX=null;
 var FXS=null;
 function loadPayExtras(){ return Promise.all([sb.from('app_settings').select('value').eq('key','pay_extras').maybeSingle(),sb.from('app_settings').select('value').eq('key','fx').maybeSingle()]).then(function(r){ try{ PX=r[0].data&&r[0].data.value?JSON.parse(r[0].data.value):null; }catch(e){ PX=null; } try{ FXS=r[1].data&&r[1].data.value?JSON.parse(r[1].data.value):null; }catch(e){ FXS=null; } },function(){}); }
 function fxMargin(){ var m=FXS&&FXS.margin!=null?Number(FXS.margin):3; return isNaN(m)?3:m; }
-function pxRate(k){ var d={card_pct:3,tax_pct:7}, v=PX&&PX[k]!=null?Number(PX[k]):d[k]; return isNaN(v)?d[k]:v; }
+function pxRate(k){ var d={card_pct:3,card_fixed:10,card_fixed_under:2000,tax_pct:7}, v=PX&&PX[k]!=null?Number(PX[k]):d[k]; return isNaN(v)?d[k]:v; }
+/* card fee: a percent plus a fixed amount; at or above card_fixed_under the fixed part is not charged (we cover it) */
+function cardFixed(b){ var f=pxRate('card_fixed'); return f>0&&(Number(b)||0)<pxRate('card_fixed_under')?f:0; }
+function cardFee(b){ b=Number(b)||0; return b>0?Math.round(b*pxRate('card_pct')/100)+cardFixed(b):0; }
+function cardFeeText(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB':''); }
+function cardFeeLong(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB (no '+f+' THB on '+thb(pxRate('card_fixed_under'))+' or more)':''); }
 function netPrice(p){ return Math.max(0,(Number(p&&p.price_thb)||0)-(Number(p&&p.fee_thb)||0)-(Number(p&&p.tax_thb)||0)); }
 function pxNote(p){ var f=Number(p&&p.fee_thb)||0, t=Number(p&&p.tax_thb)||0; return f||t?'incl. '+[f?'card fee '+thb(f):null,t?'tax '+thb(t):null].filter(Boolean).join(', '):''; }
 /* the tick boxes for a form: base is read from baseKey; after(set,get,show) runs when the total changes */
@@ -627,10 +649,10 @@ function pxFields(baseKey,init,after,totalLabel){ init=init||{};
   function base(get){ var b=get(baseKey); return typeof b==='function'?0:Number(b)||0; }
   function total(get){ return base(get)+(get('x_fee')?Math.round(Number(get('fee_thb'))||0):0)+(get('x_tax')?Math.round(Number(get('tax_thb'))||0):0); }
   function tot(set,get,show){ set('x_total',thb(total(get))||'0 THB'); if(show) show('x_total',!!(get('x_fee')||get('x_tax'))); if(after) after(set,get,show); }
-  function re(set,get,show){ if(get('x_fee')) set('fee_thb',Math.round(base(get)*pxRate('card_pct')/100)); if(get('x_tax')) set('tax_thb',Math.round(base(get)*pxRate('tax_pct')/100)); tot(set,get,show); }
+  function re(set,get,show){ if(get('x_fee')) set('fee_thb',cardFee(base(get))); if(get('x_tax')) set('tax_thb',Math.round(base(get)*pxRate('tax_pct')/100)); tot(set,get,show); }
   var f0=Number(init.fee)||0, t0=Number(init.tax)||0;
   return {re:re,total:total,values:{x_fee:f0>0,fee_thb:f0||null,x_tax:t0>0,tax_thb:t0||null,x_total:thb((Number(init.base)||0)+f0+t0)},fields:[
-    {key:'x_fee',label:'Add card payment fee ('+pxRate('card_pct')+'%)',type:'checkbox',hide:init.hide,onChange:function(v,set,get,o,show){ show('fee_thb',v); set('fee_thb',v?Math.round(base(get)*pxRate('card_pct')/100):null); tot(set,get,show); }},
+    {key:'x_fee',label:'Add card payment fee ('+cardFeeText()+')',type:'checkbox',hide:init.hide,onChange:function(v,set,get,o,show){ show('fee_thb',v); set('fee_thb',v?cardFee(base(get)):null); tot(set,get,show); }},
     {key:'fee_thb',label:'Card fee (THB)',type:'number',hide:!(f0>0),hint:'Covers the bank or Stripe fee. Not part of any coach share.',onChange:function(v,set,get,o,show){ tot(set,get,show); }},
     {key:'x_tax',label:'Add tax ('+pxRate('tax_pct')+'%)',type:'checkbox',hide:init.hide,onChange:function(v,set,get,o,show){ show('tax_thb',v); set('tax_thb',v?Math.round(base(get)*pxRate('tax_pct')/100):null); tot(set,get,show); }},
     {key:'tax_thb',label:'Tax (THB)',type:'number',hide:!(t0>0),hint:'Not part of any coach share.',onChange:function(v,set,get,o,show){ tot(set,get,show); }},
@@ -4725,14 +4747,14 @@ function payDlg(method,waitingOrder){
   var err=h('p',{class:'ferr',role:'alert',hidden:true}), extra=[], given=null, stay=null, change=h('p',{class:'paychange'}), totEl=h('p',{class:'paytotal'},'Total '+thb(total));
   var ppHolder=null, ppNode=null, fx=null;
   /* card fee and tax: type a percent, the amount is worked out */
-  function fxRow(key,label,pct){ var cb=h('input',{type:'checkbox',id:'px-'+key}), pc=h('input',{type:'number',id:'px-'+key+'-pct',min:'0',step:'any',inputmode:'decimal','aria-label':label+' percent',style:'width:80px'}), amt=h('input',{type:'number',id:'px-'+key+'-amt',min:'0',step:'1',inputmode:'numeric','aria-label':label+' amount in THB',style:'width:110px'});
-    pc.value=String(pct); function calc(){ amt.value=cb.checked?Math.round(base*(Number(pc.value)||0)/100):''; upd(); }
+  function fxRow(key,label,pct,fixed){ var cb=h('input',{type:'checkbox',id:'px-'+key}), pc=h('input',{type:'number',id:'px-'+key+'-pct',min:'0',step:'any',inputmode:'decimal','aria-label':label+' percent',style:'width:80px'}), amt=h('input',{type:'number',id:'px-'+key+'-amt',min:'0',step:'1',inputmode:'numeric','aria-label':label+' amount in THB',style:'width:110px'});
+    pc.value=String(pct); function calc(){ amt.value=cb.checked?Math.round(base*(Number(pc.value)||0)/100)+(fixed?fixed(base):0):''; upd(); }
     cb.onchange=calc; pc.oninput=function(){ cb.checked=true; calc(); }; amt.oninput=function(){ cb.checked=true; upd(); };
-    return {cb:cb,amt:amt,calc:calc,el:h('div',{class:'row wrap',style:'align-items:center;gap:8px;margin:6px 0'},h('label',{class:'check',for:'px-'+key},cb,h('span',null,label)),pc,h('span',null,'%'),amt,h('span',null,'THB'))}; }
+    return {cb:cb,amt:amt,calc:calc,el:h('div',{class:'row wrap',style:'align-items:center;gap:8px;margin:6px 0'},h('label',{class:'check',for:'px-'+key},cb,h('span',null,label)),pc,h('span',null,'%'+(fixed&&fixed(base)?' + '+fixed(base)+' THB':'')),amt,h('span',null,'THB'))}; }
   function fees(){ return {fee:fx&&fx.fee.cb.checked?Math.max(0,Math.round(Number(fx.fee.amt.value)||0)):0,tax:fx&&fx.tax.cb.checked?Math.max(0,Math.round(Number(fx.tax.amt.value)||0)):0}; }
   function upd(){ var f=fees(); total=base+f.fee+f.tax; totEl.textContent='Total '+thb(total)+(f.fee||f.tax?' ('+thb(base)+(f.fee?' + card fee '+thb(f.fee):'')+(f.tax?' + tax '+thb(f.tax):'')+')':''); if(given&&given.oninput) given.oninput(); if(ppHolder) ppHolder.replaceChildren(ppNode()); }
   if(method==='card'||method==='stripe'||method==='transfer'||method==='qr'){
-    fx={fee:fxRow('fee','Add card fee',pxRate('card_pct')),tax:fxRow('tax','Add tax',pxRate('tax_pct'))};
+    fx={fee:fxRow('fee','Add card fee',pxRate('card_pct'),cardFixed),tax:fxRow('tax','Add tax',pxRate('tax_pct'))};
     if(method==='card'||method==='stripe'){ fx.fee.cb.checked=true; fx.fee.calc(); }
     extra.push(h('div',{class:'panel pad'},fx.fee.el,fx.tax.el,h('p',{class:'sub'},'Tick, or type the percent, and the amount is worked out. You can also type the amount.')));
   }
@@ -5173,7 +5195,7 @@ function vCFood(){
   }
   return [pageHead('Food','Order from the Pangea cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
     cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
@@ -6272,16 +6294,18 @@ function aiUsageSection(){ loadAiUsage();
 }
 function pxSettings(){
   return section('Card fee and tax',btn('Change',function(){
-    openForm({title:'Card fee and tax',note:'When you tick Add card payment fee or Add tax on a sale, a private or a payment, these rates fill in the amount. You can still change the amount each time.',values:{card_pct:pxRate('card_pct'),tax_pct:pxRate('tax_pct')},fields:[
+    openForm({title:'Card fee and tax',note:'When you tick Add card payment fee or Add tax on a sale, a private or a payment, these rates fill in the amount. You can still change the amount each time.',values:{card_pct:pxRate('card_pct'),card_fixed:pxRate('card_fixed'),card_fixed_under:pxRate('card_fixed_under'),tax_pct:pxRate('tax_pct')},fields:[
       {key:'card_pct',label:'Card payment fee (%)',type:'number',required:true,hint:'For example 3 for what the bank or Stripe takes.'},
+      {key:'card_fixed',label:'Plus a fixed card fee (THB)',type:'number',required:true,hint:'Added on top of the percent, for example 10. Put 0 for none.'},
+      {key:'card_fixed_under',label:'Only add the fixed fee under (THB)',type:'number',required:true,hint:'On this amount or more the customer pays only the percent and we cover the fixed part. For example 2000.'},
       {key:'tax_pct',label:'Tax (%)',type:'number',required:true,hint:'For example 7 for VAT.'},
       {key:'fx_margin',label:'Booking page, extra on US dollars, pounds and euros (%)',type:'number',required:true,def:fxMargin(),hint:'Guests can pay a stay in USD, GBP or EUR. The price is our Thai baht price at today\'s rate plus this much, to cover what the change costs. Thai baht payments go to the Thai Stripe account.'}],
-      onSave:function(v){ if(v.card_pct<0||v.card_pct>20||v.tax_pct<0||v.tax_pct>30||v.fx_margin<0||v.fx_margin>10) return 'Check the numbers.';
+      onSave:function(v){ if(v.card_pct<0||v.card_pct>20||v.card_fixed<0||v.card_fixed>1000||v.card_fixed_under<0||v.tax_pct<0||v.tax_pct>30||v.fx_margin<0||v.fx_margin>10) return 'Check the numbers.';
         var fxv=JSON.stringify(Object.assign({},FXS||{},{margin:Number(v.fx_margin)}));
         sb.from('app_settings').update({value:fxv,updated_at:new Date().toISOString()}).eq('key','fx').select('key').then(function(r){ if(!r.error&&(!r.data||!r.data.length)) sb.from('app_settings').insert({key:'fx',value:fxv}).then(function(){}); FXS=JSON.parse(fxv); });
-        var val=JSON.stringify({card_pct:Number(v.card_pct),tax_pct:Number(v.tax_pct)});
+        var val=JSON.stringify(Object.assign({},PX||{},{card_pct:Number(v.card_pct),card_fixed:Number(v.card_fixed),card_fixed_under:Number(v.card_fixed_under),tax_pct:Number(v.tax_pct)}));
         return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','pay_extras').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'pay_extras',value:val}).then(must); }).then(function(){ PX=JSON.parse(val); schedule(); }); }});
-  },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+pxRate('card_pct')+'%, tax '+pxRate('tax_pct')+'%. Booking page in USD, GBP and EUR: today\'s rate plus '+fxMargin()+'%.'),
+  },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+cardFeeLong()+', tax '+pxRate('tax_pct')+'%. Booking page in USD, GBP and EUR: today\'s rate plus '+fxMargin()+'%.'),
     h('p',{class:'sub'},'Tick boxes on Sell a package, Book a private and Take payment add them on top of the price. The customer pays them, Accounts shows them as Card fees charged and Tax collected, and they are never part of a coach share.')));
 }
 function vSettings(){
@@ -6346,6 +6370,7 @@ var raf=0;
 function schedule(){ if(raf) return; raf=requestAnimationFrame(function(){ raf=0; render(); }); }
 function render(){
   renderNav();
+  tillSide(!!(allReady&&me&&ui.tab==='shop'&&!ui.shopView&&!document.body.classList.contains('kiosk')));
   if(!allReady) return;
   var act=document.activeElement, keep=act&&act.id&&$view.contains(act)?{id:act.id,s:act.selectionStart,e:act.selectionEnd}:null;
   var nodes=[]; (function flat(l){ l.forEach(function(n){ if(Array.isArray(n)) flat(n); else if(n) nodes.push(n); }); })(VIEWS[ui.tab]());
@@ -6354,6 +6379,36 @@ function render(){
   if(keep){ var el=document.getElementById(keep.id); if(el){ el.focus(); try{ el.setSelectionRange(keep.s,keep.e); }catch(e){} } }
 }
 function noDb(msg){ $banner.textContent=msg; $banner.hidden=false; }
+/* till mode: the side menu shows for 5 seconds, then slides away. Drag in from the left edge or tap the line to bring it back,
+   drag it back to the left (or tap the till) to send it away. */
+var TILL={on:false,t:0,dragged:0};
+function sideIsOpen(){ return document.body.classList.contains('side-open'); }
+function sideOpen(o){ clearTimeout(TILL.t); var g=document.getElementById('sidegrip'); document.body.classList.toggle('side-open',!!o); if(g) g.setAttribute('aria-label',o?'Hide the menu':'Show the menu'); }
+function tillSide(on){
+  if(on===TILL.on) return; TILL.on=on; clearTimeout(TILL.t);
+  document.body.classList.toggle('till',on);
+  if(on){ sideOpen(true); TILL.t=setTimeout(function(){ sideOpen(false); },5000); } else document.body.classList.remove('side-open');
+}
+(function(){
+  var side=document.querySelector('.side'), grip=document.getElementById('sidegrip'), d=null;
+  if(!side||!grip) return;
+  function W(){ return side.getBoundingClientRect().width||240; }
+  function start(e){ if(!TILL.on||(e.button&&e.button!==0)) return; d={x:e.clientX,y:e.clientY,open:sideIsOpen(),moved:false,id:e.pointerId}; }
+  function move(e){ if(!d||e.pointerId!==d.id) return; var dx=e.clientX-d.x, dy=e.clientY-d.y;
+    if(!d.moved){ if(Math.abs(dx)<8) return; if(Math.abs(dy)>Math.abs(dx)){ d=null; return; } d.moved=true; clearTimeout(TILL.t); side.classList.add('dragging'); }
+    var w=W(), off=Math.max(-w,Math.min(0,(d.open?0:-w)+dx)); side.style.transform='translateX('+off+'px)'; if(e.cancelable) e.preventDefault(); }
+  function end(e){ if(!d||e.pointerId!==d.id) return; var was=d, dx=e.clientX-d.x; d=null; if(!was.moved) return;
+    TILL.dragged=Date.now(); side.classList.remove('dragging'); side.style.transform=''; sideOpen(was.open?dx>-W()/3:dx>W()/4); }
+  grip.addEventListener('pointerdown',start); side.addEventListener('pointerdown',start);
+  window.addEventListener('pointermove',move,{passive:false}); window.addEventListener('pointerup',end); window.addEventListener('pointercancel',end);
+  grip.addEventListener('click',function(){ if(TILL.on&&Date.now()-TILL.dragged>300) sideOpen(!sideIsOpen()); });
+  /* a drag across the menu is not a tap on what it started on */
+  side.addEventListener('click',function(e){ if(Date.now()-TILL.dragged<300){ e.stopPropagation(); e.preventDefault(); } },true);
+  side.addEventListener('click',function(e){ if(TILL.on&&Date.now()-TILL.dragged>300&&e.target.closest&&e.target.closest('#nav button')) sideOpen(false); });
+  /* a tap on the till while the menu is out sends it away */
+  document.addEventListener('pointerdown',function(e){ if(TILL.on&&sideIsOpen()&&!side.contains(e.target)&&!grip.contains(e.target)&&!(e.target.closest&&e.target.closest('dialog'))){ sideOpen(false); TILL.swallow=Date.now(); } },true);
+  document.addEventListener('click',function(e){ if(TILL.swallow&&Date.now()-TILL.swallow<600){ TILL.swallow=0; e.stopPropagation(); e.preventDefault(); } },true);
+})();
 
 /* ---------- database (Supabase) ---------- */
 var SB_URL='https://jijnshwduhgegacfvpkh.supabase.co', SB_KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
@@ -6725,7 +6780,7 @@ function pkgCard(p){
 }
 function orderCard(p){
   return {when:p.package_name,right:thb(p.price_thb),note:'Pay by card now, or at the front desk. It is ready to use as soon as it is paid.',
-    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
+    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
 }
 function editMe(){
   openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone,news:CU.me.marketing_ok!==false},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'},{key:'news',label:'Send me the Phuket King newsletter by email',type:'checkbox'}],
@@ -6735,7 +6790,7 @@ function cuStay(){
   var st=CU.stay, lines=st.charges||[];
   var head={when:st.room,right:chip(st.status==='in'?'Staying now':'Booked',st.status==='in'?'ok':null),note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)};
   var items=[head].concat(lines.map(function(c){ return {when:c.what,right:thb(c.amount),note:fmtDate(c.day)}; }));
-  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('stay',st.id); },'small'):null]:null});
+  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('stay',st.id); },'small'):null]:null});
   return section('Your stay',null,cards(items,''));
 }
 /* the guest's room cleaning: what is planned today, and asking for an extra clean, no clean, towels or something else */
@@ -6844,7 +6899,7 @@ function vCHome(){
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
   return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day),window.pkCanInstall&&window.pkCanInstall()&&!PV?btn('Install app',function(){ window.pkInstall(); },'small'):null),
     readyCard(),
-    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here. Card payments have a '+pxRate('card_pct')+'% card fee.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card (+'+pxRate('card_pct')+'% card fee)',function(){ stripePay('customer',null); },'small')):null,
+    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here. Card payments have a card fee of '+cardFeeLong()+'.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('customer',null); },'small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
     cuHk(),
@@ -7384,7 +7439,7 @@ function kPrivate(c){
   function coachesFor(d){ return allCh.filter(function(x){ return !S.holidays.some(function(hd){ return hd.staff_id===x.id&&hd.status==='approved'&&hd.from<=d&&d<=hd.to; }); }); }
   function paysFor(d){ var pk=byId('purchases',(packOpts(c.id,{date:d}).slice(1).filter(function(o){ var k=byId('purchases',o[0]); return !k.expires_on||k.expires_on>=d; })[0]||[])[0]), st=(S.stays||[]).filter(function(x){ return x.customer_id===c.id&&stayOn(x,d)&&!x.settled; })[0];
     var o=[]; if(pk) o.push(['pack','From my pack ('+(pk.class_limit-packUsed(pk))+' sessions left)']);
-    if(price!=null){ o.push(['card','Pay now by card, '+thb(price)+' + '+thb(Math.round(price*pxRate('card_pct')/100))+' card fee'],['qr','Pay now by PromptPay, '+thb(price)]); if(st) o.push(['room','On my room bill, '+thb(price)]); o.push(['desk','Pay at the front desk, '+thb(price)]); }
+    if(price!=null){ o.push(['card','Pay now by card, '+thb(price)+' + '+thb(cardFee(price))+' card fee'],['qr','Pay now by PromptPay, '+thb(price)]); if(st) o.push(['room','On my room bill, '+thb(price)]); o.push(['desk','Pay at the front desk, '+thb(price)]); }
     return {opts:o,pack:pk}; }
   var d0=days[0][0]; if(!timesFor(d0).length) d0=days[1][0];
   var p0=paysFor(d0), c0=coachesFor(d0);
@@ -7415,7 +7470,7 @@ function kBuy(c){
   var day=ymd(new Date()), group=c.price_group||'standard', st=kStay(c,day);
   var list=sortBy(S.packages.filter(function(p){ return p.active!==false&&canBuy(p,group)&&!tiersFor(p,group)&&Number(priceFor(p,group))>0&&!isMealOnly(p)&&(p.covers||[]).length&&(p.covers||[]).indexOf(MEAL)<0; }),'name');
   if(!list.length){ ui.kerr='Packages can not be bought here yet. See the front desk.'; schedule(); return; }
-  var pays=[['card','Card (scan a code with your phone), +'+pxRate('card_pct')+'% card fee'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk','Cash or card at the front desk']]);
+  var pays=[['card','Card (scan a code with your phone), +'+cardFeeText()+' card fee'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk','Cash or card at the front desk']]);
   kIdle(120000);
   openForm({title:'Buy a package',note:c.name+(group!=='standard'?', '+GROUPS[group]+' prices':'')+'.',saveLabel:'Buy',values:{package_id:list[0].id,pay:'card'},fields:[
     {key:'package_id',label:'Package',type:'select',options:list.map(function(p){ return [p.id,p.name+', '+thb(priceFor(p,group))]; })},

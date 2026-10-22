@@ -6,11 +6,17 @@ const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
 
-// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3%), shown as its own line on the Stripe page
-async function cardPct(): Promise<number> {
+// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page
+type CardRule = { pct: number; fixed: number; under: number };
+// the fee is a percent plus a fixed amount; above "under" baht the fixed part is not charged (we cover it)
+async function cardRule(): Promise<CardRule> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
-  try { const v = Number(JSON.parse(data?.value ?? "{}").card_pct); return Number.isFinite(v) && v >= 0 && v <= 20 ? v : 3; } catch { return 3; }
+  let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* defaults */ }
+  const n = (v: unknown, d: number, max: number) => { const x = Number(v); return v != null && Number.isFinite(x) && x >= 0 && x <= max ? x : d; };
+  return { pct: n(j.card_pct, 3, 20), fixed: n(j.card_fixed, 10, 1000), under: n(j.card_fixed_under, 2000, 10000000) };
 }
+const cardFee = (amount: number, r: CardRule) => amount > 0 ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
+const cardLabel = (amount: number, r: CardRule) => `Card fee (${r.pct}%${r.fixed > 0 && amount < r.under ? ` + ${r.fixed} THB` : ""})`;
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -31,7 +37,7 @@ function backUrl(u: unknown): string {
   return APP;
 }
 
-async function session(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, promptpay: boolean, fee = 0, pct = 0) {
+async function session(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, promptpay: boolean, fee = 0, label = "Card fee") {
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1");
@@ -40,7 +46,7 @@ async function session(amount: number, what: string, meta: Record<string, string
   p.set("line_items[0][price_data][currency]", "thb");
   p.set("line_items[0][price_data][unit_amount]", String(Math.round(amount * 100)));
   p.set("line_items[0][price_data][product_data][name]", what.slice(0, 120));
-  if (fee > 0) { p.set("line_items[1][quantity]", "1"); p.set("line_items[1][price_data][currency]", "thb"); p.set("line_items[1][price_data][unit_amount]", String(Math.round(fee * 100))); p.set("line_items[1][price_data][product_data][name]", `Card fee (${pct}%)`); }
+  if (fee > 0) { p.set("line_items[1][quantity]", "1"); p.set("line_items[1][price_data][currency]", "thb"); p.set("line_items[1][price_data][unit_amount]", String(Math.round(fee * 100))); p.set("line_items[1][price_data][product_data][name]", label); }
   p.set("payment_method_types[0]", "card");
   if (promptpay && !(fee > 0)) p.set("payment_method_types[1]", "promptpay");
   if (email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) p.set("customer_email", email);
@@ -54,8 +60,8 @@ async function session(amount: number, what: string, meta: Record<string, string
   if (!r.ok) throw new Error(j?.error?.message ?? `Stripe said ${r.status}`);
   return j;
 }
-async function make(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, fee = 0, pct = 0) {
-  if (fee > 0) return { s: await session(amount, what, meta, email, back, false, fee, pct), promptpay: false };
+async function make(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, fee = 0, label = "Card fee") {
+  if (fee > 0) return { s: await session(amount, what, meta, email, back, false, fee, label), promptpay: false };
   try { return { s: await session(amount, what, meta, email, back, true), promptpay: true }; }
   catch (e) {
     if (!/promptpay|payment method/i.test(String((e as Error).message))) throw e;
@@ -84,8 +90,8 @@ Deno.serve(async (req) => {
     // a customer paying for themselves (member app), or anyone on the kiosk, pays the card fee; staff making a link choose on their own form
     const { data: who } = await admin.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
     const { data: st } = who?.user ? await admin.from("staff").select("id").eq("user_id", who.user.id).eq("active", true).maybeSingle() : { data: null };
-    const pct = (!st || body.kiosk === true) ? await cardPct() : 0, fee = Math.round(amount * pct / 100);
-    const m = await make(amount, String(q.what ?? "Phuket King"), { kind: String(body.kind), id: String(body.kind === "customer" ? q.customer_id : body.id), amount: String(amount), fee: String(fee) }, q.email ?? null, backUrl(body.back), fee, pct);
+    const rule = (!st || body.kiosk === true) ? await cardRule() : null, fee = rule ? cardFee(amount, rule) : 0;
+    const m = await make(amount, String(q.what ?? "Phuket King"), { kind: String(body.kind), id: String(body.kind === "customer" ? q.customer_id : body.id), amount: String(amount), fee: String(fee) }, q.email ?? null, backUrl(body.back), fee, rule ? cardLabel(amount, rule) : "Card fee");
     return json({ url: m.s.url, amount, fee, total: amount + fee, promptpay: m.promptpay });
   } catch (e) {
     return json({ error: `Stripe: ${(e as Error).message}` });
