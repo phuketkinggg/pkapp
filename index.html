@@ -571,6 +571,8 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .accrc{display:grid;grid-template-columns:200px 1fr;gap:14px;margin-bottom:12px}.accrc.focus{outline:3px solid var(--gold)}.accrcimgw{display:block}.accrcimgw img,.accrcimg{width:100%;max-height:300px;object-fit:contain;border-radius:8px;background:var(--sunken);display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-size:13px}
 .accrcf{display:flex;flex-direction:column;gap:8px}.accrcg{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.accrcg .field{margin:0}
 @media (max-width:640px){.accrc{grid-template-columns:1fr}.accnums span{font-size:15px}}
+.forminfo{font-size:14px;line-height:1.45;padding:10px 12px;border-radius:10px;background:var(--panel2,rgba(127,127,127,.08));min-height:1.5em}
+.forminfo:empty{display:none}
 </style>
 </head>
 <body>
@@ -772,7 +774,7 @@ function openForm(spec){
   var err=h('p',{class:'ferr',role:'alert',hidden:true});
   function showErr(m){ err.textContent=m; err.hidden=false; }
   function read(f){ var el=inputs[f.key]; if(f.type==='checks') return el.boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;}); if(f.type==='checkbox') return el.checked; if(f.type==='number') return el.value===''?null:Number(el.value); return el.value.trim(); }
-  function set(k,v){ var el=inputs[k]; if(!el) return; if(el.boxes) el.boxes.forEach(function(b){ b.checked=(v||[]).indexOf(b.value)>=0; }); else if(el.type==='checkbox') el.checked=!!v; else el.value=v==null?'':v; }
+  function set(k,v){ var el=inputs[k]; if(!el) return; if(el.tagName==='DIV'){ el.replaceChildren(v&&v.nodeType?v:document.createTextNode(v==null?'':String(v))); return; } if(el.boxes) el.boxes.forEach(function(b){ b.checked=(v||[]).indexOf(b.value)>=0; }); else if(el.type==='checkbox') el.checked=!!v; else el.value=v==null?'':v; }
   function setOpts(k,options){ var el=inputs[k]; if(el) el.replaceChildren.apply(el,options.map(function(o){return h('option',{value:o[0]},o[1]);})); }
   var rowEls={};
   function getV(k){ for(var j=0;j<spec.fields.length;j++) if(spec.fields[j].key===k) return read(spec.fields[j]); }
@@ -788,6 +790,7 @@ function openForm(spec){
     if(f.type==='select') el=h('select',{id:id},f.options.map(function(o){return h('option',{value:o[0]},o[1]);}));
     else if(f.type==='textarea') el=h('textarea',{id:id,rows:String(f.rows||3)});
     else if(f.type==='checkbox') el=h('input',{id:id,type:'checkbox'});
+    else if(f.type==='info') el=h('div',{id:id,class:'forminfo',role:'status','aria-live':'polite'});
     else el=h('input',{id:id,type:f.type||'text',min:f.type==='number'?'0':null,step:f.type==='number'?'any':null,inputmode:f.type==='number'?'decimal':null,autocomplete:f.autocomplete||'off',readonly:f.readonly?'':null});
     inputs[f.key]=el;
     set(f.key, vals[f.key]!==undefined&&vals[f.key]!==null ? vals[f.key] : f.def);
@@ -977,11 +980,29 @@ function packOpts(customerId,priv){
     if((n>0&&live)||x.id===priv.purchase_id) o.push([x.id,x.package_name+' ('+n+' of '+x.class_limit+' left'+(x.expires_on?', use by '+fmtDate(x.expires_on):'')+')']); });
   return o;
 }
-function coachBusy(coachId,date,time,exceptId){
-  if(S.privates.some(function(o){ return o.id!==exceptId&&o.coach_id===coachId&&o.date===date&&o.time===time&&o.status!=='cancelled'; })) return nameOf('staff',coachId)+' already has a private at that time.';
+function pMin(t){ var a=String(t||'').split(':'); return Number(a[0])*60+Number(a[1]||0); }
+function pHM(m){ m=((m%1440)+1440)%1440; return (m<600?'0':'')+Math.floor(m/60)+':'+(m%60<10?'0':'')+(m%60); }
+/* a private holds the coach from its start for its length (1 hour unless set longer) */
+function pSpan(p){ var t=String(p&&p.time||'').slice(0,5); if(!t) return ''; return t+' to '+pHM(pMin(t)+(Number(p.minutes)||60)); }
+function coachBusy(coachId,date,time,exceptId,minutes){
+  var s0=pMin(time), e0=s0+(Number(minutes)||60);
+  var hit=S.privates.filter(function(o){ return o.id!==exceptId&&o.coach_id===coachId&&o.date===date&&(o.status==='confirmed'||o.status==='done')&&pMin(o.time)<e0&&s0<pMin(o.time)+(Number(o.minutes)||60); })[0];
+  if(hit) return nameOf('staff',coachId)+' is busy then, with a private from '+pSpan(hit)+'.';
   if(S.holidays.some(function(hd){ return hd.staff_id===coachId&&hd.status==='approved'&&hd.from<=date&&date<=hd.to; })) return nameOf('staff',coachId)+' is on holiday that day.';
   return null;
 }
+/* who is free at a time, and the nearest free times for one coach, from the database */
+function slotInfo(date,time,minutes,coachId,exceptId){
+  if(!date||!time) return Promise.resolve('');
+  return sb.rpc('private_slots',{p_from:date,p_days:1,p_minutes:Number(minutes)||60,p_coach:null,p_except:exceptId||null}).then(must).then(function(r){
+    var cs=(r.days&&r.days[0]&&r.days[0].coaches)||[], t=String(time).slice(0,5), free=cs.filter(function(c){ return c.free.indexOf(t)>=0; });
+    var me1=cs.filter(function(c){ return c.id===coachId; })[0], out=[];
+    if(me1){ if(me1.free.indexOf(t)>=0) out.push(me1.name+' is free then.');
+      else { var near=me1.free.slice().sort(function(a,b){ return Math.abs(pMin(a)-pMin(t))-Math.abs(pMin(b)-pMin(t)); }).slice(0,6).sort();
+        var b=(me1.busy||[]).filter(function(x){ return x.what==='holiday'; }).length?' is on holiday that day.':' is busy then'+((me1.busy||[]).length?' ('+me1.busy.filter(function(x){ return pMin(x.from)<pMin(t)+(Number(minutes)||60)&&pMin(t)<pMin(x.to); }).map(function(x){ return x.from+' to '+x.to; }).join(', ')+')':'')+'.';
+        out.push(me1.name+b+(near.length?' Nearest free times: '+near.join(', ')+'.':' No free time that day.')); } }
+    out.push(free.length?'Free at '+t+': '+free.map(function(c){ return c.name; }).join(', ')+'.':'No coach is free at '+t+'.');
+    return out.join(' '); }).catch(function(){ return ''; }); }
 function withoutMove(p){ var b=Object.assign({},p); delete b.reschedule; return b; }
 function askMove(p,by){
   openForm({title:'Ask to move this private',saveLabel:'Send to a manager',values:{date:p.date,time:p.time},fields:[
@@ -991,7 +1012,7 @@ function askMove(p,by){
       return save('privates',p.id,Object.assign({},p,{reschedule:r})); }});
 }
 function authorizeMove(p){
-  if(!guard()) return; var r=p.reschedule, busy=coachBusy(p.coach_id,r.date,r.time,p.id);
+  if(!guard()) return; var r=p.reschedule, busy=coachBusy(p.coach_id,r.date,r.time,p.id,p.minutes);
   if(busy){ toast(busy); return; }
   var pack=p.purchase_id?byId('purchases',p.purchase_id):null;
   if(pack&&pack.expires_on&&r.date>pack.expires_on){ toast('The pack expires on '+fmtDate(pack.expires_on)+', before the new date.'); return; }
@@ -1031,15 +1052,20 @@ function editPrivate(p,approving){ p=p||{};
   if(!p.id&&pack0){ p=Object.assign({},p,{purchase_id:pk0,price_thb:perSession(pack0)}); }
   var px=pxFields('price_thb',{base:netPrice(p),fee:p.fee_thb,tax:p.tax_thb,hide:!!p.purchase_id});
   var pv=Object.assign({},p,px.values); if(p.id&&(Number(p.fee_thb)||Number(p.tax_thb))) pv.price_thb=netPrice(p);
+  function freeNow(v,set,get){ slotInfo(get('date'),get('time'),get('minutes'),get('coach_id'),p.id).then(function(t){ set('free_note',t); }); }
+  pv.minutes=String(p.minutes||60);
   function agencySource(cid){ var c=byId('customers',cid); if(!c||!c.is_agency) return null; return S.sources.filter(function(x){ return x.name.toLowerCase()===String(c.name).toLowerCase(); })[0]||null; }
   openForm({title:approving?'Approve request from '+nameOf('customers',p.customer_id):p.id?'Edit private':'Book a private',note:approving?'Choose the coach and check the time. '+(p.preferred_coach_id?'They asked for '+nameOf('staff',p.preferred_coach_id)+'.':'They have no preference.')+(p.notes?' Their note: '+p.notes:''):null,saveLabel:approving?'Confirm':null,doneMsg:approving?'Private confirmed.':null,values:pv,fields:[
     {key:'customer_id',label:'Customer',type:'select',options:cs.map(function(c){ return [c.id,c.is_agency?c.name+' guest (agency)':c.name]; }),def:(cs.filter(function(c){ return !c.is_agency; })[0]||cs[0]).id,
       hint:'For a one time agency booking, pick the agency and type the guest name below.',
       onChange:function(v,set,get,setOpts,show){ setOpts('purchase_id',packOpts(v,p)); set('purchase_id',firstPack(v)); var a=agencySource(v); if(a) set('source_id',a.id); reprice(set,get,show); }},
     {key:'guest_name',label:'Guest name',hint:'Optional. The person training, if you know it. Coaches see it.'},
-    {key:'coach_id',label:'Coach',type:'select',options:opts(ch),def:p.preferred_coach_id||ch[0].id},
-    {key:'date',label:'Date',type:'date',def:ymd(new Date()),required:true},
-    {key:'time',label:'Start time',type:'time',required:true},
+    {key:'coach_id',label:'Coach',type:'select',options:opts(ch),def:p.preferred_coach_id||ch[0].id,onChange:freeNow},
+    {key:'date',label:'Date',type:'date',def:ymd(new Date()),required:true,onChange:freeNow},
+    {key:'time',label:'Start time',type:'time',required:true,onChange:freeNow},
+    {key:'minutes',label:'Blocks the coach for',type:'select',def:'60',options:[['60','1 hour (standard)'],['90','1 hour 30 minutes'],['120','2 hours'],['150','2 hours 30 minutes'],['180','3 hours'],['240','4 hours'],['300','5 hours']],
+      hint:'Make it longer when the private includes transport or runs over. The coach cannot be booked for anything else in that time.',onChange:freeNow},
+    {key:'free_note',label:'Coach availability',type:'info'},
     {key:'purchase_id',label:'Paid with',type:'select',options:packOpts(cid0,p),def:'',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'source_id',label:'Where the booking came from',type:'select',options:opts(src,'Other'),def:first?first.id:'',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first?srcPrice(first,groupOf(cid0)):null,hint:'After any agency fee. With a pack it is worked out for you: the pack price divided by its sessions. Coaches never see this, only their share.',onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
@@ -1052,12 +1078,12 @@ function editPrivate(p,approving){ p=p||{};
       var today=ymd(new Date());
       if(v.date<today&&(!p.id||p.date!==v.date)&&me.role!=='manager') return 'Only a manager can add a private on a past date.';
       if(!p.id&&v.date<today&&v.status==='confirmed') v.status='done';
-      if(v.status!=='cancelled'){ var busy=coachBusy(v.coach_id,v.date,v.time,p.id); if(busy) return busy; }
+      if(v.status==='confirmed'||v.status==='done'){ var busy=coachBusy(v.coach_id,v.date,v.time,p.id,v.minutes); if(busy) return busy+' See the times above.'; }
       if(v.purchase_id){ var pack=byId('purchases',v.purchase_id);
         if(!pack||pack.customer_id!==v.customer_id) return 'That pack belongs to a different customer.';
         if(v.status!=='cancelled'&&pack.class_limit-packUsed(pack,p.id)<=0) return 'That pack has no sessions left.';
         if(v.status!=='cancelled'&&pack.expires_on&&v.date>pack.expires_on) return 'That pack expired on '+fmtDate(pack.expires_on)+'. Book a date before then.'; }
-      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); delete body.pack_note;
+      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); delete body.pack_note; delete body.free_note; body.minutes=Number(v.minutes)||60;
       var x=v.purchase_id?{fee:0,tax:0}:pxOf(v); body.fee_thb=x.fee; body.tax_thb=x.tax; body.price_thb=Math.round(Number(v.price_thb)||0)+x.fee+x.tax;
       if(v.purchase_id){ body.paid=true; var pk=byId('purchases',v.purchase_id); if(pk) body.price_thb=perSession(pk); }
       else if(v.method==='room'){ if(!v.customer_id) return 'Charge to room needs a customer who is staying with us.'; body.paid=true; }
@@ -1070,6 +1096,7 @@ function editPrivate(p,approving){ p=p||{};
         if(roomPack) return sb.rpc('package_to_room',{p_id:roomPack.id}).then(must).then(function(){ return reload('purchases'); }).then(function(){ return Promise.all([reload('charges'),reload('stays')]); }).then(function(){ setTimeout(function(){ toast(roomPack.package_name+', '+thb(roomPack.price_thb)+', is on the room bill.'); },60); return r; });
         if(v.method==='room'&&!v.purchase_id) setTimeout(function(){ reload('charges'); },400); return r; }); },
     onDelete:p.id?function(){ return db.doc('privates/'+p.id).delete().then(function(){ return reload('charges'); }); }:null});
+  setTimeout(function(){ var t=document.getElementById('f-time'); if(t&&t.value) t.dispatchEvent(new Event('change')); },60);
 }
 function editSource(s){ s=s||{};
   openForm({title:s.id?'Edit booking source':'New booking source',values:s,fields:[
@@ -1464,6 +1491,14 @@ function declinePrivate(p){ if(!guard()) return;
     h('div',{class:'field'},h('label',null,'Offer other times (optional)'),rows.map(function(x){ return x.el; }),h('small',null,'Leave a row empty to skip it. The customer can take one with one tap, and it is booked straight away.')),
     err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),send))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  /* fill the offers with real free times: their coach first, closest to the time they asked for, then the next two days */
+  sb.rpc('private_slots',{p_from:p.date<ymd(new Date())?ymd(new Date()):p.date,p_days:3,p_minutes:Number(p.minutes)||60,p_coach:null,p_except:null}).then(must).then(function(r){
+    var want=pMin(p.time), cands=[];
+    (r.days||[]).forEach(function(d,di){ (d.coaches||[]).forEach(function(c){ c.free.forEach(function(t){ cands.push({date:d.date,time:t,coach:c.id,score:di*1000+Math.abs(pMin(t)-want)+(c.id===p.preferred_coach_id?0:45)}); }); }); });
+    cands.sort(function(x,y){ return x.score-y.score; });
+    var used={}, picks=[]; cands.forEach(function(c){ var k=c.date+c.time; if(picks.length<3&&!used[k]){ used[k]=1; picks.push(c); } });
+    rows.forEach(function(x,i){ var c=picks[i]; if(!c||x.t.value) return; x.d.value=c.date; x.t.value=c.time; x.c.value=c.coach; });
+  }).catch(function(){});
 }
 function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.id).update(patch),msg); }
 
@@ -5681,13 +5716,13 @@ function vToday(){
       {label:'To pay',num:true,cell:function(p){return thb(p.price_thb);}},
       {label:'Ordered',cell:function(p){return fmtDate(p.purchased_on);}},
       {label:'',cell:function(p){return btn('Take payment',function(){ takePayment(p); },'primary small');}}],orders,'')):null,waiting.length?section('Privates waiting for approval',null,table([
-      {label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
+      {label:'When',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return coachCell(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Note',cell:function(p){return p.notes||'';}},
       {label:'',cell:function(p){return h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small'));}}],waiting,'')):null,moves.length?section('Requests to move a private',null,table([
-      {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},
+      {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},
       {label:'Wants',cell:function(p){return h('b',null,fmtDate(p.reschedule.date)+' '+p.reschedule.time);}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
@@ -5702,7 +5737,7 @@ function vToday(){
       {label:'Package',cell:function(e){ var p=byId('purchases',e.purchase_id); return p?p.package_name:''; }},
       {label:'',cell:function(e){return btn('Undo',function(){ undoCheckIn(e); },'small');}}],entries.slice().reverse(),'Nobody has checked in yet today. Search for a customer above to check in the first one.'))]; },
     privates:function(){ return [section('Privates today',btn('Book a private',function(){ editPrivate(); },'small'),table([
-      {label:'Time',cell:function(p){return p.time||'';}},
+      {label:'Time',cell:function(p){return pSpan(p);}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null),arrivedChip(p));}},
@@ -5832,7 +5867,7 @@ function vCustomers(){
           return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'),
             !p.refunded_at&&!stayTr?btn('Refund',function(){ refundTab('purchase',p); },'small'):null,me&&me.role==='manager'&&!stayTr?btn('Delete (mistake)',function(){ deletePurchase(p); },'small'):null);}}],ps,'No packages yet. Use Sell a package to record the first one.')),
       (function(){ var pv=S.privates.filter(function(x){ return x.customer_id===c.id; }).sort(function(a,b){ return (a.date+(a.time||''))<(b.date+(b.time||''))?1:-1; }); return pv.length?section('Privates',null,table([
-        {label:'When',cell:function(x){ return linkBtn(fmtDate(x.date)+' '+(x.time||''),function(){ editPrivate(x); }); }},
+        {label:'When',cell:function(x){ return linkBtn(fmtDate(x.date)+' '+pSpan(x),function(){ editPrivate(x); }); }},
         {label:'Coach',cell:function(x){ return x.coach_id?nameOf('staff',x.coach_id):''; }},
         {label:'Paid with',cell:payLabel},
         {label:'Price',num:true,cell:function(x){ return x.purchase_id?'':thb(x.price_thb); }},
@@ -5930,7 +5965,7 @@ function vPrivates(){
   return [pageHead('Privates','Only a manager confirms, moves or cancels a private.',btn('Book a private',function(){ editPrivate(); },'primary')),
     h('div',{class:'row'},filter),
     table([
-      {label:'When',cell:function(p){return [linkBtn(fmtDate(p.date)+' '+(p.time||''),function(){ editPrivate(p); }),exChip(p)];}},
+      {label:'When',cell:function(p){return [linkBtn(fmtDate(p.date)+' '+pSpan(p),function(){ editPrivate(p); }),exChip(p)];}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return coachCell(p);}},
       {label:'Paid with',cell:payLabel},
@@ -6061,17 +6096,17 @@ function vCoach(){
   function doneBtn(p){ return p.status==='confirmed'?h('div',{class:'row'},btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'),moveBtn(p)):chip('Done','ok'); }
   var asks=mine.filter(function(p){ var r=p.reschedule; return r&&r.by==='customer'&&r.needs_coach&&!r.coach_agreed; });
   var todayRows=classes.map(function(c){return {time:ctime(c),what:c.title,who:'Group class',act:''};})
-    .concat(todayP.map(function(p){return {time:p.time||'',what:'Private',who:pWho(p),act:doneBtn(p)};}));
+    .concat(todayP.map(function(p){return {time:pSpan(p),what:'Private',who:pWho(p),act:doneBtn(p)};}));
   todayRows.sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});
   return [pageHead('Coach view',head,pick),
     h('div',{class:'stats'},h('span',null,h('b',null,doneM.length),'privates done this month'),h('span',null,h('b',null,thb(earned)||'0 THB'),'earned from privates this month')),
     section('Today',null,table([{label:'Time',cell:function(r){return r.time;}},{label:'Session',cell:function(r){return r.what;}},{label:'With',cell:function(r){return r.who;}},{label:'',cell:function(r){return r.act;}}],todayRows,'Nothing booked for '+me.name+' today.')),
     asks.length?section('Customers asking to move at short notice',null,table([
-      {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Wants',cell:function(p){return fmtDate(p.reschedule.date)+' '+p.reschedule.time;}},
+      {label:'Booked for',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},{label:'Wants',cell:function(p){return fmtDate(p.reschedule.date)+' '+p.reschedule.time;}},
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'',cell:function(p){ return h('div',{class:'row'},btn('I agree',function(){ if(guard()) run(save('privates',p.id,Object.assign({},p,{reschedule:Object.assign({},p.reschedule,{coach_agreed:true})})),'Sent to a manager to authorize.'); },'primary small'),btn('I do not agree',function(){ refuseMove(p); },'small')); }}],asks,'')):null,
-    late.length?section('Earlier privates not marked done',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'',cell:doneBtn}],late,'')):null,
-    section('Coming up',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+(p.time||'');}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Notes',cell:function(p){return p.notes||'';}},{label:'',cell:moveBtn}],upcoming,'No privates coming up.')),
+    late.length?section('Earlier privates not marked done',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'',cell:doneBtn}],late,'')):null,
+    section('Coming up',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Notes',cell:function(p){return p.notes||'';}},{label:'',cell:moveBtn}],upcoming,'No privates coming up.')),
     section('Privates done this month',null,table([{label:'Date',cell:function(p){return fmtDate(p.date);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Your share',num:true,cell:function(p){return thb(coachShare(netPrice(p),p.coach_pct));}}],doneM,'None marked done yet this month.',['Total','',thb(earned)])),
     section('Holidays',btn('Request holiday',function(){
       openForm({title:'Request holiday',saveLabel:'Send request',fields:[{key:'from',label:'First day off',type:'date',required:true},{key:'to',label:'Last day off',type:'date',required:true},{key:'note',label:'Note'}],
@@ -6297,7 +6332,7 @@ var MAP={
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
   classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
-  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb'],clear:['reschedule']},
+  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked','affiliate_id']},
@@ -6439,7 +6474,7 @@ function coachBookFor(c){
 function vMine(){
   if(!CO) return [h('div',{class:'panel empty'},C('loading'))];
   var day=CO.today, wd=(parseYmd(day).getDay()+6)%7, month=day.slice(0,7), prev=addDays(month+'-01',-1).slice(0,7), all=CO.privates, th=coLang()==='th';
-  function when(p){ return coDate(p.date)+' '+(p.time||''); }
+  function when(p){ return coDate(p.date)+' '+pSpan(p); }
   function sum(list){ return list.reduce(function(t,p){ return t+Number(p.share_thb||0); },0); }
   function needsMe(p){ var r=p.reschedule; return !!(r&&r.by==='customer'&&r.needs_coach&&!r.coach_agreed); }
   function moveBtn(p){
@@ -6461,7 +6496,7 @@ function vMine(){
   var doneP=all.filter(function(p){ return p.status==='done'&&p.date.slice(0,7)===prev; });
   function card(p,act,right){ return {when:when(p),title:p.customer,note:p.notes,right:right,act:act}; }
   var todayItems=classes.map(function(c){ return {t:c.time||'',when:ctime(c),title:c.title,note:C('group')}; })
-    .concat(todayP.map(function(p){ return {t:p.time||'',when:p.time||'',title:C('privWith')(p.customer),right:p.arrived_at?chip((coLang()==='th'?'ลูกค้ามาแล้ว ':'Customer here ')+bkkTime(p.arrived_at),'ok'):null,note:p.notes,act:doneBtn(p)}; }));
+    .concat(todayP.map(function(p){ return {t:p.time||'',when:pSpan(p),title:C('privWith')(p.customer),right:p.arrived_at?chip((coLang()==='th'?'ลูกค้ามาแล้ว ':'Customer here ')+bkkTime(p.arrived_at),'ok'):null,note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
   return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),myJobs(),
     h('div',{class:'stats'},
@@ -6865,20 +6900,33 @@ function vCBuy(){
   return out;
 }
 function cuPack(){ return CU.purchases.filter(function(p){ return isPrivatePack(p)&&cuUsable(p)&&cuState(p).ok; })[0]||null; }
+function cuFree(v,set,get){ var d=get('date'), t=String(get('time')||'').slice(0,5), c=get('coach');
+  if(!d){ set('free',''); return; }
+  sb.rpc('private_slots',{p_from:d,p_days:1,p_minutes:60,p_coach:null,p_except:null}).then(must).then(function(r){
+    var cs=(r.days&&r.days[0]&&r.days[0].coaches)||[], all={}; cs.forEach(function(x){ x.free.forEach(function(f){ all[f]=1; }); });
+    var times=Object.keys(all).sort();
+    if(!t){ set('free',times.length?'Free start times that day: '+times.slice(0,24).join(', ')+'.':'No coach has free time that day. Try another day.'); return; }
+    var one=cs.filter(function(x){ return x.id===c; })[0], free=cs.filter(function(x){ return x.free.indexOf(t)>=0; });
+    function near(list){ return list.slice().sort(function(a,b){ return Math.abs(pMin(a)-pMin(t))-Math.abs(pMin(b)-pMin(t)); }).slice(0,6).sort().join(', '); }
+    if(one) set('free',one.free.indexOf(t)>=0?one.name+' is free at '+t+'.':one.name+' is not free at '+t+'.'+(one.free.length?' '+one.name+' is free at '+near(one.free)+'.':'')+(free.length?' Free at '+t+': '+free.map(function(x){ return x.name; }).join(', ')+'.':''));
+    else set('free',free.length?'Free at '+t+': '+free.map(function(x){ return x.name; }).join(', ')+'.':'No coach is free at '+t+'.'+(times.length?' Free times that day: '+near(times)+'.':''));
+  },function(){ set('free',''); }); }
 function requestPrivate(){
   if(!CU.coaches.length){ toast('Privates cannot be requested in the app yet. Ask at the front desk.'); return; }
   var pack=cuPack(), price=CU.private_price!=null?thb(CU.private_price):null;
   var pays=[]; if(pack) pays.push(['pack','From my pack ('+classesLeft(pack)+' sessions left)']); if(CU.stay&&CU.stay.status!=='out') pays.push(['room','Charge to my room'+(price?', '+price:'')]); pays.push(['desk','Pay at the front desk or by card'+(price?', '+price:'')]);
   openForm({title:'Request a private',note:'This is a request, not a booking yet. The manager confirms the time and chooses your coach. It is booked when it shows Confirmed here.',saveLabel:'Send request',doneMsg:'Request sent. Wait for it to show Confirmed.',fields:[
     {key:'pay',label:'How you pay',type:'select',options:pays,def:pays[0][0],hint:CU.stay?'Charge to my room works for days you are staying with us.':null},
-    {key:'coach',label:'Coach you would like (a request)',type:'select',options:[['','No preference']].concat(CU.coaches.map(function(c){ return [c.id,c.name]; })),def:'',hint:'We try to give you this coach, but the manager makes the final choice.'},
-    {key:'date',label:'Date',type:'date',required:true,def:addDays(CU.today,1)},
-    {key:'time',label:'Start time',type:'time',required:true},
+    {key:'coach',label:'Coach you would like (a request)',type:'select',options:[['','No preference']].concat(CU.coaches.map(function(c){ return [c.id,c.name]; })),def:'',hint:'We try to give you this coach, but the manager makes the final choice.',onChange:cuFree},
+    {key:'date',label:'Date',type:'date',required:true,def:addDays(CU.today,1),onChange:cuFree},
+    {key:'time',label:'Start time',type:'time',required:true,onChange:cuFree},
+    {key:'free',label:'Who is free',type:'info'},
     {key:'note',label:'Anything we should know',type:'textarea'}],
     onSave:function(v){ if(v.date<CU.today) return 'That date has already passed.';
-      return sb.rpc('customer_request_private',{p_coach:v.coach||null,p_date:v.date,p_time:v.time,p_note:v.note||null}).then(must).then(function(id){
+      delete v.free; return sb.rpc('customer_request_private',{p_coach:v.coach||null,p_date:v.date,p_time:v.time,p_note:v.note||null}).then(must).then(function(id){
         var want=v.pay||'pack', got=pack?'pack':'desk'; if(want===got) return loadCustomer();
         return sb.rpc('customer_private_pay',{p_private:id,p_pay:want}).then(must).then(loadCustomer,function(e){ return loadCustomer().then(function(){ throw {plain:true,message:'Request sent, but '+((e&&e.message)||'the payment choice did not save')+' Choose again on the private.'}; }); }); }); }});
+  setTimeout(function(){ var d=document.getElementById('f-date'); if(d) d.dispatchEvent(new Event('change')); },60);
 }
 function cuAskMove(p){
   var late=CU.today>=p.date;
