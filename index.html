@@ -2843,9 +2843,9 @@ function editCourse(c){ c=c||{status:'draft',members_free:true};
 }
 function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
   return [h('div',{class:'row'},btn('All courses',function(){ CRS.edit=null; CRS.list=null; schedule(); },'small')),
-    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),btn('Coaching included',function(){ crsGroupsEdit(c); },'small'),
+    pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),btn('Link groups',function(){ crsGroupsEdit(c); },'small'),
       h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
-    (c.groups||[]).length?h('p',{class:'sub'},'Coaching included: '+c.groups.map(function(g){ return g.name; }).join(', ')+'. Students join these action groups automatically.'):null,
+    crsGroupsSection(c),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
     section('Lessons ('+L.length+')',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
       return h('div',{class:'lrow'},h('span',{class:'lnum'},String(i+1)),h('span',{class:'lt'},linkBtn(l.title,function(){ editLesson(c,l); }),
@@ -3174,7 +3174,7 @@ function coGroupEditor(){
       it.kind!=='program'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'))):null,
       extra); });
   var save=btn('Save',function(){ save.disabled=true; var items=g.items.slice().sort(function(a,b){ return gKey(a)<gKey(b)?-1:gKey(a)>gKey(b)?1:0; });
-    sb.rpc('group_save',{p:{id:g.id||null,name:g.name,notes:g.notes,items:items}}).then(must).then(function(id){ COACH.gedit=null; COACH.gopen=id; coGrpLoad().then(function(l){ var gg=l.filter(function(x){ return x.id===id; })[0]; if(gg&&(gg.members||[]).length) coGroupSyncAsk(gg); else toast('Saved.'); }); })
+    sb.rpc('group_save',{p:{id:g.id||null,name:g.name,notes:g.notes,items:items}}).then(must).then(function(id){ if(g._course&&id) crsLinkGroup(g._course,id); COACH.gedit=null; COACH.gopen=id; coGrpLoad().then(function(l){ var gg=l.filter(function(x){ return x.id===id; })[0]; if(gg&&(gg.members||[]).length) coGroupSyncAsk(gg); else toast('Saved.'); }); })
       .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
   return [h('div',null,linkBtn('Close without saving',function(){ COACH.gedit=null; schedule(); })),
     pageHead(g.id?'Edit action group':'New action group','Steps unlock by week or day from each person’s start date (day 1 is the day they start), or on a fixed date. Emails are sent on their day. Habits and programs are set up for each person when you add them, so changes here apply to people you add after.',save),
@@ -3317,6 +3317,21 @@ function coGroupAddPeople(g,cid){
   draw(); if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
   if(!COACH.list) sb.rpc('coach_clients_list').then(must).then(function(l){ COACH.list=l; if(st.mode==='one') draw(); }).catch(function(){});
 }
+/* courses: the course is a shell for action groups (emails, habits, steps, coaching); everyone who gets the course joins them */
+function crsGroupsSection(c){
+  if(!COACH.grp){ if(!CRS.grpAsked){ CRS.grpAsked=true; coGrpLoad().catch(function(){}); } }
+  var linked=(c.groups||[]).map(function(x){ return (COACH.grp||[]).filter(function(g){ return g.id===x.id; })[0]||x; });
+  return section('Groups in this course',h('div',{class:'row'},btn('Link groups',function(){ crsGroupsEdit(c); },'small'),
+      btn('New group for this course',function(){ coEditGroup({name:c.title,notes:'',items:[coNewStep()],_course:c.id}); ui.tab='coaching'; COACH.view='groups'; COACH.gopen=null; schedule(); },'small')),
+    linked.length?h('div',{class:'panel'},linked.map(function(g){ var it=g.items||[], em=it.filter(function(x){ return x.kind==='email'; }).length;
+        return h('div',{class:'lrow static'},h('div',{class:'hmain'},h('b',null,g.name),
+            h('small',{class:'sub'},g.items?[it.length+' step'+(it.length===1?'':'s'),em?em+' email'+(em===1?'':'s'):null,(g.members||[]).length+' '+((g.members||[]).length===1?'person':'people')].filter(Boolean).join(', '):'')),
+          btn('Open',function(){ ui.tab='coaching'; COACH.view='groups'; COACH.gopen=g.id; COACH.gedit=null; schedule(); window.scrollTo(0,0); },'small')); }),
+        h('p',{class:'sub',style:'padding:8px 14px'},'Everyone who gets this course (bought, given, or free with a package) joins these groups that day: their emails, habits, steps and coaching start from day 1.'))
+      :h('div',{class:'panel empty'},'No groups yet. Groups hold the emails, habits, steps and coaching that come with this course. Tap New group for this course, or Link groups to use ones you already have.'));
+}
+function crsLinkGroup(cid,gid){ sb.rpc('course_groups',{p_course:cid}).then(must).then(function(l){ var ids=(l||[]).map(function(x){ return x.id; }); if(ids.indexOf(gid)>=0) return;
+  return sb.rpc('course_groups_set',{p_course:cid,p_groups:ids.concat([gid])}).then(must).then(function(){ toast('Linked to the course.'); CRS.groups=null; }); }).catch(function(e){ toast(errText(e)); }); }
 /* courses: coaching groups included with a course */
 function crsGroupsEdit(c){
   Promise.all([COACH.grp?Promise.resolve(COACH.grp):coGrpLoad(),sb.rpc('course_groups',{p_course:c.id}).then(must)]).then(function(r){ var all=r[0], on=(r[1]||[]).map(function(x){ return x.id; });
@@ -5001,8 +5016,13 @@ function vProducts(){
   var cats=SHOP.categories||[], prods=SHOP.products||[];
   function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:'No category'; }
   return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
-    section('Categories',null,cats.length?h('div',{class:'row wrap'},cats.map(function(c){ return btn(c.name+(c.active?'':' (hidden)'),function(){ editCategory(c); },'small'); })):h('div',{class:'panel empty'},'No categories yet.')),
-    section('All products',null,table([
+    section('Categories',null,cats.length?h('div',{class:'row wrap'},[btn('All ('+prods.length+')',function(){ ui.prodCat=''; schedule(); },'small'+(!ui.prodCat?' primary':''))].concat(cats.map(function(c){ var n=prods.filter(function(x){ return x.category_id===c.id; }).length;
+        return btn(c.name+' ('+n+')'+(c.active?'':' (hidden)'),function(){ ui.prodCat=ui.prodCat===c.id?'':c.id; schedule(); },'small'+(ui.prodCat===c.id?' primary':'')); }))
+      .concat(prods.some(function(x){ return !x.category_id||!cats.some(function(c){ return c.id===x.category_id; }); })?[btn('No category',function(){ ui.prodCat=ui.prodCat==='_none'?'':'_none'; schedule(); },'small'+(ui.prodCat==='_none'?' primary':''))]:[])):h('div',{class:'panel empty'},'No categories yet.')),
+    (function(){ var sel=cats.filter(function(c){ return c.id===ui.prodCat; })[0];
+      return sel?h('div',{class:'panel pad row wrap'},h('b',null,sel.name+(sel.active?'':' (hidden)')),btn('Edit category',function(){ editCategory(sel); },'small'),btn('Add a product to '+sel.name,function(){ editProduct({category_id:sel.id}); },'primary small')):null; })(),
+    h('div',{class:'row'},h('input',{id:'prodq',type:'search',class:'search',placeholder:'Search products','aria-label':'Search products',value:ui.prodQ||'',oninput:function(ev){ ui.prodQ=ev.target.value; schedule(); }})),
+    section(ui.prodCat==='_none'?'No category':ui.prodCat?cname(ui.prodCat):'All products',null,table([
       {label:'Product',cell:function(p){ return h('span',{class:'row',style:'flex-wrap:nowrap;gap:8px'},p.image_url?h('img',{src:p.image_url,alt:'',loading:'lazy',style:'width:36px;height:36px;object-fit:cover;border-radius:6px;flex:none'}):null,linkBtn(p.name,function(){ editProduct(p); })); }},
       {label:'Group',cell:function(p){ return p.grp||''; }},
       {label:'Category',cell:function(p){ return cname(p.category_id); }},
@@ -5011,7 +5031,9 @@ function vProducts(){
       {label:'Sold at',cell:function(p){ return p.locations&&p.locations.length?p.locations.map(locName).join(', '):'Everywhere'; }},
       {label:'Stock',cell:function(p){ return p.track_stock?(SHOP.locations||[]).filter(function(l){ return soldAt(p,l.id); }).map(function(l){ var q=stockAt(p,l.id); return chip(((SHOP.locations||[]).length>1?l.name.split(' ').pop()+' ':'')+q,isLow(p,l.id)?'bad':''); }):''; }},
       {label:'',cell:function(p){ return h('span',{class:'row'},p.kitchen?chip('Kitchen'):null,p.in_app?chip('In app','ok'):null,p.active?null:chip('Off sale','warn')); }}],
-      prods.slice().sort(function(a,b){ return cname(a.category_id).localeCompare(cname(b.category_id))||(a.sort||0)-(b.sort||0)||a.name.localeCompare(b.name); }),'No products yet. Add them here, or send me the Loyverse export to load them all.'))];
+      prods.filter(function(x){ var q=(ui.prodQ||'').trim().toLowerCase(); if(q&&String(x.name||'').toLowerCase().indexOf(q)<0&&String(x.grp||'').toLowerCase().indexOf(q)<0) return false;
+          if(!ui.prodCat) return true; if(ui.prodCat==='_none') return !x.category_id||!cats.some(function(c){ return c.id===x.category_id; }); return x.category_id===ui.prodCat; })
+        .sort(function(a,b){ return cname(a.category_id).localeCompare(cname(b.category_id))||(a.sort||0)-(b.sort||0)||a.name.localeCompare(b.name); }),ui.prodCat||ui.prodQ?'Nothing here yet.':'No products yet. Add them here, or send me the Loyverse export to load them all.'))];
 }
 function stockDlg(p,loc,kind){
   var names={delivery:['Delivery in','How many came in?'],count:['Stock count','How many are there now?'],waste:['Waste or used','How many to take off? (broken, expired, staff use)']};
