@@ -3,8 +3,21 @@
   "appName": "Muay App",
   "webDir": "www",
   "server": {
-    "allowNavigation": ["muayfriend.com", "*.muayfriend.com", "app.phuketking.com", "www.phuketking.com", "*.supabase.co", "checkout.stripe.com"]
+    "allowNavigation": [
+      "muayfriend.com",
+      "*.muayfriend.com",
+      "app.phuketking.com",
+      "www.phuketking.com",
+      "*.supabase.co",
+      "checkout.stripe.com"
+    ]
   },
-  "ios": { "contentInset": "never", "backgroundColor": "#101A2E" },
-  "android": { "backgroundColor": "#101A2E" }
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#101A2E"
+  },
+  "android": {
+    "backgroundColor": "#101A2E"
+  },
+  "appendUserAgent": "MuayApp"
 }

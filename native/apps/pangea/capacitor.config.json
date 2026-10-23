@@ -4,8 +4,21 @@
   "webDir": "www",
   "server": {
     "url": "https://app.phuketking.com/pangea/",
-    "allowNavigation": ["app.phuketking.com", "me.pangeaglobalwellness.com", "pangeaglobalwellness.com", "*.supabase.co", "checkout.stripe.com"]
+    "allowNavigation": [
+      "app.phuketking.com",
+      "me.pangeaglobalwellness.com",
+      "pangeaglobalwellness.com",
+      "*.supabase.co",
+      "checkout.stripe.com"
+    ]
   },
-  "ios": { "contentInset": "never", "backgroundColor": "#F2EFE7", "scheme": "Pangea" },
-  "android": { "backgroundColor": "#F2EFE7" }
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#F2EFE7",
+    "scheme": "Pangea"
+  },
+  "android": {
+    "backgroundColor": "#F2EFE7"
+  },
+  "appendUserAgent": "PangeaApp"
 }

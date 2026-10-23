@@ -7839,7 +7839,7 @@ function showSignIn(){
     h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),
     mode==='in'||mode==='up'?h('div',{class:'field'},h('label',{for:'login-pw'},'Password'),pw,mode==='up'?h('small',null,'At least 8 characters.'):null):null,
     h('div',null,go),note,
-    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'')&&!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)&&window.navigator.standalone!==true?h('button',{type:'button',class:'btn small',onclick:function(){ if(window.pkInstall) window.pkInstall(); }},'Put the app on your phone'):null,
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'')&&!(window.pkNative&&window.pkNative())&&!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)&&window.navigator.standalone!==true?h('button',{type:'button',class:'btn small',onclick:function(){ if(window.pkInstall) window.pkInstall(); }},'Put the app on your phone'):null,
     h('div',{class:'row'},
       mode!=='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='in'; showSignIn(); }},'Back to sign in'):null,
       mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='reset'; showSignIn(); }},'Forgot password'):null,
@@ -8063,7 +8063,10 @@ if(!window.supabase||!window.supabase.createClient){
   var ua=navigator.userAgent||'', ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), android=/Android/i.test(ua);
   var line=/Line\//i.test(ua), inApp=line||/FBAN|FBAV|FB_IAB|Instagram|; wv\)|WhatsApp|MicroMessenger|TikTok|musical_ly|Snapchat|GSA\//i.test(ua);
   var crios=/CriOS/.test(ua), fxios=/FxiOS/.test(ua), edgios=/EdgiOS/.test(ua), samsung=/SamsungBrowser/i.test(ua);
-  var standalone=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+  /* inside the App Store or Google Play app it is already installed: no install button, bar or screen */
+  var native=/PhuketKingApp|MuayApp|Fight CampApp/.test(ua)||!!(window.Capacitor&&(typeof window.Capacitor.isNativePlatform!=='function'||window.Capacitor.isNativePlatform()));
+  window.pkNative=function(){ return native||!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); };
+  var standalone=native||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
   var deferred=null, bar=null, sheet=null;
   var appUrl=location.origin+location.pathname;
   /* LINE opens this link in the phone's real browser */
@@ -8122,7 +8125,7 @@ if(!window.supabase||!window.supabase.createClient){
     document.body.appendChild(sheet); document.body.classList.add('isheet-open'); done.focus();
   }
   function show(){
-    if(standalone||hidden()||bar||document.body.classList.contains('kiosk')) return;
+    if(standalone||window.pkNative()||hidden()||bar||document.body.classList.contains('kiosk')) return;
     if(!ios&&!android&&!deferred) return;
     bar=el('div','installbar'); bar.setAttribute('role','region'); bar.setAttribute('aria-label','Install the app');
     var img=el('img','installicon'); img.src='icons/icon-192.png'; img.alt='';
@@ -8132,7 +8135,7 @@ if(!window.supabase||!window.supabase.createClient){
     bar.appendChild(img); bar.appendChild(txt); bar.appendChild(action); bar.appendChild(close);
     document.body.appendChild(bar); document.body.classList.add('has-install');
   }
-  window.pkInstall=open; window.pkCanInstall=function(){ return !standalone&&(ios||android||!!deferred); };
+  window.pkInstall=open; window.pkCanInstall=function(){ return !standalone&&!window.pkNative()&&(ios||android||!!deferred); };
   window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; if(bar){ bar.remove(); bar=null; } show(); });
   window.addEventListener('appinstalled',function(){ hideFor(3650); closeSheet(); });
   window.addEventListener('load',function(){ setTimeout(show,1500); });
