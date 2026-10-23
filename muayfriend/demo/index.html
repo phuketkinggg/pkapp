@@ -2970,11 +2970,13 @@ function exLine(it){ var a=[], s=it.sets, r=it.reps;
 function exNow(it){ var st=Number(it.step)||0, pr=it.progressions||[]; return st>0&&pr[st-1]?pr[st-1]:null; }
 
 /* ================= member: Coaching tab ================= */
-function cmLoad(){ COACHM.busy=true; return sb.rpc('my_coaching').then(must).then(function(d){ COACHM.busy=false; COACHM.data=d; COACHM.err=null; schedule(); })
+function cmLoad(){ COACHM.busy=true; COACHM.at=Date.now(); return sb.rpc('my_coaching').then(must).then(function(d){ COACHM.busy=false; COACHM.data=d; COACHM.err=null; schedule(); })
   .catch(function(e){ COACHM.busy=false; COACHM.err=errText(e); schedule(); }); }
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'&&typeof COACHM!=='undefined'&&COACHM.data){ COACHM.at=0; schedule(); } });
 function vCoachMe(){
   if(PV) return [pageHead('Coaching',''),h('div',{class:'panel empty'},'Coaching is private. Open it in the back office, in the Coaching tab.')];
-  var d=COACHM.data; if(!d){ if(!COACHM.busy) cmLoad(); return [pageHead('Coaching',''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
+  var d=COACHM.data; if(d&&!COACHM.busy&&Date.now()-(COACHM.at||0)>60000) cmLoad(); /* fresh steps and videos when they come back */
+  if(!d){ if(!COACHM.busy) cmLoad(); return [pageHead('Coaching',''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
   var tabs=[['today','Today'],['work','Workouts'],['food','Food'],['weight','Weight']];
   var sub=h('div',{class:'ctabs',role:'tablist'},tabs.map(function(t){ return h('button',{type:'button',role:'tab','aria-selected':COACHM.tab===t[0]?'true':'false',class:'ctab'+(COACHM.tab===t[0]?' on':''),onclick:function(){ COACHM.tab=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); }));
   var who=d.coaches.length?'Your coach'+(d.coaches.length>1?'es':'')+': '+d.coaches.map(function(c){ return c.name; }).join(', ')+'. ':'';
