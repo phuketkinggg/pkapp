@@ -4097,24 +4097,42 @@ function accEntry(e){ e=e||{kind:'out',day:ymd(new Date()),business:ACC.biz!=='a
       {key:'note',label:'Note'}],
     onDelete:e.id?function(){ return sb.rpc('acc_entry_void',{p_id:e.id}).then(must).then(accReload); }:null,
     onSave:function(v){ return sb.rpc('acc_entry_save',{p:Object.assign({id:e.id||null},v)}).then(must).then(accReload); }}); }
-function accBills(d){ var R=(d.recurring||[]).filter(function(r){ return ACC.biz==='all'||r.business===ACC.biz; });
+function accBills(d){ var R=(d.recurring||[]).filter(function(r){ return ACC.biz==='all'||r.business===ACC.biz||(r.split||[]).some(function(x){ return x.business===ACC.biz; }); });
   return [h('div',{class:'row'},btn('Add a monthly bill',function(){ accBill(); },'primary')),
-    h('p',{class:'sub'},'Bills that are the same every month, like rent, internet or a salary. Each one adds itself to Money out on its day of the month.'),
-    table([{label:'Bill',cell:function(r){ return linkBtn((r.party||r.category)+(r.note?' ('+r.note+')':''),function(){ accBill(r); }); }},{label:'Business',cell:function(r){ return r.business; }},{label:'Category',cell:function(r){ return r.category; }},
+    h('p',{class:'sub'},'Bills that are the same every month, like rent, internet or a salary. Each one adds itself to Money out on its day of the month. A salary shared by the gym and the resort can be split by percent.'),
+    table([{label:'Bill',cell:function(r){ return linkBtn((r.party||r.category)+(r.note?' ('+r.note+')':''),function(){ accBill(r); }); }},{label:'Business',cell:function(r){ return accSplit(r)||r.business; }},{label:'Category',cell:function(r){ return r.category; }},
       {label:'Day',num:true,cell:function(r){ return String(r.day_of_month); }},{label:'Amount',num:true,cell:function(r){ return accThb(r.amount); }},{label:'',cell:function(r){ return r.active?chip('On','ok'):chip('Stopped'); }}],R,'No monthly bills yet.'),
     R.length?h('p',{class:'sub'},'Monthly total: '+accThb(R.filter(function(r){ return r.active&&r.kind==='out'; }).reduce(function(t,r){ return t+Number(r.amount); },0))+' out.'):null]; }
+function accSplit(r){ var s=r.split||[]; if(!s.length) return null; return s.map(function(x){ return (x.business==='Camp Rooms'?'Resort':'Gym')+' '+Number(x.pct)+'%'; }).join(' / '); }
 function accBill(r){ r=r||{kind:'out',business:ACC.biz!=='all'?ACC.biz:BIZ[0],method:'transfer',day_of_month:1,active:true,from_month:ymd(new Date()).slice(0,8)+'01'};
-  openForm({title:r.id?'Edit monthly bill':'Add a monthly bill',values:{business:r.business,department:r.department||'',category:r.category||'Rent',party:r.party||'',amount:r.amount,day_of_month:r.day_of_month,method:r.method,from_month:String(r.from_month||'').slice(0,10),note:r.note||'',active:r.active!==false},
+  var sp=r.split||[], gp=sp.filter(function(x){ return x.business==='Muay Fight Gym'; })[0]||{}, rp=sp.filter(function(x){ return x.business==='Camp Rooms'; })[0]||{};
+  var isSplit=sp.length>0, depOpts=function(b){ return [['','None']].concat((ACC_DEPTS[b]||[]).map(function(x){ return [x,x]; })); };
+  function splitInfo(get,set){ var a=Number(get('amount'))||0, g=Number(get('split_gym')); if(!(g>0&&g<100)){ set('split_info','Type a percent between 1 and 99 for the gym.'); return; }
+    var gt=Math.round(a*g)/100; set('split_info','Each month: Muay Fight Gym '+accThb(gt)+' ('+g+'%), Camp Rooms '+accThb(a-gt)+' ('+(Math.round((100-g)*100)/100)+'%).'); }
+  function showSplit(on,show){ ['split_gym','gym_department','resort_department','split_info'].forEach(function(k){ show(k,on); }); ['business','department'].forEach(function(k){ show(k,!on); }); }
+  openForm({title:r.id?'Edit monthly bill':'Add a monthly bill',values:{business:r.business,department:r.department||'',category:r.category||'Rent',party:r.party||'',amount:r.amount,day_of_month:r.day_of_month,method:r.method,from_month:String(r.from_month||'').slice(0,10),note:r.note||'',active:r.active!==false,
+      split_on:isSplit,split_gym:isSplit?Number(gp.pct||0):50,gym_department:gp.department||'',resort_department:rp.department||''},
     saveLabel:'Save',doneMsg:'Saved.',
     fields:[{key:'party',label:'Paid to',required:true,hint:'For example: Landlord, AIS internet, Kru Max salary.'},
-      {key:'business',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; }),onChange:function(v,set,get,so){ so('department',[['','None']].concat((ACC_DEPTS[v]||[]).map(function(x){ return [x,x]; }))); }},
-      {key:'department',label:'Department',type:'select',options:[['','None']].concat((ACC_DEPTS[r.business]||[]).map(function(x){ return [x,x]; }))},
+      {key:'split_on',label:'Split it between the gym and the resort (for staff who work for both)',type:'checkbox',onChange:function(v,set,get,so,show){ showSplit(v,show); if(v) splitInfo(get,set); }},
+      {key:'business',label:'Business',type:'select',hide:isSplit,options:BIZ.map(function(b){ return [b,b]; }),onChange:function(v,set,get,so){ so('department',depOpts(v)); }},
+      {key:'department',label:'Department',type:'select',hide:isSplit,options:depOpts(r.business)},
+      {key:'split_gym',label:'Muay Fight Gym share in %',type:'number',hide:!isSplit,hint:'Camp Rooms pays the rest. For example 60 means 60% gym, 40% resort.',onChange:function(v,set,get){ splitInfo(get,set); }},
+      {key:'gym_department',label:'Gym department',type:'select',hide:!isSplit,options:depOpts('Muay Fight Gym')},
+      {key:'resort_department',label:'Resort department',type:'select',hide:!isSplit,options:depOpts('Camp Rooms')},
+      {key:'split_info',label:'',type:'info',hide:!isSplit},
       {key:'category',label:'Category',type:'select',options:ACC_OUT.map(function(c){ return [c,c]; })},
-      {key:'amount',label:'Amount in THB',type:'number',required:true},{key:'day_of_month',label:'Day of the month it is paid',type:'number',hint:'1 to 28.'},
+      {key:'amount',label:'Amount in THB',type:'number',required:true,hint:'The full monthly amount, before any split.',onChange:function(v,set,get){ if(get('split_on')) splitInfo(get,set); }},{key:'day_of_month',label:'Day of the month it is paid',type:'number',hint:'1 to 28.'},
       {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan (PromptPay)'],['cash','Cash'],['card','Card']]},
       {key:'from_month',label:'Starting from',type:'date',hint:'Months before this are not added. Pick an earlier month to fill in past months.'},
       {key:'note',label:'Note'},{key:'active',label:'On (untick to stop it)',type:'checkbox'}],
-    onSave:function(v){ return sb.rpc('acc_recurring_save',{p:Object.assign({id:r.id||null,kind:'out'},v)}).then(must).then(accReload); }}); }
+    onSave:function(v){ var g=Number(v.split_gym), split=[];
+      if(v.split_on){ if(!(g>0&&g<100)) return 'Type the gym share as a percent between 1 and 99.';
+        split=[{business:'Muay Fight Gym',department:v.gym_department,pct:g},{business:'Camp Rooms',department:v.resort_department,pct:Math.round((100-g)*100)/100}]; }
+      var p={id:r.id||null,kind:'out',party:v.party,category:v.category,amount:v.amount,day_of_month:v.day_of_month,method:v.method,from_month:v.from_month,note:v.note,active:v.active,split:split,
+        business:v.split_on?'Muay Fight Gym':v.business,department:v.split_on?v.gym_department:v.department};
+      return sb.rpc('acc_recurring_save',{p:p}).then(must).then(accReload); }});
+  if(isSplit) setTimeout(function(){ var i=document.getElementById('f-split_info'); if(i){ var a=Number(r.amount)||0, g=Number(gp.pct)||0, gt=Math.round(a*g)/100; i.textContent='Each month: Muay Fight Gym '+accThb(gt)+' ('+g+'%), Camp Rooms '+accThb(a-gt)+' ('+(Math.round((100-g)*100)/100)+'%).'; } },0); }
 /* sorting receipts: photo next to the fields, AI reads it, one tap to save */
 function accReceipts(){
   var R=ACC.rc; if(!R||R.from!==ACC.from||R.to!==ACC.to){ if(!ACC.rcBusy){ ACC.rcBusy=true; sb.rpc('receipts_list',{p_from:ACC.from,p_to:ACC.to}).then(must).then(function(l){ ACC.rcBusy=false; ACC.rc={from:ACC.from,to:ACC.to,list:l,all:false}; schedule(); }).catch(function(e){ ACC.rcBusy=false; toast(errText(e)); }); }
