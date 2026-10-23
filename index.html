@@ -3800,17 +3800,17 @@ function vSiteStats(){
       h('a',{class:'btn small',href:'https://search.google.com/search-console',target:'_blank',rel:'noopener'},'Open Google Search Console')))];
 }
 function ssMore(d,part){ var V=d.visits; if(!V) return null;
-  if(part==='top') return h('div',null,
+  if(part==='top') return [
     h('div',{class:'stats'},
       h('span',null,h('b',null,String(V.visits||0)),'visits'),h('span',null,h('b',null,String(V.new||0)),'new visitors'),h('span',null,h('b',null,String(V.returning||0)),'came back'),
       h('span',null,h('b',null,ssSecs(V.avg_secs)),'time per visit'),h('span',null,h('b',null,ssPct(V.bounce||0,V.visits||0)),'left at once'),h('span',null,h('b',null,ssPct(V.engaged||0,V.visits||0)),'stayed and read')),
-    d.devices&&(d.devices.m||d.devices.d)?h('p',{class:'sub'},'Phones: '+d.devices.m+' visits, '+d.devices.m_act+' tapped WhatsApp, chat or Pay ('+ssPct(d.devices.m_act,d.devices.m)+'). Computers: '+d.devices.d+' visits, '+d.devices.d_act+' ('+ssPct(d.devices.d_act,d.devices.d)+').'):null);
+    d.devices&&(d.devices.m||d.devices.d)?h('p',{class:'sub'},'Phones: '+d.devices.m+' visits, '+d.devices.m_act+' tapped WhatsApp, chat or Pay ('+ssPct(d.devices.m_act,d.devices.m)+'). Computers: '+d.devices.d+' visits, '+d.devices.d_act+' ('+ssPct(d.devices.d_act,d.devices.d)+').'):null];
   if(part==='mid'){
     var cs={}; (d.countries||[]).forEach(function(x){ var c=ssCountry(x.tz); cs[c]=(cs[c]||0)+x.n; });
     var cl=Object.keys(cs).map(function(k){ return {c:k,n:cs[k]}; }).sort(function(a,b){ return b.n-a.n; }), maxC=Math.max.apply(null,[1].concat(cl.map(function(x){ return x.n; })));
     var ll=(d.langs||[]).map(function(x){ return {l:SS_LANG[x.lang]||x.lang.toUpperCase(),n:x.n}; }), maxL=Math.max.apply(null,[1].concat(ll.map(function(x){ return x.n; })));
     var maxLand=Math.max.apply(null,[1].concat((d.landing||[]).map(function(x){ return x.visits; })));
-    return h('div',null,
+    return [
       section('Countries',null,h('div',null,table([{label:'Country',cell:function(x){ return x.c; }},{label:'Visits',cell:function(x){ return ssBar(x.n,maxC); }}],cl,'Nothing yet.'),
         h('p',{class:'sub'},'From the clock on their phone or computer, so someone already in Thailand shows as Thailand. No IP addresses are kept.'))),
       section('Languages',null,table([{label:'Language',cell:function(x){ return x.l; }},{label:'Visits',cell:function(x){ return ssBar(x.n,maxL); }}],ll,'Nothing yet.')),
@@ -3818,16 +3818,16 @@ function ssMore(d,part){ var V=d.visits; if(!V) return null;
         {label:'Left at once',num:true,cell:function(x){ return ssPct(x.bounce,x.visits); }},{label:'Time per visit',num:true,cell:function(x){ return ssSecs(x.secs); }},{label:'WhatsApp, chat or pay',num:true,cell:function(x){ return String(x.act); }}],d.landing||[],'Nothing yet.'),
         h('p',{class:'sub'},'Where people land from Google, ads and links. A page where most leave at once needs a clearer top part.'))),
       (d.camps||[]).length?section('Ad campaigns',null,h('div',null,table([{label:'Campaign',cell:function(x){ return x.camp; }},{label:'Visits',num:true,cell:function(x){ return String(x.visits); }},{label:'WhatsApp, chat or pay',num:true,cell:function(x){ return String(x.act); }}],d.camps,''),
-        h('p',{class:'sub'},'From utm_campaign in the ad link. In Meta Ads, add URL parameters: utm_source=facebook and utm_campaign={{campaign.name}}.'))):null);
+        h('p',{class:'sub'},'From utm_campaign in the ad link. In Meta Ads, add URL parameters: utm_source=facebook and utm_campaign={{campaign.name}}.'))):null];
   }
   if(part==='end'){
     var hrs=[]; for(var i=0;i<24;i++) hrs.push(0); (d.hours||[]).forEach(function(x){ hrs[x.h]=x.n; }); var maxH=Math.max.apply(null,[1].concat(hrs));
-    return h('div',null,
+    return [
       (d.page_time||[]).length?section('Time spent on each page',null,table([{label:'Page',cell:function(x){ return x.page; }},{label:'Average time',num:true,cell:function(x){ return ssSecs(x.secs); }},{label:'Times read',num:true,cell:function(x){ return String(x.reads); }}],d.page_time,'')):null,
       section('Busy hours (Thailand time)',null,h('div',{class:'sshours',role:'img','aria-label':'Visits by hour of the day'},hrs.map(function(n,i){ return h('div',{class:'sshr',title:String(i).padStart(2,'0')+':00, '+n+' visits'},h('span',{style:'height:'+(n?Math.max(4,Math.round(n/maxH*100)):0)+'%'}),h('small',null,i%3===0?String(i):'')); }))),
       (d.clicks||[]).length?section('Taps on contact and social links',null,table([{label:'Link',cell:function(x){ return x.item; }},{label:'Visits that tapped',num:true,cell:function(x){ return String(x.n); }}],d.clicks,'')):null,
       (d.notfound||[]).length?section('Old or broken links (page not found)',null,h('div',null,table([{label:'Address they asked for',cell:function(x){ return x.item; }},{label:'Times',num:true,cell:function(x){ return String(x.n); }},{label:'From',cell:function(x){ return x.src||'Direct'; }}],d.notfound,''),
-        h('p',{class:'sub'},'Usually old WordPress links on Google or other websites. Send these to Claude and they get forwarded to the right page, so you keep the visitors and the backlink value.'))):null);
+        h('p',{class:'sub'},'Usually old WordPress links on Google or other websites. Each one can be forwarded to the right page, so you keep the visitors and the backlink value.'))):null];
   }
   return null; }
 /* the room booking offer on the website: book direct discount, and a gift for long stays */

@@ -43,6 +43,16 @@
 /courses/ /courses 301
 /visa /dtv 301
 /visa/ /dtv 301
+/services/* /prices 301
+/services /prices 301
+/wp-json/* / 301
+/wp-content/* / 301
+/wp-admin/* / 301
+/wp-login.php / 301
+/muay-thai /prices 301
+/muay-thai/ /prices 301
+/private-lessons /prices 301
+/private-lessons/ /prices 301
 /how-to-apply-for-the-dtv-visa-through-muay-thai-the-real-process-step-by-step-2026 /post?p=how-to-apply-for-the-dtv-visa-through-muay-thai-the-real-process-step-by-step-2026 301
 /how-to-apply-for-the-dtv-visa-through-muay-thai-the-real-process-step-by-step-2026/ /post?p=how-to-apply-for-the-dtv-visa-through-muay-thai-the-real-process-step-by-step-2026 301
 /thailand-dtv-visa-rules-have-changed-what-you-need-to-know-from-31-august-2026 /post?p=thailand-dtv-visa-rules-have-changed-what-you-need-to-know-from-31-august-2026 301

@@ -122,6 +122,9 @@ def main():
         "/category/* /blog 301", "/tag/* /blog 301", "/author/* /blog 301", "/page/* /blog 301",
         "/wellness /wellness 200", "/recovery /wellness 301", "/recovery/ /wellness 301", "/spa /wellness 301", "/spa/ /wellness 301",
         "/courses/ /courses 301", "/visa /dtv 301", "/visa/ /dtv 301",
+        # old service pages and WordPress system addresses seen in Website numbers
+        "/services/* /prices 301", "/services /prices 301", "/wp-json/* / 301", "/wp-content/* / 301", "/wp-admin/* / 301", "/wp-login.php / 301",
+        "/muay-thai /prices 301", "/muay-thai/ /prices 301", "/private-lessons /prices 301", "/private-lessons/ /prices 301",
     ]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
