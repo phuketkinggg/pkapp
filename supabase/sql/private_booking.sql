@@ -445,6 +445,7 @@ $function$;
 -- ---------- emails to the customer when a request is confirmed or declined ----------
 create or replace function private.private_mail_trg() returns trigger language plpgsql security definer set search_path to '' as $$
 begin
+  if to_regprocedure('private.booking_mail(text,uuid)') is null then return null; end if;  -- the demo has no emails
   if old.status = 'requested' and new.status = 'confirmed' then perform private.booking_mail('private_ok', new.id);
   elsif old.status = 'requested' and new.status = 'cancelled' and new.decline_reason is not null then perform private.booking_mail('private_no', new.id);
   end if;
@@ -453,7 +454,9 @@ end $$;
 drop trigger if exists privates_mail on public.privates;
 create trigger privates_mail after update of status on public.privates for each row execute function private.private_mail_trg();
 
-do $$ declare d text := pg_get_functiondef('public.booking_mail_data(text,uuid)'::regprocedure); begin
+do $$ declare d text; begin
+  if to_regprocedure('public.booking_mail_data(text,uuid)') is null then return; end if;
+  d := pg_get_functiondef('public.booking_mail_data(text,uuid)'::regprocedure);
   if position('private_ok' in d) = 0 then
     d := replace(d, $a$  elsif p_kind = 'webpkg' then$a$, $b$  elsif p_kind in ('private_ok','private_no') then
     select jsonb_build_object('kind', p_kind, 'id', x.id, 'guest', c.name, 'email', c.email, 'date', x.date, 'time', to_char(x.start_time,'HH24:MI'),
