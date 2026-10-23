@@ -92,7 +92,7 @@
 <script src="photos.js?v=13"></script>
 <script src="site.js?v=15"></script>
 <script src="qrcode.js?v=1"></script>
-<script src="privpick.js?v=1"></script>
+<script src="privpick.js?v=2"></script>
 <script src="chat.js?v=1" defer></script>
 <script>
 (function(){
@@ -185,7 +185,7 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
-  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV?PV.value():null,back:location.origin+location.pathname})
+  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ btn.disabled=false; btn.textContent='Pay '+PK.thb(cur.price); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
 });

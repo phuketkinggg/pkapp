@@ -106,10 +106,12 @@ begin
   return coalesce((select array_agg(x order by x) from unnest(out) x), '{}');
 end $$;
 
--- the coaches customers can pick: those with hours set (all active coaches while nobody has set hours yet)
+-- the coaches customers can pick: those with hours set. While nobody has set hours yet, signed in app customers
+-- can still pick any active coach (the general private hours); the website only shows coaches with hours.
 create or replace function private.bookable_coaches() returns setof public.staff language sql stable security definer set search_path to '' as $$
   select s.* from public.staff s where s.role = 'coach' and s.active
-     and (exists (select 1 from public.coach_hours h where h.staff_id = s.id) or not exists (select 1 from public.coach_hours))
+     and (exists (select 1 from public.coach_hours h where h.staff_id = s.id)
+          or (not exists (select 1 from public.coach_hours) and (select auth.uid()) is not null))
 $$;
 
 -- free times for the booking picker (website and app): coaches, and for each day the free start times of each coach

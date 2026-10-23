@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <script src="vendor/supabase-js-2.117.2.js"></script>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
-<script src="pk/privpick.js?v=1"></script>
+<script src="pk/privpick.js?v=2"></script>
 <script src="invdoc.js?v=2"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
@@ -7225,7 +7225,7 @@ function requestPrivate(){
     {key:'pay',label:'How you pay',type:'select',options:pays,def:pays[0][0],hint:CU.stay?'Charge to my room works for days you are staying with us.':null},
     {key:'pick',label:'',type:'info'},
     {key:'note',label:'Anything we should know',type:'textarea'}],
-    onSave:function(v){ var e=pick.check(); if(e) return e; var c=pick.value();
+    onSave:function(v){ var e=pick.check(); if(e) return e; var c=pick.value(); if(!c.coach) return 'No coach is taking bookings in the app right now. Ask at the front desk.';
       return sb.rpc('customer_request_private',{p_coach:c.coach,p_date:c.date,p_time:c.time,p_note:v.note||null,p_any:c.any,p_alt_date:c.alt_date,p_alt_time:c.alt_time}).then(must).then(function(id){
         var want=v.pay||'pack', got=pack?'pack':'desk'; if(want===got) return loadCustomer();
         return sb.rpc('customer_private_pay',{p_private:id,p_pay:want}).then(must).then(loadCustomer,function(e){ return loadCustomer().then(function(){ throw {plain:true,message:'Request sent, but '+((e&&e.message)||'the payment choice did not save')+' Choose again on the private.'}; }); }); },

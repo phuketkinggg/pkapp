@@ -80,7 +80,7 @@ window.PrivPick=function(opts){
   }
   load();
   return {el:root,
-    check:function(){ if(!S.coach) return 'Choose your coach.'; if(!S.date) return 'Choose the day.'; if(!S.time) return 'Choose the time.';
+    check:function(){ if(S.data&&!S.data.coaches.length) return null; if(!S.coach) return 'Choose your coach.'; if(!S.date) return 'Choose the day.'; if(!S.time) return 'Choose the time.';
       if(S.any==null) return 'Tell us if another coach is OK.'; if(S.any===false&&!(S.alt_date&&S.alt_time)) return 'Choose a backup time with '+coachOf(S.coach).name+'.'; return null; },
     value:function(){ var c=coachOf(S.coach); return {coach:S.coach,coach_name:c?c.name:'',date:S.date,time:S.time,any:S.any!==false,alt_date:S.any===false?S.alt_date:null,alt_time:S.any===false?S.alt_time:null}; },
     reload:function(){ S.data=null; return load(); },
