@@ -25,7 +25,7 @@ function toHtml(t: string) {
 
 async function send1(e: { id: string; to: string; subject: string; body: string; from_name?: string }, bulk: boolean) {
   const who = String(e.from_name || "").replace(/[<>"\r\n,]/g, "").trim();
-  const from = (who ? who + ", Phuket King Muay Thai" : "Phuket King Muay Thai") + " <hello@phuketking.com>";
+  const from = (who ? who + ", Phuket King Muay Thai" : "Phuket King Muay Thai") + " <hello@app.phuketking.com>";
   let ok = false, rid = "", err = "";
   try {
     const msg: Record<string, unknown> = { from, to: [e.to], reply_to: "hello@phuketking.com", subject: e.subject, html: toHtml(e.body), text: e.body };

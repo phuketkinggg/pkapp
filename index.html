@@ -5482,6 +5482,17 @@ function crmTagDlg(list){
   openForm({title:'Tag these '+list.length+' contacts',saveLabel:'Save',doneMsg:'Tags saved.',fields:[{key:'tag',label:'Tag',required:true,hint:'For example: october campaign, fighter, dtv.'},{key:'mode',label:'',type:'select',options:[['add','Add this tag'],['remove','Take this tag off']]}],
     onSave:function(v){ return sb.rpc('crm_tag',{p_ids:list.map(function(x){ return x.id; }),p_tag:v.tag,p_add:v.mode!=='remove'}).then(must).then(function(){ return Promise.all([loadCrm(),reload('customers')]); }); }});
 }
+/* outreach campaigns sent a few a day from the app (for example partner gyms) */
+var CAMP=null;
+function campSection(){ if(CAMP===null){ CAMP=false; sb.rpc('email_campaigns').then(must).then(function(l){ CAMP=(l||[]).filter(function(c){ return !/test/.test(c.campaign); }); schedule(); }).catch(function(){ CAMP=[]; }); }
+  if(!CAMP||!CAMP.length) return null;
+  return section('Outreach emails',null,h('div',null,table([{label:'Campaign',cell:function(c){ return c.campaign; }},{label:'Sent',num:true,cell:function(c){ return String(c.sent); }},{label:'Waiting',num:true,cell:function(c){ return String(c.queued); }},
+      {label:'Next',cell:function(c){ return c.next?new Date(c.next).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'-'; }},
+      {label:'Not sent',num:true,cell:function(c){ return String((c.failed||0)+(c.stopped||0)); }},
+      {label:'',cell:function(c){ return h('span',{class:'row'},c.queued?btn('Take one off',function(){ openForm({title:'Take an address off',note:'For someone who replied stop or not interested. Their email will not be sent.',fields:[{key:'email',label:'Email',type:'email',required:true}],
+          onSave:function(v){ return sb.rpc('email_campaign_drop',{p_campaign:c.campaign,p_email:v.email}).then(must).then(function(n){ CAMP=null; if(!n) throw {plain:true,message:'That address is not waiting in this campaign.'}; }); }}); },'small'):null,
+        c.queued?btn('Stop the rest',function(){ if(!window.confirm('Stop the '+c.queued+' emails still waiting?')) return; sb.rpc('email_campaign_stop',{p_campaign:c.campaign}).then(must).then(function(){ CAMP=null; schedule(); toast('Stopped.'); }).catch(function(e){ toast(errText(e)); }); },'small'):null); }}],CAMP,''),
+    h('p',{class:'sub'},'Sent from your name a few at a time so they do not land in spam. Replies come to hello@phuketking.com.'))); }
 function vContacts(){
   if(!CRM){ if(!ui.crmBusy) loadCrm(); return [pageHead('Contacts',''),h('div',{class:'panel empty'},ui.crmErr||'Loading.')]; }
   var list=crmFilter(), tags={}; CRM.forEach(function(x){ (x.tags||[]).forEach(function(t){ tags[t]=(tags[t]||0)+1; }); });
@@ -5490,6 +5501,7 @@ function vContacts(){
   var tagSel=h('select',{'aria-label':'Tag',onchange:function(e){ ui.crmTag=e.target.value; schedule(); }},[h('option',{value:''},'Any tag')].concat(Object.keys(tags).sort().map(function(t){ return h('option',{value:t,selected:ui.crmTag===t},t+' ('+tags[t]+')'); })));
   var q=h('input',{type:'search',placeholder:'Search name, email, phone, tag',value:ui.crmQ||'',oninput:function(e){ ui.crmQ=e.target.value; schedule(); }});
   return [pageHead('Contacts',CRM.length+' contacts. Showing '+list.length+', '+withEmail+' with email, '+yes+' said yes to emails.',h('div',{class:'row'},btn('Add a contact',function(){ editCustomer({tags:['lead']}); },'small'),btn('Refresh',loadCrm,'small'))),
+    me&&me.role==='manager'?campSection():null,
     h('div',{class:'panel pad row wrap'},seg,tagSel,q,btn('Download this list',function(){ crmDownload(list); },'primary small'),btn('Tag this list',function(){ crmTagDlg(list); },'small')),
     h('p',{class:'sub'},'The download is ready for Mailchimp, GoHighLevel or Google Contacts. People who said no to emails are always left out. Under Thai law (PDPA) only email offers to people who said yes, or who are current or recent customers.'),
     table([
@@ -6149,7 +6161,7 @@ function emailOneSend(id){ return sb.auth.getSession().then(function(r){ var t=r
   return fetch(EMO_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i',Authorization:'Bearer '+(t||'')},body:JSON.stringify({id:id})}).then(function(x){ return x.json(); }); })
   .then(function(d){ if(d&&d.error) throw {plain:true,message:d.error}; return d; }); }
 function emailOne(c,draft){ draft=draft||{};
-  openForm({title:draft.id?'Email draft':'Send an email',note:'Sent from hello@phuketking.com with your name. Replies come to that inbox. Blank line = new paragraph; web addresses become links.',
+  openForm({title:draft.id?'Email draft':'Send an email',note:'Sent with your name; replies come to hello@phuketking.com. Blank line = new paragraph; web addresses become links.',
     values:{to:draft.to||c.email||'',subject:draft.subject||'',body:draft.body||'',later:false},saveLabel:'Send',doneMsg:'Done.',
     fields:[{key:'to',label:'To (email)',type:'email',required:true},{key:'subject',label:'Subject',required:true},{key:'body',label:'Message',type:'textarea',rows:14,required:true},
       {key:'later',label:'Only save it as a draft, send later',type:'checkbox'}],
