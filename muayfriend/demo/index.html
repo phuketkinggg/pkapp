@@ -6143,6 +6143,25 @@ function fighterGroupLine(){
     [h('option',{value:''},'No group')].concat(FGRP.groups.map(function(g){ var o=h('option',{value:g.id},g.name); if(g.id===FGRP.cfg.group_id) o.selected=true; return o; })));
   return h('div',{class:'panel pad row wrap'},h('span',null,'New fighters join this coaching group by themselves:'),sel);
 }
+/* one email to one contact, from hello@muayfriend.com (outreach, follow ups). Owner and admin. */
+var EMO={}, EMO_FN='https://yojllgjjekitbktzblcc.supabase.co/functions/v1/mail-one';
+function emailOneLoad(cid){ EMO[cid]={busy:true}; sb.rpc('email_one_list',{p_customer:cid}).then(must).then(function(l){ EMO[cid]={list:l||[]}; schedule(); }).catch(function(e){ EMO[cid]={list:[],err:errText(e)}; schedule(); }); }
+function emailOneSend(id){ return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
+  return fetch(EMO_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:'sb_publishable_RSMrHUIN5CFQgUX0o_gIpw_MyogMxJX',Authorization:'Bearer '+(t||'')},body:JSON.stringify({id:id})}).then(function(x){ return x.json(); }); })
+  .then(function(d){ if(d&&d.error) throw {plain:true,message:d.error}; return d; }); }
+function emailOne(c,draft){ draft=draft||{};
+  openForm({title:draft.id?'Email draft':'Send an email',note:'Sent from hello@muayfriend.com with your name. Replies come to that inbox. Blank line = new paragraph; web addresses become links.',
+    values:{to:draft.to||c.email||'',subject:draft.subject||'',body:draft.body||'',later:false},saveLabel:'Send',doneMsg:'Done.',
+    fields:[{key:'to',label:'To (email)',type:'email',required:true},{key:'subject',label:'Subject',required:true},{key:'body',label:'Message',type:'textarea',rows:14,required:true},
+      {key:'later',label:'Only save it as a draft, send later',type:'checkbox'}],
+    onSave:function(v){ var to=String(v.to||'').trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return 'Check the email address.';
+      return sb.rpc('email_one_save',{p:{id:draft.id||null,customer_id:c.id,to:to,subject:v.subject,body:v.body}}).then(must).then(function(id){
+        draft.id=id; if(v.later){ toast('Draft saved.'); return; }
+        return emailOneSend(id).then(function(){ toast('Email sent to '+to+'.'); }); })
+      .then(function(){ emailOneLoad(c.id); },function(e){ emailOneLoad(c.id); throw e; }); }}); }
+function emailOneSection(c){ var E=EMO[c.id]; if(!E){ emailOneLoad(c.id); return null; } if(!E.list||!E.list.length) return null;
+  return section('Emails',null,table([{label:'When',cell:function(x){ return fmtDate(String(x.at).slice(0,10)); }},{label:'Subject',cell:function(x){ return h('span',null,x.subject||'(no subject)',h('div',{class:'sub'},'To '+x.to+(x.by?', by '+x.by:''))); }},
+    {label:'',cell:function(x){ return x.status==='sent'?chip('Sent','ok'):x.status==='failed'?h('span',{class:'row'},chip('Not sent','warn'),btn('Try again',function(){ emailOne(c,x); },'small')):x.status==='sending'?chip('Sending'):h('span',{class:'row'},chip('Draft'),btn('Open',function(){ emailOne(c,x); },'small primary'),btn('Remove',function(){ sb.rpc('email_one_drop',{p_id:x.id}).then(must).then(function(){ emailOneLoad(c.id); }).catch(function(e){ toast(errText(e)); }); },'small')); }}],E.list,'')); }
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
@@ -6153,8 +6172,9 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       custBills(c),
+      me&&me.role==='manager'?emailOneSection(c):null,
       me&&(me.role==='manager'||me.role==='coach')?intakePanel(c.id,true):null,
       customerOwes(c.id).total?h('div',{class:'panel pad row owebox'},h('b',null,'Owes '+thb(customerOwes(c.id).total)),btn('Take payment',function(){ payCustomer(c); },'primary small'),btn('PromptPay QR',function(){ deskPromptPay(c); },'small'),btn('Card payment link',function(){ stripePay('customer',c.id,c.name); },'small')):null,
       c.is_fighter?h('div',{class:'panel pad row'},chip('Fighter','ok'),h('b',null,c.fighter_name||c.name),c.fight_weight?h('span',{class:'sub'},c.fight_weight):null,chip(c.fighter_free?'Free training':'Paid training',c.fighter_free?'ok':null),btn('Fights',function(){ ui.tab='fights'; schedule(); },'small')):null,
