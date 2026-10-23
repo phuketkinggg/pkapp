@@ -1006,8 +1006,9 @@ function editClass(c){ c=c||{};
     {key:'title',label:'Class name',required:true},
     {key:'discipline',label:'Discipline',type:'select',def:'Muay Thai',options:DISCIPLINES.map(function(d){return [d,d];})},
     {key:'checkin',label:'Check in',type:'select',def:'yes',options:[['yes','Check in needed'],['no','No check in needed']],hint:'No check in needed: the class shows on the timetable, but nobody checks in for it and it never uses a visit from a package.'},
+    {key:'blocks_privates',label:'Blocks privates (the hall is in use, so no private can be booked at this time)',type:'checkbox',hint:'For example yoga. Without an end time it blocks one hour. When the class is off, privates can be booked.'},
     {key:'coach_ids',label:'Coaches',type:'checks',options:coaches().map(function(x){ return [x.id,x.name]; }),hint:'The coaches ticked here clock in and out for this class. Coaches not ticked do not have to. A coach on approved holiday is left out for those days.'}],
-    onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; var nc=v.checkin==='no'; delete v.checkin; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null,no_checkin:nc})); },
+    onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; var nc=v.checkin==='no'; delete v.checkin; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null,no_checkin:nc,blocks_privates:!!v.blocks_privates})); },
     onDelete:c.id?function(){ return db.doc('classes/'+c.id).delete(); }:null});
 }
 function packOpts(customerId,priv){
@@ -6192,7 +6193,7 @@ function vTimetable(){
     var rows=sortBy(S.classes.filter(function(c){return Number(c.day)===i;}),'time'); if(!rows.length) return;
     out.push(section(d,null,table([
       {label:'Time',cell:function(c){return ctime(c)||'To set';}},
-      {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c),c.no_checkin?chip('No check in needed'):null];}},
+      {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c),c.no_checkin?chip('No check in needed'):null,c.blocks_privates?chip('Blocks privates'):null];}},
       {label:'Discipline',cell:function(c){return chip(c.discipline||'');}},
       {label:'Coaches',cell:function(c){ var ids=classCoaches(c,null); return ids.length?ids.map(function(id){ return nameOf('staff',id); }).join(', '):h('span',{class:'sub'},'Nobody has to clock in'); }},
       {label:'',cell:function(c){ var on=c.off_from&&(c.off_to||c.off_from)>=ymd(new Date()); return on?h('div',{class:'row'},chip(offText(c),'warn'),btn('Turn back on',function(){ resumeClass(c); },'small')):btn('Pause',function(){ pauseClass(c); },'small'); }}],rows,'')));
@@ -6606,7 +6607,7 @@ var MAP={
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access','bio','photo_url','also_coach']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
-  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin']},
+  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
