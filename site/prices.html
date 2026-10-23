@@ -137,7 +137,7 @@ function slots(from,days){ return fetch(SLOTS,{method:'POST',headers:{'Content-T
   .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error((d&&d.message)||'The free times could not load.'); return d; }); }); }
 function privBox(p,sb){
   var one=p.visits===1, q=one?'Would you like to book your session now?':'Would you like to book your first session now?';
-  sb.innerHTML='<div class="pvq"><b style="display:block;margin:0 0 8px">'+q+'</b><p class="sub" style="margin:2px 0 8px">'+(one?'':'You can book the rest later, one at a time, in the app or with us. ')+'Packs are valid for six months from the start.</p>'+
+  sb.innerHTML='<div class="pvq"><b style="display:block;margin:0 0 8px">'+q+'</b>'+(one?'':'<p class="sub" style="margin:2px 0 8px">You can book the rest later, one at a time, in the app or with us. Packs are valid for six months from the start.</p>')+
     '<div class="pp-yn"><button type="button" id="pvYes" aria-pressed="false">Yes, book now</button><button type="button" id="pvNo" aria-pressed="false">Later</button></div></div><div id="pvBox"></div>';
   var box=$('pvBox');
   function set(on){ PVon=on; $('pvYes').setAttribute('aria-pressed',String(on)); $('pvNo').setAttribute('aria-pressed',String(!on)); box.innerHTML='';
