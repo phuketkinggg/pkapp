@@ -6132,7 +6132,7 @@ function vPrivates(){
   list=sortBy(list,'date','time'); if(ui.pfilter!=='upcoming') list.reverse();
   var filter=h('select',{id:'pfilter','aria-label':'Show',onchange:function(ev){ ui.pfilter=ev.target.value; schedule(); }},
     [['upcoming','Today and upcoming'],['past','Past'],['all','All']].map(function(o){return h('option',{value:o[0],selected:ui.pfilter===o[0]},o[1]);}));
-  return [pageHead('Privates','The coach or a manager confirms requests. Only a manager moves or cancels a private.',h('div',{class:'row'},btn('Coach hours',function(){ mgrHours(); }),btn('Book a private',function(){ editPrivate(); },'primary'))),
+  return [pageHead('Privates','The coach or a manager confirms requests. Only a manager moves or cancels a private.',h('div',{class:'row'},me&&(me.role==='manager'||me.role==='admin')?btn('Coach hours',function(){ mgrHours(); }):null,btn('Book a private',function(){ editPrivate(); },'primary'))),
     h('div',{class:'row'},filter),
     table([
       {label:'When',cell:function(p){return [linkBtn(fmtDate(p.date)+' '+pSpan(p),function(){ editPrivate(p); }),exChip(p)];}},
@@ -7748,13 +7748,18 @@ function vKiosk(){
   var shown=q.length>=2?list.slice(0,6):[];
   return [head,search,
     q.length>=2?(shown.length?h('div',{class:'kgrid'},shown.map(function(o){ return h('button',{type:'button',class:'kname',onclick:function(){ var it=ui.kintent; ui.kc=o.c.id; ui.kq=''; ui.kerr=''; ui.kintent=null; kIdle(30000); schedule(); if(it) setTimeout(function(){ if(it==='buy') kBuy(o.c); else kPrivate(o.c); },50); }},o.label); }))
-      :h('div',{class:'panel empty'},'Nobody with that name. See the front desk to sign up.'))
+      :kFresh(q))
     :q.length===1?h('p',{class:'sub'},'Keep typing your name.'):null,
     !q?h('div',{class:'kmore kstart'},
       h('button',{type:'button',class:'kbig kalt'+(ui.kintent==='private'?' kon':''),onclick:function(){ ui.kintent=ui.kintent==='private'?null:'private'; kIdle(60000); schedule(); setTimeout(function(){ var e=document.getElementById('kq'); if(e) e.focus(); },30); }},h('span',null,'Book a private'),h('span',{class:'chip'},'Now or later')),
       h('button',{type:'button',class:'kbig kalt'+(ui.kintent==='buy'?' kon':''),onclick:function(){ ui.kintent=ui.kintent==='buy'?null:'buy'; kIdle(60000); schedule(); setTimeout(function(){ var e=document.getElementById('kq'); if(e) e.focus(); },30); }},h('span',null,'Buy a package'),h('span',{class:'chip'},'Card, QR or desk'))):null,
     ui.kintent&&!q?h('p',{class:'sub'},'Now type your name above and tap it.'):null,
     !q?promoBoard():null,foot];
+}
+/* not found: someone who just bought on the website may be newer than the list, so fetch the latest names once */
+function kFresh(q){
+  if(q.length>=3&&Date.now()-(ui.kfetch||0)>15000){ ui.kfetch=Date.now(); Promise.all([reload('customers'),reload('purchases')]).catch(function(){}); }
+  return h('div',{class:'panel empty'},'Nobody with that name yet. If you just bought online, wait a few seconds. Otherwise see the front desk.');
 }
 function staffTabs(row){
   if(row.role==='manager') return ALLTABS;

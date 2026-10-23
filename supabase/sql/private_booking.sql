@@ -229,7 +229,7 @@ begin
     if mine is null then raise exception 'This login is not an active coach.'; end if;
     return mine;
   end if;
-  if not private.is_desk() then raise exception 'You can only change your own hours.'; end if;
+  if coalesce(private.staff_role(),'') <> 'manager' then raise exception 'Only the owner or an admin can change a coach''s hours.'; end if;  -- staff_role is manager for owners and admins
   if not exists (select 1 from public.staff s where s.id = p_staff and s.role = 'coach' and s.active) then raise exception 'Choose a coach.'; end if;
   return p_staff;
 end $$;
