@@ -277,3 +277,8 @@ dialog.pview::backdrop{background:rgba(0,0,0,.9)}
 .ctag{flex:none;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--sand)}.ctag.free{background:#E3F2E8;color:#1F6B3C}
 .cbody{padding:0 16px 18px}.cvid{position:relative;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:14px}.cvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .cfiles{display:flex;flex-direction:column;gap:6px;margin-top:6px}.cfiles a{color:var(--red);font-weight:500}
+/* private booking picker in the buy dialog */
+dialog.basket{--pp-on:var(--red);--pp-on-ink:#fff;--pp-line:var(--line);--pp-soft:var(--cream)}
+#startBox .pvq{margin:0 0 12px}#pvBox{margin:0 0 6px}
+.pvdone{padding:12px 14px;border-radius:10px;background:var(--cream);margin:0 0 14px}
+#startBox,#pvBox{min-width:0;max-width:100%}

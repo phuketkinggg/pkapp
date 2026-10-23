@@ -9,7 +9,7 @@
 <meta name="description" content="Muay Thai prices in Kathu, Phuket: single classes, weekly and monthly passes, private lessons, recovery, Fitness Zone, yoga and DTV visa training packages.">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=19">
+<link rel="stylesheet" href="site.css?v=20">
 <meta property="og:title" content="Prices">
 <meta property="og:description" content="Muay Thai prices in Kathu, Phuket: single classes, weekly and monthly passes, private lessons, recovery, Fitness Zone, yoga and DTV visa training packages.">
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
@@ -92,6 +92,7 @@
 <script src="photos.js?v=13"></script>
 <script src="site.js?v=15"></script>
 <script src="qrcode.js?v=1"></script>
+<script src="privpick.js?v=1"></script>
 <script src="chat.js?v=1" defer></script>
 <script>
 (function(){
@@ -130,13 +131,37 @@ function call(b){ return fetch(BUY,{method:'POST',headers:{'Content-Type':'appli
 function bkk(n){ return new Date(Date.now()+7*3600e3+(n||0)*864e5).toISOString().slice(0,10); }
 function longDate(d){ return new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}); }
 function openDlg(d){ if(d.showModal) d.showModal(); else d.setAttribute('open',''); }
+/* privates: book the first session now (or the only one), choosing the coach, day and time. It is a request until confirmed. */
+var PV=null, PVon=false, SLOTS='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/private_book_slots';
+function slots(from,days){ return fetch(SLOTS,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p_from:from,p_days:days})})
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error((d&&d.message)||'The free times could not load.'); return d; }); }); }
+function privBox(p,sb){
+  var one=p.visits===1, q=one?'Would you like to book your session now?':'Would you like to book your first session now?';
+  sb.innerHTML='<div class="pvq"><b style="display:block;margin:0 0 8px">'+q+'</b><p class="sub" style="margin:2px 0 8px">'+(one?'':'You can book the rest later, one at a time, in the app or with us. ')+'Packs are valid for six months from the start.</p>'+
+    '<div class="pp-yn"><button type="button" id="pvYes" aria-pressed="false">Yes, book now</button><button type="button" id="pvNo" aria-pressed="false">Later</button></div></div><div id="pvBox"></div>';
+  var box=$('pvBox');
+  function set(on){ PVon=on; $('pvYes').setAttribute('aria-pressed',String(on)); $('pvNo').setAttribute('aria-pressed',String(!on)); box.innerHTML='';
+    if(on){ if(!PV) PV=window.PrivPick({load:slots}); box.appendChild(PV.el); }
+    else { box.innerHTML=(p.pick_start?'<label>When do you want to start?<input type="date" id="b-start" required></label>':'')+'<p class="note" style="margin:8px 0 0"><b>Book your time after paying.</b> Use the Phuket King app (sign in with the same email) or WhatsApp us to choose your sessions.</p>';
+      var i=$('b-start'); if(i){ i.min=bkk(0); i.max=bkk(180); i.value=bkk(0); } } }
+  $('pvYes').onclick=function(){ set(true); }; $('pvNo').onclick=function(){ set(false); };
+  set(true);
+}
+function privDone(pv,paid){
+  if(!pv) return '';
+  var when=window.PrivPick.longDay(pv.date)+', '+pv.time+(pv.coach_name?' with '+PK.esc(pv.coach_name):'');
+  return '<div class="pvdone"><p style="margin:0 0 6px;font-size:18px">Your private: <b>'+when+'</b>.</p>'+
+    '<p style="margin:0 0 6px">'+(paid?'We will confirm it within 30 minutes (during opening hours) and email you.':'As soon as the front desk sees your payment, we confirm your private and email you.')+' '+
+    (pv.any?'If '+PK.esc(pv.coach_name||'your coach')+' is unable to take it, you will be given another coach.':'You asked for '+PK.esc(pv.coach_name||'this coach')+' only. If that time does not work, we book your backup time: <b>'+window.PrivPick.longDay(pv.alt_date)+', '+pv.alt_time+'</b>.')+'</p></div>';
+}
 function buy(p,g){
   cur=p; $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
   var dtv=/^DTV/i.test(p.name), priv=(p.covers||[]).indexOf('Privates')>=0;
   $('buyWhat').innerHTML='<p style="margin:0 0 6px"><b>'+PK.esc(p.name)+'</b><br><span style="font-size:26px;font-weight:700">'+PK.thb(p.price)+'</span></p><p class="sub" style="margin:0">'+PK.esc(detail(p))+'</p>';
-  var sb=$('startBox'); sb.innerHTML='';
-  if(p.pick_start){
-    sb.innerHTML='<label>When do you want to start?<input type="date" id="b-start" required></label><p class="sub" style="margin:0">Your package runs from this date'+(p.days?' for '+span(p.days):'')+'.'+(priv?' After paying, WhatsApp us or use the app to book your private times.':'')+'</p>';
+  var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false;
+  if(priv&&p.visits){ privBox(p,sb); }
+  else if(p.pick_start){
+    sb.innerHTML='<label>When do you want to start?<input type="date" id="b-start" required></label><p class="sub" style="margin:0">Your package runs from this date'+(p.days?' for '+span(p.days):'')+'.</p>';
     var i=$('b-start'); i.min=bkk(0); i.max=bkk(180); i.value=bkk(0);
   } else {
     var within=p.start_within>1?' Start within '+p.start_within+' days of buying.':'';
@@ -156,12 +181,13 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('b-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can find your package when you arrive.'; err.hidden=false; $('b-email').focus(); return; }
   if(st&&!st.value){ err.textContent='Choose the date you want to start.'; err.hidden=false; st.focus(); return; }
+  if(PVon&&PV){ var pe=PV.check(); if(pe){ err.textContent=pe; err.hidden=false; PV.el.scrollIntoView({block:'center',behavior:'smooth'}); return; } }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
-  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',back:location.origin+location.pathname})
+  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV?PV.value():null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
-    .catch(function(x){ btn.disabled=false; btn.textContent='Pay '+PK.thb(cur.price); err.textContent=x.message; err.hidden=false; });
+    .catch(function(x){ btn.disabled=false; btn.textContent='Pay '+PK.thb(cur.price); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
 });
 /* PromptPay straight to the gym bank account: QR with the amount, the buyer taps I have paid, the front desk checks the bank and confirms */
 function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
@@ -185,11 +211,11 @@ function showPP(d){
 }
 function waitPP(ref){ var box=$('doneBody'), tries=0; openDlg($('done'));
   function draw(s){
-    if(s&&s.paid){ try{ localStorage.removeItem('pk_pp'); }catch(e){} $('doneTitle').textContent='You are in';
-      box.innerHTML='<p style="font-size:20px;margin:0 0 8px"><b>'+PK.esc(s.package)+'</b> is paid.</p><p>'+(s.start_on?'Your package starts on <b>'+PK.esc(longDate(s.start_on))+'</b>.':'No booking needed: just turn up. Your package starts automatically from your first class.')+'</p><p class="sub">Give your name at the front desk when you arrive. Sign in to the Phuket King app with the same email to see your package.</p>'; return; }
+    if(s&&s.paid){ try{ localStorage.removeItem('pk_pp'); }catch(e){} $('doneTitle').textContent=s.private?'Thank you for your booking':'You are in';
+      box.innerHTML=privDone(s.private,true)+'<p style="font-size:20px;margin:0 0 8px"><b>'+PK.esc(s.package)+'</b> is paid.</p><p>'+(s.private?'Book the rest of your sessions in the app or with us.</p><p>':'')+(s.start_on?'Your package starts on <b>'+PK.esc(longDate(s.start_on))+'</b>.':'No booking needed: just turn up. Your package starts automatically from your first class.')+'</p><p class="sub">Give your name at the front desk when you arrive. Sign in to the Phuket King app with the same email to see your package.</p>'; return; }
     if(s&&s.rejected){ $('doneTitle').textContent='Payment not found'; box.innerHTML='<p>The front desk could not find your PromptPay payment in the bank. If you paid, <a href="'+PK.wa('Hi Phuket King, I paid by PromptPay for '+(s.package||'a package')+' on the website.')+'" target="_blank" rel="noopener">WhatsApp us</a> a screenshot of the payment slip and we will sort it out.</p>'; try{ localStorage.removeItem('pk_pp'); }catch(e){} return; }
     $('doneTitle').textContent='Thank you';
-    box.innerHTML='<p><b>The front desk is checking your PromptPay payment.</b> This usually takes a few minutes during opening hours. You can close this page: your package is added to your account as soon as it is confirmed.</p><p class="sub">Want to be quick? <a href="'+PK.wa('Hi Phuket King, I just paid by PromptPay on the website. Here is my slip.')+'" target="_blank" rel="noopener">WhatsApp us your payment slip</a>.</p>'; }
+    box.innerHTML=privDone(s&&s.private,false)+'<p><b>The front desk is checking your PromptPay payment.</b> This usually takes a few minutes during opening hours. You can close this page: your package is added to your account as soon as it is confirmed.</p><p class="sub">Want to be quick? <a href="'+PK.wa('Hi Phuket King, I just paid by PromptPay on the website. Here is my slip.')+'" target="_blank" rel="noopener">WhatsApp us your payment slip</a>.</p>'; }
   function poll(){ call({mode:'status',ref:ref}).then(function(s){ draw(s); if(s&&!s.paid&&!s.rejected&&++tries<120) setTimeout(poll,5000); },function(){ if(++tries<120) setTimeout(poll,8000); }); }
   poll();
 }
@@ -198,8 +224,8 @@ function waitPP(ref){ var box=$('doneBody'), tries=0; openDlg($('done'));
   try{ history.replaceState(null,'',location.pathname); }catch(e){}
   var box=$('doneBody'), tries=0; openDlg($('done'));
   function draw(s){
-    if(s&&s.paid){ $('doneTitle').textContent='You are in';
-      box.innerHTML='<p style="font-size:20px;margin:0 0 8px"><b>'+PK.esc(s.package)+'</b> is paid.</p><p>'+(s.start_on?'Your package starts on <b>'+PK.esc(longDate(s.start_on))+'</b>.':'No booking needed: just turn up to any group class. Your package starts automatically from your first class.')+'</p><p class="sub">Give your name at the front desk when you arrive. Sign in to the Phuket King app with the same email to see your package. Questions? <a href="'+PK.wa('Hi Phuket King, I just bought '+s.package+' online.')+'" target="_blank" rel="noopener">WhatsApp us</a>.</p>'; return; }
+    if(s&&s.paid){ $('doneTitle').textContent=s.private?'Thank you for your booking':'You are in';
+      box.innerHTML=privDone(s.private,true)+'<p style="font-size:20px;margin:0 0 8px"><b>'+PK.esc(s.package)+'</b> is paid.</p><p>'+(s.private?'Book the rest of your sessions in the app or with us.</p><p>':'')+(s.start_on?'Your package starts on <b>'+PK.esc(longDate(s.start_on))+'</b>.':'No booking needed: just turn up to any group class. Your package starts automatically from your first class.')+'</p><p class="sub">Give your name at the front desk when you arrive. Sign in to the Phuket King app with the same email to see your package. Questions? <a href="'+PK.wa('Hi Phuket King, I just bought '+s.package+' online.')+'" target="_blank" rel="noopener">WhatsApp us</a>.</p>'; return; }
     if(paid!=='1'){ $('doneTitle').textContent='Not paid'; box.innerHTML='<p>Nothing was charged. Choose a package and try again, or <a href="'+PK.wa('Hi Phuket King, I want to buy a package.')+'" target="_blank" rel="noopener">WhatsApp us</a>.</p>'; return; }
     $('doneTitle').textContent='Checking your payment';
     box.innerHTML='<p>'+(tries>12?'This is taking longer than usual. Your payment went to Stripe, and it will show on your account as soon as it is confirmed. QR payments can take a minute.':'One moment.')+'</p>'; }

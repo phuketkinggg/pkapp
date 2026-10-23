@@ -117,6 +117,8 @@ def main():
 
     shutil.copytree(os.path.join(ROOT, 'vendor'), os.path.join(OUT, 'vendor'))
     # invoice and receipt design (the demo gym's own details come from its template)
+    os.makedirs(os.path.join(OUT, 'pk'), exist_ok=True)  # the private booking picker, shared with the website
+    shutil.copy(os.path.join(ROOT, 'pk', 'privpick.js'), os.path.join(OUT, 'pk', 'privpick.js'))
     open(os.path.join(OUT, 'invdoc.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'invdoc.js'), encoding='utf-8').read()))
     icons()
     print('Demo built in muayfriend/demo/')

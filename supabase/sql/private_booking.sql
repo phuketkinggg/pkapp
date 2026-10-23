@@ -42,7 +42,9 @@ alter table public.web_pkg_orders add column if not exists private_req jsonb;
 alter table public.staff add column if not exists bio text;
 alter table public.staff add column if not exists photo_url text;
 
-alter table public.notices drop constraint if exists notices_kind_check;
+do $$ declare c text; begin
+  for c in select conname from pg_constraint where conrelid = 'public.notices'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%kind%' loop
+    execute format('alter table public.notices drop constraint %I', c); end loop; end $$;
 alter table public.notices add constraint notices_kind_check check (kind = any (array['signup','first_signin','package','stay','refund','shop','prearrival','pangea_service','private']));
 
 -- the windows a coach takes privates on one day
