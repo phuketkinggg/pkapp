@@ -476,3 +476,6 @@ do $$ declare d text; begin
     execute d;
   end if;
 end $$;
+
+-- staff columns are granted one by one: staff screens read the coach intro and photo
+grant select (bio, photo_url) on public.staff to authenticated;
