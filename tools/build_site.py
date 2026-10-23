@@ -148,6 +148,13 @@ def main():
     import datetime
     today = datetime.date.today().isoformat()
     urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/courses", "0.6"), ("/shop", "0.6"), ("/blog", "0.6")]
+    # blog posts and app pages too (copied from the live sitemap into tools/sitemap_extra.txt), so Google sees them on the main sitemap
+    ex = os.path.join(ROOT, "tools", "sitemap_extra.txt")
+    if os.path.exists(ex):
+        for line in open(ex, encoding="utf-8"):
+            u = line.strip().replace(DOMAIN, "")
+            if u.startswith("/") and "&" not in u and "<" not in u and all(u != x[0] for x in urls):
+                urls.append((u, "0.7" if u.startswith("/page") else "0.6"))
     open(os.path.join(OUT, "sitemap.xml"), "w").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + "".join("  <url><loc>%s%s</loc><lastmod>%s</lastmod><priority>%s</priority></url>\n" % (DOMAIN, u, today, pr) for u, pr in urls) + "</urlset>\n")
     print("site/ built", "(live, Google allowed)" if LIVE else "(test, hidden from Google)", len(r), "forwards")
