@@ -63,7 +63,7 @@ begin
             done_amt := done_amt + amt;
             insert into public.acc_entries(kind,day,business,department,category,amount,method,party,note,recurring_id,recurring_month,recurring_part,created_by)
             values (r.kind, m + (r.day_of_month - 1), x->>'business', coalesce(x->>'department',''), r.category, amt, r.method, r.party,
-              concat_ws(', ', nullif(r.note,''), (x->>'pct') || '% of ' || to_char(r.amount, 'FM999,999,990') || ' THB'), r.id, m, i, r.created_by)
+              concat_ws(', ', nullif(r.note,''), rtrim(rtrim(x->>'pct','0'),'.') || '% of ' || to_char(r.amount, 'FM999,999,990') || ' THB'), r.id, m, i, r.created_by)
             on conflict (recurring_id, recurring_month, recurring_part) where recurring_id is not null do nothing;
             if found then n := n + 1; end if;
           end loop;
