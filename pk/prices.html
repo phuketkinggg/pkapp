@@ -80,10 +80,10 @@
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="#training">Book training</a></div>
 
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=15"></script>
+<script src="site.js?v=16"></script>
 <script src="qrcode.js?v=1"></script>
 <script src="privpick.js?v=2"></script>
-<script src="chat.js?v=1" defer></script>
+<script src="chat.js?v=2" defer></script>
 <script>
 (function(){
 'use strict';
@@ -125,6 +125,7 @@ function openDlg(d){ if(d.showModal) d.showModal(); else d.setAttribute('open','
 var PV=null, PVon=false, SLOTS='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/private_book_slots';
 function slots(from,days){ return fetch(SLOTS,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p_from:from,p_days:days})})
   .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error((d&&d.message)||'The free times could not load.'); return d; }); }); }
+function T(e,i){ try{ if(window.PK&&PK.track) PK.track(e,i); }catch(x){} }
 function privBox(p,sb){
   var one=p.visits===1, q=one?'Would you like to book your session now?':'Would you like to book your first session now?';
   sb.innerHTML='<div class="pvq"><b style="display:block;margin:0 0 8px">'+q+'</b>'+(one?'':'<p class="sub" style="margin:2px 0 8px">You can book the rest later, one at a time, in the app or with us. Packs are valid for six months from the start.</p>')+
@@ -145,7 +146,7 @@ function privDone(pv,paid){
     (pv.any?'If '+PK.esc(pv.coach_name||'your coach')+' is unable to take it, you will be given another coach.':'You asked for '+PK.esc(pv.coach_name||'this coach')+' only. If that time does not work, we book your backup time: <b>'+window.PrivPick.longDay(pv.alt_date)+', '+pv.alt_time+'</b>.')+'</p></div>';
 }
 function buy(p,g){
-  cur=p; $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
+  cur=p; T('buy_open',p.name); $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
   var dtv=/^DTV/i.test(p.name), priv=(p.covers||[]).indexOf('Privates')>=0;
   $('buyWhat').innerHTML='<p style="margin:0 0 6px"><b>'+PK.esc(p.name)+'</b><br><span style="font-size:26px;font-weight:700">'+PK.thb(p.price)+'</span></p><p class="sub" style="margin:0">'+PK.esc(detail(p))+'</p>';
   var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false;
@@ -173,6 +174,7 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   if(st&&!st.value){ err.textContent='Choose the date you want to start.'; err.hidden=false; st.focus(); return; }
   if(PVon&&PV){ var pe=PV.check(); if(pe){ err.textContent=pe; err.hidden=false; PV.el.scrollIntoView({block:'center',behavior:'smooth'}); return; } }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
+  T('buy_pay',cur.name); if(PVon&&PV&&PV.value().coach) T('buy_private',PV.value().coach_name);
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
   call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,back:location.origin+location.pathname})

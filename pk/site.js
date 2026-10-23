@@ -74,4 +74,32 @@ PK.rest('site_pages?select=slug,title,footer_label&in_footer=eq.true&status=eq.p
   var base=blog.getAttribute('href').replace(/blog\.html$/,'page.html?p='), col=blog.parentNode;
   list.forEach(function(x){ if(!/^[a-z0-9-]{1,60}$/.test(x.slug)) return; var a=document.createElement('a'); a.href=base+x.slug; a.textContent=x.footer_label||x.title; col.appendChild(a); });
 },function(){});
+/* website numbers: small anonymous events (no names or emails), so the owner sees where visitors stop. See the app, Website numbers. */
+(function(){
+  var REST='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/site_track', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
+  function rid(){ var a='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', o=''; for(var i=0;i<16;i++) o+=a.charAt(Math.floor(Math.random()*a.length)); return o; }
+  function get(st,k){ try{ var v=st.getItem(k); if(!v){ v=rid(); st.setItem(k,v); } return v; }catch(e){ return null; } }
+  var vid=get(window.localStorage,'pk_vid')||rid(), sid=get(window.sessionStorage,'pk_sid')||rid();
+  /* where this visit came from, kept for the visit */
+  function source(){
+    var q=new URLSearchParams(location.search), u=q.get('utm_source'), r='';
+    if(u) return u.slice(0,40);
+    if(q.get('fbclid')) return 'Facebook or Instagram ad'; if(q.get('gclid')) return 'Google ad'; if(q.get('ref')) return 'Referral link';
+    try{ r=document.referrer?new URL(document.referrer).hostname.replace(/^www\./,''):''; }catch(e){}
+    if(!r||/phuketking\.com$/.test(r)) return null;
+    if(/google\./.test(r)) return 'Google'; if(/facebook\.|fb\./.test(r)) return 'Facebook'; if(/instagram\./.test(r)) return 'Instagram';
+    if(/bing\./.test(r)) return 'Bing'; if(/tiktok\./.test(r)) return 'TikTok'; if(/youtube\./.test(r)) return 'YouTube'; if(/chatgpt|openai|perplexity|claude\.ai|gemini/.test(r)) return 'AI chat';
+    return r.slice(0,40);
+  }
+  var src=null; try{ src=sessionStorage.getItem('pk_src'); if(src===null){ src=source()||''; sessionStorage.setItem('pk_src',src); } }catch(e){ src=source(); }
+  var dev=(window.matchMedia&&window.matchMedia('(max-width: 820px)').matches)||/Mobi|Android|iPhone/i.test(navigator.userAgent)?'m':'d';
+  var page=(location.pathname.replace(/\.html$/,'').replace(/\/index$/,'/')||'/').slice(0,80);
+  window.PK.track=function(ev,item){
+    try{ fetch(REST,{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p:{ev:ev,vid:vid,sid:sid,page:page,src:src||null,dev:dev,item:item==null?null:String(item).slice(0,120)}})}).catch(function(){}); }catch(e){}
+  };
+  if(!/[?&]notrack=1/.test(location.search)) window.PK.track('view');
+  /* taps on WhatsApp links anywhere on the site */
+  document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('a[href*="wa.me"],a[href*="whatsapp"]'); if(a) window.PK.track('wa'); },true);
+})();
+
 })();

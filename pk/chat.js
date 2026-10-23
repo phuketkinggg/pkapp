@@ -153,7 +153,7 @@ function poll(){
 function paint(){ badge.hidden=!unread; badge.textContent=String(unread); }
 function tick(){ clearTimeout(timer); var ms=open?4000:(T?20000:0); if(!ms) return; timer=setTimeout(function(){ if(document.visibilityState!=='hidden') poll(); tick(); },ms); }
 
-function show(){
+function show(){ try{ if(window.PK&&PK.track) PK.track("chat"); }catch(e){}
   open=true; pan.hidden=false; btn.hidden=true; unread=0; paint();
   if(!T){ intro(); startForm(); call({mode:'status'}).then(function(d){ S.online=d.online; S.from=d.from||S.from; S.to=d.to||S.to; status(); showAway(); fixHint(); },function(){ S.online=false; status(); showAway(); fixHint(); }); }
   else { chatForm(); poll().then(function(){ msgs.scrollTop=msgs.scrollHeight; }); }

@@ -1,7 +1,7 @@
 // The public "Book your stay" page talks to this. No sign in.
 // info:    rooms, price groups, seasons and the map (no guest details, ever)
 // quote:   which rooms are free for some dates, and the price for each
-// reserve: hold a room for 30 minutes and open a Stripe card payment for it
+// reserve: hold a room for 30 minutes and open a Stripe card payment for it (with the website offer: direct booking discount, gift for long stays)
 // reserve with pay:"pp": Thai QR (PromptPay) straight to our bank: returns the QR instead of a Stripe page
 // claim:   the guest tapped "I have paid": the room is held 12 hours and the desk checks the bank
 // status:  after paying, the page asks if the booking went through
@@ -88,6 +88,15 @@ function quote(R: Rates, g: Group, from: string, to: string) {
   }
   return { total, nights, missing };
 }
+// the website offer (app_settings stay_offer): a direct booking discount on the room, and a gift for long stays
+type Offer = { on: boolean; pct: number; gift_nights: number; gift: string };
+async function offer(): Promise<Offer> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
+  let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* none */ }
+  const on = j.on === true, pct = Math.max(0, Math.min(50, Number(j.pct) || 0)), gn = Math.max(0, Math.min(90, Math.round(Number(j.gift_nights) || 0)));
+  return { on, pct: on ? pct : 0, gift_nights: on && String(j.gift ?? "").trim() ? gn : 0, gift: on ? String(j.gift ?? "").trim().slice(0, 80) : "" };
+}
+const offPrice = (full: number, o: Offer) => o.pct > 0 ? Math.round(full * (100 - o.pct) / 100) : full;
 async function roomsOn() {
   const { data } = await admin.from("rooms").select("id,name,sort,active").eq("active", true).order("sort");
   return data ?? [];
@@ -196,6 +205,7 @@ Deno.serve(async (req) => {
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
         extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
+        offer: await offer(),
         fx: await fx(),
         ...(await cardRule().then((r) => ({ card_pct: r.pct, card_fixed: r.fixed, card_fixed_under: r.under }))),
       });
@@ -203,13 +213,13 @@ Deno.serve(async (req) => {
     if (body.mode === "quote") {
       const bad = checkDates(body.from, body.to); if (bad) return json({ error: bad });
       const from = body.from as string, to = body.to as string;
-      const taken = await takenRooms(from, to), rooms = await roomsOn();
+      const taken = await takenRooms(from, to), rooms = await roomsOn(), O = await offer();
       const out = rooms.map((r) => {
         const g = R.groups.find((x) => x.rooms.includes(r.id));
         if (!g) return { id: r.id, state: "off" };
         if (taken.has(r.id)) return { id: r.id, group: g.id, state: "taken" };
         const q = quote(R, g, from, to);
-        return q.missing ? { id: r.id, group: g.id, state: "off" } : { id: r.id, group: g.id, state: "free", total: q.total, nights: q.nights };
+        return q.missing ? { id: r.id, group: g.id, state: "off" } : { id: r.id, group: g.id, state: "free", total: offPrice(q.total, O), full: q.total, nights: q.nights };
       });
       return json({ from, to, nights: Math.round((Date.parse(to) - Date.parse(from)) / 864e5), rooms: out });
     }
@@ -226,18 +236,22 @@ Deno.serve(async (req) => {
       const from = body.from as string, to = body.to as string, roomId = String(body.room_id ?? "");
       const g = R.groups.find((x) => x.rooms.includes(roomId)); if (!g) return json({ error: "That room can not be booked online." });
       const q = quote(R, g, from, to); if (q.missing || !(q.total >= 20)) return json({ error: "That room has no price for those dates. Message us." });
+      // the direct booking discount is taken off the room price; long stays get the gift (noted on the stay for the front desk)
+      const O = await offer(), full = q.total, nightsN = Math.round((Date.parse(to) - Date.parse(from)) / 864e5);
+      q.total = offPrice(full, O);
+      const offerNote = [O.pct > 0 && q.total < full ? `Book direct ${O.pct}% off (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
       const items = extraItems(R, body.extras, from, to), total = q.total + items.reduce((t, i) => t + i.price, 0);
       await admin.rpc("web_holds_cleanup");
       const { data, error } = await admin.rpc("web_reserve", { p_room: roomId, p_from: from, p_to: to, p_price: q.total, p_name: String(body.name ?? ""), p_email: String(body.email ?? ""),
-        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: String(body.note ?? "").slice(0, 400) });
+        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote].filter(Boolean).join("\n") });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
       if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref) });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
         if (pp) return json({ pp: acc, stay_id: stayId, total, what: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}` });
-        const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
+        const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}${q.total < full ? `, book direct ${O.pct}% off` : ""}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
         const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
         return json({ url, stay_id: stayId, total });
       } catch (e) {

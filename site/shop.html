@@ -79,8 +79,8 @@
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I have a question about the shop.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=15"></script>
-<script src="chat.js?v=1" defer></script>
+<script src="site.js?v=16"></script>
+<script src="chat.js?v=2" defer></script>
 <script>
 (function(){
 'use strict';
@@ -93,7 +93,7 @@ function keep(){ try{ localStorage.setItem('pk_basket',JSON.stringify(BK)); }cat
 function prod(id){ return (D.products||[]).filter(function(p){ return p.id===id; })[0]; }
 function total(){ return BK.reduce(function(t,l){ var p=prod(l.id); return t+(p?p.price*l.qty:0); },0); }
 function count(){ return BK.reduce(function(t,l){ return t+l.qty; },0); }
-function add(p){ var l=BK.filter(function(x){ return x.id===p.id; })[0]; if(l) l.qty=Math.min(20,l.qty+1); else BK.push({id:p.id,qty:1}); keep(); bar(); flash(p.name+' added to your basket.'); }
+function add(p){ try{ if(window.PK&&PK.track) PK.track('shop_add',p.name); }catch(e){} var l=BK.filter(function(x){ return x.id===p.id; })[0]; if(l) l.qty=Math.min(20,l.qty+1); else BK.push({id:p.id,qty:1}); keep(); bar(); flash(p.name+' added to your basket.'); }
 function flash(t){ var f=$('flash'); if(!f){ f=PK.el('div','flash'); f.id='flash'; f.setAttribute('role','status'); document.body.appendChild(f); } f.textContent=t; f.classList.add('on'); clearTimeout(flash.t); flash.t=setTimeout(function(){ f.classList.remove('on'); },1800); }
 function bar(){ BK=BK.filter(function(l){ return prod(l.id); }); var n=count(); $('basketbar').hidden=!n; $('openBasket').textContent='Basket: '+n+' item'+(n===1?'':'s')+', '+PK.thb(total()); }
 function opt(p){ return p.grp&&p.name.indexOf(p.grp)===0?p.name.slice(p.grp.length).replace(/^[\s,:\-]+/,'')||p.name:p.name; }
@@ -160,6 +160,7 @@ $('checkout').addEventListener('submit',function(e){ e.preventDefault();
   if(!name){ err.textContent='Type your name.'; err.hidden=false; return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type a real email address.'; err.hidden=false; return; }
   err.hidden=true; btn.disabled=true; btn.textContent=pay==='card'?'Opening card payment':'Placing your order';
+  try{ if(window.PK&&PK.track) PK.track('shop_pay',BK.length+' items'); }catch(e){}
   call({mode:'order',pay:pay,name:name,email:email,phone:$('c-phone').value.trim(),note:$('c-note').value.trim(),items:BK.map(function(l){ return {product_id:l.id,qty:l.qty}; }),back:location.origin+location.pathname})
     .then(function(r){ if(r.url){ BK=[]; keep(); location.href=r.url; return; }
       BK=[]; keep(); bar(); $('basket').close(); done('<h2>Order #'+r.number+' placed</h2><p>Thank you. Collect it at the Phuket King reception and pay '+PK.thb(r.total)+' when you pick it up. Questions? WhatsApp us.</p>'); })
