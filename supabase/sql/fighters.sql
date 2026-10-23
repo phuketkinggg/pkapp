@@ -37,7 +37,7 @@ create or replace function public.customer_fighter() returns jsonb language sql 
     'name', c.fighter_name, 'weight', c.fight_weight,
     'record', (select jsonb_build_object('w', count(*) filter (where f.result = 'win'), 'l', count(*) filter (where f.result = 'loss'), 'd', count(*) filter (where f.result = 'draw'))
                from public.fights f where f.fighter_customer_id = c.id and not f.cancelled),
-    'next', (select jsonb_build_object('date', f.fight_date, 'time', to_char(f.fight_time, 'HH24:MI'), 'venue', f.venue, 'opponent', f.opponent, 'weight', f.weight)
+    'next', (select jsonb_build_object('date', f.fight_date, 'time', f.fight_time, 'venue', f.venue, 'opponent', f.opponent, 'weight', f.weight)
              from public.fights f where f.fighter_customer_id = c.id and not f.cancelled and f.result is null and f.fight_date >= private.bkk_today()
              order by f.fight_date, f.fight_time limit 1),
     'last', (select coalesce(jsonb_agg(x order by x->>'date' desc), '[]'::jsonb) from (
