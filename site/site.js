@@ -93,11 +93,36 @@ PK.rest('site_pages?select=slug,title,footer_label&in_footer=eq.true&status=eq.p
   }
   var src=null; try{ src=sessionStorage.getItem('pk_src'); if(src===null){ src=source()||''; sessionStorage.setItem('pk_src',src); } }catch(e){ src=source(); }
   var dev=(window.matchMedia&&window.matchMedia('(max-width: 820px)').matches)||/Mobi|Android|iPhone/i.test(navigator.userAgent)?'m':'d';
-  var page=(location.pathname.replace(/\.html$/,'').replace(/\/index$/,'/')||'/').slice(0,80);
+  var page=(location.pathname.replace(/\.html$/,'').replace(/\/index$/,'/')||'/');
+  /* blog posts, app pages and courses: keep which one */
+  (function(){ var q=new URLSearchParams(location.search), k=/\/(post|page)$/.test(page)?'p':/\/course$/.test(page)?'c':null; if(k&&q.get(k)) page+='?'+k+'='+q.get(k); })();
+  page=page.slice(0,80);
+  /* where in the world (by the visitor's clock, no IP is kept), their language, and the ad campaign */
+  var tz=null, lang=null, camp=null; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||null; }catch(e){} try{ lang=(navigator.language||'').slice(0,15)||null; }catch(e){}
+  try{ camp=sessionStorage.getItem('pk_camp'); if(camp===null){ camp=new URLSearchParams(location.search).get('utm_campaign')||''; sessionStorage.setItem('pk_camp',camp); } }catch(e){ camp=new URLSearchParams(location.search).get('utm_campaign'); }
   window.PK.track=function(ev,item){
-    try{ fetch(REST,{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p:{ev:ev,vid:vid,sid:sid,page:page,src:src||null,dev:dev,item:item==null?null:String(item).slice(0,120)}})}).catch(function(){}); }catch(e){}
+    try{ fetch(REST,{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p:{ev:ev,vid:vid,sid:sid,page:page,src:src||null,dev:dev,tz:tz,lang:lang,camp:camp||null,item:item==null?null:String(item).slice(0,120)}})}).catch(function(){}); }catch(e){}
   };
-  if(!/[?&]notrack=1/.test(location.search)) window.PK.track('view');
+  var off=/[?&]notrack=1/.test(location.search);
+  if(off){ window.PK.track=function(){}; return; }
+  if(document.documentElement.getAttribute('data-nf')==='1'||/^Page not found/.test(document.title)) window.PK.track('nf',(location.pathname+location.search).slice(0,120));
+  window.PK.track('view');
+  /* engaged: 15 seconds on the page, or read half of it */
+  var eng=false; function engaged(){ if(eng) return; eng=true; window.PK.track('engaged'); }
+  setTimeout(function(){ if(document.visibilityState==='visible') engaged(); },15000);
+  window.addEventListener('scroll',function(){ var h=document.documentElement; if((window.scrollY+window.innerHeight)/Math.max(1,h.scrollHeight)>0.5&&h.scrollHeight>window.innerHeight*1.3) engaged(); },{passive:true});
+  /* time on the page: seconds while it is on screen, sent when they leave or switch away */
+  var shown=document.visibilityState==='visible'?Date.now():0, acc=0;
+  function flush(){ if(shown){ acc+=(Date.now()-shown)/1000; shown=0; } var n=Math.round(acc); if(n>=1){ acc=0; window.PK.track('time',String(Math.min(n,1800))); } }
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') flush(); else shown=Date.now(); });
+  window.addEventListener('pagehide',flush);
+  /* taps on phone, email, map and social links */
+  document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('a[href]'); if(!a) return; var u=a.getAttribute('href')||'', k=null;
+    if(/^tel:/i.test(u)) k='Phone call'; else if(/^mailto:/i.test(u)) k='Email'; else if(/google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.apple/i.test(u)) k='Map directions';
+    else if(/instagram\.com/i.test(u)) k='Instagram'; else if(/facebook\.com|fb\.com/i.test(u)) k='Facebook'; else if(/youtube\.com|youtu\.be/i.test(u)) k='YouTube';
+    else if(/tiktok\.com/i.test(u)) k='TikTok'; else if(/line\.me/i.test(u)) k='LINE'; else if(/tripadvisor/i.test(u)) k='TripAdvisor';
+    else if(/app\.phuketking\.com/i.test(u)) k='Opened the member app';
+    if(k) window.PK.track('click',k); },true);
   /* taps on WhatsApp links anywhere on the site */
   document.addEventListener('click',function(ev){ var a=ev.target&&ev.target.closest&&ev.target.closest('a[href*="wa.me"],a[href*="whatsapp"]'); if(a) window.PK.track('wa'); },true);
 })();
