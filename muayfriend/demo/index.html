@@ -7790,6 +7790,12 @@ function switchView(v){
 }
 
 /* ---------- signing in ---------- */
+/* members can delete their account in the app (App Store and Google Play rule) */
+function deleteAccBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){
+  openForm({title:'Delete my account',note:'This deletes your login, your contact details and everything in your coaching (photos, food diary, weights, habits, programs and messages). It cannot be undone. Packages you still have are lost. We keep a record of past purchases and payments, without your name or contact details, because the law requires it.',
+    saveLabel:'Delete my account',fields:[{key:'confirm',label:'Type DELETE to confirm',required:true,autocomplete:'off'}],
+    onSave:function(v){ if(String(v.confirm||'').trim().toUpperCase()!=='DELETE') return 'Type DELETE to confirm.';
+      return sb.rpc('customer_delete_me',{p_confirm:'DELETE'}).then(must).then(function(){ setTimeout(function(){ toast('Your account is deleted.'); },100); return sb.auth.signOut(); }); }}); }},'Delete account'); }
 function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut(); }},'Sign out'); }
 function passwordBtn(){ return h('button',{type:'button',class:'btn small',onclick:setPassword},'Password'); }
 function setPassword(){
@@ -7987,7 +7993,7 @@ function enter(user){
     if(recovering){ currentUser=null; return; }
     var row=must(res), staff=!!(row&&row.active!==false), asMember=staff&&pref('pk_view')==='member';
     var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
-    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),signOutBtn()));
+    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),!staff?deleteAccBtn():null,signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
     if(row.role==='investor'){ document.getElementById('mode').textContent='Investors'; me=row; db=makeDb(); TABS=[['investor','Overview']]; ui.tab='investor'; allReady=true; schedule(); return; }
