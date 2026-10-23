@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>About you | Phuket King</title>
+<meta name="theme-color" content="#1a3325">
+<link rel="icon" href="icons/icon-192.png">
+<style>
+:root{--g:#1a3325;--gold:#c9a84c;--bg:#f5f0e8;--card:#fff;--ink:#22201c;--mut:#6b665c;--line:#e5e1d8;--err:#b3261e;color-scheme:light}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Helvetica,Arial,system-ui,sans-serif}
+header{background:var(--g);color:#fff;padding:28px 16px 30px}
+header .in,main{max-width:640px;margin:0 auto}
+.kick{color:var(--gold);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+h1{font-size:28px;line-height:1.15;margin:8px 0 6px}
+header p{margin:0;opacity:.9}
+main{padding:16px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 14px}
+h2{font-size:19px;margin:0 0 12px;color:var(--g)}
+label.f{display:block;font-weight:600;font-size:14px;margin:12px 0 6px}
+.hint{display:block;color:var(--mut);font-size:13px;font-weight:400;margin-top:2px}
+input[type=text],input[type=date],input[type=number],textarea,select{font:inherit;color:inherit;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-height:46px}
+textarea{min-height:84px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--gold);outline-offset:1px}
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.opt{font:inherit;text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 12px;cursor:pointer;color:inherit;min-height:46px}
+.opt small{display:block;color:var(--mut);font-size:12px}
+.opt[aria-pressed=true]{border-color:var(--g);background:#eef3ee;box-shadow:inset 0 0 0 1px var(--g)}
+.five{grid-template-columns:repeat(5,1fr)}.five .opt{text-align:center}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.photo{display:flex;gap:16px;align-items:center}
+.face{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#efe9de;flex:none;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px;text-align:center}
+.btn{font:700 16px Helvetica,Arial,sans-serif;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:12px 18px;min-height:48px;cursor:pointer}
+.btn.main{background:var(--gold);border-color:var(--gold);color:var(--g);width:100%;font-size:18px}
+.btn:disabled{opacity:.6}
+.err{color:var(--err);font-weight:600}
+.note{color:var(--mut);font-size:14px}
+.done{text-align:center;padding:30px 18px}
+.done .big{font-size:26px;font-weight:700;color:var(--g);margin:0 0 8px}
+.private{background:#faf6ee;border-left:3px solid var(--gold);padding:8px 12px;border-radius:6px;font-size:14px;color:var(--mut)}
+.sticky{padding:8px 0 10px}
+</style>
+</head>
+<body>
+<header><div class="in"><div class="kick">Phuket King Muay Thai</div><h1 id="hi">Tell us about you</h1><p id="sub">About 5 minutes. Your coaches read this before you arrive, so when you walk in we already know you, your goals and how to help.</p></div></header>
+<main id="main"><div class="card note" id="loading">Loading your form.</div></main>
+<script>
+(function(){
+'use strict';
+var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/prearrival', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i', APP='https://app.phuketking.com/';
+var T=new URLSearchParams(location.search).get('t')||'', D=null, A={}, PHOTO=null, main=document.getElementById('main');
+function el(tag,attrs){ var e=document.createElement(tag); if(attrs) for(var k in attrs){ var v=attrs[k]; if(v==null) continue; if(k==='text') e.textContent=v; else if(k==='cls') e.className=v; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),v); else e.setAttribute(k,v); }
+  (function add(c){ if(c==null) return; if(Array.isArray(c)) c.forEach(add); else e.appendChild(typeof c==='string'?document.createTextNode(c):c); })(Array.prototype.slice.call(arguments,2)); return e; }
+function call(body){ return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify(body)}).then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); return d; }); }
+function fmt(d){ return new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}); }
+function first(n){ return String(n||'').trim().split(/\s+/)[0]||''; }
+
+function choice(key,opts,multi,max){
+  var box=el('div',{cls:'opts'});
+  function draw(){ box.replaceChildren.apply(box,opts.map(function(o){ var on=multi?(A[key]||[]).indexOf(o[0])>=0:A[key]===o[0];
+    return el('button',{type:'button',cls:'opt','aria-pressed':on?'true':'false',onclick:function(){
+      if(multi){ var l=(A[key]||[]).slice(), i=l.indexOf(o[0]); if(i>=0) l.splice(i,1); else { if(max&&l.length>=max) return; l.push(o[0]); } A[key]=l; } else A[key]=A[key]===o[0]?null:o[0];
+      draw(); if(opts.onpick) opts.onpick(); }},el('b',null,o[1]),o[2]?el('small',null,o[2]):null); })); }
+  draw(); box.redraw=draw; return box; }
+function text(key,label,o){ o=o||{}; var inp=el(o.area?'textarea':'input',{type:o.area?null:(o.type||'text'),id:'f-'+key,placeholder:o.ph||null,inputmode:o.mode||null,maxlength:o.max||null,min:o.min||null,max:o.maxv||null,step:o.step||null});
+  inp.value=A[key]==null?'':String(A[key]); inp.addEventListener('input',function(){ var v=inp.value; if(v==='') delete A[key]; else A[key]=v; });
+  return [el('label',{cls:'f','for':'f-'+key},label,o.hint?el('span',{cls:'hint'},o.hint):null),inp]; }
+function card(title,kids){ return el('div',{cls:'card'},el('h2',null,title),kids); }
+
+function shrink(file){ return new Promise(function(ok,bad){ var url=URL.createObjectURL(file), img=new Image();
+  img.onload=function(){ var k=Math.min(1,900/Math.max(img.width,img.height)), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg',0.82)); };
+  img.onerror=function(){ URL.revokeObjectURL(url); bad(new Error('That photo could not be opened. Try another.')); }; img.src=url; }); }
+
+function form(){
+  A=Object.assign({},D.answers||{}); if(!A.name) A.name=D.name||'';
+  var face=D.photo_url?el('img',{cls:'face',src:D.photo_url,alt:'Your photo'}):el('div',{cls:'face'},'No photo yet');
+  var pick=el('input',{type:'file',accept:'image/*',hidden:''});
+  var perr=el('p',{cls:'err',hidden:''});
+  pick.addEventListener('change',function(){ var f=pick.files&&pick.files[0]; if(!f) return; perr.hidden=true;
+    shrink(f).then(function(u){ PHOTO=u; var n=el('img',{cls:'face',src:u,alt:'Your photo'}); face.replaceWith(n); face=n; pbtn.textContent='Change photo'; },function(e){ perr.textContent=e.message; perr.hidden=false; }); });
+  var pbtn=el('button',{type:'button',cls:'btn',onclick:function(){ pick.click(); }},D.photo_url?'Change photo':'Add a photo');
+  var otherBox=el('div',{hidden:A.main==='other'?null:''},text('main_other','Tell us',{ph:'For example: a break from work, training with friends',max:200}));
+  var mainOpts=[['fight','Serious fight training'],['weight','Weight loss'],['fitness','Get fit'],['technique','Learn Muay Thai'],['reset','Reset and recharge'],['other','Something else']];
+  mainOpts.onpick=function(){ otherBox.hidden=A.main!=='other'; };
+  var injBox=el('div',{hidden:A.injury==='yes'?null:''},text('injury_where','Where?',{ph:'For example: left knee, lower back',max:200}),text('injury_note','Tell us a little more',{area:true,ph:'How it happened, how bad it is, anything that makes it worse',max:600}));
+  var injOpts=[['no','No, all good'],['yes','Yes']]; injOpts.onpick=function(){ injBox.hidden=A.injury!=='yes'; };
+  if(A.exp_unit==null) A.exp_unit='months';
+  var unit=el('select',{id:'f-exp_unit','aria-label':'Months or years'},el('option',{value:'months'},'months'),el('option',{value:'years'},'years')); unit.value=A.exp_unit; unit.addEventListener('change',function(){ A.exp_unit=unit.value; });
+  var expN=el('input',{type:'number',id:'f-exp_n',min:'0',max:'60',step:'1',inputmode:'numeric',placeholder:'0'}); expN.value=A.exp_n==null?'':String(A.exp_n); expN.addEventListener('input',function(){ if(expN.value==='') delete A.exp_n; else A.exp_n=expN.value; });
+  var err=el('p',{cls:'err',role:'alert',hidden:''});
+  var send=el('button',{type:'button',cls:'btn main'},D.done_at?'Save my changes':'Send to my coaches');
+  var later=el('button',{type:'button',cls:'btn',style:'width:100%;margin-top:8px'},'Save and finish later');
+  function go(done){ err.hidden=true;
+    if(done){ if(!String(A.name||'').trim()) return bad('Add your name.'); if(!A.self_level) return bad('Choose your level.'); if(!A.main) return bad('Choose what you are mainly coming for.'); if(!D.arrival&&!A.arrival) return bad('Add your arrival date. A guess is fine.'); }
+    send.disabled=later.disabled=true; (done?send:later).textContent='Saving...';
+    call({mode:'form_save',t:T,answers:A,done:!!done,photo:PHOTO}).then(function(d){ D=d; PHOTO=null; if(done) thanks(); else { later.textContent='Saved. Come back to this link any time.'; send.disabled=later.disabled=false; send.textContent='Send to my coaches'; } })
+      .catch(function(e){ send.disabled=later.disabled=false; send.textContent=D.done_at?'Save my changes':'Send to my coaches'; later.textContent='Save and finish later'; bad(e.message); }); }
+  function bad(m){ err.textContent=m; err.hidden=false; err.scrollIntoView({behavior:'smooth',block:'center'}); }
+  send.onclick=function(){ go(true); }; later.onclick=function(){ go(false); };
+  main.replaceChildren(
+    card('You',[
+      el('div',{cls:'photo'},face,el('div',null,pbtn,el('div',{cls:'note'},'So your coaches recognise you on day one. Only our team sees it.'))),pick,perr,
+      text('name','Your name',{max:80}),
+      text('location','Where are you from?',{ph:'For example: Manchester, UK',max:120}),
+      D.arrival?el('p',{cls:'note'},'Arriving '+fmt(D.arrival)+(D.room?', '+D.room:'')+'.'):text('arrival','When do you arrive?',{type:'date',hint:'Your best guess is fine.'}),
+      text('start_on','First day of training',{type:'date',hint:'Only if it is not your arrival day.'})]),
+    card('Muay Thai',[
+      el('label',{cls:'f'},'How long have you trained Muay Thai?',el('span',{cls:'hint'},'0 if never.')),el('div',{cls:'two'},expN,unit),
+      el('label',{cls:'f'},'What level are you?'),
+      choice('self_level',[['complete','Complete beginner','Never trained'],['beginner','Beginner','Know the basics'],['intermediate','Intermediate','Train regularly, can spar'],['advanced','Advanced','Years of training or fights']]),
+      el('label',{cls:'f'},'Other training you have done',el('span',{cls:'hint'},'Pick any.')),
+      choice('other_training',[['boxing','Boxing'],['kickboxing','Kickboxing'],['mma','MMA'],['bjj','BJJ'],['wrestling','Wrestling'],['weights','Gym and weights'],['running','Running'],['crossfit','CrossFit or HIIT'],['yoga','Yoga or pilates'],['team','Team sports']],true),
+      el('label',{cls:'f'},'How fit do you feel?',el('span',{cls:'hint'},'1 is not fit at all, 5 is very fit.')),(function(){ var c=choice('fitness',[['1','1'],['2','2'],['3','3'],['4','4'],['5','5']]); c.classList.add('five'); return c; })()]),
+    card('Your trip',[
+      el('label',{cls:'f'},'What are you mainly coming for?'),choice('main',mainOpts),otherBox,
+      text('win','What do you want to get out of your time with us?',{area:true,ph:'For example: learn to kick properly, lose 4 kg and feel like myself again',max:600}),
+      el('label',{cls:'f'},'Interested in private lessons?'),choice('privates',[['yes','Yes'],['maybe','Maybe'],['no','No']])]),
+    card('Your health',[
+      el('label',{cls:'f'},'Any injuries or pain?'),choice('injury',injOpts),injBox,
+      text('allergies','Any allergies?',{ph:'For example: peanuts, shellfish, none',max:300}),
+      text('food','Any food needs?',{ph:'For example: vegetarian, no pork',hint:'For our cafe.',max:300})]),
+    card('Your mind',[
+      el('p',{cls:'private'},'Optional. Only your coaches and our managers see this. Wellness starts in the mind, so anything you share helps us look after you.'),
+      text('fears','Any fears or worries about your trip?',{area:true,ph:'For example: being the only beginner, getting hit, the heat',max:800}),
+      text('mind','Anything about your mental wellbeing you want us to understand?',{area:true,max:1000}),
+      text('notes','Anything else we should know?',{area:true,max:600})]),
+    el('div',{cls:'sticky'},err,send,later));
+}
+function thanks(){
+  document.getElementById('hi').textContent='Thank you'+(first(D.name)?', '+first(D.name):'');
+  document.getElementById('sub').textContent='Your coaches have your answers.';
+  main.replaceChildren(el('div',{cls:'card done'},el('div',{cls:'big'},'See you soon'),
+    el('p',null,D.arrival?'We will be ready for you on '+fmt(D.arrival)+'.':'We will be ready for you.'),
+    el('p',{cls:'note'},'Get the Phuket King app for your timetable, your daily plan before you arrive, and to message your coaches.'),
+    el('a',{cls:'btn main',href:APP+'?ready='+encodeURIComponent(T),style:'display:block;text-decoration:none;text-align:center'},'Get the app'),
+    el('p',null,el('button',{type:'button',cls:'btn',style:'margin-top:12px',onclick:form},'Change my answers'))));
+  window.scrollTo(0,0);
+}
+if(!/^[0-9a-f]{64}$/.test(T)){ main.replaceChildren(el('div',{cls:'card'},el('p',{cls:'err'},'This link is not complete. Open it again from the message we sent you.'))); return; }
+call({mode:'form_get',t:T}).then(function(d){ D=d; if(first(d.name)) document.getElementById('hi').textContent='Tell us about you, '+first(d.name); if(d.done_at) thanks(); else form(); })
+  .catch(function(e){ main.replaceChildren(el('div',{cls:'card'},el('p',{cls:'err'},e.message),el('p',{cls:'note'},'Message us on WhatsApp and we will send a new link.'))); });
+})();
+</script>
+</body>
+</html>

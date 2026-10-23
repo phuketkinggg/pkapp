@@ -3390,7 +3390,7 @@ var PA_EMAIL={subject:'Get ready for Phuket King, {first}',heading:'Your trainin
   intro:"We can't wait to have you{arrival}. Your Phuket King app is ready. Open it now and take about 5 minutes to tell us:",
   asks:'Why you are coming: fight training, weight loss, fitness or something else\nYour Muay Thai experience and fitness level\nAny injuries, allergies or worries we should know about',
   gets_title:'Then you get',gets:'A simple daily plan for the next two weeks, so you arrive ready\nCoaches who already know you and your goals when you walk in',
-  button:'Open my app',after:'The button signs you straight in, no password needed. Add the app to your home screen when it asks, so it is one tap away.',footer:'Work hard, Fight easy.\nTeam Phuket King'};
+  button:'Tell us about you',after:'It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.',footer:'Work hard, Fight easy.\nTeam Phuket King'};
 function paEmailEdit(){
   var cur=Object.assign({},PA_EMAIL,(PA.cfg&&PA.cfg.email)||{});
   openForm({title:'The Get ready email',note:'Write {first} for their first name and {arrival} for " on Monday 5 November" (empty if no date). The button always signs them straight into the app. Save, then use Send me a test email to see it.',
@@ -3409,7 +3409,7 @@ function paSettings(){
   if(!PA.edit) return h('div',{class:'panel pad row wrap pasets'},
     h('span',null,h('b',null,on?'Automatic emails are on':'Automatic emails are off'),h('br'),h('small',{class:'sub'},on?'New room bookings and website packages get the email up to 14 days before arrival. Early app access guests get it as soon as they book.':'Nobody gets the email unless you send it from the list below. Anyone already in the app gets the About you form there.')),
     h('span',null,c.video_url?chip('Coach video added','ok'):chip('No coach video yet','warn')),
-    h('span',{class:'row'},btn('Set up',function(){ PA.edit=true; schedule(); },'small'),btn('Edit the email',paEmailEdit,'small'),btn('Send me a test email',function(ev){ var b=ev.currentTarget; b.disabled=true; paCall({mode:'test'}).then(function(j){ toast('Test sent to '+j.to+'.'); },function(e){ toast(errText(e)); }).then(function(){ b.disabled=false; }); },'small')));
+    h('span',{class:'row'},btn('Set up',function(){ PA.edit=true; schedule(); },'small'),btn('Edit the email',paEmailEdit,'small'),btn('Email me the coach brief',function(ev){ var b=ev.currentTarget; b.disabled=true; paCall({mode:'brief'}).then(function(j){ toast(j.guests?'Sent to '+j.to+': '+j.guests+' arriving '+fmtDate(j.day)+'.':'Nobody is arriving '+fmtDate(j.day)+', so there is nothing to send.'); },function(e){ toast(errText(e)); }).then(function(){ b.disabled=false; }); },'small'),btn('Send me a test email',function(ev){ var b=ev.currentTarget; b.disabled=true; paCall({mode:'test'}).then(function(j){ toast('Test sent to '+j.to+'.'); },function(e){ toast(errText(e)); }).then(function(){ b.disabled=false; }); },'small')));
   var d=JSON.parse(JSON.stringify(c)); d.groups=d.groups||{};
   var auto=h('input',{type:'checkbox',id:'pa-auto'}); auto.checked=on;
   var vurl=h('input',{id:'pa-vurl',type:'url',placeholder:'https://youtu.be/... or upload',value:d.video_url||''});
@@ -3431,14 +3431,16 @@ function paSettings(){
 /* the "About you" answers, as coaches see them */
 var PA_M={fight:'Serious fight training',weight:'Weight loss',fitness:'Get fit',technique:'Learn Muay Thai',reset:'Reset and recharge',other:'Something else'};
 var PA_O={boxing:'Boxing',kickboxing:'Kickboxing',mma:'MMA',bjj:'BJJ',wrestling:'Wrestling',weights:'Gym and weights',running:'Running',crossfit:'CrossFit or HIIT',yoga:'Yoga or pilates',team:'Team sports',none:'None'};
+var PA_SL={complete:'Complete beginner',beginner:'Beginner',intermediate:'Intermediate',advanced:'Advanced'};
+function paExp(a){ return a.exp_n!=null&&a.exp_n!==''?(Number(a.exp_n)===0?'Never trained':a.exp_n+' '+(a.exp_unit||'months')):''; }
 function paMain(a){ return a.main?(a.main==='other'&&a.main_other?a.main_other:PA_M[a.main]||a.main):''; }
-function paTags(a,early){ return [early?chip('Early access','ok'):null,a.main?chip(paMain(a),'ok'):null,a.level?chip(PA_L[a.level]||a.level):null,(a.goals||[]).map(function(g){ return chip(PA_G[g]||g); }),
+function paTags(a,early){ return [early?chip('Early access','ok'):null,a.main?chip(paMain(a),'ok'):null,a.self_level?chip(PA_SL[a.self_level]):a.level?chip(PA_L[a.level]||a.level):null,(a.goals||[]).map(function(g){ return chip(PA_G[g]||g); }),
   a.injury==='yes'?chip('Injury'+(a.injury_where?': '+a.injury_where:''),'bad'):null,a.allergies&&!/^(no|none|nope|n\/a)\.?$/i.test(a.allergies.trim())?chip('Allergy: '+a.allergies,'bad'):null,
   a.privates==='yes'||a.privates==='maybe'?chip('Privates: '+a.privates,'ok'):null]; }
 function paKV(a,arrival,group){
   return h('div',{class:'kv pakv'},[
-    ['Arrives',arrival?fmtDate(arrival):''],['First training day',a.start_on?fmtDate(a.start_on):''],['Coming for',paMain(a)],
-    ['Muay Thai',(PA_L[a.level]||'')+(a.fights?', '+a.fights+' fights':'')],['Other training',(a.other_training||[]).map(function(g){ return PA_O[g]||g; }).join(', ')+(a.other_training_note?(a.other_training&&a.other_training.length?'. ':'')+a.other_training_note:'')],
+    ['Arrives',arrival?fmtDate(arrival):''],['From',a.location],['First training day',a.start_on?fmtDate(a.start_on):''],['Coming for',paMain(a)],
+    ['Their level',PA_SL[a.self_level]],['Muay Thai experience',paExp(a)],['Muay Thai',a.self_level?'':(PA_L[a.level]||'')+(a.fights?', '+a.fights+' fights':'')],['Other training',(a.other_training||[]).map(function(g){ return PA_O[g]||g; }).join(', ')+(a.other_training_note?(a.other_training&&a.other_training.length?'. ':'')+a.other_training_note:'')],
     ['Also wants',(a.goals||[]).map(function(g){ return PA_G[g]||g; }).join(', ')],['A win would be',a.win],
     ['Weight',a.weight_kg?a.weight_kg+' kg'+(a.target_kg?', target '+a.target_kg+' kg':''):''],['Height',a.height_cm?a.height_cm+' cm':''],['Fitness',a.fitness?a.fitness+' of 5':''],['Trains now',{none:'Not at the moment','1-2':'1 to 2 a week','3-4':'3 to 4 a week','5+':'5 or more a week'}[a.train_now]],
     ['Injury',a.injury==='yes'?[a.injury_where,a.injury_note].filter(Boolean).join('. '):a.injury==='no'?'None':''],['Allergies',a.allergies],['Food',a.food],
@@ -3460,6 +3462,8 @@ function paList(){
       act:[r.done_at?btn(open?'Hide answers':'See answers',function(){ PA.open[r.customer_id]=!open; schedule(); },'small'):null,
         r.has_email&&!r.done_at?btn(r.sent_at?'Send again':'Send the email',function(ev){ var b=ev.currentTarget; b.disabled=true; paCall({mode:'send',customer_id:r.customer_id,arrival:r.arrival}).then(function(j){ toast('Sent to '+j.to+'.'); paLoad(); },function(e){ b.disabled=false; toast(errText(e)); }); },r.sent_at?'small':'primary small'):null,
         !r.has_email?chip('No email on file','warn'):null,
+        r.token?btn('Copy form link',function(){ var u='https://app.phuketking.com/form.html?t='+r.token; (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){ toast('Form link copied. Paste it in WhatsApp or LINE.'); },function(){ prompt('Copy this link',u); }); },'small'):null,
+        r.token?h('a',{class:'btn small',target:'_blank',rel:'noopener',href:'https://wa.me/?text='+encodeURIComponent('Hi '+String(r.name||'').split(' ')[0]+', welcome to Phuket King. Please take 5 minutes to tell your coaches about you before you arrive: https://app.phuketking.com/form.html?t='+r.token)},'WhatsApp it'):null,
         btn('Coaching',function(){ coOpen(r.customer_id); },'small')]}; }),'Nobody arriving in the next 30 days yet. Room bookings show here, and anyone you send the email to.');
 }
 function coPickClient(){

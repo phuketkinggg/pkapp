@@ -95,6 +95,7 @@ h2 em{font-style:normal;color:var(--gold)}
 @media (max-width:640px){.paywith{grid-template-columns:1fr}}
 .ppqr{max-width:280px;margin:12px auto;background:#fff;padding:10px;border-radius:12px}.ppqr svg{width:100%;height:auto;display:block}
 .ppsteps{padding-left:20px;margin:12px 0;text-align:left}.ppsteps li{margin:0 0 6px}
+.formnext{margin:18px auto 0;max-width:460px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--sunken)}.formnext p{margin:6px 0 12px}
 .ticks{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .ticks li{display:flex;gap:10px;align-items:baseline}.ticks li::before{content:"";flex:none;width:9px;height:9px;background:var(--gold);transform:rotate(45deg)}
 .gallery{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:16px}
@@ -247,7 +248,7 @@ function waitPP(ref){
   ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
   var box=$('step-done'), tries=0;
   function draw(s){ box.innerHTML='';
-    if(s&&s.paid){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); return; }
+    if(s&&s.paid){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); formBtn(box,s); return; }
     if(s&&(s.rejected||s.cancelled)){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'Payment not found'));
       var a=el('a',{href:wa('Hi Pangea, I paid for my stay by Thai QR on the website. Here is my slip.'),target:'_blank',rel:'noopener'},'WhatsApp us your payment slip');
       box.appendChild(el('p',null,'We could not find your Thai QR payment in our bank, so the room was let go. If you paid, ',a,' and we will sort it out.')); return; }
@@ -403,11 +404,15 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+(pick.how||' by card'); err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
 
+/* after paying: the guest form, so the coaches know them before they arrive */
+function formBtn(box,s){ if(!s||!s.form) return;
+  box.appendChild(el('div',{cls:'formnext'},el('b',null,'One more thing: tell your coaches about you'),el('p',{cls:'sub'},'About 5 minutes. Your level, your goals and a photo, so we know you when you walk in.'),
+    el('a',{cls:'btn primary',href:'https://app.phuketking.com/form.html?t='+encodeURIComponent(s.form)},'Tell us about you'))); }
 function afterPay(ref,paid){
   ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
   var box=$('step-done'), tries=0;
   function draw(s){ box.innerHTML='';
-    if(s&&s.paid){ box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); return; }
+    if(s&&s.paid){ box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); formBtn(box,s); return; }
     if(!paid){ box.appendChild(el('div',{cls:'big'},'Not paid')); box.appendChild(el('p',null,'Nothing was charged. The room is held for a few more minutes.')); box.appendChild(el('button',{type:'button',cls:'btn primary',onclick:function(){ location.href=location.pathname; }},'Start again')); return; }
     box.appendChild(el('div',{cls:'big'},'Checking your payment')); box.appendChild(el('p',{cls:'sub'},tries>12?'This is taking longer than usual. Your payment went to Stripe. We email you as soon as it shows here.':'One moment.')); }
   function poll(){ call({mode:'status',ref:ref}).then(function(s){ draw(s); if(paid&&!(s&&s.paid)&&++tries<30) setTimeout(poll,2000); },function(){ draw(null); if(paid&&++tries<30) setTimeout(poll,3000); }); }

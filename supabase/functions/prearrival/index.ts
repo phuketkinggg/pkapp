@@ -3,6 +3,9 @@
 // POST {mode:'send', customer_id, arrival?} a coach or manager sends (or re-sends) it by hand
 // POST {mode:'test'}                      a manager sends a sample to their own email
 // POST {mode:'claim', token}              the link in the email: returns a one time sign in for the app
+// POST {mode:'form_get', t} / {mode:'form_save', t, answers, done, photo?}   the guest form page (form.html), no sign in, the link is the key
+// POST {mode:'brief'}                     the timer (x-sync-token), 18:00: emails coaches and managers who arrives tomorrow, with photo and level
+// POST {mode:'brief', day?}               a manager: sends that brief (tomorrow, or the day given) to their own email only
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const RESEND = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
@@ -34,8 +37,8 @@ const DEFAULT_COPY: Required<Copy> = {
   asks: "Why you are coming: fight training, weight loss, fitness or something else\nYour Muay Thai experience and fitness level\nAny injuries, allergies or worries we should know about",
   gets_title: "Then you get",
   gets: "A simple daily plan for the next two weeks, so you arrive ready\nCoaches who already know you and your goals when you walk in",
-  button: "Open my app",
-  after: "The button signs you straight in, no password needed. Add the app to your home screen when it asks, so it is one tap away.",
+  button: "Tell us about you",
+  after: "It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.",
   footer: "Work hard, Fight easy.\nTeam Phuket King",
 };
 function render(w: Who, link: string, hasVideo: boolean, wa: string, copy: Copy = {}) {
@@ -89,7 +92,7 @@ async function send(w: Who, link: string) {
 }
 
 async function sendAndMark(w: Who) {
-  const r = await send(w, `${APP}?ready=${w.token}`);
+  const r = await send(w, `${APP}form.html?t=${w.token}`);
   const { data: row } = await admin.from("prearrival").select("tries").eq("customer_id", w.customer_id).maybeSingle();
   await admin.from("prearrival").update(r.ok ? { sent_at: new Date().toISOString(), sent_to: w.email, send_error: null, tries: (row?.tries ?? 0) + 1 }
     : { send_error: r.error, tries: (row?.tries ?? 0) + 1 }).eq("customer_id", w.customer_id);
@@ -132,6 +135,62 @@ async function claim(token: string) {
   return { token_hash: hash, email };
 }
 
+// ---------- the guest form ----------
+const isTok = (t: unknown) => /^[0-9a-f]{64}$/.test(String(t ?? ""));
+async function signed(path: string | null, secs: number) {
+  if (!path) return null;
+  const { data } = await admin.storage.from("coaching").createSignedUrl(path, secs);
+  return data?.signedUrl ?? null;
+}
+async function formOut(d: Record<string, unknown> | null) {
+  if (!d) return { error: "This link has expired. Ask us for a new one on WhatsApp." };
+  return { ...d, photo_url: await signed(d.photo as string | null, 3600) };
+}
+
+// ---------- the coaches' evening brief ----------
+const LEVEL: Record<string, string> = { complete: "Complete beginner", beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced" };
+const LEVEL2: Record<string, string> = { new: "Never trained", under6m: "Under 6 months", "6m2y": "6 months to 2 years", "2y": "2 years plus", fought: "Has fought" };
+const MAIN: Record<string, string> = { fight: "Serious fight training", weight: "Weight loss", fitness: "Get fit", technique: "Learn Muay Thai", reset: "Reset and recharge", other: "Something else" };
+type Guest = { customer_id: string; name: string; room: string | null; photo: string | null; done: boolean; answers: Record<string, unknown> };
+async function briefHtml(day: string, guests: Guest[]) {
+  const G = "#1a3325", GOLD = "#c9a84c", MUT = "#6b665c";
+  const cards = await Promise.all(guests.map(async (g) => {
+    const a = g.answers || {};
+    const img = await signed(g.photo, 7 * 86400);
+    const lvl = LEVEL[String(a.self_level)] || LEVEL2[String(a.level)] || "";
+    const exp = a.exp_n != null ? `${a.exp_n} ${a.exp_unit || ""} of Muay Thai`.trim() : "";
+    const rows: [string, unknown][] = [["Level", [lvl, exp].filter(Boolean).join(", ")], ["From", a.location], ["Coming for", a.main === "other" ? a.main_other : MAIN[String(a.main)]],
+      ["Wants", a.win], ["First training", a.start_on], ["Injury", a.injury === "yes" ? [a.injury_where, a.injury_note].filter(Boolean).join(". ") : ""], ["Allergies", a.allergies],
+      ["Worries", a.fears], ["Privates", a.privates === "yes" || a.privates === "maybe" ? String(a.privates) : ""], ["Room", g.room]];
+    const tr = rows.filter((r) => r[1]).map(([k, v]) => `<tr><td style="padding:3px 10px 3px 0;color:${MUT};font-size:13px;vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:3px 0;font-size:14px">${esc(v)}</td></tr>`).join("");
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px;background:#fff;border:1px solid #e5e1d8;border-radius:12px"><tr>
+      <td style="padding:14px;width:96px;vertical-align:top">${img ? `<img src="${esc(img)}" width="96" height="96" alt="" style="display:block;width:96px;height:96px;object-fit:cover;border-radius:50%">` : `<div style="width:96px;height:96px;border-radius:50%;background:#efe9de;color:${MUT};font-size:12px;text-align:center;line-height:96px">No photo</div>`}</td>
+      <td style="padding:14px 14px 14px 0;vertical-align:top"><div style="font-size:19px;font-weight:bold;color:${G};margin:0 0 6px">${esc(g.name)}</div>
+      ${g.done ? `<table role="presentation" cellpadding="0" cellspacing="0">${tr}</table>` : `<div style="color:${MUT};font-size:14px">Has not filled in the form yet.${g.room ? " Room: " + esc(g.room) + "." : ""}</div>`}</td></tr></table>`;
+  }));
+  return `<!doctype html><html><body style="margin:0;background:#f5f0e8;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:20px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:620px">
+<tr><td style="background:${G};border-radius:12px;padding:20px 22px;color:#fff"><div style="color:${GOLD};font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Arriving tomorrow</div>
+<div style="font-size:24px;font-weight:bold;margin-top:6px">${esc(day)}: ${guests.length} ${guests.length === 1 ? "guest" : "guests"}</div></td></tr>
+<tr><td style="padding:16px 0 0">${cards.join("")}<p style="color:${MUT};font-size:13px">Full answers are in the app: Coaching, Arriving soon. Say hello by name.</p></td></tr></table></td></tr></table></body></html>`;
+}
+async function sendBrief(to: string[], dayIso: string) {
+  const { data, error } = await admin.rpc("coach_brief", { p_day: dayIso });
+  if (error) return { error: error.message };
+  const guests = (data?.guests ?? []) as Guest[];
+  if (!guests.length) return { ok: true, sent: 0, guests: 0 };
+  const { we } = await settings();
+  const label = day(dayIso);
+  const html = await briefHtml(label, guests);
+  const text = guests.map((g) => `${g.name}: ${LEVEL[String(g.answers?.self_level)] || LEVEL2[String(g.answers?.level)] || "form not filled in"}`).join("\n");
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: we.from || "Phuket King <hello@app.phuketking.com>", to: [to[0]], bcc: to.slice(1), subject: `Arriving tomorrow: ${guests.map((g) => first(g.name)).join(", ")}`.slice(0, 150), html, text: `Arriving ${label}\n\n${text}` }),
+  });
+  const j = await r.json().catch(() => ({}));
+  return r.ok ? { ok: true, sent: to.length, guests: guests.length } : { error: j?.message || `Email service said ${r.status}` };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -141,6 +200,43 @@ Deno.serve(async (req) => {
       const t = String(b.token ?? "");
       if (!/^[0-9a-f]{64}$/.test(t)) return json({ error: "This link is not complete. Open it again from the email." });
       return json(await claim(t));
+    }
+    if (b.mode === "form_get" || b.mode === "form_save") {
+      if (!isTok(b.t)) return json({ error: "This link is not complete. Open it again from the message we sent." });
+      if (b.mode === "form_get") { const { data } = await admin.rpc("guest_form_get", { p_token: b.t }); return json(await formOut(data)); }
+      const { data: cur } = await admin.rpc("guest_form_get", { p_token: b.t });
+      if (!cur) return json({ error: "This link has expired. Ask us for a new one on WhatsApp." });
+      const answers = typeof b.answers === "object" && b.answers ? { ...b.answers } : {};
+      delete (answers as Record<string, unknown>).photo;
+      // a new photo: a small JPEG from the page, stored with their coaching files
+      if (typeof b.photo === "string" && b.photo.startsWith("data:image/jpeg;base64,")) {
+        const bytes = Uint8Array.from(atob(b.photo.slice(23)), (c) => c.charCodeAt(0));
+        if (bytes.length > 1_500_000) return json({ error: "That photo is too big. Try another." });
+        const path = `${cur.customer_id}/profile/${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}.jpg`;
+        const up = await admin.storage.from("coaching").upload(path, bytes, { contentType: "image/jpeg", upsert: false });
+        if (up.error) return json({ error: "The photo did not upload. Try again." });
+        (answers as Record<string, unknown>).photo = path;
+      }
+      const { data, error } = await admin.rpc("guest_form_save", { p_token: b.t, p: answers, p_done: !!b.done });
+      if (error) return json({ error: error.message });
+      return json(await formOut(data));
+    }
+    if (b.mode === "brief" && req.headers.get("x-sync-token")) {
+      const { data: tok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
+      if (tok !== true) return json({ error: "Not allowed." }, 401);
+      if (!RESEND) return json({ ok: true, skipped: "no email key" });
+      const tomorrow = new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+      const { data: last } = await admin.from("app_settings").select("value").eq("key", "coach_brief_last").maybeSingle();
+      if (last?.value === tomorrow) return json({ ok: true, skipped: "already sent" });
+      const { data } = await admin.rpc("coach_brief", { p_day: tomorrow });
+      const to = (data?.to ?? []) as string[];
+      if (!to.length) return json({ ok: true, skipped: "no staff emails" });
+      const r = await sendBrief(to, tomorrow);
+      if ((r as { ok?: boolean }).ok) {
+        const { data: up } = await admin.from("app_settings").update({ value: tomorrow }).eq("key", "coach_brief_last").select("key");
+        if (!up?.length) await admin.from("app_settings").insert({ key: "coach_brief_last", value: tomorrow });
+      }
+      return json(r);
     }
     if (b.mode === "auto") {
       const { data: tok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
@@ -162,6 +258,15 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message });
       const r = await sendAndMark(w as Who);
       return r.ok ? json({ ok: true, to: (w as Who).email }) : json({ error: "The email did not go: " + r.error });
+    }
+    if (b.mode === "brief") {
+      if (me.role !== "manager") return json({ error: "Only a manager can do this." }, 401);
+      if (!RESEND) return json({ error: "Email sending is not set up yet." });
+      if (!me.email) return json({ error: "Your login has no email." });
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(String(b.day ?? "")) ? String(b.day) : new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+      const r = await sendBrief([me.email], d);
+      if ((r as { error?: string }).error) return json(r);
+      return json({ ...r, to: me.email, day: d });
     }
     if (b.mode === "test") {
       if (me.role !== "manager") return json({ error: "Only a manager can do this." }, 401);
