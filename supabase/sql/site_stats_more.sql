@@ -32,7 +32,7 @@ create or replace function private.site_more(a timestamptz, b timestamptz) retur
           count(*) filter (where ev = 'view') views,
           bool_or(ev in ('engaged','buy_open','stay_dates','shop_add','wa','chat','click')) eng,
           bool_or(ev in ('wa','chat','buy_pay','stay_pay','shop_pay')) act,
-          sum(least(case when ev = 'time' and item ~ '^[0-9]{1,5}$' then item::int end, 1800)) secs,
+          sum(case when ev = 'time' and item ~ '^[0-9]{1,5}$' then least(item::int, 1800) end) secs,
           (array_agg(page order by at) filter (where ev = 'view'))[1] land,
           max(tz) tz, max(lang) lang, max(camp) camp, coalesce(max(src),'Direct') src
         from e group by sid),
