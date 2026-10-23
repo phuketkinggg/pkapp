@@ -48,3 +48,13 @@ create or replace function public.customer_fighter() returns jsonb language sql 
 $$;
 revoke all on function public.customer_fighter() from public, anon;
 grant execute on function public.customer_fighter() to authenticated;
+
+-- the Fights screen lists fighters first, with their ring name
+do $$ declare d text := pg_get_functiondef('public.fights_list()'::regprocedure); begin
+  if position('is_fighter' in d) = 0 then
+    d := replace(d, $a$jsonb_agg(jsonb_build_object('id', c.id, 'name', c.name) order by c.name)$a$,
+      $b$jsonb_agg(jsonb_build_object('id', c.id, 'name', case when c.is_fighter and nullif(c.fighter_name, '') is not null then c.name || ' (' || c.fighter_name || ')' else c.name end, 'fighter', c.is_fighter) order by c.is_fighter desc, c.name)$b$);
+    if position('is_fighter' in d) = 0 then raise exception 'fights_list patch did not apply'; end if;
+    execute d;
+  end if;
+end $$;
