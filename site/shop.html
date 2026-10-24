@@ -176,7 +176,7 @@ if(ref&&/^[0-9a-f-]{36}$/.test(ref)){
       else if(++tries<8) setTimeout(poll,2500); else done('<h2>Payment received?</h2><p>We could not confirm order #'+s.number+' yet. If your card was charged it will show shortly. Questions? WhatsApp us.</p>'); }).catch(function(){}); })(); }
 }
 load();
-call({mode:'list'}).then(function(d){ D=d; tabs(); draw(); bar(); }).catch(function(){ $('shop').innerHTML='<p class="err">The shop could not load. Please try again in a moment, or WhatsApp us.</p>'; });
+call({mode:'list'}).then(function(d){ D=d; tabs(); draw(); bar(); }).catch(function(){ if(!$('shop').getAttribute('data-pre')) $('shop').innerHTML='<p class="err">The shop could not load. Please try again in a moment, or WhatsApp us.</p>'; });
 })();
 </script>
 </body>

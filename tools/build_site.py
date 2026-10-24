@@ -182,6 +182,26 @@ def build_static(out):
     if offers:
         h = h.replace("</head>", ld({"@context": "https://schema.org", "@type": "OfferCatalog", "name": "Phuket King Muay Thai training prices", "url": DOMAIN + "/prices", "itemListElement": offers}) + "\n</head>", 1)
     open(pr, "w", encoding="utf-8").write(h)
+    # the shop: products inside the page, and as product data (price, stock) for Google
+    sp = os.path.join(out, "shop.html")
+    h = open(sp, encoding="utf-8").read()
+    if snap.get("shop") and '<div id="shop">' in h:
+        i = h.index('<div id="shop">'); j = h.index("</div>", i)
+        h = h[:i] + '<div id="shop" data-pre="1">' + snap["shop"]["html"] + h[j:]
+    prods = []
+    for x in snap.get("products", []):
+        pd = {"@type": "Product", "name": x["name"], "brand": {"@type": "Brand", "name": "Phuket King Muay Thai"},
+              "offers": {"@type": "Offer", "price": x["price"], "priceCurrency": "THB", "url": DOMAIN + "/shop",
+                         "availability": "https://schema.org/" + ("OutOfStock" if x.get("sold_out") else "InStock"), "seller": {"@id": GYM}}}
+        if x.get("image"):
+            pd["image"] = x["image"]
+        if x.get("description"):
+            pd["description"] = x["description"][:300]
+        prods.append(pd)
+    if prods:
+        h = h.replace("</head>", ld({"@context": "https://schema.org", "@type": "ItemList", "name": "Phuket King Muay Thai shop", "url": DOMAIN + "/shop",
+                                      "itemListElement": [{"@type": "ListItem", "position": n + 1, "item": pd} for n, pd in enumerate(prods)]}) + "\n</head>", 1)
+    open(sp, "w", encoding="utf-8").write(h)
     return made, snap
 
 

@@ -76,11 +76,26 @@ def main():
             snap["prices"] = {"html": pg.eval_on_selector("#groups", "e => e.innerHTML")}
         except Exception as e:
             errors.append("prices: %s" % e)
+        try:
+            pg.goto(base + "shop.html?notrack=1", wait_until="domcontentloaded")
+            pg.wait_for_function("() => { const m = document.getElementById('shop'); return m && m.children.length && !/Loading the shop/.test(m.textContent) }", timeout=25000)
+            snap["shop"] = {"html": pg.eval_on_selector("#shop", "e => e.innerHTML")}
+        except Exception as e:
+            errors.append("shop: %s" % e)
         b.close()
     srv.shutdown()
 
     snap["packages"] = [{"name": x.get("name"), "price": x.get("price"), "covers": x.get("covers") or []} for x in (data.get("packages") or []) if x.get("name") and x.get("price")]
     snap["private_price"] = data.get("private_price")
+    try:
+        req = urllib.request.Request("https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/webshop", data=b'{"mode":"list"}',
+                                     headers={"apikey": KEY, "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=30) as r:
+            shop = json.loads(r.read().decode("utf-8"))
+        snap["products"] = [{"name": x.get("name"), "price": x.get("price"), "image": x.get("image") or "", "sold_out": bool(x.get("sold_out")),
+                             "description": x.get("description") or ""} for x in (shop.get("products") or []) if x.get("name") and x.get("price")]
+    except Exception as e:
+        errors.append("shop list: %s" % e)
     snap["classes"] = data.get("classes") or []
 
     snap["problems"] = [e[:300] for e in errors]
