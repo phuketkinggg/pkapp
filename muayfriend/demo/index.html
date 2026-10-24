@@ -274,6 +274,17 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .kcard{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .kcard.new{border-color:var(--bad)}
 .kcard.preparing{border-color:var(--warn)}
+.kstat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.kstat .kst{font-weight:700;padding:8px 14px;border-radius:999px}
+.kstat .kst.ok{background:#E3F2E8;color:var(--ok)}
+.kstat .kst.bad{background:#FBE5E5;color:var(--bad)}
+.kstat .kst.warn{background:#FFF2D9;color:var(--warn)}
+.soldgrid{display:flex;flex-wrap:wrap;gap:6px}
+.soldgrid .btn.out{text-decoration:line-through;opacity:.7}
+.kbanner{padding:10px 14px;border-radius:12px;font-weight:600;margin:0 0 12px}
+.kbanner.bad{background:#FBE5E5;color:var(--bad)}
+.kbanner.warn{background:#FFF2D9;color:var(--warn)}
+.menuitem.out{opacity:.55}
 .kcard.ready{border-color:var(--ok);opacity:.85}
 .ktop{display:flex;justify-content:space-between;font-size:15px}
 .ktop b{font-size:22px}
@@ -4828,7 +4839,7 @@ function vHours(){
 }
 
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
-var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null;
+var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null, KINFO=null;
 var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['bill','Bill to customer'],['staff','Staff tab'],['stripe','Stripe card link']];
 function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)'})[m]||(m||''); }
 function isBoss(){ return me&&((me.role==='manager'&&can('refunds'))||me.role==='resort'); }
@@ -5394,7 +5405,8 @@ function vShop(){
 /* kitchen screen: new orders at the top, tap through Start, Ready, Served */
 var kBeepIds=null;
 function kitchenBeep(){ try{ var c=new (window.AudioContext||window.webkitAudioContext)(), o=c.createOscillator(), g=c.createGain(); o.frequency.value=880; o.connect(g); g.connect(c.destination); g.gain.value=0.2; o.start(); o.stop(c.currentTime+0.25); }catch(e){} }
-function loadKitchen(){ return sb.rpc('shop_kitchen').then(must).then(function(d){
+function loadKInfo(){ return sb.rpc('kitchen_info').then(function(r){ if(r.error) return; if(JSON.stringify(r.data)!==JSON.stringify(KINFO)){ KINFO=r.data; if(!document.querySelector('dialog[open]')) schedule(); } }); }
+function loadKitchen(){ loadKInfo(); return sb.rpc('shop_kitchen').then(must).then(function(d){
   var ids=(d||[]).filter(function(o){ return o.status==='new'; }).map(function(o){ return o.id; });
   if(kBeepIds&&ids.some(function(id){ return kBeepIds.indexOf(id)<0; })) kitchenBeep();
   kBeepIds=ids; if(JSON.stringify(d)!==JSON.stringify(KITCHEN)){ KITCHEN=d||[]; if(!document.querySelector('dialog[open]')) schedule(); } }).catch(function(e){ ui.kitErr=errText(e); schedule(); }); }
@@ -5403,7 +5415,7 @@ function vKitchen(){
   if(!KITCHEN){ if(!ui.kitAsked){ ui.kitAsked=true; loadKitchen(); } return [pageHead('Kitchen',''),h('div',{class:'panel empty'},ui.kitErr||'Loading.')]; }
   var next={new:['preparing','Start'],preparing:['ready','Ready'],ready:['done','Served']};
   function mins(at){ var m=Math.round((Date.now()-new Date(at))/60000); return m<1?'just now':m+' min ago'; }
-  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),
+  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),kitchenControls(),
     h('div',{class:'kitgrid'},KITCHEN.map(function(o){
       var n=next[o.status];
       return h('div',{class:'kcard '+o.status},
@@ -5416,12 +5428,47 @@ function vKitchen(){
     !KITCHEN.length?h('div',{class:'panel empty'},'New orders from the till and the app show here. A sound plays when one comes in (tap the screen once so the tablet allows sound).'):null];
 }
 
+/* kitchen open and close: the switch, sold out today, and the hours (manager) */
+function kitchenMode(mode,mins){ return sb.rpc('kitchen_set_mode',{p_mode:mode,p_minutes:mins||null}).then(must).then(function(){ toast(mode==='auto'?'Kitchen follows its hours again.':mode==='closed'?'Kitchen closed. The app takes no food orders.':mode==='busy'?'Busy: guests see food takes about 30 minutes.':'Kitchen open.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); }
+function minsToTomorrow(){ var d=(KINFO&&KINFO.hours&&KINFO.hours.days)||null, bk=new Date(Date.now()+7*3600e3), wd=(bk.getUTCDay()+6)%7, nx=d&&d[(wd+1)%7], hm=nx?nx[0]:'07:00';
+  var t=Date.UTC(bk.getUTCFullYear(),bk.getUTCMonth(),bk.getUTCDate()+1,Number(hm.slice(0,2)),Number(hm.slice(3,5)))-7*3600e3; return Math.max(5,Math.round((t-Date.now())/60000)); }
+function kitchenClose(){
+  openForm({title:'Close the kitchen',note:'Guests still see the menu, but food orders from the app stop. Drinks still sell at the counter.',saveLabel:'Close the kitchen',doneMsg:'Kitchen closed.',fields:[
+    {key:'for',label:'For how long?',type:'select',def:'60',options:[['30','30 minutes'],['60','1 hour'],['120','2 hours'],['tomorrow','Until opening time tomorrow'],['open','Until I open it again']]}],
+    onSave:function(v){ var mins=v.for==='open'?null:v.for==='tomorrow'?minsToTomorrow():Number(v.for);
+      return sb.rpc('kitchen_set_mode',{p_mode:'closed',p_minutes:mins}).then(must).then(loadKInfo); }});
+}
+function kitchenHours(){
+  var DN=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], hr=(KINFO&&KINFO.hours)||{}, d=hr.days||[], vals={last:hr.last!=null?hr.last:15};
+  DN.forEach(function(n,i){ vals['d'+i]=d[i]?d[i][0]+'-'+d[i][1]:''; });
+  openForm({title:'Kitchen hours',note:'Write each day like 07:30-20:30. Leave a day empty when the kitchen is closed all day. The app menu opens and closes by itself.',values:vals,saveLabel:'Save hours',doneMsg:'Kitchen hours saved.',
+    fields:DN.map(function(n,i){ return {key:'d'+i,label:n,hint:i===0?'For example 07:30-20:30':null}; }).concat([{key:'last',label:'Last orders, minutes before closing',type:'number'}]),
+    onSave:function(v){ var bad=null, days=DN.map(function(n,i){ var x=String(v['d'+i]||'').replace(/\s/g,'').replace(/\./g,':'); if(!x) return null; var m=x.match(/^(\d{1,2}:\d{2})(?:-|to)(\d{1,2}:\d{2})$/); if(!m){ bad=bad||n; return null; } return [m[1],m[2]]; });
+      if(bad) return Promise.reject(new Error('Check '+bad+': write it like 07:30-20:30.'));
+      return sb.rpc('kitchen_hours_save',{p:{days:days,last:v.last==null?15:v.last}}).then(must).then(loadKInfo); }});
+}
+function kitchenControls(){
+  if(!KINFO) return null;
+  var k=KINFO.now||{}, cls=!k.open?'bad':k.busy?'warn':'ok', lab=!k.open?'Closed':k.busy?'Busy':'Open';
+  var dishes=KINFO.dishes||[], out=dishes.filter(function(x){ return x.sold_out; }).length;
+  return h('div',{class:'panel pad'},
+    h('div',{class:'kstat'},h('span',{class:'kst '+cls},'Kitchen: '+lab),h('span',{class:'sub'},k.text||(k.no_hours?'No hours set yet, so the kitchen counts as open.':''))),
+    h('div',{class:'row wrap'},k.open&&!k.busy?btn('Busy',function(){ kitchenMode('busy',120); },'small'):null,
+      k.open?btn('Close kitchen',kitchenClose,'small'):btn('Open now',function(){ kitchenMode('open',240); },'primary small'),
+      k.mode&&k.mode!=='auto'?btn('Back to normal hours',function(){ kitchenMode('auto'); },'small'):null,
+      KINFO.manager?btn('Kitchen hours',kitchenHours,'small'):null),
+    dishes.length?h('details',{style:'margin-top:10px'},h('summary',null,'Sold out today'+(out?' ('+out+')':'')),
+      h('p',{class:'sub'},'Tap a dish to mark it sold out. It comes back by itself tomorrow.'),
+      h('div',{class:'soldgrid'},dishes.map(function(x){ return btn(x.name,function(){ sb.rpc('kitchen_sold_out',{p_product:x.id,p_out:!x.sold_out}).then(must).then(function(){ toast(x.sold_out?x.name+' is back on.':x.name+' is sold out today.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); },x.sold_out?'small out':'small'); }))):null);
+}
+
 /* food menu in the member app */
 function loadMenu(){ return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_my_orders')]).then(function(r){ if(r[0].error) throw r[0].error; SHOP=r[0].data; MYORDERS=r[1].error?[]:r[1].data; schedule(); }).catch(function(e){ ui.menuErr=errText(e); schedule(); }); }
 setInterval(function(){ if(me&&me.role==='customer'&&ui.tab==='c_food'&&document.visibilityState!=='hidden') sb.rpc('shop_my_orders').then(function(r){ if(!r.error&&JSON.stringify(r.data)!==JSON.stringify(MYORDERS)){ MYORDERS=r.data; schedule(); } }); },15000);
 function vCFood(){
   if(!SHOP){ if(!ui.menuAsked){ ui.menuAsked=true; loadMenu(); } return [pageHead('Food',''),h('div',{class:'panel empty'},ui.menuErr||'Loading the menu.')]; }
-  var cats=(SHOP.categories||[]), prods=(SHOP.products||[]).filter(function(p){ return p.active&&p.in_app; });
+  var cats=(SHOP.categories||[]), prods=(SHOP.products||[]).filter(function(p){ return p.active&&p.in_app; }), kn=SHOP.kitchen||{open:true};
+  var foodIn=cart().some(function(l){ var q=prods.filter(function(x){ return x.id===l.id; })[0]; return q&&q.kitchen; });
   var sub=cartSub(), stay=SHOP.stay;
   var kst={new:['Order received','warn'],preparing:['Being made','warn'],ready:['Ready','ok'],done:['Done','ok']};
   var mine=(MYORDERS||[]).filter(function(o){ return o.kitchen_status&&o.kitchen_status!=='done'||o.status==='waiting'; });
@@ -5429,12 +5476,12 @@ function vCFood(){
     return section(c?c.name:'More',null,h('div',{class:'panel cards'},groupProducts(list).map(function(g){
       if(!g.one) return h('div',{class:'card menuitem'},h('div',{class:'ctop'},h('span',{class:'cwhen'},g.grp),h('span',{class:'cright'},priceRange(g.items))),
         h('div',{class:'row wrap'},g.items.map(function(p){ var n=cart().filter(function(l){ return l.id===p.id; }).reduce(function(t,l){ return t+l.qty; },0);
-          return btn(optLabel(p)+(n?' ('+n+')':''),function(){ addToCart(p); },n?'primary small':'small'); })));
+          return p.sold_out?h('button',{type:'button',class:'btn small',disabled:''},optLabel(p)+' (sold out)'):btn(optLabel(p)+(n?' ('+n+')':''),function(){ addToCart(p); },n?'primary small':'small'); })));
       var p=g.one; var inCart=cart().filter(function(l){ return l.id===p.id; })[0];
-      return h('div',{class:'card menuitem'},h('div',{class:'ctop'},h('span',{class:'cwhen'},p.name),h('span',{class:'cright'},thb(p.price))),
+      return h('div',{class:'card menuitem'+(p.sold_out?' out':'')},h('div',{class:'ctop'},h('span',{class:'cwhen'},p.name),h('span',{class:'cright'},thb(p.price))),
         p.description?h('div',{class:'cnote'},p.description):null,
         h('div',{class:'row'},inCart?[btn('-',function(){ inCart.qty--; if(inCart.qty<1) cart().splice(cart().indexOf(inCart),1); schedule(); },'small'),h('b',null,String(inCart.qty)),btn('+',function(){ inCart.qty++; schedule(); },'small')]
-          :btn('Add',function(){ addToCart(p); },'primary small'))); }))); }
+          :p.sold_out?chip('Sold out today','warn'):btn('Add',function(){ addToCart(p); },'primary small'))); }))); }
   function order(pay){
     var note=document.getElementById('fo-note'), where=document.getElementById('fo-where');
     sb.rpc('shop_app_order',{p:{pay:pay,note:note?note.value:'',deliver_to:where?where.value:'',items:cart().map(function(l){ return {product_id:l.id,qty:l.qty}; })}}).then(must).then(function(r){
@@ -5442,6 +5489,7 @@ function vCFood(){
     }).catch(function(e){ toast(errText(e)); });
   }
   return [pageHead('Food','Order from the gym cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
+    (!kn.open||kn.busy)&&kn.text?h('div',{class:'kbanner '+(kn.open?'warn':'bad')},kn.text):null,
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
@@ -5449,6 +5497,7 @@ function vCFood(){
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
       h('label',{for:'fo-note'},'Anything we should know?'),h('input',{id:'fo-note',type:'text',placeholder:'No chilli, extra rice...'}),
       h('label',{for:'fo-where'},'Where are you?'),h('input',{id:'fo-where',type:'text',placeholder:stay?'My room, or the gym, or the cafe':'At the gym, or the cafe'}),
+      foodIn&&!kn.open?h('p',{class:'kbanner bad'},(kn.text||'The kitchen is closed.')+' Remove the food to order drinks.'):
       h('div',{class:'row'},stay?btn('Charge to '+stay.room,function(){ order('room'); },'primary'):null,btn('Pay at the counter',function(){ order('counter'); },stay?'':'primary'))):null];
 }
 
