@@ -265,6 +265,11 @@ def main():
         # old service pages and WordPress system addresses seen in Website numbers
         "/services/* /prices 301", "/services /prices 301", "/wp-json/* / 301", "/wp-content/* / 301", "/wp-admin/* / 301", "/wp-login.php / 301",
         "/muay-thai /prices 301", "/muay-thai/ /prices 301", "/private-lessons /prices 301", "/private-lessons/ /prices 301",
+        # more old WordPress addresses Google still sends people to (Search Console, Oct 2026)
+        "/team/* /about 301", "/contact /#location 301", "/contact/ /#location 301",
+        "/search-availability /book 301", "/search-availability/ /book 301", "/search-availability-2 /book 301", "/search-availability-2/ /book 301",
+        "/accommodation/* /book 301", "/accommodations/* /book 301", "/accommodation-category/* /book 301", "/accommodation-tag/* /book 301", "/accommodation-facility/* /book 301",
+        "/my-account1 " + APP + " 301", "/my-account1/ " + APP + " 301", "/blog/page/* /blog 301", "/schedule/* /#schedule 301", "/home. / 301",
     ]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
