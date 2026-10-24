@@ -5683,7 +5683,7 @@ function vSpaSetup(){
     section('Therapists and commission',h('div',{class:'row'},btn('Commission levels',spaLevelsEdit,'small')),
       h('div',{class:'panel pad'},lv.length?h('div',{class:'row wrap',style:'margin-bottom:10px'},lv.map(function(l){ return h('span',{class:'chip'},l.name+': '+l.pct+'%'); })):h('p',{class:'sub'},'No commission levels yet. Add them with Commission levels, for example #1 to #5.'),
         h('div',{class:'spalist'},B.staff.map(function(st){ return h('button',{type:'button',class:'spaline',onclick:function(){ spaStaffEdit(st); }},h('b',null,st.name),h('span',null,(st.level?spaLevelName(st.level):st.pct+'%')+', '+shopNames(st.shop_ids))); })),
-        h('p',{class:'sub',style:'margin-top:8px'},'Add a new therapist under Staff (role: Coach shows as Therapist), then set their shops and level here.')))];
+        h('p',{class:'sub',style:'margin-top:8px'},'Add a new therapist under Staff, then tap their name here to set their shops and level.')))];
 }
 
 /* the customer app: book a treatment */
