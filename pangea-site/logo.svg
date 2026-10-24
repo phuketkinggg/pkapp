@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Pangea">
+  <defs>
+    <radialGradient id="g" cx="38%" cy="32%" r="75%">
+      <stop offset="0" stop-color="#E2C27E"/><stop offset=".55" stop-color="#B88A44"/><stop offset="1" stop-color="#7A5726"/>
+    </radialGradient>
+    <clipPath id="c"><circle cx="60" cy="60" r="46"/></clipPath>
+  </defs>
+  <circle cx="60" cy="60" r="54" fill="#101311"/>
+  <circle cx="60" cy="60" r="46" fill="none" stroke="url(#g)" stroke-width="2.2"/>
+  <g clip-path="url(#c)" fill="url(#g)">
+    <path d="M34 30c8-6 18-9 28-8 9 0 17 3 24 8 4 3 3 7-1 8-6 1-11-1-16 2-4 3-2 8-6 10-3 2-8 0-10 3-2 3 2 6 6 7 5 1 10-1 15 1 5 2 6 7 4 11-3 6-9 9-12 14-3 5-2 11-7 14-6 4-13 1-17-4-4-5-3-11-7-15-4-4-10-5-13-10-3-5-1-11 1-16 2-6 6-11 11-15z"/>
+    <path d="M78 78c4-1 8 1 9 4 1 3-2 6-5 6-4 0-7-2-7-5 0-2 1-4 3-5z" opacity=".8"/>
+  </g>
+  <g fill="none" stroke="#B88A44" stroke-width=".8" opacity=".45" clip-path="url(#c)">
+    <ellipse cx="60" cy="60" rx="20" ry="46"/><ellipse cx="60" cy="60" rx="46" ry="16"/><line x1="14" y1="60" x2="106" y2="60"/>
+  </g>
+</svg>
