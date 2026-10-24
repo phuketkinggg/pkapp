@@ -1,5 +1,5 @@
 {
- "at": "2026-10-24T02:58:07Z",
+ "at": "2026-10-24T03:18:41Z",
  "classes": [
   {
    "day": 0,
@@ -722,6 +722,8 @@
  "products": [
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "7428972a-4d29-4622-a1af-fe9294e1cfbd",
    "image": "",
    "name": "Muay Thai Ticket, Patong RingsideVIP",
    "price": 1800,
@@ -729,6 +731,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "d8bdda5a-cf32-4c6b-9216-c4c8f21d36c1",
    "image": "",
    "name": "Muay Thai Ticket, Patong Stadium",
    "price": 1500,
@@ -736,13 +740,17 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "de7e4805-cd7a-4285-8df1-eaf16fe8f678",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678036006-384c72e5.jpg",
    "name": "10 Sachet BAAM protein max",
-   "price": 400,
+   "price": 500,
    "sold_out": false
   },
   {
    "description": "",
+   "group": "",
+   "id": "db634da4-ba04-473f-b44b-bfcc1dcdb22f",
    "image": "",
    "name": "Ankle",
    "price": 250,
@@ -750,6 +758,8 @@
   },
   {
    "description": "",
+   "group": "BAAM CASEIN",
+   "id": "2fefd3b6-b9fb-41f0-8187-d3f633f8a921",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678036472-21e05174.jpg",
    "name": "BAAM CASEIN, Chocolate",
    "price": 2200,
@@ -757,6 +767,8 @@
   },
   {
    "description": "",
+   "group": "BAAM CASEIN",
+   "id": "f204f732-3b78-44a6-9ceb-26ea1237fc90",
    "image": "",
    "name": "BAAM CASEIN, Vanilla",
    "price": 2200,
@@ -764,6 +776,8 @@
   },
   {
    "description": "",
+   "group": "BAAm intra juice",
+   "id": "783e8881-81b5-435c-b4dd-4685e2421df8",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678097050-d11bc01f.jpg",
    "name": "BAAm intra juice, Blue Raspberry",
    "price": 480,
@@ -771,6 +785,8 @@
   },
   {
    "description": "",
+   "group": "BAAm intra juice",
+   "id": "dcea32cf-fda5-4b57-af89-644542215343",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678097295-bab824f5.jpg",
    "name": "BAAm intra juice, Charge up Cola",
    "price": 480,
@@ -778,6 +794,8 @@
   },
   {
    "description": "",
+   "group": "BAAm intra juice",
+   "id": "88bd5c39-b56a-42dc-bb8f-6b332dda2940",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678039405-32117870.jpg",
    "name": "BAAm intra juice, Revive watermelon",
    "price": 480,
@@ -785,6 +803,8 @@
   },
   {
    "description": "",
+   "group": "BAAM MY WHEY SINGLE SACHET",
+   "id": "2e0945e1-8f2e-433d-b4a3-116340da6ad9",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678037681-524a8993.jpg",
    "name": "BAAM MY WHEY SINGLE SACHET, Cafe Mocha",
    "price": 80,
@@ -792,6 +812,8 @@
   },
   {
    "description": "",
+   "group": "BAAM MY WHEY SINGLE SACHET",
+   "id": "5464dd63-2972-444f-937e-3f4a380355f9",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678036006-384c72e5.jpg",
    "name": "BAAM MY WHEY SINGLE SACHET, Chocolate",
    "price": 80,
@@ -799,6 +821,8 @@
   },
   {
    "description": "",
+   "group": "BAAM MY WHEY SINGLE SACHET",
+   "id": "5ad0a11c-674b-4874-96e0-cbabb639b73b",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678096806-b572fc86.jpg",
    "name": "BAAM MY WHEY SINGLE SACHET, Vanilla",
    "price": 80,
@@ -806,6 +830,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "5efbf74e-d948-4cdb-8d7b-a0c510b065cb",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678096806-b572fc86.jpg",
    "name": "BAAM MY WHEY SINGLE SACHET Vanilla",
    "price": 223,
@@ -813,6 +839,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "de4660f7-81d9-4236-bc46-cb053dc0573b",
    "image": "",
    "name": "Bandage",
    "price": 40,
@@ -820,6 +848,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "3c25df27-05c1-40a0-88e9-b6613c14a1ac",
    "image": "",
    "name": "Bangla stadium tickets",
    "price": 1400,
@@ -827,6 +857,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "127419e4-3f6e-4b74-affc-8f360ca034f9",
    "image": "",
    "name": "BasN Amino watermelon 435g",
    "price": 1050,
@@ -834,6 +866,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "536e37c1-67fc-4a84-a35d-36efba93c6b2",
    "image": "",
    "name": "BCAA Boost-Grape",
    "price": 1500,
@@ -841,6 +875,8 @@
   },
   {
    "description": "",
+   "group": "Creatine 5000",
+   "id": "f12c1b7f-2382-4a3b-80cc-9d6dad26d827",
    "image": "",
    "name": "Creatine 5000, 1000 grams",
    "price": 1250,
@@ -848,6 +884,8 @@
   },
   {
    "description": "",
+   "group": "Creatine 5000",
+   "id": "9af37ad9-4f8e-464e-91a9-c1a2da5dfd58",
    "image": "",
    "name": "Creatine 5000, 300 grams",
    "price": 500,
@@ -855,6 +893,8 @@
   },
   {
    "description": "",
+   "group": "Creatine 5000",
+   "id": "faf0a06a-4765-40af-a9e4-8a0dc4fe175c",
    "image": "",
    "name": "Creatine 5000, 500g",
    "price": 800,
@@ -862,6 +902,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "dd96fc61-bbf5-4145-816b-262bb2c06173",
    "image": "",
    "name": "Electrolyte Box",
    "price": 300,
@@ -869,6 +911,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "e1003c8c-aaac-4138-a553-856c7b3fccf9",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678168657-fd57140b.jpg",
    "name": "Fairtex Gloves, BGV14 10oz",
    "price": 2400,
@@ -876,6 +920,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "5bc55415-8036-4558-b1e6-2457b40ea211",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678168657-fd57140b.jpg",
    "name": "Fairtex Gloves, BGV14 12oz",
    "price": 2400,
@@ -883,6 +929,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "74d6db8e-a3ba-45bf-adbf-8d231ab121a2",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678168657-fd57140b.jpg",
    "name": "Fairtex Gloves, BGV14 14oz",
    "price": 2400,
@@ -890,6 +938,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "6376e92d-08b1-4843-89d6-4e460a5cc072",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678168657-fd57140b.jpg",
    "name": "Fairtex Gloves, BGV14 16oz",
    "price": 2400,
@@ -897,6 +947,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "81132e0d-efba-4204-8db7-71ea77de66cc",
    "image": "",
    "name": "Fairtex Gloves, BGVEU-XL 10oz",
    "price": 3300,
@@ -904,6 +956,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "4701a708-b186-4f3d-96cb-b871e06a7232",
    "image": "",
    "name": "Fairtex Gloves, BGVEU-XL 12oz",
    "price": 2400,
@@ -911,6 +965,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "f980bbc0-308f-4199-9a0a-db052146e4f0",
    "image": "",
    "name": "Fairtex Gloves, BGVEU-XL 14oz",
    "price": 2400,
@@ -918,6 +974,8 @@
   },
   {
    "description": "",
+   "group": "Fairtex Gloves",
+   "id": "07a5cd94-950d-4ac7-9f0b-36931c7e16ed",
    "image": "",
    "name": "Fairtex Gloves, BGVEU-XL 16oz",
    "price": 2400,
@@ -925,6 +983,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "d5870789-1637-484c-8a50-830226ff7661",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678170076-3f60c873.jpg",
    "name": "Fairtex shin guards",
    "price": 2200,
@@ -932,6 +992,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "a2c4d35e-6473-4188-8bef-60604d349ae1",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678168657-fd57140b.jpg",
    "name": "Feirtex gloves",
    "price": 2300,
@@ -939,6 +1001,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "11fa37f4-2b82-437d-b59a-969b82014546",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678035511-deb4ae9d.jpg",
    "name": "FITWHEY HAZ Vitamin 30 Capsules Unflavoured",
    "price": 310,
@@ -946,6 +1010,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "2fb87d1a-36eb-486b-a9d3-a3c108948adc",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678037126-12a78f67.jpg",
    "name": "FITWHEY SUPPLIEMENTS Collagen Dipeptide 20 serving Mixed Berry",
    "price": 310,
@@ -953,6 +1019,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "608c084e-ffdf-44a1-821d-b6b023d5a92e",
    "image": "",
    "name": "FITWHEY SUPPLIEMENTS VITAMIN A 25000 IU 30 SOFTGELS",
    "price": 177,
@@ -960,6 +1028,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "c1646e07-f033-44b9-9675-93998bb0e776",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678097689-eb998328.png",
    "name": "FITWHEY Undentured Collagen type 2   40mg + Tumeric 30 capsules",
    "price": 310,
@@ -967,6 +1037,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "2ec87c36-706d-43fa-b848-eb13482bfcce",
    "image": "",
    "name": "Gloves rental",
    "price": 100,
@@ -974,6 +1046,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "0be566b7-6e58-4eea-9fcd-88d5f59cd9be",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678171535-ef50f6b2.jpg",
    "name": "Gloves venom",
    "price": 1200,
@@ -981,6 +1055,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "dfce13eb-26e4-4e2b-b54d-828d6f84f6b9",
    "image": "",
    "name": "Head Guard",
    "price": 2500,
@@ -988,6 +1064,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "37e196c0-5e49-401c-8392-bdbc1c3c27fd",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678033054-84d8a6b5.jpg",
    "name": "K.O pre workout",
    "price": 900,
@@ -995,6 +1073,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "7f886b91-5aff-4cd0-a016-0437a7bcd2a0",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678097862-52f21b02.png",
    "name": "L- CARNITINE X500",
    "price": 650,
@@ -1002,6 +1082,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "688f2034-af9e-40c2-bde8-bafa97705826",
    "image": "",
    "name": "Lemon Rush",
    "price": 80,
@@ -1009,6 +1091,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "a8fc6eb9-544d-409d-a7c8-88d56e3d4d7f",
    "image": "",
    "name": "Mouth guard",
    "price": 180,
@@ -1016,6 +1100,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "9a9bf8db-b0ae-436a-bc7d-5f2e55067648",
    "image": "",
    "name": "Muay Thai Ticket, Bangla RingsideVIP",
    "price": 2000,
@@ -1023,6 +1109,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "3cbe1d8f-ab93-4d3f-a199-10031e4071c5",
    "image": "",
    "name": "Muay Thai Ticket, Bangla Stadium",
    "price": 1500,
@@ -1030,6 +1118,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "337c16d0-6280-4b08-9703-bbbebc9a199c",
    "image": "",
    "name": "Muay Thai Ticket, Incee RingsideVIP",
    "price": 2000,
@@ -1037,6 +1127,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "d872ca56-f861-412e-8da1-29ccc6882a39",
    "image": "",
    "name": "Muay Thai Ticket, Incee Stadium",
    "price": 1500,
@@ -1044,6 +1136,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "564b2433-2059-42e0-86bb-c87452643a14",
    "image": "",
    "name": "Muay Thai Ticket, Rawai RingsideVIP",
    "price": 2000,
@@ -1051,6 +1145,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "16ccfc23-f044-4cad-bb50-52ef7cd600ee",
    "image": "",
    "name": "Muay Thai Ticket, Rawai Stadium",
    "price": 1500,
@@ -1058,6 +1154,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "a3ef2056-1ccc-4a6c-a567-3e2a67fe0300",
    "image": "",
    "name": "Muay Thai Ticket, Sinbi RingsideVIP",
    "price": 2000,
@@ -1065,6 +1163,8 @@
   },
   {
    "description": "",
+   "group": "Muay Thai Ticket",
+   "id": "445ddaee-83ea-4d42-ba96-ed55c2e05bdb",
    "image": "",
    "name": "Muay Thai Ticket, Sinbi Stadium",
    "price": 1500,
@@ -1072,6 +1172,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "3c555eb7-5e16-4d13-b2e1-2677407f3c78",
    "image": "",
    "name": "Neo tape",
    "price": 70,
@@ -1079,6 +1181,8 @@
   },
   {
    "description": "",
+   "group": "Oil muay",
+   "id": "d80f816b-7f09-4ea8-839c-82171208b0f6",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678170666-fa1cd7e6.jpg",
    "name": "Oil muay, 120cc",
    "price": 129,
@@ -1086,6 +1190,8 @@
   },
   {
    "description": "",
+   "group": "Oil muay",
+   "id": "44f51c0b-d550-4ee0-b80d-111fbf6ff313",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678170666-fa1cd7e6.jpg",
    "name": "Oil muay, 30cc",
    "price": 58,
@@ -1093,6 +1199,8 @@
   },
   {
    "description": "",
+   "group": "Oil muay",
+   "id": "48850c6a-b5e3-42b9-9ef0-33d5cba73188",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678170666-fa1cd7e6.jpg",
    "name": "Oil muay, 450cc",
    "price": 350,
@@ -1100,6 +1208,8 @@
   },
   {
    "description": "",
+   "group": "Oil muay",
+   "id": "032c276e-b342-42d1-bc1c-80f324bbd12c",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678170666-fa1cd7e6.jpg",
    "name": "Oil muay, 60cc",
    "price": 98,
@@ -1107,6 +1217,8 @@
   },
   {
    "description": "",
+   "group": "Phuket king glove",
+   "id": "1aac6b9b-3e47-42fd-99cb-fb709957a996",
    "image": "",
    "name": "Phuket king glove, 12oz",
    "price": 1300,
@@ -1114,6 +1226,8 @@
   },
   {
    "description": "",
+   "group": "Phuket king glove",
+   "id": "823170e2-f0fd-43e0-8ed8-1b620f4b087b",
    "image": "",
    "name": "Phuket king glove, 14oz",
    "price": 1300,
@@ -1121,6 +1235,8 @@
   },
   {
    "description": "",
+   "group": "Phuket king glove",
+   "id": "78cf473c-9717-4f1d-a789-d39d1f7eff0a",
    "image": "",
    "name": "Phuket king glove, 16oz",
    "price": 1300,
@@ -1128,6 +1244,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "710b8ee6-bb80-4413-8757-42a77020b70c",
    "image": "",
    "name": "Pre-workout",
    "price": 80,
@@ -1135,6 +1253,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "3e396a5a-8518-416a-9be4-98f2c576575a",
    "image": "",
    "name": "Protein (Whey) Isolate 24g (small)",
    "price": 1690,
@@ -1142,6 +1262,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "e9e1ac2e-71e0-44b2-adcb-cf7375057f23",
    "image": "",
    "name": "Shirt&short combo",
    "price": 1600,
@@ -1149,6 +1271,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "c6e6b0b5-f456-4319-973e-34ae252e2959",
    "image": "",
    "name": "Shorts muay Thai, Hand make With name on",
    "price": 1500,
@@ -1156,6 +1280,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "a321f149-2876-4bda-a905-ff20dcf05913",
    "image": "",
    "name": "Shorts muay Thai, L Black",
    "price": 1300,
@@ -1163,6 +1289,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "0ae8f5c4-5475-4f35-b344-c68f17b97a17",
    "image": "",
    "name": "Shorts muay Thai, L Cammo",
    "price": 1300,
@@ -1170,6 +1298,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "36bf0b03-41a3-4586-9c2d-8aad2288a638",
    "image": "",
    "name": "Shorts muay Thai, L Gold",
    "price": 1300,
@@ -1177,6 +1307,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "d0903bff-8a09-465f-a17b-74ba524167db",
    "image": "",
    "name": "Shorts muay Thai, L Red",
    "price": 1300,
@@ -1184,6 +1316,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "a21fdc14-5ec2-48a4-8db2-a740c56f654d",
    "image": "",
    "name": "Shorts muay Thai, L Redblack",
    "price": 1300,
@@ -1191,6 +1325,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "cb679028-b29e-4c37-bfd7-56a756dd183f",
    "image": "",
    "name": "Shorts muay Thai, L White",
    "price": 1300,
@@ -1198,6 +1334,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "e90528b3-d924-46e5-8102-72a0b941d705",
    "image": "",
    "name": "Shorts muay Thai, M Black",
    "price": 1300,
@@ -1205,6 +1343,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "7c83542f-73b6-44f4-9e2f-91c9dd791ca5",
    "image": "",
    "name": "Shorts muay Thai, M Cammo",
    "price": 1300,
@@ -1212,6 +1352,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "9266eafb-8d4b-4c6a-8e35-941e38db9920",
    "image": "",
    "name": "Shorts muay Thai, M Gold",
    "price": 1300,
@@ -1219,6 +1361,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "f0a4b9b5-d101-4bbb-9623-618ff1325e97",
    "image": "",
    "name": "Shorts muay Thai, M Muilt white",
    "price": 1300,
@@ -1226,6 +1370,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "96efc86e-d872-4952-86b8-1563fc906d41",
    "image": "",
    "name": "Shorts muay Thai, M Red",
    "price": 1300,
@@ -1233,6 +1379,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "1ac9afac-b2c8-4b9e-b796-758e50e477e1",
    "image": "",
    "name": "Shorts muay Thai, M Redblack",
    "price": 1300,
@@ -1240,6 +1388,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "d9e38cd0-109b-45c6-8630-0eb292eb0b57",
    "image": "",
    "name": "Shorts muay Thai, M White",
    "price": 1300,
@@ -1247,6 +1397,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "dc6b8b3f-b519-458e-bd58-6447b2da361e",
    "image": "",
    "name": "Shorts muay Thai, S Black",
    "price": 1300,
@@ -1254,6 +1406,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "88466fea-9eaa-4ef6-81d7-17d43c22ebf3",
    "image": "",
    "name": "Shorts muay Thai, S Cammo",
    "price": 1300,
@@ -1261,6 +1415,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "c6a7a82a-27d9-45a5-b5ac-32ba56639055",
    "image": "",
    "name": "Shorts muay Thai, S Gold",
    "price": 1300,
@@ -1268,6 +1424,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "b9a57e59-cd8d-49ac-8e0a-ff189600490c",
    "image": "",
    "name": "Shorts muay Thai, S Red",
    "price": 1300,
@@ -1275,6 +1433,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "9da94c13-3acd-4d45-ad21-20ed2b67003e",
    "image": "",
    "name": "Shorts muay Thai, S Redblack",
    "price": 1300,
@@ -1282,6 +1442,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "a955609e-1da7-4d56-bb16-a177a9cdb6bd",
    "image": "",
    "name": "Shorts muay Thai, S White",
    "price": 1300,
@@ -1289,6 +1451,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "32cab355-9da3-4b3a-947f-0e7c850f6e05",
    "image": "",
    "name": "Shorts muay Thai, Xl Black",
    "price": 1300,
@@ -1296,6 +1460,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "1588de7a-3b3d-472e-9d9d-e92f11fccce4",
    "image": "",
    "name": "Shorts muay Thai, Xl Cammo",
    "price": 1300,
@@ -1303,6 +1469,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "be0d8d97-0b5b-4c4f-a00e-4a3f3faab204",
    "image": "",
    "name": "Shorts muay Thai, Xl Gold",
    "price": 1300,
@@ -1310,6 +1478,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "a680eba6-ae6c-4dc5-a31e-729aa08ca6bc",
    "image": "",
    "name": "Shorts muay Thai, Xl Red",
    "price": 1300,
@@ -1317,6 +1487,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "d12cea39-e436-4898-a0d4-c07c07801d48",
    "image": "",
    "name": "Shorts muay Thai, Xl Redblack",
    "price": 1300,
@@ -1324,6 +1496,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "93421192-4b74-445c-bb9e-953cd1c60c1e",
    "image": "",
    "name": "Shorts muay Thai, Xl White",
    "price": 1300,
@@ -1331,6 +1505,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "051a6fd2-538c-4a63-8e5d-acedad99acf6",
    "image": "",
    "name": "Shorts muay Thai, Xxl Black",
    "price": 1300,
@@ -1338,6 +1514,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "3eee46d9-136c-40d1-beb8-83d7e044702f",
    "image": "",
    "name": "Shorts muay Thai, Xxl Cammo",
    "price": 1300,
@@ -1345,6 +1523,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "c345b53b-e0c4-4b20-acfa-9f0070a54ec7",
    "image": "",
    "name": "Shorts muay Thai, Xxl Gold",
    "price": 1300,
@@ -1352,6 +1532,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "a7cabfd7-9a2f-48b6-9dcf-eaa9e371437c",
    "image": "",
    "name": "Shorts muay Thai, Xxl Red",
    "price": 1300,
@@ -1359,6 +1541,8 @@
   },
   {
    "description": "",
+   "group": "Shorts muay Thai",
+   "id": "9b69f07e-b077-46f5-89f0-e3a27975ce1c",
    "image": "",
    "name": "Shorts muay Thai, Xxl Redblack",
    "price": 1300,
@@ -1366,6 +1550,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "84182c00-9662-49ee-81d7-4b369b5f6bd8",
    "image": "",
    "name": "Skipping Rope",
    "price": 200,
@@ -1373,6 +1559,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "b2bafb6e-5a7b-4570-8cb4-d7205d4866c3",
    "image": "",
    "name": "Skipping rope bigman",
    "price": 220,
@@ -1380,6 +1568,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "7a3dd2a8-5131-4c9c-b73f-31b63e3cc9af",
    "image": "",
    "name": "SKs shin guards",
    "price": 3000,
@@ -1387,6 +1577,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "59e79d3f-d48f-42b0-b6fb-3f35ffcb7baa",
    "image": "",
    "name": "Sock",
    "price": 25,
@@ -1394,6 +1586,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "694010a1-4d6b-40ed-8cf6-b2c8649b69cb",
    "image": "",
    "name": "Standard Package",
    "price": 1800,
@@ -1401,6 +1595,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "c2bc5576-d2fe-4407-a42a-85f01dae6f02",
    "image": "",
    "name": "Tickets sainamyen",
    "price": 1400,
@@ -1408,6 +1604,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "2b9a06f1-9604-4120-b24a-17736ca17b78",
    "image": "",
    "name": "Training shirt, M Deepred New",
    "price": 490,
@@ -1415,6 +1613,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "b05ae9d5-9997-463e-9e0b-1d066e8d53ce",
    "image": "",
    "name": "Training shirt, M Deepred Old",
    "price": 490,
@@ -1422,6 +1622,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "729415c1-dfcc-4a09-b293-f04f23b446ca",
    "image": "",
    "name": "Training shirt, M Gold New",
    "price": 490,
@@ -1429,6 +1631,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "c44769db-2264-499b-9989-20fa3c07b4df",
    "image": "",
    "name": "Training shirt, M Gold Old",
    "price": 490,
@@ -1436,6 +1640,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "8f39b036-d3c7-4c55-8df0-cae1ea13d91e",
    "image": "",
    "name": "Training shirt, M Pink New",
    "price": 490,
@@ -1443,6 +1649,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "75510c8f-3ecd-466b-a4fd-fc348a679e10",
    "image": "",
    "name": "Training shirt, M Pink Old",
    "price": 490,
@@ -1450,6 +1658,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "539440e1-936f-4827-9d91-37ea733023b4",
    "image": "",
    "name": "Training shirt, M Red New",
    "price": 490,
@@ -1457,6 +1667,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "2ea47548-4cbc-4f8b-af93-ef8858f23bd7",
    "image": "",
    "name": "Training shirt, M Red Old",
    "price": 490,
@@ -1464,6 +1676,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "a621bc8b-0345-437b-af6c-35479fe677cb",
    "image": "",
    "name": "Training shirt, M White New",
    "price": 490,
@@ -1471,6 +1685,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "f6538ac0-20bf-4394-a411-8f1b6dc0697a",
    "image": "",
    "name": "Training shirt, M White Old",
    "price": 490,
@@ -1478,6 +1694,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "ed50b768-2773-4c0b-bc15-5e71186c1864",
    "image": "",
    "name": "Training shirt, S Gold Old",
    "price": 490,
@@ -1485,6 +1703,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "c7c48aa4-82ac-4727-a3db-0cbdc050cc4f",
    "image": "",
    "name": "Training shirt, S Red Old",
    "price": 490,
@@ -1492,6 +1712,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "9bcc0189-14ee-4730-9070-6ee5bae51c48",
    "image": "",
    "name": "Training shirt, S White Old",
    "price": 490,
@@ -1499,6 +1721,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "36c53d00-2e33-488e-b97f-2af041806aad",
    "image": "",
    "name": "Training shirt, Xl Deepred New",
    "price": 490,
@@ -1506,6 +1730,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "794aa6ee-403e-4bc1-b32e-6d9395a31340",
    "image": "",
    "name": "Training shirt, Xl Deepred Old",
    "price": 490,
@@ -1513,6 +1739,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "d4daad9c-202f-429c-a0d8-a453fd6ec035",
    "image": "",
    "name": "Training shirt, Xl Gold New",
    "price": 490,
@@ -1520,6 +1748,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "eb537a45-d697-49b8-a20b-26e2d5e8378a",
    "image": "",
    "name": "Training shirt, Xl Gold Old",
    "price": 490,
@@ -1527,6 +1757,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "6b7f0ba1-4020-4778-a81b-51d3a850ce61",
    "image": "",
    "name": "Training shirt, Xl Pink New",
    "price": 490,
@@ -1534,6 +1766,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "16caf4a2-fb4a-4fc4-84b4-d213ea5eae02",
    "image": "",
    "name": "Training shirt, Xl Pink Old",
    "price": 490,
@@ -1541,6 +1775,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "a403bb47-1c0a-4712-a2fe-d3c9909f8d32",
    "image": "",
    "name": "Training shirt, Xl Red New",
    "price": 490,
@@ -1548,6 +1784,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "4081dc78-6704-4398-8285-67bfab23b2d8",
    "image": "",
    "name": "Training shirt, Xl Red Old",
    "price": 490,
@@ -1555,6 +1793,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "49398577-34b9-4c11-8d25-122858e48bab",
    "image": "",
    "name": "Training shirt, Xl White New",
    "price": 490,
@@ -1562,6 +1802,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "04bc6d8d-662f-4f06-b140-1c07a44ea45b",
    "image": "",
    "name": "Training shirt, Xl White Old",
    "price": 490,
@@ -1569,6 +1811,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "2ef3b0ba-c9b1-4e85-9fe3-2d625d782cdd",
    "image": "",
    "name": "Training shirt, Xxl Deepred New",
    "price": 490,
@@ -1576,6 +1820,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "5b724bf7-a31b-412f-83e9-78ea22d845bf",
    "image": "",
    "name": "Training shirt, Xxl Deepred Old",
    "price": 490,
@@ -1583,6 +1829,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "b243f159-c422-4d09-bd94-184a67fb608c",
    "image": "",
    "name": "Training shirt, Xxl Gold New",
    "price": 490,
@@ -1590,6 +1838,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "ce871a2b-4712-4070-8078-6aa1af2a6939",
    "image": "",
    "name": "Training shirt, Xxl Gold Old",
    "price": 490,
@@ -1597,6 +1847,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "fb466fba-4b9b-49ac-bc93-1c0685a59bb7",
    "image": "",
    "name": "Training shirt, Xxl Pink New",
    "price": 490,
@@ -1604,6 +1856,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "095b3f4d-8b5b-469f-93de-7a0b9e4160d8",
    "image": "",
    "name": "Training shirt, Xxl Pink Old",
    "price": 490,
@@ -1611,6 +1865,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "b086fc7f-e9ff-4394-996c-af0de68a4008",
    "image": "",
    "name": "Training shirt, Xxl Red New",
    "price": 490,
@@ -1618,6 +1874,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "f7fba20b-e54b-4f87-b9e4-1180f7319c8c",
    "image": "",
    "name": "Training shirt, Xxl Red Old",
    "price": 490,
@@ -1625,6 +1883,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "d58c609a-a838-4c97-8bd1-176c6bb5ebe9",
    "image": "",
    "name": "Training shirt, Xxl White New",
    "price": 490,
@@ -1632,6 +1892,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "5a3542a1-dde2-46c3-a8db-24f0c5ef8ae9",
    "image": "",
    "name": "Training shirt, Xxl White Old",
    "price": 490,
@@ -1639,6 +1901,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "2d818989-1b64-4216-8911-199f2fa5016d",
    "image": "",
    "name": "Training shirt, Xxxl Deepred New",
    "price": 490,
@@ -1646,6 +1910,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "cf4d32f4-3647-4e87-b8aa-f43eb5f18892",
    "image": "",
    "name": "Training shirt, Xxxl Deepred Old",
    "price": 490,
@@ -1653,6 +1919,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "1894f4f8-3fe0-4bee-8b15-71fefc2cc7cc",
    "image": "",
    "name": "Training shirt, Xxxl Gold New",
    "price": 490,
@@ -1660,6 +1928,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "f3b9d57c-b831-4f16-85c8-e12375a32d75",
    "image": "",
    "name": "Training shirt, Xxxl Gold Old",
    "price": 490,
@@ -1667,6 +1937,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "31df6098-7ac6-4b20-941e-ae4a4cd1e610",
    "image": "",
    "name": "Training shirt, Xxxl Pink New",
    "price": 490,
@@ -1674,6 +1946,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "69e47b92-926e-4ac5-a17f-2eb00c29bdc1",
    "image": "",
    "name": "Training shirt, Xxxl Pink Old",
    "price": 490,
@@ -1681,6 +1955,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "dc7b0204-186e-47a3-96dd-0b542e972849",
    "image": "",
    "name": "Training shirt, Xxxl Red New",
    "price": 490,
@@ -1688,6 +1964,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "fdf49a0e-defc-41bd-a35e-6537f1766694",
    "image": "",
    "name": "Training shirt, Xxxl Red Old",
    "price": 490,
@@ -1695,6 +1973,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "1a65630d-723f-433e-86ec-37b18cf96c65",
    "image": "",
    "name": "Training shirt, Xxxl White New",
    "price": 490,
@@ -1702,6 +1982,8 @@
   },
   {
    "description": "",
+   "group": "Training shirt",
+   "id": "bb4dcf23-bb94-4cfd-a2f1-1527b37a79a5",
    "image": "",
    "name": "Training shirt, Xxxl White Old",
    "price": 490,
@@ -1709,6 +1991,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "8ee55210-fe38-48b8-949e-35d16a81aa3a",
    "image": "",
    "name": "Training vest, L Black New",
    "price": 490,
@@ -1716,6 +2000,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "87a2bdb8-d97b-4c93-9f54-a86b066e671b",
    "image": "",
    "name": "Training vest, L Black Old",
    "price": 490,
@@ -1723,6 +2009,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "a4213e69-e442-4501-a2ed-9e6f04430b4a",
    "image": "",
    "name": "Training vest, L Deepred New",
    "price": 490,
@@ -1730,6 +2018,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "58629298-25f4-4559-9b5f-20827eb75b83",
    "image": "",
    "name": "Training vest, L Deepred Old",
    "price": 490,
@@ -1737,6 +2027,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "851a029d-7082-49d0-93bc-dcc8b8477e14",
    "image": "",
    "name": "Training vest, L Gold New",
    "price": 490,
@@ -1744,6 +2036,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "1e823eab-9ec1-4020-81cf-eba32e480080",
    "image": "",
    "name": "Training vest, L Gold Old",
    "price": 490,
@@ -1751,6 +2045,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "6ea9ded9-1f34-44c0-8373-644d87ad9ec5",
    "image": "",
    "name": "Training vest, L Pink New",
    "price": 490,
@@ -1758,6 +2054,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "9e7a4402-32be-42c8-a995-020513d32e5f",
    "image": "",
    "name": "Training vest, L Pink Old",
    "price": 490,
@@ -1765,6 +2063,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "db18ce63-a976-48d4-93da-8210d330fcf2",
    "image": "",
    "name": "Training vest, L Re New",
    "price": 490,
@@ -1772,6 +2072,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "a69d6ad6-9352-4b6c-ba09-732e4cd50299",
    "image": "",
    "name": "Training vest, L Re Old",
    "price": 490,
@@ -1779,6 +2081,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "26f40585-ff12-4715-93ff-d9319f59f1fe",
    "image": "",
    "name": "Training vest, L White New",
    "price": 490,
@@ -1786,6 +2090,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "f51e93b2-1cee-4166-b6b4-7c26c34ddd3c",
    "image": "",
    "name": "Training vest, L White Old",
    "price": 490,
@@ -1793,6 +2099,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "055a4842-c7c0-4674-8b94-a4a884560547",
    "image": "",
    "name": "Training vest, M Black New",
    "price": 490,
@@ -1800,6 +2108,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "29d9862a-1890-417e-99eb-90c685ea76eb",
    "image": "",
    "name": "Training vest, M Black Old",
    "price": 490,
@@ -1807,6 +2117,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "e5530882-0f7a-45d7-8ea0-46100876a0bc",
    "image": "",
    "name": "Training vest, M Deepred New",
    "price": 490,
@@ -1814,6 +2126,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "53f283a0-6691-4647-93cc-a01134efa046",
    "image": "",
    "name": "Training vest, M Deepred Old",
    "price": 490,
@@ -1821,6 +2135,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "4a672c9a-a261-4f51-aaff-884452ec4d13",
    "image": "",
    "name": "Training vest, M Gold New",
    "price": 490,
@@ -1828,6 +2144,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "7a4f63f0-aa37-4f73-afb2-81e5a6e43a66",
    "image": "",
    "name": "Training vest, M Gold Old",
    "price": 490,
@@ -1835,6 +2153,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "75ad8c00-57ea-45e2-a817-543c5daa86f0",
    "image": "",
    "name": "Training vest, M Pink New",
    "price": 490,
@@ -1842,6 +2162,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "af1586b2-5e06-473b-8f0c-6ee00e02a5be",
    "image": "",
    "name": "Training vest, M Pink Old",
    "price": 490,
@@ -1849,6 +2171,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "a50fd77c-a947-4a32-b281-dde503a60a52",
    "image": "",
    "name": "Training vest, M Re New",
    "price": 490,
@@ -1856,6 +2180,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "2bc3af20-df08-4b33-a0f7-2254b70ff582",
    "image": "",
    "name": "Training vest, M Re Old",
    "price": 490,
@@ -1863,6 +2189,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "7f837953-9c63-4e67-9fb8-0b9c65cf011a",
    "image": "",
    "name": "Training vest, M White New",
    "price": 490,
@@ -1870,6 +2198,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "b1467643-cb24-472c-a9bd-38922202fd3c",
    "image": "",
    "name": "Training vest, M White Old",
    "price": 490,
@@ -1877,6 +2207,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "24f6cc09-3426-40bd-838e-94a047f05a6d",
    "image": "",
    "name": "Training vest, Xl Black New",
    "price": 490,
@@ -1884,6 +2216,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "af23e3fa-5823-42e9-8ace-5d20ca3034e4",
    "image": "",
    "name": "Training vest, Xl Black Old",
    "price": 490,
@@ -1891,6 +2225,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "110d608b-6fcb-4044-b8c5-41b61bf23f98",
    "image": "",
    "name": "Training vest, Xl Deepred New",
    "price": 490,
@@ -1898,6 +2234,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "196184c2-331a-490d-b102-d16a33f6bc48",
    "image": "",
    "name": "Training vest, Xl Deepred Old",
    "price": 490,
@@ -1905,6 +2243,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "17099833-6d19-40d6-897b-64038b11320f",
    "image": "",
    "name": "Training vest, Xl Gold New",
    "price": 490,
@@ -1912,6 +2252,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "b7ab4d62-8741-47ea-82f0-562b56a4fd0b",
    "image": "",
    "name": "Training vest, Xl Gold Old",
    "price": 490,
@@ -1919,6 +2261,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "ebb22b97-ad28-4c7d-8d95-68933cba84f7",
    "image": "",
    "name": "Training vest, Xl Pink New",
    "price": 490,
@@ -1926,6 +2270,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "48af279a-4560-469b-94f5-5d1f4e129164",
    "image": "",
    "name": "Training vest, Xl Pink Old",
    "price": 490,
@@ -1933,6 +2279,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "3b33ede0-58a2-45ea-9ab1-b4ae014cb311",
    "image": "",
    "name": "Training vest, Xl Re New",
    "price": 490,
@@ -1940,6 +2288,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "228ec8e7-6732-4c49-82b4-bd81c174a50f",
    "image": "",
    "name": "Training vest, Xl Re Old",
    "price": 490,
@@ -1947,6 +2297,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "2e9d79f2-8d16-43b5-9c4e-141b0ca9a507",
    "image": "",
    "name": "Training vest, Xl White New",
    "price": 490,
@@ -1954,6 +2306,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "6edd8177-96b5-4fbf-9960-b1a3f5305a80",
    "image": "",
    "name": "Training vest, Xl White Old",
    "price": 490,
@@ -1961,6 +2315,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "87cda4c6-0f7d-4a1b-82f9-60b12c71bee5",
    "image": "",
    "name": "Training vest, Xxl Black New",
    "price": 490,
@@ -1968,6 +2324,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "19a72424-69ec-465d-93de-cd2e072142ea",
    "image": "",
    "name": "Training vest, Xxl Black Old",
    "price": 490,
@@ -1975,6 +2333,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "1c40029c-f347-491e-a0ec-36cf924d93a8",
    "image": "",
    "name": "Training vest, Xxl Deepred New",
    "price": 490,
@@ -1982,6 +2342,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "36c42b20-c938-4607-a7be-1000a1cf5e5c",
    "image": "",
    "name": "Training vest, Xxl Deepred Old",
    "price": 490,
@@ -1989,6 +2351,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "9085f0d2-161a-4add-b9ac-bbb14540bac9",
    "image": "",
    "name": "Training vest, Xxl Gold New",
    "price": 490,
@@ -1996,6 +2360,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "004b70df-5cb3-46ba-a14f-14eddc4b3bb8",
    "image": "",
    "name": "Training vest, Xxl Gold Old",
    "price": 490,
@@ -2003,6 +2369,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "9bcef946-39f3-4b21-89f7-ff032c898389",
    "image": "",
    "name": "Training vest, Xxl Pink New",
    "price": 490,
@@ -2010,6 +2378,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "d46521f6-360c-4905-bbf0-82a7e2477b93",
    "image": "",
    "name": "Training vest, Xxl Pink Old",
    "price": 490,
@@ -2017,6 +2387,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "e2ede7e3-962d-4ea3-a84e-b61d12eb9139",
    "image": "",
    "name": "Training vest, Xxl Re New",
    "price": 490,
@@ -2024,6 +2396,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "25c44789-b581-49d0-b265-75849138edd3",
    "image": "",
    "name": "Training vest, Xxl Re Old",
    "price": 490,
@@ -2031,6 +2405,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "92f995f1-d049-45be-b677-68b0f8f7cdb5",
    "image": "",
    "name": "Training vest, Xxl White New",
    "price": 490,
@@ -2038,6 +2414,8 @@
   },
   {
    "description": "",
+   "group": "Training vest",
+   "id": "674b0458-e91f-4e56-8df6-65a6329cdc15",
    "image": "",
    "name": "Training vest, Xxl White Old",
    "price": 490,
@@ -2045,6 +2423,8 @@
   },
   {
    "description": "",
+   "group": "Umbrella",
+   "id": "ba14ec6c-54da-4ced-8687-90e2850dcef9",
    "image": "",
    "name": "Umbrella, with",
    "price": 250,
@@ -2052,6 +2432,8 @@
   },
   {
    "description": "",
+   "group": "Umbrella",
+   "id": "8b45454e-3092-4142-8995-da7b660a6a2f",
    "image": "",
    "name": "Umbrella, without",
    "price": 200,
@@ -2059,6 +2441,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "fb7435ee-eb01-4911-aa66-f83228d50a6b",
    "image": "",
    "name": "VITAXFIT Vitamin D3 5000iu 30 softgels",
    "price": 299,
@@ -2066,6 +2450,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "9deb7615-a8bf-4e88-ad85-c95a7ad75f32",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678037863-3f942b9b.jpg",
    "name": "VITAXTRONG 100% BCAA 6500 330g Unflavoured",
    "price": 1090,
@@ -2073,6 +2459,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "cd5feaf5-de0c-4c5e-8356-07617df61a9f",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678034989-ef88cf99.jpg",
    "name": "VITAXTRONG ISO - PRO, Banana Cafe, 1lb",
    "price": 745,
@@ -2080,6 +2468,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "d4b2d995-8d9f-43fe-b227-45e65721cb75",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678097672-5e3fb79a.png",
    "name": "VITAXTRONG ISO - PRO, Banana Cafe, 2lb,",
    "price": 1420,
@@ -2087,6 +2477,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "97442add-8ca8-487d-bb88-9720c0028b8c",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678038145-a1f18e87.jpg",
    "name": "VITAXTRONG ISO - PRO, Banana Cafe, 5lbs",
    "price": 2965,
@@ -2094,6 +2486,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "4e0510e1-6580-43c1-ac98-d40015e2e1eb",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678033555-f69d1aa8.jpg",
    "name": "VITAXTRONG ISO - PRO, Banana Cafe, 8lb",
    "price": 4460,
@@ -2101,6 +2495,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "bbb140e9-2ace-4e0f-8f3f-389ce2947ad9",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678097949-2f880ffc.png",
    "name": "VITAXTRONG ISO - PRO, Matcha Green Tea 1lb",
    "price": 745,
@@ -2108,6 +2504,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "2be33d64-a30e-4616-a6b2-1ed13c445fb5",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678036719-b7e9646b.jpg",
    "name": "VITAXTRONG ISO - PRO, Matcha Green Tea 2lb,",
    "price": 1420,
@@ -2115,6 +2513,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "e2263598-237b-4119-91b0-5681a50b83d1",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678034770-f863f2e1.jpg",
    "name": "VITAXTRONG ISO - PRO, Matcha Green Tea 5lbs",
    "price": 2965,
@@ -2122,6 +2522,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "ee1f4c6f-14a5-4fd4-836a-a2ba39217432",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678039610-997bef23.jpg",
    "name": "VITAXTRONG ISO - PRO, Matcha Green Tea 8lb",
    "price": 4460,
@@ -2129,6 +2531,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "dd66ad2d-3c89-4337-83d9-3409b3f6b073",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678035254-4f973887.jpg",
    "name": "VITAXTRONG ISO - PRO, Rich Chocolate 1lb",
    "price": 745,
@@ -2136,6 +2540,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "c1a00efe-f878-4aa7-960d-c64a42344598",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678034275-bb484903.jpg",
    "name": "VITAXTRONG ISO - PRO, Rich Chocolate 2lb,",
    "price": 1420,
@@ -2143,6 +2549,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "d50013a9-49b5-4ee7-8955-ef9a9a2e0367",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678035699-a86a6b2e.jpg",
    "name": "VITAXTRONG ISO - PRO, Rich Chocolate 5lbs",
    "price": 2965,
@@ -2150,6 +2558,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "1025ebc7-6132-4d3d-bcee-b090f0b5ffce",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678038367-9cf7bd3e.jpg",
    "name": "VITAXTRONG ISO - PRO, Rich Chocolate 8lb",
    "price": 4460,
@@ -2157,6 +2567,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "330e50d0-a1d7-4eda-83d0-b5cd320d1997",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678039121-09756dc5.jpg",
    "name": "VITAXTRONG ISO - PRO, Vanilla, 1lb",
    "price": 745,
@@ -2164,6 +2576,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "4a920308-7164-474d-b60c-86576cbde951",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678039121-09756dc5.jpg",
    "name": "VITAXTRONG ISO - PRO, Vanilla, 2lb,",
    "price": 1420,
@@ -2171,6 +2585,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "9474a83d-9ea8-4dbc-bf0c-efeafdd2ed04",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678033801-714f2c78.jpg",
    "name": "VITAXTRONG ISO - PRO, Vanilla, 5lbs",
    "price": 2965,
@@ -2178,6 +2594,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG ISO - PRO",
+   "id": "98d32a29-a385-4c09-8de2-edde133114c7",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678034533-e426efe7.jpg",
    "name": "VITAXTRONG ISO - PRO, Vanilla, 8lb",
    "price": 4460,
@@ -2185,6 +2603,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "aaaa0987-62e4-41e7-9e60-d8cbc066aea1",
    "image": "",
    "name": "VITAXTRONG MULITGREEN 30 servings Tropical Fruit",
    "price": 1000,
@@ -2192,6 +2612,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "17d98ce3-d997-4418-8183-978e9e406da4",
    "image": "",
    "name": "VITAXTRONG OMEFLAME X3000 100 Softgels",
    "price": 850,
@@ -2199,6 +2621,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG REAL WHEY PROTEIN",
+   "id": "0ed4a2d4-5a45-4897-b633-a0eb9722177d",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678034028-b7288312.jpg",
    "name": "VITAXTRONG REAL WHEY PROTEIN, Cafe Mocha",
    "price": 1990,
@@ -2206,6 +2630,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG REAL WHEY PROTEIN",
+   "id": "a8cb7cb2-0c14-4bc2-86f0-173b8f59d5ee",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678038922-2aab3178.jpg",
    "name": "VITAXTRONG REAL WHEY PROTEIN, Matcha green tea",
    "price": 1990,
@@ -2213,6 +2639,8 @@
   },
   {
    "description": "",
+   "group": "VITAXTRONG REAL WHEY PROTEIN",
+   "id": "49f182d0-ea6a-4066-86a5-53f29bd22673",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678098168-51374b82.png",
    "name": "VITAXTRONG REAL WHEY PROTEIN, Rich Dark Chocolate",
    "price": 1990,
@@ -2220,6 +2648,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "8b0af27c-b796-4eac-8ccc-4f41a1ec2aaf",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678036210-d96fab35.jpg",
    "name": "VITAXTRONG REAL WHEY PROTEIN 5lb",
    "price": 1990,
@@ -2227,6 +2657,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "70bd4404-6ac8-4053-825b-7975ebed6ba8",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/shop/1792678036914-d7ab6bbf.jpg",
    "name": "VITAXTRONG REAL WHEY PROTEIN 5lb Vanilla",
    "price": 1990,
@@ -2234,6 +2666,8 @@
   },
   {
    "description": "",
+   "group": "",
+   "id": "57cfc4d0-6ed7-410c-bdaf-08a4b62b6459",
    "image": "",
    "name": "WHEY Delicious strawberry (29 servings)",
    "price": 1690,
