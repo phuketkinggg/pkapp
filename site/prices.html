@@ -149,6 +149,30 @@ function privBox(p,sb){
   $('pvYes').onclick=function(){ set(true); }; $('pvNo').onclick=function(){ set(false); };
   set(true);
 }
+/* privates: add recovery (spa) to the order, as many single sessions as they want, or a spa week or month */
+var REC=null;
+function recTotal(){ return cur?cur.price+(REC?REC.price:0):0; }
+function payLabel(){ $('payBtn').textContent='Pay '+PK.thb(recTotal()); }
+function recBox(box){
+  var spa=Object.keys(GP).map(function(k){ return GP[k].p; }).filter(function(p){ return p.id&&(p.covers||[]).length===1&&p.covers[0]==='Spa'&&p.price>0; }).sort(function(a,b){ return a.price-b.price; });
+  if(!spa.length) return;
+  var one=spa.filter(function(p){ return p.visits===1; })[0], longs=spa.filter(function(p){ return p.visits!==1; }), n=3;
+  var wrap=document.createElement('div'); wrap.className='recbox'; box.appendChild(wrap);
+  function draw(){
+    var h='<b style="display:block;margin:14px 0 4px">Add recovery?</b><p class="sub" style="margin:0 0 8px">Herbal sauna, dry sauna and ice bath, next to the gym. Great after a private.</p><div class="pp-yn">'+
+      '<button type="button" data-r="none" aria-pressed="'+(!REC)+'">No thanks</button>'+
+      (one?'<button type="button" data-r="one" aria-pressed="'+(!!(REC&&REC.package_id===one.id))+'">Sessions, '+PK.thb(one.price)+' each</button>':'')+
+      longs.map(function(p){ return '<button type="button" data-r="'+p.id+'" aria-pressed="'+(!!(REC&&REC.package_id===p.id))+'">'+PK.esc(tidy(p.name.replace(/^Spa Access,\s*/i,'')))+', '+PK.thb(p.price)+'</button>'; }).join('')+'</div>';
+    if(REC&&one&&REC.package_id===one.id) h+='<div style="display:flex;align-items:center;gap:10px;margin-top:10px"><div class="pp-yn"><button type="button" data-q="-1" aria-label="Fewer">−</button></div><b style="font-size:18px;min-width:120px;text-align:center">'+REC.qty+' session'+(REC.qty>1?'s':'')+'</b><div class="pp-yn"><button type="button" data-q="1" aria-label="More">+</button></div><span class="sub">'+PK.thb(REC.price)+'</span></div>';
+    if(REC) h+='<p class="sub" style="margin:8px 0 0">Recovery goes on your account with the private. Use it on any day'+(REC.qty>1?', within 6 months':'')+'.</p>';
+    wrap.innerHTML=h;
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-r]'),function(b){ b.onclick=function(){ var r=b.getAttribute('data-r');
+      if(r==='none') REC=null; else if(r==='one') REC={package_id:one.id,qty:n,price:one.price*n}; else { var p=GP[r].p; REC={package_id:p.id,qty:1,price:p.price}; }
+      T('buy_recovery',r); draw(); payLabel(); }; });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-q]'),function(b){ b.onclick=function(){ n=Math.max(1,Math.min(20,REC.qty+Number(b.getAttribute('data-q')))); REC={package_id:one.id,qty:n,price:one.price*n}; draw(); payLabel(); }; });
+  }
+  draw();
+}
 function privDone(pv,paid){
   if(!pv) return '';
   var when=window.PrivPick.longDay(pv.date)+', '+pv.time+(pv.coach_name?' with '+PK.esc(pv.coach_name):'');
@@ -160,8 +184,8 @@ function buy(p,g){
   cur=p; T('buy_open',p.name); $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
   var dtv=/^DTV/i.test(p.name), priv=(p.covers||[]).indexOf('Privates')>=0;
   $('buyWhat').innerHTML='<p style="margin:0 0 6px"><b>'+PK.esc(p.name)+'</b><br><span style="font-size:26px;font-weight:700">'+PK.thb(p.price)+'</span></p><p class="sub" style="margin:0">'+PK.esc(detail(p))+'</p>';
-  var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false;
-  if(priv&&p.visits){ privBox(p,sb); }
+  var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false; REC=null;
+  if(priv&&p.visits){ privBox(p,sb); var rb=document.createElement('div'); sb.appendChild(rb); recBox(rb); }
   else if(p.pick_start){
     sb.innerHTML='<label>When do you want to start?<input type="date" id="b-start" required></label><p class="sub" style="margin:0">Your package runs from this date'+(p.days?' for '+span(p.days):'')+'.</p>';
     var i=$('b-start'); i.min=bkk(0); i.max=bkk(180); i.value=bkk(0);
@@ -185,12 +209,12 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   if(st&&!st.value){ err.textContent='Choose the date you want to start.'; err.hidden=false; st.focus(); return; }
   if(PVon&&PV){ var pe=PV.check(); if(pe){ err.textContent=pe; err.hidden=false; PV.el.scrollIntoView({block:'center',behavior:'smooth'}); return; } }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
-  T('buy_pay',cur.name); if(PVon&&PV&&PV.value().coach) T('buy_private',PV.value().coach_name);
+  T('buy_pay',cur.name+(REC?' + recovery':'')); if(PVon&&PV&&PV.value().coach) T('buy_private',PV.value().coach_name);
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
-  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,back:location.origin+location.pathname})
+  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,recovery:REC?{package_id:REC.package_id,qty:REC.qty}:null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
-    .catch(function(x){ btn.disabled=false; btn.textContent='Pay '+PK.thb(cur.price); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
+    .catch(function(x){ btn.disabled=false; payLabel(); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
 });
 /* PromptPay straight to the gym bank account: QR with the amount, the buyer taps I have paid, the front desk checks the bank and confirms */
 function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
