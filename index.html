@@ -102,7 +102,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .warrname{font-weight:700;color:var(--wc)}
 .excat{margin:14px 0 6px;font-size:15px;padding-left:10px;border-left:4px solid var(--line)}.excat.c-cafe{border-color:#2E7D32;color:#2E7D32}.excat.c-training{border-color:#C62828;color:#C62828}.excat.c-recovery{border-color:#1565C0;color:#1565C0}.excat.c-gear{border-color:#B8892E;color:#8A6420}.excat.c-misc{border-color:#607D8B;color:#455A64}
 .aibar{height:8px;border-radius:99px;background:var(--sunken);overflow:hidden;margin:6px 0 10px}.aibar i{display:block;height:100%;background:var(--gold)}.aibar i.hot{background:#C0392B}
-.thbox{display:flex;flex-direction:column;gap:12px}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
+.thbox{display:flex;flex-direction:column;gap:12px}.throw{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}.thpresets{gap:8px}.thpreset{display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px 6px 8px;font:inherit;font-size:13px;cursor:pointer}.thdots{display:flex}.thdots i{width:14px;height:14px;border-radius:50%;margin-right:-4px;border:1.5px solid var(--surface)}.thpick{align-items:center;gap:8px;cursor:pointer}.thpick input{width:44px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px;background:none}.thsw{gap:8px}.thchip{width:40px;height:40px;border-radius:10px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer}
 .demobar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 16px;background:#17213C;color:#fff;border-bottom:3px solid #2759DA;font-size:15px}
 .demobar[hidden]{display:none}
 .demobar .dback{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:999px;background:#fff;color:#17213C;font-weight:700;text-decoration:none;white-space:nowrap}
@@ -7851,14 +7851,30 @@ function themeVars(accent){
   D.gold=towards(accent,D.surface,1); D['gold-ink']=D.gold; D['btn-bg']=D.gold; D['btn-fg']=D.bg;
   return {light:L,dark:D};
 }
+/* the app's colours: a highlight colour (accent), and optionally a background, title and menu colour and light or dark */
+function okHex(x){ return x&&hexRgb(x)?rgbHex(hexRgb(x)):null; }
 function applyTheme(t){
   var old=document.getElementById('apptheme'); if(old) old.remove();
-  var acc=t&&hexRgb(t.accent)?rgbHex(hexRgb(t.accent)):null; if(!acc) return;
+  var root=document.documentElement; if(root.getAttribute('data-theme-by')==='app'){ root.removeAttribute('data-theme'); root.removeAttribute('data-theme-by'); }
+  var acc=t&&okHex(t.accent); if(!acc) return;
   var v=themeVars(acc), css=function(o){ return Object.keys(o).map(function(k){ return '--'+k+':'+o[k]+';'; }).join(''); };
+  var bg=okHex(t.bg), title=okHex(t.title), side=okHex(t.side), extra='';
+  if(bg){ // a chosen background: both light and dark follow it, text colours chosen so they stay readable
+    var dark=relLum(bg)<0.2, hs=rgbHsl(hexRgb(bg)), o=dark?v.dark:v.light;
+    o.bg=bg; o.surface=dark?hslHex(hs[0],hs[1],Math.min(1,hs[2]+0.05)):'#FFFFFF'; o.sunken=dark?hslHex(hs[0],hs[1],Math.max(0,hs[2]-0.02)):hslHex(hs[0],hs[1],Math.max(0,hs[2]-0.05));
+    o.line=dark?hslHex(hs[0],Math.min(hs[1],0.3),Math.min(1,hs[2]+0.13)):hslHex(hs[0],Math.min(hs[1],0.3),Math.max(0,hs[2]-0.13));
+    o.ink=dark?'#F4F2EC':'#121412'; o.muted=dark?'#B3B8B2':'#565C57'; o.gold=dark?towards(acc,o.surface,1):acc; o['gold-ink']=towards(acc,bg,dark?1:-1);
+    o['btn-bg']=dark?o.gold:o.ink; o['btn-fg']=dark?bg:'#FFFFFF';
+    if(dark) v.light=o; else v.dark=o;
+    root.setAttribute('data-theme',dark?'dark':'light'); root.setAttribute('data-theme-by','app');
+  } else if(t.mode==='light'||t.mode==='dark'){ root.setAttribute('data-theme',t.mode); root.setAttribute('data-theme-by','app'); }
+  if(title){ v.light.title=towards(title,v.light.bg,-1); v.dark.title=towards(title,v.dark.bg,1); }
+  if(side){ var sd=relLum(side)<0.2; extra+='.side{background:'+side+';color:'+(sd?'#F4F2EC':'#121412')+'}.side #nav button{color:'+(sd?'#F4F2EC':'#121412')+'}.side #nav button:hover,.side #nav button[aria-current="page"]{background:'+(sd?'rgba(255,255,255,.12)':'rgba(0,0,0,.07)')+'}.side .b2,.side .who{color:'+(sd?'#C9CDC7':'#4A504B')+'}.side .who b{color:inherit}'; if(title) extra+='.side .b1{color:'+towards(title,side,sd?1:-1)+'}'; }
   var st=document.createElement('style'); st.id='apptheme';
-  st.textContent=':root{'+css(v.light)+'}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){'+css(v.dark)+'color-scheme:dark}}:root[data-theme="dark"]{'+css(v.dark)+'color-scheme:dark}';
+  st.textContent=':root{'+css(v.light)+'}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){'+css(v.dark)+'color-scheme:dark}}:root[data-theme="dark"]{'+css(v.dark)+'color-scheme:dark}:root[data-theme="light"]{'+css(v.light)+'color-scheme:light}'+
+    (title?'h1,.sechead h2,.b1,.billbox h2,dialog h2{color:var(--title)}':'')+extra;
   document.head.appendChild(st);
-  var m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content',v.light.ink);
+  var m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content',side||bg||v.light.ink);
 }
 (function(){ try{ applyTheme(JSON.parse(pref('app_theme')||'null')); }catch(e){} })();
 function loadTheme(){ return sb.rpc('app_theme').then(function(res){ if(res.error) return; var t=res.data&&res.data.accent?res.data:null; pref('app_theme',t?JSON.stringify(t):null); applyTheme(t); APPTHEME=t; schedule(); }); }
@@ -7872,24 +7888,43 @@ function logoColours(file){ return new Promise(function(ok,bad){ var img=new Ima
     URL.revokeObjectURL(u);
     ok(Object.keys(B).map(function(k){ var o=B[k]; return {n:o.n,hex:rgbHex([o.r/o.n,o.g/o.n,o.b/o.n])}; }).sort(function(a,b){ return b.n-a.n; }).filter(function(o){ return o.n>=6; }).slice(0,5).map(function(o){ return o.hex; })); };
   img.onerror=function(){ URL.revokeObjectURL(u); bad({message:'That file could not be read. Try a PNG or JPG of your logo.'}); }; img.src=u; }); }
-var THS={picks:[],note:'',color:null};
+var THS={picks:[],note:'',t:null};
+var THEMES=[
+  {name:'Classic gold',t:{accent:'#B88A44'}},
+  {name:'Midnight',t:{accent:'#D4A24C',bg:'#111418',title:'#E8C27A',side:'#0A0C0F'}},
+  {name:'Ocean',t:{accent:'#1F7FB8',bg:'#EEF5FA',title:'#14507A',side:'#0F3550'}},
+  {name:'Forest',t:{accent:'#2E8B57',bg:'#F1F5EF',title:'#1E4D33',side:'#18352D'}},
+  {name:'Fight red',t:{accent:'#D8001B',bg:'#F7F4F2',title:'#171B23',side:'#171B23'}},
+  {name:'Rose',t:{accent:'#B5577B',bg:'#FBF3F6',title:'#7A2E4B',side:'#3A1A27'}},
+  {name:'Clean white',t:{accent:'#2F6FDE',bg:'#FFFFFF',title:'#111827',side:'#F3F4F6'}}];
 function themeSection(){
-  var cur=APPTHEME&&APPTHEME.accent||'', picks=THS.picks, note=h('p',{class:'sub'},THS.note);
-  var color=h('input',{type:'color',id:'th-color','aria-label':'Choose a colour',value:THS.color||cur.toLowerCase()||'#b88a44'});
-  color.addEventListener('input',function(){ THS.color=color.value; applyTheme({accent:color.value}); });
-  var sw=h('div',{class:'row thsw'});
-  function draw(){ sw.replaceChildren.apply(sw,picks.map(function(c){ return h('button',{type:'button',class:'thchip',style:'background:'+c,'aria-label':'Use '+c,title:c,onclick:function(){ color.value=c.toLowerCase(); THS.color=color.value; applyTheme({accent:c}); }}); })); }
-  draw();
+  var cur=APPTHEME||{}, t=THS.t||Object.assign({accent:'#b88a44'},cur), note=h('p',{class:'sub'},THS.note);
+  function tryIt(){ THS.t=t; applyTheme(t); }
+  function picker(key,label,hint,def){ var on=!!t[key], id='th-'+key;
+    var inp=h('input',{type:'color',id:id,value:String(t[key]||def).toLowerCase(),'aria-label':label});
+    inp.addEventListener('input',function(){ t[key]=inp.value; tryIt(); var cb=document.getElementById(id+'-on'); if(cb) cb.checked=true; });
+    var cb=key==='accent'?null:h('input',{type:'checkbox',id:id+'-on',checked:on,onchange:function(ev){ if(ev.target.checked) t[key]=inp.value; else delete t[key]; tryIt(); }});
+    return h('div',{class:'throw'},h('label',{class:'row thpick',for:id},inp,h('span',null,h('b',null,label),hint?h('small',{class:'sub',style:'display:block'},hint):null)),
+      cb?h('label',{class:'row',style:'gap:6px;font-size:13px'},cb,'Use it'):null); }
+  var sw=h('div',{class:'row thsw'},THS.picks.map(function(c){ return h('button',{type:'button',class:'thchip',style:'background:'+c,'aria-label':'Use '+c,title:c,onclick:function(){ t.accent=c.toLowerCase(); THS.t=t; applyTheme(t); schedule(); }}); }));
   var file=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(ev){ var f=ev.target.files&&ev.target.files[0]; if(!f) return;
-    logoColours(f).then(function(cs){ THS.picks=picks=cs; draw(); THS.note=note.textContent=cs.length?'Tap a colour to try it. The whole app changes so you can see it, light and dark. Then tap Save colours.':'No strong colours found in that logo. Choose one with the colour picker.'; if(cs[0]){ color.value=cs[0].toLowerCase(); THS.color=color.value; applyTheme({accent:cs[0]}); } }).catch(function(e){ toast(errText(e)); }); }});
-  function save(acc){ var v=JSON.stringify(acc?{accent:rgbHex(hexRgb(acc))}:{});
+    logoColours(f).then(function(cs){ THS.picks=cs; THS.note=cs.length?'Tap a colour to use it as the highlight.':'No strong colours found in that logo. Choose one below.'; if(cs[0]){ t.accent=cs[0].toLowerCase(); } THS.t=t; applyTheme(t); schedule(); }).catch(function(e){ toast(errText(e)); }); }});
+  function save(nt){ var clean={}; if(nt){ ['accent','bg','title','side','mode'].forEach(function(k){ if(nt[k]) clean[k]=k==='mode'?nt[k]:okHex(nt[k]); }); }
+    var v=JSON.stringify(nt?clean:{});
     return sb.from('app_settings').update({value:v,updated_at:new Date().toISOString()}).eq('key','app_theme').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'};
-      THS={picks:[],note:'',color:null}; APPTHEME=acc?{accent:rgbHex(hexRgb(acc))}:null; pref('app_theme',APPTHEME?JSON.stringify(APPTHEME):null); applyTheme(APPTHEME); toast(acc?'Colours saved. Everyone sees them next time the app opens.':'Back to the original colours.'); schedule(); }); }
+      THS={picks:[],note:'',t:null}; APPTHEME=nt&&clean.accent?clean:null; pref('app_theme',APPTHEME?JSON.stringify(APPTHEME):null); applyTheme(APPTHEME); toast(nt?'Colours saved. Everyone sees them next time the app opens.':'Back to the original colours.'); schedule(); }); }
   return section('App colours',null,h('div',{class:'panel pad thbox'},
-    h('p',{class:'sub'},'Make the app match your brand. Upload your logo and pick one of its colours, or choose any colour. Buttons, links, highlights and the background tint all follow it, in light and dark mode, and the app keeps text easy to read.'),
-    h('div',{class:'row'},btn('Pick from my logo',function(){ file.click(); },'small'),h('label',{class:'row thpick',for:'th-color'},color,h('span',null,'Or choose a colour')),file),
-    sw,note,
-    h('div',{class:'row'},btn('Save colours',function(){ run(save(color.value),null); },'primary small'),btn('Cancel',function(){ THS={picks:[],note:'',color:null}; applyTheme(APPTHEME); schedule(); },'small'),
+    h('p',{class:'sub'},'Pick a ready theme, or set each colour yourself. The app changes as you try them. Text colours are adjusted so everything stays easy to read. Tap Save colours to keep them for everyone.'),
+    h('div',{class:'row wrap thpresets'},THEMES.map(function(x){ return h('button',{type:'button',class:'thpreset',onclick:function(){ t=Object.assign({},x.t); THS.t=t; applyTheme(t); schedule(); }},
+      h('span',{class:'thdots'},[x.t.side||x.t.bg||'#F3F1EA',x.t.bg||'#F3F1EA',x.t.accent,x.t.title||'#101311'].map(function(c){ return h('i',{style:'background:'+c}); })),x.name); })),
+    picker('accent','Highlight','Buttons, links, the selected menu item and highlights.','#b88a44'),
+    h('div',{class:'row'},btn('Pick the highlight from my logo',function(){ file.click(); },'small'),file),sw,note,
+    picker('bg','Background','The page behind everything. A dark colour makes the app dark.','#f3f1ea'),
+    picker('title','Titles','Page titles, section headings and the name at the top of the menu.','#101311'),
+    picker('side','Menu','The menu down the side (along the top on a phone).','#e9e6db'),
+    !t.bg?h('div',{class:'field'},h('label',{for:'th-mode'},'Light or dark'),h('select',{id:'th-mode',onchange:function(ev){ if(ev.target.value) t.mode=ev.target.value; else delete t.mode; tryIt(); }},
+      [['','Follow each phone (light or dark)'],['light','Always light'],['dark','Always dark']].map(function(o){ return h('option',{value:o[0],selected:(t.mode||'')===o[0]},o[1]); }))):null,
+    h('div',{class:'row'},btn('Save colours',function(){ run(save(t),null); },'primary small'),btn('Cancel',function(){ THS={picks:[],note:'',t:null}; applyTheme(APPTHEME); schedule(); },'small'),
       APPTHEME?btn('Use the original colours',function(){ run(save(null),null); },'small'):null)));
 }
 function startDeskMode(){
