@@ -214,9 +214,9 @@ def products_feed(out, snap):
             continue
         desc = (p.get("description") or "").strip() or "%s from the Phuket King Muay Thai shop in Kathu, Phuket. Pick up at the gym or order online." % p["name"]
         items.append("<item><g:id>%s</g:id><g:title>%s</g:title><g:description>%s</g:description><g:link>%s</g:link><g:image_link>%s</g:image_link>"
-                     "<g:availability>%s</g:availability><g:price>%s THB</g:price><g:condition>new</g:condition><g:brand>%s</g:brand><g:identifier_exists>no</g:identifier_exists>%s</item>" % (
+                     "<g:availability>%s</g:availability><g:price>%s THB</g:price><g:condition>new</g:condition><g:identifier_exists>no</g:identifier_exists>%s</item>" % (
             x(p["id"]), x(p["name"][:150]), x(desc[:4900]), x(DOMAIN + "/shop?item=" + p["id"]), x(p["image"]),
-            "out_of_stock" if p.get("sold_out") else "in_stock", ("%.2f" % float(p["price"])), x("Phuket King Muay Thai"),
+            "out_of_stock" if p.get("sold_out") else "in_stock", ("%.2f" % float(p["price"])),
             ("<g:item_group_id>%s</g:item_group_id>" % x(p["group"][:50])) if p.get("group") else ""))
     open(os.path.join(out, "products.xml"), "w", encoding="utf-8").write(
         '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel><title>Phuket King Muay Thai shop</title><link>%s/shop</link><description>Muay Thai gear and supplements</description>\n%s\n</channel></rss>\n' % (DOMAIN, "\n".join(items)))
