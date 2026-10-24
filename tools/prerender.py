@@ -83,6 +83,8 @@ def main():
     snap["private_price"] = data.get("private_price")
     snap["classes"] = data.get("classes") or []
 
+    snap["problems"] = [e[:300] for e in errors]
+    snap["found"] = {"posts": len(posts), "pages": len(pages)}
     for e in errors:
         print("problem:", e, file=sys.stderr)
     if not snap["posts"] and not snap["pages"]:
