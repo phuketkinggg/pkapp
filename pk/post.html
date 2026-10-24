@@ -62,7 +62,7 @@ else PK.rest('blog_posts?select=slug,title,excerpt,body,cover_url,published_at&s
   var p=r[0]; if(!p){ box.innerHTML='<h1>Post not found</h1><p>It may have moved. <a href="blog.html">See all posts</a></p>'; return; }
   document.title=p.title+' | Phuket King Muay Thai';
   var md=document.querySelector('meta[name=description]'); if(md&&p.excerpt) md.setAttribute('content',p.excerpt);
-  box.innerHTML='<span class="num">'+PK.esc(PK.date(p.published_at))+'</span><h1>'+PK.esc(p.title)+'</h1><span class="rule"></span>'+(p.cover_url?'<img class="cover" src="'+PK.esc(p.cover_url)+'" alt="">':'')+'<div class="prose">'+PK.md(p.body)+'</div>';
+  box.innerHTML='<span class="num">'+PK.esc(PK.date(p.published_at))+'</span><h1>'+PK.esc(p.title)+'</h1><span class="rule"></span>'+(p.cover_url?'<img class="cover" src="'+PK.esc(p.cover_url)+'" alt="'+PK.esc(p.title)+'">':'')+'<div class="prose">'+PK.md(p.body)+'</div>';
   if(p.cover_url){ var f=box.querySelector('.prose figure img'); if(f&&f.getAttribute('src')===p.cover_url) f.parentNode.remove(); }
   PK.seo({path:PK.live?p.slug:'post?p='+encodeURIComponent(p.slug),title:p.title,description:p.excerpt||'',image:p.cover_url||'',type:'article',
     ld:{'@context':'https://schema.org','@type':'BlogPosting',headline:p.title,datePublished:p.published_at,image:p.cover_url||undefined,description:p.excerpt||undefined,mainEntityOfPage:'https://www.phuketking.com/'+p.slug,
