@@ -79,8 +79,15 @@ $$;
 create or replace function public.spa_board(p_date date default null)
 returns jsonb language plpgsql stable security definer set search_path to '' as $$
 declare d date := coalesce(p_date, private.bkk_today()); role text := private.staff_role(); dow int := extract(isodow from coalesce(p_date, private.bkk_today()))::int;
+  nowt time := (now() at time zone 'Asia/Bangkok')::time; busy_free uuid[];
 begin
   if role is null then raise exception 'Not allowed.'; end if;
+  -- therapists not in a treatment right now (for the walk-in turn)
+  select coalesce(array_agg(st.id), '{}') into busy_free from public.staff st
+   where st.active and (st.role = 'coach' or st.also_coach)
+     and (st.work_days is null or cardinality(st.work_days) = 0 or (dow - 1) = any(st.work_days))
+     and not exists (select 1 from public.privates x where x.coach_id = st.id and x.date = d and x.status = 'confirmed'
+                     and nowt >= x.start_time and nowt < x.start_time + make_interval(mins => coalesce(x.minutes, 60)));
   return jsonb_build_object('date', d,
     'beds', (select coalesce(jsonb_agg(jsonb_build_object('id', b.id, 'name', b.name, 'kind', b.kind, 'department', b.department, 'active', b.active) order by b.sort, b.name), '[]'::jsonb) from public.spa_beds b where b.active or role = 'manager'),
     'services', (select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'name', s.name, 'department', s.department, 'minutes', s.minutes, 'price', s.price_thb, 'bed_kind', s.bed_kind, 'people', s.people,
@@ -96,9 +103,7 @@ begin
                    'started', x.arrived_at is not null, 'requested', x.any_coach = false) order by x.start_time), '[]'::jsonb)
               from public.privates x left join public.customers c on c.id = x.customer_id left join public.spa_services sv on sv.id = x.service_id
               where x.date = d and x.status in ('requested','confirmed','done') and (x.service_id is not null or x.bed_id is not null)),
-    'next', private.spa_next_staff(coalesce((select array_agg(st.id) from public.staff st where st.active and (st.role = 'coach' or st.also_coach)
-              and not exists (select 1 from public.privates x where x.coach_id = st.id and x.date = d and x.status = 'confirmed' and x.arrived_at is not null
-                               and (now() at time zone 'Asia/Bangkok')::time between x.start_time and x.start_time + make_interval(mins => coalesce(x.minutes,60))))), '{}'), d),
+    'next', private.spa_next_staff(busy_free, d),
     'takings', (select coalesce(sum(x.price_thb), 0) from public.privates x where x.date = d and x.status = 'done' and x.service_id is not null));
 end $$;
 
