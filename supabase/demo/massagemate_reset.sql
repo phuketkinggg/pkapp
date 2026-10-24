@@ -160,3 +160,123 @@ begin
 end $f$;
 revoke all on function private.mm_demo_reset() from public, anon, authenticated;
 revoke all on function private.mm_demo_users() from public, anon, authenticated;
+
+-- Personalised demo: "Divine Diva" (three shops, two buildings, a treatment menu per shop, commission levels #1 to #5).
+-- Prices, times and staff names are examples until the owner sends the real ones.
+create table if not exists private.mm_demo_profile (id int primary key default 1 check (id = 1), profile text not null default 'generic');
+insert into private.mm_demo_profile (id, profile) values (1, 'generic') on conflict (id) do nothing;
+
+create or replace function private.mm_demo_divine() returns jsonb language plpgsql security definer set search_path='' as $f$
+declare
+  t date := (now() at time zone 'Asia/Bangkok')::date; nowt time := (now() at time zone 'Asia/Bangkok')::time;
+  r record; i int; d date; cid uuid; sv record; tm time; who uuid; bed uuid; n int; free uuid[]; shop uuid; done_ boolean;
+  sh_kathu uuid := 'e3000000-0000-4000-8000-000000000001'; sh_thai uuid := 'e3000000-0000-4000-8000-000000000002'; sh_chalong uuid := 'e3000000-0000-4000-8000-000000000003';
+  s_owner uuid := 'e1000000-0000-4000-8000-000000000001'; s_desk uuid := 'e1000000-0000-4000-8000-000000000002';
+  names text[]; countries text[];
+  slots time[] := array['10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30']::time[];
+begin
+  perform private.mm_demo_users();
+  for r in select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' loop
+    execute format('truncate table public.%I cascade', r.relname);
+  end loop;
+  perform setseed(0.21);
+  insert into public.app_settings(key,value) values
+    ('checkin_code','DIVINE-DEMO'), ('review_message','Hi {name}, thank you for visiting Divine Diva! If you enjoyed your treatment, a quick Google review helps us a lot: {link}'),
+    ('renew_message',''), ('kiosk_promos','[]'), ('shop_vat','{"rate":0,"included":true}'), ('app_theme','{"accent":"#B5577B"}'),
+    ('spa_levels','[{"level":1,"name":"#1","pct":30},{"level":2,"name":"#2","pct":35},{"level":3,"name":"#3","pct":40},{"level":4,"name":"#4","pct":45},{"level":5,"name":"#5","pct":50}]');
+
+  insert into public.spa_shops(id,name,sort) values (sh_kathu,'Divine Diva Kathu',1),(sh_thai,'Divine Thai Spa',2),(sh_chalong,'Divine Diva Chalong',3);
+
+  insert into public.staff(id,user_id,name,email,role,commission_pct,active,work_days,work_start,work_end,shop_ids,pay_level,bio) values
+    (s_owner,'e0000000-0000-4000-8000-000000000001','Owner','owner@demo.massagemate.app','manager',0,true,null,null,null,'{}',null,null),
+    (s_desk,'e0000000-0000-4000-8000-000000000002','Front desk','desk@demo.massagemate.app','front_desk',0,true,'{0,1,2,3,4,5,6}','10:00','21:00','{}',null,null),
+    ('e1000000-0000-4000-8000-000000000003','e0000000-0000-4000-8000-000000000003','Pim','therapist@demo.massagemate.app','coach',35,true,'{0,1,2,3,4,5,6}','10:00','20:00',array[sh_thai],2,'Thai and oil massage'),
+    ('e1000000-0000-4000-8000-000000000004',null,'Nok',null,'coach',30,true,'{0,1,2,3,4,5}','10:00','20:00',array[sh_thai],1,null),
+    ('e1000000-0000-4000-8000-000000000005',null,'Lek',null,'coach',40,true,'{1,2,3,4,5,6}','10:00','20:00',array[sh_thai],3,null),
+    ('e1000000-0000-4000-8000-000000000006',null,'Fah',null,'coach',30,true,'{0,2,3,4,5,6}','12:00','20:00',array[sh_thai],1,null),
+    ('e1000000-0000-4000-8000-000000000007',null,'Mint',null,'coach',50,true,'{0,1,2,3,4,5}','10:00','20:00',array[sh_kathu],5,'Facials and lymphatic drainage'),
+    ('e1000000-0000-4000-8000-000000000008',null,'Ploy',null,'coach',45,true,'{1,2,3,4,5,6}','10:00','20:00',array[sh_kathu],4,null),
+    ('e1000000-0000-4000-8000-000000000009',null,'Jane',null,'coach',40,true,'{0,1,3,4,5,6}','10:00','20:00',array[sh_kathu],3,null),
+    ('e1000000-0000-4000-8000-000000000010',null,'Nida',null,'coach',45,true,'{0,1,2,3,4,5}','10:00','20:00',array[sh_chalong],4,null),
+    ('e1000000-0000-4000-8000-000000000011',null,'Ann',null,'coach',35,true,'{1,2,3,4,5,6}','10:00','20:00',array[sh_chalong],2,null);
+
+  insert into public.spa_beds(name,building,kind,department,shop_ids,sort) values
+    ('Room 1','Thai Spa Building','bed','Massage',array[sh_thai],1),('Room 2','Thai Spa Building','bed','Massage',array[sh_thai],2),
+    ('Room 3','Thai Spa Building','bed','Massage',array[sh_thai],3),('Room 4','Thai Spa Building','bed','Massage',array[sh_thai],4),
+    ('Room 1','Solea Building','bed','Massage',array[sh_kathu],5),('Room 2','Solea Building','bed','Massage',array[sh_kathu],6),
+    ('Room 3','Solea Building','bed','Massage',array[sh_kathu],7),('Room 4','Solea Building','bed','Massage',array[sh_kathu],8),
+    ('Room 1','Chalong (example)','bed','Massage',array[sh_chalong],9),('Room 2','Chalong (example)','bed','Massage',array[sh_chalong],10);
+
+  insert into public.spa_services(name,department,minutes,price_thb,bed_kind,shop_ids,sort) values
+    ('Thai Massage','Massage',60,400,'bed',array[sh_thai],1),
+    ('Oil Massage','Massage',60,500,'bed',array[sh_thai],2),
+    ('Foot Massage','Massage',60,350,'bed',array[sh_thai],3),
+    ('Head and Shoulders Massage','Massage',30,300,'bed',array[sh_thai],4),
+    ('Lymphatic Body Massage','Massage',90,1200,'bed',array[sh_thai],5),
+    ('Gentleman''s Glow','Facial',60,1500,'bed',array[sh_kathu,sh_chalong],10),
+    ('Lymphatic Drainage Body Massage','Body',90,1800,'bed',array[sh_kathu,sh_chalong],11),
+    ('Lymphatic Drainage for face and body','Body',120,2500,'bed',array[sh_kathu,sh_chalong],12),
+    ('Facial and Body Hangover Relief','Body',90,1900,'bed',array[sh_kathu,sh_chalong],13),
+    ('Facial Massage Office Syndrome','Facial',60,1200,'bed',array[sh_kathu,sh_chalong],14),
+    ('Facial Massage Migraines','Facial',60,1200,'bed',array[sh_kathu,sh_chalong],15),
+    ('Facial Massage and Detoxify','Facial',60,1300,'bed',array[sh_kathu,sh_chalong],16),
+    ('Gua Sha Facial Massage','Facial',60,1300,'bed',array[sh_kathu,sh_chalong],17),
+    ('Full Facial Massage Course','Facial',90,1800,'bed',array[sh_kathu,sh_chalong],18),
+    ('Hydra Facials Treatment','Facial',75,2500,'bed',array[sh_kathu,sh_chalong],19),
+    ('Facial Massage Treatment','Facial',60,1100,'bed',array[sh_kathu,sh_chalong],20),
+    ('Head Massage','Massage',30,600,'bed',array[sh_kathu,sh_chalong],21),
+    ('Divine Detox Back Spa','Body',60,1400,'bed',array[sh_kathu,sh_chalong],22),
+    ('Sensitive Skin Soothe','Facial',60,1500,'bed',array[sh_kathu,sh_chalong],23),
+    ('Acne Rescue','Facial',60,1500,'bed',array[sh_kathu,sh_chalong],24),
+    ('Firm and Flow Cellulite','Body',75,1900,'bed',array[sh_kathu,sh_chalong],25);
+
+  names := array['Sophie Turner','Liam Walsh','Anna Becker','Kenji Mori','Isla Brown','Lucas Silva','Mila Novak','Oscar Lind','Chloe Martin','Ravi Patel',
+    'Emma Jansen','Noah Fischer','Hana Kim','Ella Rossi','Jack Murphy','Sara Nilsson','Ben Cohen','Julia Weber','Tom Hughes','Aya Suzuki',
+    'Nok Siriwan','Paul Dubois','Grace Lee','Felix Wagner','Maya Singh','Leo Costa','Olivia Smith','Daniel Park','Ruby Evans','Max Larsen'];
+  countries := array['United Kingdom','Ireland','Germany','Japan','Australia','Brazil','Czechia','Sweden','France','India',
+    'Netherlands','Germany','South Korea','Italy','Ireland','Sweden','Israel','Germany','United Kingdom','Japan',
+    'Thailand','France','Singapore','Austria','India','Portugal','United States','South Korea','United Kingdom','Denmark'];
+  for i in 1..array_length(names,1) loop
+    cid := case when i=1 then 'e2000000-0000-4000-8000-000000000001'::uuid else gen_random_uuid() end;
+    insert into public.customers(id,user_id,name,email,phone,tier,price_group,country,tags,marketing_ok,lead_source,created_at,seen_at)
+    values (cid, case when i=1 then 'e0000000-0000-4000-8000-000000000004'::uuid end, names[i],
+      case when i=1 then 'guest@demo.massagemate.app' else lower(split_part(names[i],' ',1))||'.'||lower(split_part(names[i],' ',2))||'@example.com' end,
+      case when countries[i]='Thailand' then '08'||(10000000+floor(random()*89999999))::bigint::text else '+44 7700 9'||(10000+floor(random()*89999))::int::text end,
+      'train', case when countries[i]='Thailand' then 'thai' else 'standard' end, countries[i], '{}', true,
+      case i%4 when 0 then 'Google' when 1 then 'Walk in' when 2 then 'Hotel' else 'Instagram' end, now()-((40-i)||' days')::interval, now());
+  end loop;
+
+  for d in select generate_series(t-14, t+3, '1 day')::date loop
+    n := case when d < t then 16 + floor(random()*8)::int when d = t then 20 else 7 + floor(random()*5)::int end;
+    for i in 1..n loop
+      select * into sv from public.spa_services order by random() limit 1;
+      shop := sv.shop_ids[1 + floor(random()*cardinality(sv.shop_ids))::int];
+      select id into cid from public.customers order by random() limit 1;
+      tm := slots[1 + floor(random()*array_length(slots,1))::int];
+      free := private.spa_free_staff(sv.id, d, tm, null, shop);
+      if cardinality(free) = 0 then continue; end if;
+      who := free[1 + floor(random()*cardinality(free))::int];
+      bed := private.spa_find_bed(sv.id, shop, d, tm);
+      if bed is null then continue; end if;
+      done_ := d < t or (d = t and tm + make_interval(mins => sv.minutes) <= nowt);
+      begin
+        insert into public.privates(customer_id,coach_id,date,start_time,minutes,price_thb,coach_pct,status,paid,method,service_id,bed_id,shop_id,walk_in,any_coach,arrived_at,arrived_by,created_at)
+        values (cid, who, d, tm, sv.minutes, sv.price_thb, (select coalesce(commission_pct,40) from public.staff where id=who),
+          case when done_ then 'done' else 'confirmed' end, done_, case when done_ then (array['cash','card','card','transfer'])[1+floor(random()*4)::int] end,
+          sv.id, bed, shop, random() < 0.35, random() < 0.75,
+          case when d < t or (d = t and tm <= nowt) then ((d + tm) at time zone 'Asia/Bangkok') end, case when d < t or (d = t and tm <= nowt) then 'spa' end, now() - interval '2 days');
+      exception when others then null;
+      end;
+    end loop;
+  end loop;
+  return jsonb_build_object('profile','divine','appointments',(select count(*) from public.privates),'today',(select count(*) from public.privates where date=t));
+end $f$;
+revoke all on function private.mm_demo_divine() from public, anon, authenticated;
+
+-- the nightly reset rebuilds whichever demo is chosen: update private.mm_demo_profile set profile = 'divine' (or 'generic')
+create or replace function private.mm_demo_run() returns jsonb language plpgsql security definer set search_path='' as $f$
+begin
+  if (select profile from private.mm_demo_profile where id = 1) = 'divine' then return private.mm_demo_divine(); end if;
+  return private.mm_demo_reset();
+end $f$;
+revoke all on function private.mm_demo_run() from public, anon, authenticated;
