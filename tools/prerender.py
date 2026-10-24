@@ -45,7 +45,7 @@ def main():
     errors = []
     with sync_playwright() as p:
         b = p.chromium.launch()
-        ctx = b.new_context()
+        ctx = b.new_context(bypass_csp=True)
         # no pictures or fonts needed to read the text; no visit counting
         ctx.route("**/*", lambda r: r.abort() if r.request.resource_type in ("image", "font", "media") or "site_track" in r.request.url else r.continue_())
         pg = ctx.new_page()
