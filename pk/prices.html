@@ -82,7 +82,7 @@
 <script src="photos.js?v=13"></script>
 <script src="site.js?v=17"></script>
 <script src="qrcode.js?v=1"></script>
-<script src="privpick.js?v=2"></script>
+<script src="privpick.js?v=3"></script>
 <script src="chat.js?v=2" defer></script>
 <script>
 (function(){
@@ -131,8 +131,8 @@ function privBox(p,sb){
   sb.innerHTML='<div class="pvq"><b style="display:block;margin:0 0 8px">'+q+'</b>'+(one?'':'<p class="sub" style="margin:2px 0 8px">You can book the rest later, one at a time, in the app or with us. Packs are valid for six months from the start.</p>')+
     '<div class="pp-yn"><button type="button" id="pvYes" aria-pressed="false">Yes, book now</button><button type="button" id="pvNo" aria-pressed="false">Later</button></div></div><div id="pvBox"></div>';
   var box=$('pvBox');
-  function set(on){ PVon=on; $('pvYes').setAttribute('aria-pressed',String(on)); $('pvNo').setAttribute('aria-pressed',String(!on)); box.innerHTML='';
-    if(on){ if(!PV) PV=window.PrivPick({load:slots}); box.appendChild(PV.el); }
+  function set(on){ PVon=on; setTimeout(function(){ topNote(); payLabel(); },0); $('pvYes').setAttribute('aria-pressed',String(on)); $('pvNo').setAttribute('aria-pressed',String(!on)); box.innerHTML='';
+    if(on){ if(!PV) PV=window.PrivPick({load:slots,onChange:function(){ topNote(); payLabel(); },rateNote:function(c){ return p.visits>1?'(packs: '+PK.thb(Math.max(0,c.rate-Math.round(p.price/p.visits)))+' top up a session)':''; }}); box.appendChild(PV.el); var tn=document.createElement('p'); tn.id='topnote'; tn.className='note'; tn.hidden=true; tn.style.margin='10px 0 0'; box.appendChild(tn); }
     else { box.innerHTML=(p.pick_start?'<label>When do you want to start?<input type="date" id="b-start" required></label>':'')+'<p class="note" style="margin:8px 0 0"><b>Book your time after paying.</b> Use the Phuket King app (sign in with the same email) or WhatsApp us to choose your sessions.</p>';
       var i=$('b-start'); if(i){ i.min=bkk(0); i.max=bkk(180); i.value=bkk(0); } } }
   $('pvYes').onclick=function(){ set(true); }; $('pvNo').onclick=function(){ set(false); };
@@ -140,7 +140,9 @@ function privBox(p,sb){
 }
 /* privates: add recovery (spa) to the order, as many single sessions as they want, or a spa week or month */
 var REC=null;
-function recTotal(){ return cur?cur.price+(REC?REC.price:0):0; }
+function coachTop(){ if(!cur||!PVon||!PV) return 0; var v=PV.value(); if(!v.rate||!cur.visits) return 0; return Math.max(0,v.rate-Math.round(cur.price/cur.visits)); }
+function recTotal(){ return cur?cur.price+(REC?REC.price:0)+coachTop():0; }
+function topNote(){ var t=coachTop(), el=document.getElementById('topnote'); if(!el) return; el.hidden=!t; if(t){ var v=PV.value(); el.textContent=v.coach_name+' has their own rate of '+PK.thb(v.rate)+' a session. Your first session with '+v.coach_name+' includes a '+PK.thb(t)+' top up. Other sessions in the pack can be with any coach, or with '+v.coach_name+' for the same top up, paid at the gym.'; } }
 function payLabel(){ $('payBtn').textContent='Pay '+PK.thb(recTotal()); }
 function recBox(box){
   var spa=Object.keys(GP).map(function(k){ return GP[k].p; }).filter(function(p){ return p.id&&(p.covers||[]).length===1&&p.covers[0]==='Spa'&&p.price>0; }).sort(function(a,b){ return a.price-b.price; });

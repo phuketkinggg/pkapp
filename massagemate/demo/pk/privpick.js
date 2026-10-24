@@ -19,7 +19,7 @@ var CSS='.pp{display:flex;flex-direction:column;gap:14px;color:inherit;min-width
 '.pp-times{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px}.pp-time{padding:9px 4px;font-weight:600;font-size:15px}'+
 '.pp-day[aria-pressed="true"],.pp-time[aria-pressed="true"],.pp-yn button[aria-pressed="true"]{background:var(--pp-on,#171B23);border-color:var(--pp-on,#171B23);color:var(--pp-on-ink,#fff)}'+
 '.pp-pick{font-weight:600;padding:10px 12px;border-radius:10px;background:var(--pp-soft,#F3F1EA)}.pp-yn{display:flex;gap:8px;flex-wrap:wrap}.pp-yn button{padding:9px 14px;font-weight:600;min-height:42px}'+
-'.pp-alt{display:flex;flex-direction:column;gap:10px;padding:12px;border:1.5px dashed var(--pp-line,#D9D5C8);border-radius:12px}.pp-empty{font-size:14px;opacity:.8;margin:0}';
+'.pp-rate{font-weight:600;opacity:1!important}.pp-alt{display:flex;flex-direction:column;gap:10px;padding:12px;border:1.5px dashed var(--pp-line,#D9D5C8);border-radius:12px}.pp-empty{font-size:14px;opacity:.8;margin:0}';
 function css(){ if(document.getElementById('pp-css')) return; var s=document.createElement('style'); s.id='pp-css'; s.textContent=CSS; document.head.appendChild(s); }
 function el(tag,attrs){ var e=document.createElement(tag); if(attrs) for(var k in attrs){ var v=attrs[k]; if(v==null||v===false) continue; if(k==='text') e.textContent=v; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),v); else e.setAttribute(k,v===true?'':v); }
   for(var i=2;i<arguments.length;i++) add(e,arguments[i]); return e; }
@@ -55,6 +55,7 @@ window.PrivPick=function(opts){
     if(!list.length) return el('p',{class:'pp-empty',text:'No free time that day. Pick another day.'});
     return el('div',{class:'pp-times',role:'group','aria-label':'Start time'},list.map(function(t){ return el('button',{type:'button',class:'pp-time','aria-pressed':String(sel===t),onclick:function(){ onPick(t); }},t); })); }
   function draw(){
+    if(opts.onChange) setTimeout(function(){ try{ opts.onChange(); }catch(e){} },0);
     root.replaceChildren();
     if(S.err&&!S.data){ root.appendChild(el('p',{class:'pp-empty',text:S.err})); root.appendChild(el('button',{type:'button',class:'pp-more',onclick:function(){ load(); }},'Try again')); return; }
     if(!S.data){ root.appendChild(el('p',{class:'pp-empty',text:'Loading the free times.'})); return; }
@@ -62,7 +63,7 @@ window.PrivPick=function(opts){
     root.appendChild(el('div',null,el('h4',{text:'1. Choose your coach'}),el('div',{class:'pp-coaches'},S.data.coaches.map(function(c){
       return el('button',{type:'button',class:'pp-coach','aria-pressed':String(S.coach===c.id),onclick:function(){ if(S.coach!==c.id){ S.coach=c.id; S.time=null; S.alt_date=null; S.alt_time=null; if(S.date&&!freeOn(S.date,c.id).length) S.date=null; } draw(); }},
         c.photo?el('img',{src:c.photo,alt:'',loading:'lazy'}):el('span',{class:'pp-ini','aria-hidden':'true',text:initials(c.name)}),
-        el('span',null,el('b',{text:c.name}),c.bio?el('small',{text:c.bio}):null)); }))));
+        el('span',null,el('b',{text:c.name}),c.bio?el('small',{text:c.bio}):null,c.rate?el('small',{class:'pp-rate',text:'Own rate: '+Number(c.rate).toLocaleString('en-US')+' THB'+(opts.rateNote?' '+opts.rateNote(c):'')}):null)); }))));
     if(!S.coach) return;
     var co=coachOf(S.coach);
     root.appendChild(el('div',null,el('h4',{text:'2. Choose the day'}),days(S.coach,S.date,function(d){ S.date=d; S.time=null; draw(); })));
@@ -82,7 +83,7 @@ window.PrivPick=function(opts){
   return {el:root,
     check:function(){ if(S.data&&!S.data.coaches.length) return null; if(!S.coach) return 'Choose your coach.'; if(!S.date) return 'Choose the day.'; if(!S.time) return 'Choose the time.';
       if(S.any==null) return 'Tell us if another coach is OK.'; if(S.any===false&&!(S.alt_date&&S.alt_time)) return 'Choose a backup time with '+coachOf(S.coach).name+'.'; return null; },
-    value:function(){ var c=coachOf(S.coach); return {coach:S.coach,coach_name:c?c.name:'',date:S.date,time:S.time,any:S.any!==false,alt_date:S.any===false?S.alt_date:null,alt_time:S.any===false?S.alt_time:null}; },
+    value:function(){ var c=coachOf(S.coach); return {coach:S.coach,coach_name:c?c.name:'',rate:c&&c.rate?Number(c.rate):null,date:S.date,time:S.time,any:S.any!==false,alt_date:S.any===false?S.alt_date:null,alt_time:S.any===false?S.alt_time:null}; },
     reload:function(){ S.data=null; return load(); },
     text:function(){ var v=this.value(); if(!v.time) return ''; return longDay(v.date)+', '+v.time+' with '+v.coach_name+(v.alt_date?'. Backup: '+longDay(v.alt_date)+', '+v.alt_time:''); }};
 };
