@@ -1,6 +1,7 @@
 // Buy a training package or an online course on the website, paid by card or PromptPay QR through Stripe. No sign in.
 // order:  checks the package and price in the database (the page never sets the price), then makes the Stripe page
 // pp:     PromptPay straight to the gym bank account: returns the gym QR; the buyer taps I have paid (claim) and the desk confirms
+// recovery: privates can add spa ({package_id, qty}), priced in the database
 // private: privates can book the first session in the same go ({coach, date, time, any, alt_date, alt_time}), a request until confirmed
 // status: after paying, the page asks if the payment went through (package name and start date only)
 // When Stripe confirms (stripe-webhook), the database finds or adds the customer and adds the paid package.
@@ -71,7 +72,8 @@ Deno.serve(async (req) => {
       if (!isId(b.package_id) && !isId(b.course_id)) return json({ error: "Choose a package." });
       const { data, error } = await admin.rpc("web_pkg_order", { p: { package_id: isId(b.package_id) ? b.package_id : null, course_id: isId(b.course_id) ? b.course_id : null, name: String(b.name ?? "").slice(0, 80), email: String(b.email ?? "").slice(0, 120),
         phone: String(b.phone ?? "").slice(0, 30), start_on: String(b.start_on ?? "").slice(0, 10), note: String(b.note ?? "").slice(0, 300),
-        ...(b.private && typeof b.private === "object" ? { private: b.private } : {}) } });
+        ...(b.private && typeof b.private === "object" ? { private: b.private } : {}),
+        ...(b.recovery && typeof b.recovery === "object" ? { recovery: { package_id: String(b.recovery.package_id ?? "").slice(0, 40), qty: Math.round(Number(b.recovery.qty) || 1) } } : {}) } });
       if (error) return json({ error: error.message });
       const o = data as { id: string; amount: number; what: string; email: string };
       if (pp) {
