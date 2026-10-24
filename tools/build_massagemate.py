@@ -95,7 +95,7 @@ def main():
     os.makedirs(OUT)
     html = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
     html = swap(html, COLORS)
-    pre = '<script>window.SHOP_TYPE="spa";window.DEMO_LOGINS=' + json.dumps(LOGINS) + ';</script>\n'
+    pre = '<script>window.SHOP_TYPE="spa";window.DEMO_BRAND="Massage Mate";window.DEMO_HOME="./";window.DEMO_LOGINS=' + json.dumps(LOGINS) + ';</script>\n'
     html = html.replace('<script src="vendor/supabase-js', pre + '<script src="vendor/supabase-js', 1)
     html = html.replace('<title>Massage Mate Demo Spa</title>', '<title>Massage Mate Demo Spa | Massage Mate demo</title><meta name="robots" content="noindex">', 1)
     left = [w for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea') if w in html]

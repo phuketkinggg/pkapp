@@ -87,11 +87,13 @@ begin
    where st.active and (st.role = 'coach' or st.also_coach)
      and (st.work_days is null or cardinality(st.work_days) = 0 or (dow - 1) = any(st.work_days))
      and not exists (select 1 from public.privates x where x.coach_id = st.id and x.date = d and x.status = 'confirmed'
-                     and nowt >= x.start_time and nowt < x.start_time + make_interval(mins => coalesce(x.minutes, 60)));
+                     and nowt >= x.start_time and nowt < x.start_time + make_interval(mins => coalesce(x.minutes, 60)))
+     -- the walk-in turn is for massage: therapists who can do a massage treatment
+     and exists (select 1 from public.spa_services sv where sv.active and sv.department = 'Massage' and (cardinality(sv.staff_ids) = 0 or st.id = any(sv.staff_ids)));
   return jsonb_build_object('date', d,
     'beds', (select coalesce(jsonb_agg(jsonb_build_object('id', b.id, 'name', b.name, 'kind', b.kind, 'department', b.department, 'active', b.active) order by b.sort, b.name), '[]'::jsonb) from public.spa_beds b where b.active or role = 'manager'),
     'services', (select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'name', s.name, 'department', s.department, 'minutes', s.minutes, 'price', s.price_thb, 'bed_kind', s.bed_kind, 'people', s.people,
-                   'staff_ids', s.staff_ids, 'description', s.description, 'active', s.active, 'sort', s.sort) order by s.department, s.sort, s.name), '[]'::jsonb) from public.spa_services s where s.active or role = 'manager'),
+                   'staff_ids', s.staff_ids, 'description', s.description, 'active', s.active, 'sort', s.sort) order by s.sort, s.name), '[]'::jsonb) from public.spa_services s where s.active or role = 'manager'),
     'staff', (select coalesce(jsonb_agg(jsonb_build_object('id', st.id, 'name', st.name, 'start', to_char(st.work_start,'HH24:MI'), 'end', to_char(st.work_end,'HH24:MI'),
                    'working', (st.work_days is null or cardinality(st.work_days) = 0 or (dow - 1) = any(st.work_days)) and not exists (select 1 from public.holidays h where h.staff_id = st.id and h.status = 'approved' and d between h.from_date and h.to_date),
                    'pct', coalesce(st.commission_pct, 50),
@@ -150,9 +152,10 @@ begin
   end if;
   if bed is null then raise exception 'No % is free then. Try another time.', case sv.bed_kind when 'couple' then 'couple room' when 'foot' then 'foot chair' when 'nail' then 'nail desk' else sv.bed_kind end; end if;
   select coalesce(commission_pct, 50) into pct from public.staff where id = who;
-  insert into public.privates (customer_id, coach_id, date, start_time, minutes, price_thb, coach_pct, status, paid, notes, any_coach, service_id, bed_id, walk_in)
+  insert into public.privates (customer_id, coach_id, date, start_time, minutes, price_thb, coach_pct, status, paid, notes, any_coach, service_id, bed_id, walk_in, arrived_at, arrived_by)
     values (cid, who, d, t, sv.minutes, sv.price_thb, pct, 'confirmed', false, nullif(left(btrim(coalesce(p->>'note','')), 300), ''),
-      nullif(p->>'staff_id','') is null, sv.id, bed, role is not null and coalesce((p->>'walk_in')::boolean, false))
+      nullif(p->>'staff_id','') is null, sv.id, bed, role is not null and coalesce((p->>'walk_in')::boolean, false),
+      case when role is not null and coalesce((p->>'walk_in')::boolean, false) then now() end, case when role is not null and coalesce((p->>'walk_in')::boolean, false) then 'spa' end)
     returning id into v;
   return jsonb_build_object('id', v, 'staff', (select name from public.staff where id = who), 'bed', (select name from public.spa_beds where id = bed), 'time', to_char(t,'HH24:MI'));
 end $$;

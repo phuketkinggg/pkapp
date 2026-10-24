@@ -286,6 +286,8 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .spahead small{font-size:11px;opacity:.65}
 .spacol{position:relative;border-left:1px solid var(--line);cursor:copy}
 .spatimes .spacol{border-left:0;cursor:default}
+.spatimes{position:sticky;left:0;z-index:3;background:var(--surface);border-right:1px solid var(--line)}
+.spahr:first-child{transform:none}
 .spahr{position:absolute;left:6px;font-size:11px;opacity:.6;transform:translateY(-50%)}
 .spaline-h{position:absolute;left:0;right:0;border-top:1px dashed var(--line);pointer-events:none}
 .spanow{position:absolute;left:0;right:0;border-top:2px solid var(--bad);z-index:1;pointer-events:none}
@@ -5570,6 +5572,7 @@ function spaBedEdit(b){
     fields:[{key:'name',label:'Name',required:true,hint:'For example Bed 5 or Nail desk 3'},{key:'kind',label:'Type',type:'select',options:SPA_KINDS},{key:'department',label:'Department'},{key:'sort',label:'Order',type:'number'},{key:'active',label:'In use',type:'checkbox'}],
     onSave:function(v){ v.id=b.id||null; return sb.rpc('spa_bed_save',{p:v}).then(must).then(loadSpa); }});
 }
+function spaScrollNow(){ if(ui.spaScrolled) return; ui.spaScrolled=true; setTimeout(function(){ var n=document.querySelector('.spanow'); if(n&&n.scrollIntoView) n.scrollIntoView({block:'center'}); },60); }
 function vSpaBoard(){
   if(!SPAB||SPAB.date!==spaDay()){ if(!ui.spaBusy) loadSpa(); return [pageHead('Board',''),h('div',{class:'panel empty'},ui.spaErr||'Loading the board.')]; }
   var B=SPAB, day=spaDay(), today=day===ymd(new Date()), mgr=me&&me.role==='manager', beds=B.beds.filter(function(b){ return b.active; });
@@ -5594,15 +5597,15 @@ function vSpaBoard(){
       h('span',{class:'chip'},appts.length+' bookings'),h('span',{class:'chip ok'},done+' done'),h('span',{class:'chip'},'Takings '+thb(B.takings)),
       mgr?btn('Treatments',spaServices,'small'):null,mgr?btn('Beds',spaBeds,'small'):null),
     today?h('div',{class:'panel pad spaq'},h('b',null,'Therapists'),
-      nx?h('span',{class:'spanext'},'Next walk-in: ',h('b',null,nx.name)):null,
+      nx?h('span',{class:'spanext'},'Next massage walk-in: ',h('b',null,nx.name)):null,
       h('div',{class:'spastaff'},B.staff.map(function(s){ var bz=busyNow(s.id);
         return h('span',{class:'spachip '+(!s.working?'off':bz?'busy':s.id===B.next?'next':'free')},h('b',null,s.name),h('small',null,!s.working?'Day off':bz?'Busy until '+m2hm(hm2m(bz.time)+bz.minutes):'Free, '+s.done_today+' today')); }))):null,
     !beds.length?h('div',{class:'panel empty'},mgr?'Add your beds first: Beds, above.':'No beds set up yet. Ask the owner.'):h('div',{class:'spawrap'},grid),
-    h('p',{class:'sub'},'Tap an empty space on a bed to book that time. Tap a booking to start, finish or take payment.')];
+    h('p',{class:'sub'},'Tap an empty space on a bed to book that time. Tap a booking to start, finish or take payment.'),today&&beds.length?(spaScrollNow(),null):null];
 }
 /* the customer app: book a treatment */
 function vCSpa(){
-  if(!SPAT){ if(!ui.spatAsked){ ui.spatAsked=true; sb.from('spa_services').select('id,name,department,minutes,price_thb,description,active,sort').eq('active',true).order('department').order('sort').then(function(r){ SPAT=r.data||[]; schedule(); }); } return [pageHead('Book',''),h('div',{class:'panel empty'},'Loading the menu.')]; }
+  if(!SPAT){ if(!ui.spatAsked){ ui.spatAsked=true; sb.from('spa_services').select('id,name,department,minutes,price_thb,description,active,sort').eq('active',true).order('sort').then(function(r){ SPAT=r.data||[]; schedule(); }); } return [pageHead('Book',''),h('div',{class:'panel empty'},'Loading the menu.')]; }
   var deps=[]; SPAT.forEach(function(s){ if(deps.indexOf(s.department)<0) deps.push(s.department); });
   var mine=((CU&&CU.privates)||[]).filter(function(p){ return p.date>=CU.today&&(p.status==='confirmed'||p.status==='requested'); });
   return [pageHead('Book a treatment','Choose a treatment, then a time.'),
@@ -5620,7 +5623,7 @@ function spaMeBook(s){
   setTimeout(function(){ fill(d0); },30);
 }
 /* spa words: the shared screens say therapist and appointment instead of coach and private */
-var SPA_WORDS=[[/\bPrivates\b/g,'Appointments'],[/\bprivates\b/g,'appointments'],[/\bPrivate\b/g,'Appointment'],[/\bprivate\b/g,'appointment'],[/\bCoaches\b/g,'Therapists'],[/\bcoaches\b/g,'therapists'],[/\bCoach\b/g,'Therapist'],[/\bcoach\b/g,'therapist'],[/\bMuay Thai\b/g,'Massage'],[/\bGym\b/g,'Spa'],[/\bgym\b/g,'spa'],[/\bClasses\b/g,'Treatments'],[/\bclasses\b/g,'treatments'],[/\btraining\b/g,'treatments'],[/\bTraining\b/g,'Treatments']];
+var SPA_WORDS=[[/\bPrivates\b/g,'Appointments'],[/\bprivates\b/g,'appointments'],[/\bPrivate\b/g,'Appointment'],[/\bprivate\b/g,'appointment'],[/\bCoaches\b/g,'Therapists'],[/\bcoaches\b/g,'therapists'],[/\bCoach\b/g,'Therapist'],[/\bcoach\b/g,'therapist'],[/\bMuay Thai\b/g,'Massage'],[/\bGym\b/g,'Spa'],[/\bgym\b/g,'spa'],[/\bClasses\b/g,'Treatments'],[/\bclasses\b/g,'treatments'],[/\btraining\b/g,'treatments'],[/\bTraining\b/g,'Treatments'],[/\ba appointment/g,'an appointment'],[/\bA appointment/g,'An appointment']];
 function spaWords(root){
   if(!SPA||!root) return; var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null), n, list=[];
   while((n=w.nextNode())) list.push(n);
@@ -7362,6 +7365,7 @@ function cuCheckInMain(){
     h('div',{class:'donebig'},'Checked in'),h('div',{class:'donewhat'},cuDone.what),
     h('div',{class:'cnote'},CU.me.name+'. '+fmtDate(CU.today)+' at '+cuDone.time+'. '+cuDone.package+'.'),
     h('div',{class:'row'},btn('Check in for something else',function(){ cuDone=null; schedule(); },'small')));
+  if(SPA&&!liveCode()) return null;
   if(!liveCode()) return h('div',{class:'panel pad narrow'},h('b',null,'To check in'),
     h('p',{class:'sub'},'At the gym, tap Scan and point your camera at the QR code at the front desk. Then tap your class.'),
     h('div',{class:'row'},btn('Scan to check in',scanCheckIn,'primary')));
@@ -8459,7 +8463,7 @@ if(!window.supabase||!window.supabase.createClient){
     document.body.insertBefore(dbar,document.body.firstChild);
     var demoBar=function(user){
       var em=String(user&&user.email||'').toLowerCase(), cur=window.DEMO_LOGINS.filter(function(d){ return d.email===em; })[0];
-      var back=h('a',{class:'dback',href:'../'},'← Muay Friend website');
+      var back=h('a',{class:'dback',href:window.DEMO_HOME||'../'},window.DEMO_BRAND?'← '+window.DEMO_BRAND:'← Muay Friend website');
       if(!user){ dbar.replaceChildren(back,h('span',{class:'dtag'},'Live demo'),h('span',null,'Pick a role below to look around.')); dbar.hidden=false; return; }
       var say=h('span',{class:'sub',role:'status',style:'color:#C9D3EA'});
       dbar.replaceChildren(back,
