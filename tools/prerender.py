@@ -92,7 +92,7 @@ def main():
                                      headers={"apikey": KEY, "Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=30) as r:
             shop = json.loads(r.read().decode("utf-8"))
-        snap["products"] = [{"name": x.get("name"), "price": x.get("price"), "image": x.get("image") or "", "sold_out": bool(x.get("sold_out")),
+        snap["products"] = [{"id": x.get("id"), "group": x.get("grp") or "", "name": x.get("name"), "price": x.get("price"), "image": x.get("image") or "", "sold_out": bool(x.get("sold_out")),
                              "description": x.get("description") or ""} for x in (shop.get("products") or []) if x.get("name") and x.get("price")]
     except Exception as e:
         errors.append("shop list: %s" % e)
