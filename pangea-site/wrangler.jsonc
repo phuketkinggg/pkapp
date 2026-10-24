@@ -1,11 +1,14 @@
 {
-  // Cloudflare Worker that serves the Pangea website (static files in this folder).
+  // Cloudflare Worker for pangeaglobalwellness.com: the website (files in this folder) and app.pangeaglobalwellness.com (the Pangea app).
   // In Cloudflare: root directory (Path) = pangea-site, build command empty, deploy command: npx wrangler deploy
   "name": "pangea-site",
+  "main": "worker.js",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": ".",
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    "run_worker_first": true
   }
 }
