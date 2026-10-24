@@ -50,6 +50,14 @@
   <p class="small">© <span id="year">2026</span> Phuket King Muay Thai, Kathu, Phuket.</p>
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
+<script>
+/* a new blog post or page that has no short address yet: send them to it */
+(function(){ var m=location.pathname.match(/^\/([a-z0-9-]{3,121})\/?$/); if(!m) return; var s=m[1], K='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i', R='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/';
+  function has(t,f){ return fetch(R+t+'?select=slug&slug=eq.'+s+f,{headers:{apikey:K}}).then(function(r){ return r.ok?r.json():[]; }).then(function(l){ return l.length>0; }).catch(function(){ return false; }); }
+  has('blog_posts','&status=eq.published').then(function(p){ if(p){ location.replace('/post?p='+s); return; }
+    return has('site_pages','&status=eq.published&removed=eq.false').then(function(g){ if(g) location.replace('/page?p='+s); }); });
+})();
+</script>
 <script src="photos.js?v=13"></script>
 <script src="site.js?v=17"></script>
 <script src="chat.js?v=2" defer></script>

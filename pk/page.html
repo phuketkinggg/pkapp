@@ -52,7 +52,7 @@
 <script>
 (function(){
 'use strict';
-var q=new URLSearchParams(location.search), slug=(q.get('p')||'').toLowerCase(), tok=q.get('preview')||'', box=document.getElementById('page');
+var q=new URLSearchParams(location.search), box=document.getElementById('page'), slug=(q.get('p')||box.getAttribute('data-slug')||'').toLowerCase(), tok=q.get('preview')||'';
 var IMG=/^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\/storage\/v1\/object\/public\/promos\//, esc=PK.esc, title='';
 function img(u){ return IMG.test(String(u||''))?esc(u):''; }
 function link(u,txt){ u=String(u||'').trim(); if(!txt) return '';
@@ -78,7 +78,7 @@ function section(s){ var t=s.type, b=bg(s), a='';
   return ''; }
 function show(p){ if(!p){ box.innerHTML='<section class="band light-sec"><div class="wrap"><h1>Page not found</h1><p>It may have moved. <a href="index.html">Go to the home page</a></p></div></section>'; return; }
   title=p.title||''; document.title=title+' | Phuket King Muay Thai';
-  if(!tok) PK.seo({path:'page?p='+encodeURIComponent(slug),title:title,description:p.description||'',image:((p.sections||[]).filter(function(s){ return s.type==='hero'&&img(s.image); })[0]||{}).image||''});
+  if(!tok) PK.seo({path:PK.live?slug:'page?p='+encodeURIComponent(slug),title:title,description:p.description||'',image:((p.sections||[]).filter(function(s){ return s.type==='hero'&&img(s.image); })[0]||{}).image||''});
   var og=document.querySelector('meta[property="og:title"]'); if(og) og.setAttribute('content',title);
   var hero=(p.sections||[]).filter(function(s){ return s.type==='hero'&&img(s.image); })[0], ogi=document.querySelector('meta[property="og:image"]'); if(hero&&ogi) ogi.setAttribute('content',hero.image);
   box.innerHTML=(tok?'<div class="pg-preview">Preview'+(p.status==='published'?'':', not published yet')+'</div>':'')+(p.sections||[]).map(section).join('');
@@ -87,7 +87,7 @@ if(!/^[a-z0-9-]{1,60}$/.test(slug)) show(null);
 else if(tok) fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/site_page_preview',{method:'POST',headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i','Content-Type':'application/json'},body:JSON.stringify({p_slug:slug,p_token:tok})})
   .then(function(r){ return r.ok?r.json():null; }).then(show).catch(function(){ show(null); });
 else PK.rest('site_pages?select=title,description,sections&status=eq.published&removed=eq.false&slug=eq.'+encodeURIComponent(slug)).then(function(r){ show(r[0]); })
-  .catch(function(){ box.innerHTML='<section class="band"><div class="wrap"><p class="err">This page could not load. Please try again in a moment.</p></div></section>'; });
+  .catch(function(){ if(!box.getAttribute('data-slug')) box.innerHTML='<section class="band"><div class="wrap"><p class="err">This page could not load. Please try again in a moment.</p></div></section>'; });
 })();
 </script>
 </body>

@@ -86,6 +86,142 @@ def finish(html, page=None):
         html = html.replace('<meta name="robots" content="noindex">\n', '').replace('<meta name="robots" content="noindex">', '')
     return html
 
+
+SNAP = os.path.join(ROOT, "prerender", "snapshot.json")
+GYM = DOMAIN + "/#gym"
+
+def esc_attr(t):
+    return (t or "").replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+def ld(obj):
+    return '<script type="application/ld+json">%s</script>' % json.dumps(obj, ensure_ascii=False).replace("</", "<\\/")
+
+def set_meta(html, attr, key, val):
+    tag = '<meta %s="%s" content="%s">' % (attr, key, esc_attr(val))
+    pat = re.compile(r'<meta %s="%s" content="[^"]*">' % (attr, re.escape(key)))
+    return pat.sub(lambda m: tag, html, count=1) if pat.search(html) else html.replace("</head>", tag + "\n</head>", 1)
+
+def strip_tags(t):
+    t = re.sub(r"<(script|style)[\s\S]*?</\1>", " ", t)
+    t = re.sub(r"<[^>]+>", " ", t)
+    for a, b in (("&nbsp;", " "), ("&amp;", "&"), ("&quot;", '"'), ("&#39;", "'"), ("&lt;", "<"), ("&gt;", ">")):
+        t = t.replace(a, b)
+    return re.sub(r"\s+", " ", t).strip()
+
+def faq_ld(html):
+    qa = re.findall(r"<details><summary><h3>(.*?)</h3></summary>\s*<div[^>]*>(.*?)</div>\s*</details>", html, re.S)
+    if not qa:
+        return None
+    return {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [
+        {"@type": "Question", "name": strip_tags(q), "acceptedAnswer": {"@type": "Answer", "text": strip_tags(a)}} for q, a in qa]}
+
+def static_page(tpl, box_open, box_close, item, url, extra_ld):
+    """One pre-rendered page: the normal template with the content already inside, its own title, address and data."""
+    h = tpl.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/">', 1)
+    title = item["title"] + " | Phuket King Muay Thai"
+    h = re.sub(r"<title>.*?</title>", "<title>%s</title>" % esc_attr(title), h, count=1, flags=re.S)
+    desc = item.get("description") or strip_tags(item["html"])[:155]
+    h = set_meta(h, "name", "description", desc)
+    h = set_meta(h, "property", "og:title", item["title"])
+    h = set_meta(h, "property", "og:description", desc)
+    h = set_meta(h, "property", "og:url", url)
+    if item.get("image"):
+        h = set_meta(h, "property", "og:image", item["image"])
+    h = re.sub(r'<link rel="canonical" href="[^"]*">\n?', "", h)
+    h = h.replace("</title>", '</title>\n<link rel="canonical" href="%s">' % url, 1)
+    h = h.replace("</head>", "\n".join(ld(x) for x in extra_ld if x) + "\n</head>", 1)
+    i = h.index(box_open)
+    j = h.index(box_close, i)
+    slug_attr = box_open[:-1] + ' data-slug="%s">' % item["slug"]
+    return h[:i] + slug_attr + item["html"] + h[j:]
+
+def build_static(out):
+    """Blog posts and app pages as their own pages, prices with the price list inside. Returns the short addresses made."""
+    if not os.path.exists(SNAP):
+        return [], None
+    snap = json.load(open(SNAP, encoding="utf-8"))
+    taken = {p[:-5] for p in os.listdir(out) if p.endswith(".html")} | {"blog", "post", "page", "prices", "book", "pk", "img", "icons"}
+    made = []
+    post_tpl = open(os.path.join(out, "post.html"), encoding="utf-8").read()
+    page_tpl = open(os.path.join(out, "page.html"), encoding="utf-8").read()
+    crumbs = lambda name, url, mid=None: {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": i + 1, "name": n, "item": u} for i, (n, u) in enumerate([("Home", DOMAIN + "/")] + ([mid] if mid else []) + [(name, url)])]}
+    for p in snap.get("posts", []):
+        if p["slug"] in taken:
+            continue
+        url = DOMAIN + "/" + p["slug"]
+        art = {"@context": "https://schema.org", "@type": "BlogPosting", "headline": p["title"], "datePublished": p.get("published"),
+               "description": p.get("description") or None, "image": p.get("image") or None, "mainEntityOfPage": url, "inLanguage": "en",
+               "author": {"@type": "Organization", "name": "Phuket King Muay Thai", "url": DOMAIN + "/"},
+               "publisher": {"@type": "Organization", "name": "Phuket King Muay Thai", "logo": {"@type": "ImageObject", "url": DOMAIN + "/icons/icon-512.png"}}}
+        art = {k: v for k, v in art.items() if v is not None}
+        html = static_page(post_tpl, '<div id="post">', '</div>\n</div></article>', p, url,
+                           [art, crumbs(p["title"], url, ("Blog", DOMAIN + "/blog")), faq_ld(p["html"])])
+        open(os.path.join(out, p["slug"] + ".html"), "w", encoding="utf-8").write(html)
+        taken.add(p["slug"]); made.append(("/" + p["slug"], "0.6"))
+    for p in snap.get("pages", []):
+        if p["slug"] in taken:
+            continue
+        url = DOMAIN + "/" + p["slug"]
+        web = {"@context": "https://schema.org", "@type": "WebPage", "name": p["title"], "url": url, "description": p.get("description") or None,
+               "isPartOf": {"@id": DOMAIN + "/#website"}, "about": {"@id": GYM}, "inLanguage": "en"}
+        web = {k: v for k, v in web.items() if v is not None}
+        html = static_page(page_tpl, '<main id="page">', '</main>', p, url, [web, crumbs(p["title"], url), faq_ld(p["html"])])
+        open(os.path.join(out, p["slug"] + ".html"), "w", encoding="utf-8").write(html)
+        taken.add(p["slug"]); made.append(("/" + p["slug"], "0.7"))
+    # the price list inside prices.html, plus the prices as data
+    pr = os.path.join(out, "prices.html")
+    h = open(pr, encoding="utf-8").read()
+    if snap.get("prices") and '<div id="groups">' in h:
+        i = h.index('<div id="groups">'); j = h.index("</div>", i)
+        h = h[:i] + '<div id="groups">' + snap["prices"]["html"] + h[j:]
+    offers = [{"@type": "Offer", "name": x["name"], "price": x["price"], "priceCurrency": "THB", "availability": "https://schema.org/InStock",
+               "url": DOMAIN + "/prices", "seller": {"@id": GYM}} for x in snap.get("packages", [])]
+    if snap.get("private_price"):
+        offers.append({"@type": "Offer", "name": "Private Muay Thai lesson, 1 hour", "price": snap["private_price"], "priceCurrency": "THB", "url": DOMAIN + "/prices", "seller": {"@id": GYM}})
+    if offers:
+        h = h.replace("</head>", ld({"@context": "https://schema.org", "@type": "OfferCatalog", "name": "Phuket King Muay Thai training prices", "url": DOMAIN + "/prices", "itemListElement": offers}) + "\n</head>", 1)
+    open(pr, "w", encoding="utf-8").write(h)
+    return made, snap
+
+
+def llms_txt(out, snap, made):
+    """A short plain summary for AI tools (llms.txt): who we are, what it costs, when classes run, where to read more."""
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    L = ["# Phuket King Muay Thai", "",
+         "> Technique first Muay Thai gym in Kathu, Phuket, Thailand, for complete beginners up to fighters. "
+         "On a 2,000 m2 lakeside site with its own resort (Pangea Resort, lakeside bungalows), a healthy cafe and a recovery area "
+         "(herbal sauna, dry sauna, steam room, ice bath, red light). Helps students with the Thailand DTV visa through Muay Thai.", "",
+         "- Address: Kathu, Phuket 83120, Thailand (Google Maps: https://maps.google.com/?cid=9002483919313262850)",
+         "- Email: hello@phuketking.com",
+         "- WhatsApp and phone: +66 61 515 5947",
+         "- Website: %s/" % DOMAIN,
+         "- Booking training: %s/prices" % DOMAIN,
+         "- Rooms at Pangea Resort (book direct): %s/book" % DOMAIN,
+         "- DTV visa through Muay Thai: %s/dtv" % DOMAIN, ""]
+    cl = [c for c in (snap.get("classes") or []) if c.get("time") and c.get("day") is not None]
+    if cl:
+        L += ["## Class timetable (Thailand time)", ""]
+        for d in range(7):
+            row = sorted([c for c in cl if c.get("day") == d], key=lambda c: c["time"])
+            if row:
+                L.append("- %s: %s" % (days[d], ", ".join("%s%s %s" % (c["time"], ("-" + c["end"]) if c.get("end") else "", c.get("title") or c.get("discipline") or "") for c in row)))
+        L += ["- Sunday: privates only" if not any(c.get("day") == 6 for c in cl) else "", ""]
+    pk = snap.get("packages") or []
+    if pk or snap.get("private_price"):
+        L += ["## Prices (Thai baht)", ""]
+        if snap.get("private_price"):
+            L.append("- Private lesson, 1 hour: %s THB" % format(int(snap["private_price"]), ","))
+        L += ["- %s: %s THB" % (x["name"], format(int(x["price"]), ",")) for x in pk]
+        L += ["", "Card payments carry a card fee. Prices are kept up to date at %s/prices" % DOMAIN, ""]
+    if snap.get("posts"):
+        L += ["## Guides", ""] + ["- [%s](%s/%s)%s" % (p["title"], DOMAIN, p["slug"], (": " + p["description"]) if p.get("description") else "") for p in snap["posts"] if ("/" + p["slug"], "0.6") in made] + [""]
+    pages = [p for p in snap.get("pages", []) if ("/" + p["slug"], "0.7") in made]
+    if pages:
+        L += ["## Pages", ""] + ["- [%s](%s/%s)%s" % (p["title"], DOMAIN, p["slug"], (": " + p["description"]) if p.get("description") else "") for p in pages] + [""]
+    L += ["## More", "", "- [About](%s/about)" % DOMAIN, "- [Wellness and recovery](%s/wellness)" % DOMAIN, "- [Online courses](%s/courses)" % DOMAIN, "- [Shop](%s/shop)" % DOMAIN, "- [Blog](%s/blog)" % DOMAIN]
+    open(os.path.join(out, "llms.txt"), "w", encoding="utf-8").write("\n".join(x for x in L if x is not None).replace("\n\n\n", "\n\n") + "\n")
+
 def main():
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
@@ -108,6 +244,10 @@ def main():
             shutil.copy2(os.path.join(ROOT, "icons", f), os.path.join(OUT, "icons", f))
     for f in ("resort-aerial.jpg", "mango-grove-5.mp4", "mango-grove-5.jpg"):
         shutil.copy2(os.path.join(ROOT, "img", f), os.path.join(OUT, "img", f))
+    made, snap = build_static(OUT)
+    if snap and LIVE:
+        llms_txt(OUT, snap, made)
+    short = {u[1:] for u, _ in made}
     # old WordPress addresses forward permanently to the new pages (Cloudflare Pages reads this file)
     r = [
         "/about-us /about 301", "/about-us/ /about 301", "/team /#coaches 301", "/team/ /#coaches 301",
@@ -128,7 +268,8 @@ def main():
     ]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
-        r += ["/%s /post?p=%s 301" % (s, s), "/%s/ /post?p=%s 301" % (s, s)]
+        r += ["/%s/ /%s 301" % (s, s)] if s in short else ["/%s /post?p=%s 301" % (s, s), "/%s/ /post?p=%s 301" % (s, s)]
+    r += ["/%s/ /%s 301" % (s, s) for s in sorted(short) if s not in slugs]
     r = [x.replace("  ", " ") for x in r if not x.startswith("/blog /blog 200") and not x.startswith("/wellness /wellness 200")]
     open(os.path.join(OUT, "_redirects"), "w").write("\n".join(r) + "\n")
     # security headers for every page (Cloudflare Pages reads this file)
@@ -149,8 +290,9 @@ def main():
     today = datetime.date.today().isoformat()
     urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/courses", "0.6"), ("/shop", "0.6"), ("/blog", "0.6")]
     # blog posts and app pages too (copied from the live sitemap into tools/sitemap_extra.txt), so Google sees them on the main sitemap
+    urls += [m for m in made if m[0] not in {u for u, _ in urls}]
     ex = os.path.join(ROOT, "tools", "sitemap_extra.txt")
-    if os.path.exists(ex):
+    if os.path.exists(ex) and not made:
         for line in open(ex, encoding="utf-8"):
             u = line.strip().replace(DOMAIN, "")
             if u.startswith("/") and "&" not in u and "<" not in u and all(u != x[0] for x in urls):

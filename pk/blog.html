@@ -54,7 +54,7 @@ var box=document.getElementById('posts');
 PK.rest('blog_posts?select=slug,title,excerpt,cover_url,published_at&status=eq.published&order=published_at.desc&limit=200').then(function(list){
   box.innerHTML='';
   if(!list.length){ box.innerHTML='<p class="sub">No posts yet.</p>'; return; }
-  list.forEach(function(p){ var a=PK.el('a','card post'); a.href='post.html?p='+encodeURIComponent(p.slug);
+  list.forEach(function(p){ var a=PK.el('a','card post'); a.href=PK.postUrl(p.slug);
     a.innerHTML=(p.cover_url?'<img src="'+PK.esc(p.cover_url)+'" alt="" loading="lazy">':'<div class="nocover"></div>')+'<div class="in"><span class="num">'+PK.esc(PK.date(p.published_at))+'</span><h3>'+PK.esc(p.title)+'</h3>'+(p.excerpt?'<p>'+PK.esc(p.excerpt)+'</p>':'')+'<span class="more">Read more</span></div>';
     box.appendChild(a); });
 }).catch(function(){ box.innerHTML='<p class="err">The posts could not load. Please try again in a moment.</p>'; });

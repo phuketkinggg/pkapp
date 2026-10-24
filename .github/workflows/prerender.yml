@@ -1,0 +1,40 @@
+name: Website pre-render
+# Every few hours: draws the blog posts, app pages and prices into plain HTML, so Google and AI tools
+# (ChatGPT, Claude, Perplexity) can read them without running JavaScript. Commits only when something changed.
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: prerender
+  cancel-in-progress: false
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Browser
+        run: |
+          pip install playwright==1.47.0
+          python -m playwright install --with-deps chromium
+      - name: Build, render, build again
+        run: |
+          python tools/build_site.py
+          python tools/prerender.py
+          python tools/build_site.py
+          rm -rf tools/__pycache__
+      - name: Save if changed
+        run: |
+          git config user.name "Phuket King website"
+          git config user.email "hello@phuketking.com"
+          git add prerender site
+          if git diff --cached --quiet; then echo "no change"; exit 0; fi
+          git commit -m "Website: refresh pre-rendered posts, pages and prices"
+          git pull --rebase origin main
+          git push origin HEAD:main

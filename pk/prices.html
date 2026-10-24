@@ -246,7 +246,7 @@ PK.data().then(function(d){
   var st=PK.el('a',null,'Stay'); st.href='#stay'; tabs.appendChild(st);
   var want=new URLSearchParams(location.search).get('buy'); if(want&&GP[want]){ try{ history.replaceState(null,'',location.pathname); }catch(e){} buy(GP[want].p,GP[want].g); }
   if(location.hash){ var e=document.querySelector(location.hash); if(e) setTimeout(function(){ e.scrollIntoView(); },50); }
-}).catch(function(){ document.getElementById('groups').innerHTML='<p class="err" style="margin:40px 0">Prices could not load. WhatsApp us and we will send them.</p>'; });
+}).catch(function(){ var g=document.getElementById('groups'); if(!g.querySelector('.group')) g.innerHTML='<p class="err" style="margin:40px 0">Prices could not load. WhatsApp us and we will send them.</p>'; });
 })();
 </script>
 </body>

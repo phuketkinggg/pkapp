@@ -7,6 +7,10 @@ var WA='66615155947';
 (function(){ try{ var m=location.search.match(/[?&]ref=([A-Za-z0-9-]{2,30})(?:&|$)/); if(m) localStorage.setItem('pk_ref',JSON.stringify({c:m[1].toLowerCase(),t:Date.now()})); }catch(e){} })();
 window.PKREF=function(){ try{ var x=JSON.parse(localStorage.getItem('pk_ref')||'null'); if(x&&x.c&&Date.now()-x.t<60*864e5) return x.c; }catch(e){} return null; };
 window.PK={
+  /* on the live website, blog posts and app pages have their own short address (www.phuketking.com/slug) */
+  live:/^(www\.|new\.)?phuketking\.com$|\.pages\.dev$/.test(location.hostname),
+  postUrl:function(s){ return this.live?'/'+s:'post.html?p='+encodeURIComponent(s); },
+  pageUrl:function(s){ return this.live?'/'+s:'page.html?p='+encodeURIComponent(s); },
   thb:function(n){ return Number(n).toLocaleString('en-US')+' THB'; },
   wa:function(text){ return 'https://wa.me/'+WA+'?text='+encodeURIComponent(text); },
   data:function(){ if(!this._d) this._d=fetch(FN).then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); return d; }); return this._d; },
@@ -72,7 +76,7 @@ PK.data().then(function(d){ var ph=(d&&d.photos)||{}, ok=/^https:\/\/jijnshwduhg
 PK.rest('site_pages?select=slug,title,footer_label&in_footer=eq.true&status=eq.published&removed=eq.false&order=title').then(function(list){
   if(!list||!list.length) return; var blog=document.querySelector('footer a[href$="blog.html"]'); if(!blog) return;
   var base=blog.getAttribute('href').replace(/blog\.html$/,'page.html?p='), col=blog.parentNode;
-  list.forEach(function(x){ if(!/^[a-z0-9-]{1,60}$/.test(x.slug)) return; var a=document.createElement('a'); a.href=base+x.slug; a.textContent=x.footer_label||x.title; col.appendChild(a); });
+  list.forEach(function(x){ if(!/^[a-z0-9-]{1,60}$/.test(x.slug)) return; var a=document.createElement('a'); a.href=PK.live?PK.pageUrl(x.slug):base+x.slug; a.textContent=x.footer_label||x.title; col.appendChild(a); });
 },function(){});
 /* website numbers: small anonymous events (no names or emails), so the owner sees where visitors stop. See the app, Website numbers. */
 (function(){
