@@ -1,0 +1,11 @@
+{
+  // Cloudflare Worker that serves the Pangea website (static files in this folder).
+  // In Cloudflare: root directory (Path) = pangea-site, build command empty, deploy command: npx wrangler deploy
+  "name": "pangea-site",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": ".",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}
