@@ -273,6 +273,27 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .kcard{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
 .kcard.new{border-color:var(--bad)}
 .kcard.preparing{border-color:var(--warn)}
+.spabar{align-items:center;margin:0 0 10px}
+.spaq{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px}
+.spanext{margin-left:auto;font-size:14px}
+.spastaff{display:flex;flex-wrap:wrap;gap:6px;width:100%}
+.spachip{display:flex;flex-direction:column;padding:6px 10px;border-radius:10px;border:1.5px solid var(--line);font-size:13px;line-height:1.25}
+.spachip small{opacity:.75}.spachip.free{border-color:var(--ok)}.spachip.next{border-color:var(--ok);background:#E3F2E8}.spachip.busy{border-color:var(--warn);background:#FFF2D9}.spachip.off{opacity:.45}
+.spawrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.spagrid{display:grid;grid-template-columns:52px repeat(var(--cols),minmax(150px,1fr));min-width:max-content}
+.spahead{height:44px;padding:6px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:2;display:flex;flex-direction:column;justify-content:center}
+.spahead small{font-size:11px;opacity:.65}
+.spacol{position:relative;border-left:1px solid var(--line);cursor:copy}
+.spatimes .spacol{border-left:0;cursor:default}
+.spahr{position:absolute;left:6px;font-size:11px;opacity:.6;transform:translateY(-50%)}
+.spaline-h{position:absolute;left:0;right:0;border-top:1px dashed var(--line);pointer-events:none}
+.spanow{position:absolute;left:0;right:0;border-top:2px solid var(--bad);z-index:1;pointer-events:none}
+.spablock{position:absolute;left:4px;right:4px;border-radius:8px;padding:4px 7px;text-align:left;font:inherit;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;gap:1px;border:1.5px solid var(--line);background:#EEF4FB;color:inherit}
+.spablock b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.spablock span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.8}
+.spablock.on{background:#FFF2D9;border-color:var(--warn)}.spablock.done{background:#EDEDED;opacity:.8}.spablock.paid{border-style:solid}.spablock.booked{border-color:#9DB9DE}
+.spalist{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow:auto}
+.spaline{display:flex;justify-content:space-between;gap:10px;text-align:left;font:inherit;color:inherit;background:transparent;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer}
+.spaline span{opacity:.75;font-size:13px}.spaline.off{opacity:.5}
 .kstat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
 .kstat .kst{font-weight:700;padding:8px 14px;border-radius:999px}
 .kstat .kst.ok{background:#E3F2E8;color:var(--ok)}
@@ -738,6 +759,10 @@ var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
 var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
+/* spa and salon mode (Massage Mate builds set window.SHOP_TYPE='spa'): the bed board first, gym-only screens hidden */
+var SPA=window.SHOP_TYPE==='spa';
+if(SPA){ var SPA_HIDE=['today','kitchen','stays','housekeeping','timetable','fights','courses','coaching'], SPA_NAMES={privates:'Appointments',coach:'Therapist view',packages:'Packs and prices'};
+  ALLTABS=[['board','Board']].concat(ALLTABS.filter(function(t){ return SPA_HIDE.indexOf(t[0])<0; }).map(function(t){ return SPA_NAMES[t[0]]?[t[0],SPA_NAMES[t[0]]]:t; })); }
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
 var TIERS={train:'Train',progress:'Progress',pangea:'Pangea'};
@@ -5461,6 +5486,147 @@ function kitchenControls(){
       h('div',{class:'soldgrid'},dishes.map(function(x){ return btn(x.name,function(){ sb.rpc('kitchen_sold_out',{p_product:x.id,p_out:!x.sold_out}).then(must).then(function(){ toast(x.sold_out?x.name+' is back on.':x.name+' is sold out today.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); },x.sold_out?'small out':'small'); }))):null);
 }
 
+/* ---------- spa and salon mode (Massage Mate): the bed board, treatments, beds, walk-ins and the customer booking ---------- */
+var SPAB=null, SPAT=null;
+function spaDay(){ return ui.spaDay||ymd(new Date()); }
+function loadSpa(){ var d=spaDay(); ui.spaBusy=true; return sb.rpc('spa_board',{p_date:d}).then(function(r){ ui.spaBusy=false; if(r.error){ ui.spaErr=errText(r.error); schedule(); return; } if(d!==spaDay()) return; ui.spaErr=null; SPAB=r.data; if(!document.querySelector('dialog[open]')) schedule(); }); }
+setInterval(function(){ if(SPA&&me&&allReady&&ui.tab==='board'&&document.visibilityState!=='hidden') loadSpa(); },20000);
+function hm2m(s){ s=String(s||'00:00'); return Number(s.slice(0,2))*60+Number(s.slice(3,5)); }
+function m2hm(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function spaSvc(id){ return ((SPAB&&SPAB.services)||[]).filter(function(s){ return s.id===id; })[0]||null; }
+function spaStaff(id){ return ((SPAB&&SPAB.staff)||[]).filter(function(s){ return s.id===id; })[0]||null; }
+function spaBed(id){ return ((SPAB&&SPAB.beds)||[]).filter(function(s){ return s.id===id; })[0]||null; }
+var SPA_KINDS=[['bed','Massage bed'],['couple','Couple room'],['foot','Foot chair'],['nail','Nail desk'],['facial','Facial bed'],['hair','Hair chair'],['other','Other']];
+function spaNowMin(){ var b=new Date(Date.now()+7*3600e3); return b.getUTCHours()*60+b.getUTCMinutes(); }
+
+function spaBook(pre){
+  pre=pre||{}; var svcs=((SPAB&&SPAB.services)||[]).filter(function(s){ return s.active; }), staff=(SPAB&&SPAB.staff)||[];
+  if(!svcs.length){ toast('Add your treatments first: Treatments, at the top of the board.'); return; }
+  var walk=!!pre.walk, now=spaNowMin(), nowT=m2hm(Math.ceil(now/5)*5);
+  openForm({title:walk?'Walk-in':'New booking',note:walk?'Starts now with the next free therapist, unless you pick one.':'Leave the therapist on "Next free" and the app picks who is free, in turn.',saveLabel:walk?'Start now':'Book',
+    values:{service_id:pre.service_id||svcs[0].id,date:walk?ymd(new Date()):spaDay(),time:walk?nowT:(pre.time||''),staff_id:pre.staff_id||'',bed_id:pre.bed_id||''},
+    fields:[
+      {key:'service_id',label:'Treatment',type:'select',options:svcs.map(function(s){ return [s.id,s.name+', '+s.minutes+' min, '+thb(s.price)]; }),onChange:function(v,set,get){ fillTimes(get); }},
+      {key:'date',label:'Day',type:'date',hide:walk,onChange:function(v,set,get){ fillTimes(get); }},
+      {key:'time',label:'Time',type:walk?'text':'select',options:[['','Choose the treatment and day']],hide:walk},
+      {key:'staff_id',label:'Therapist',type:'select',options:[['','Next free (fair turn)']].concat(staff.map(function(s){ return [s.id,s.name]; })),hint:'Pick a name only when the customer asks for that person.'},
+      {key:'name',label:'Customer name',hint:'New customers are added. Leave empty for a walk-in guest.'},
+      {key:'phone',label:'Phone',type:'tel',hint:'Finds a returning customer by phone.'},
+      {key:'note',label:'Notes',hint:'Pressure, areas to avoid, oil allergies'}],
+    onSave:function(v){ var p={service_id:v.service_id,date:walk?ymd(new Date()):v.date,time:walk?nowT:v.time,staff_id:v.staff_id||null,name:v.name,phone:v.phone,note:v.note,walk_in:walk};
+      if(!p.time) return 'Choose a time.';
+      return sb.rpc('spa_book',{p:p}).then(must).then(function(r){ toast((walk?'Walk-in: ':'Booked: ')+r.staff+', '+r.bed+', '+r.time+'.'); ui.spaDay=p.date; return loadSpa(); }); }});
+  function fillTimes(get){ if(walk) return; var sel=document.getElementById('f-time'); if(!sel) return; var sv=get('service_id'), d=get('date')||spaDay();
+    sel.replaceChildren(h('option',{value:''},'Loading free times'));
+    sb.rpc('spa_times',{p_service:sv,p_date:d,p_staff:null}).then(function(r){ var list=(r.data||[]); sel.replaceChildren.apply(sel,list.length?list.map(function(t){ return h('option',{value:t,selected:t===pre.time},t); }):[h('option',{value:''},'No free time that day')]); }); }
+  setTimeout(function(){ fillTimes(function(k){ var el=document.getElementById('f-'+k); return el?el.value:''; }); },30);
+}
+function spaAppt(a){
+  var sv=spaSvc(a.service_id), st=spaStaff(a.staff_id), bd=spaBed(a.bed_id), end=m2hm(hm2m(a.time)+a.minutes);
+  function step(s,msg){ return sb.rpc('spa_step',{p_id:a.id,p_step:s}).then(must).then(function(){ $dlg.close(); toast(msg); return loadSpa(); }).catch(function(e){ toast(errText(e)); }); }
+  function pay(m){ return sb.rpc('spa_pay',{p_id:a.id,p_method:m}).then(must).then(function(){ $dlg.close(); toast('Paid by '+m+'. It shows in the takings.'); return loadSpa(); }).catch(function(e){ toast(errText(e)); }); }
+  $dlg.replaceChildren(h('div',{class:'billbox'},
+    h('h2',null,a.who),
+    h('p',{class:'sub'},a.time+' to '+end+', '+(bd?bd.name:'')+', with '+(st?st.name:'')+(a.requested?' (asked for)':'')),
+    h('p',null,h('b',null,a.service),' ',thb(a.price),a.paid?chip('Paid','ok'):chip('Not paid','warn'),a.walk_in?chip('Walk-in'):null),
+    a.note?h('p',{class:'sub'},'Notes: '+a.note):null, a.phone?h('p',{class:'sub'},a.phone):null,
+    h('div',{class:'row wrap',style:'margin-top:12px'},
+      a.status==='confirmed'&&!a.started?btn('Start',function(){ step('start','Started. The bed shows as busy.'); },'primary'):null,
+      a.status==='confirmed'&&a.started?btn('Finish',function(){ step('done','Finished. The therapist is back in the queue.'); },'primary'):null,
+      a.status==='confirmed'&&a.started?btn('Not started yet',function(){ step('unstart','Back to booked.'); }):null,
+      !a.paid?btn('Paid cash',function(){ pay('cash'); }):null, !a.paid?btn('Paid card',function(){ pay('card'); }):null, !a.paid?btn('Paid transfer',function(){ pay('transfer'); }):null),
+    a.status==='confirmed'&&me.role!=='coach'?h('div',{class:'row wrap',style:'margin-top:8px'},btn('No show',function(){ step('noshow','Marked as a no show.'); },'small'),btn('Cancel booking',function(){ step('cancel','Cancelled.'); },'small danger')):null,
+    h('div',{class:'row',style:'margin-top:14px;justify-content:flex-end'},btn('Close',function(){ $dlg.close(); }))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function spaServices(){
+  var list=(SPAB&&SPAB.services)||[];
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Treatments'),h('p',{class:'sub'},'Your menu: time, price, which bed it needs and who can do it.'),
+    h('div',{class:'spalist'},list.map(function(s){ return h('button',{type:'button',class:'spaline'+(s.active?'':' off'),onclick:function(){ spaService(s); }},h('b',null,s.name),h('span',null,s.department+', '+s.minutes+' min, '+thb(s.price)+(s.active?'':', hidden'))); })),
+    h('div',{class:'row',style:'margin-top:12px;justify-content:space-between'},btn('Add a treatment',function(){ spaService(); },'primary'),btn('Close',function(){ $dlg.close(); }))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function spaService(s){
+  var staff=(SPAB&&SPAB.staff)||[]; s=s||{active:true,minutes:60,department:'Massage',bed_kind:'bed',staff_ids:[]};
+  openForm({title:s.id?'Edit treatment':'New treatment',values:{name:s.name,department:s.department,minutes:s.minutes,price:s.price,bed_kind:s.bed_kind,staff_ids:s.staff_ids||[],description:s.description,sort:s.sort||0,active:s.active!==false},saveLabel:'Save',doneMsg:'Treatment saved.',
+    fields:[{key:'name',label:'Name',required:true,hint:'For example Thai massage, 60 minutes'},{key:'department',label:'Department',hint:'Massage, Nails, Beauty, Hair'},
+      {key:'minutes',label:'Minutes',type:'number',required:true},{key:'price',label:'Price (THB)',type:'number',required:true},
+      {key:'bed_kind',label:'Needs',type:'select',options:SPA_KINDS},
+      {key:'staff_ids',label:'Who can do it (none ticked = everyone)',type:'checks',options:staff.map(function(x){ return [x.id,x.name]; })},
+      {key:'description',label:'Short description',type:'textarea'},{key:'sort',label:'Order on the menu',type:'number'},{key:'active',label:'On the menu',type:'checkbox'}],
+    onSave:function(v){ v.id=s.id||null; return sb.rpc('spa_service_save',{p:v}).then(must).then(loadSpa); }});
+}
+function spaBeds(){
+  var list=(SPAB&&SPAB.beds)||[];
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Beds and rooms'),h('p',{class:'sub'},'Each bed, chair or room that can be booked.'),
+    h('div',{class:'spalist'},list.map(function(b){ return h('button',{type:'button',class:'spaline'+(b.active?'':' off'),onclick:function(){ spaBedEdit(b); }},h('b',null,b.name),h('span',null,(SPA_KINDS.filter(function(k){ return k[0]===b.kind; })[0]||['',''])[1]+', '+b.department)); })),
+    h('div',{class:'row',style:'margin-top:12px;justify-content:space-between'},btn('Add a bed',function(){ spaBedEdit(); },'primary'),btn('Close',function(){ $dlg.close(); }))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
+function spaBedEdit(b){
+  b=b||{active:true,kind:'bed',department:'Massage'};
+  openForm({title:b.id?'Edit bed':'New bed',values:{name:b.name,kind:b.kind,department:b.department,sort:b.sort||0,active:b.active!==false},saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'name',label:'Name',required:true,hint:'For example Bed 5 or Nail desk 3'},{key:'kind',label:'Type',type:'select',options:SPA_KINDS},{key:'department',label:'Department'},{key:'sort',label:'Order',type:'number'},{key:'active',label:'In use',type:'checkbox'}],
+    onSave:function(v){ v.id=b.id||null; return sb.rpc('spa_bed_save',{p:v}).then(must).then(loadSpa); }});
+}
+function vSpaBoard(){
+  if(!SPAB||SPAB.date!==spaDay()){ if(!ui.spaBusy) loadSpa(); return [pageHead('Board',''),h('div',{class:'panel empty'},ui.spaErr||'Loading the board.')]; }
+  var B=SPAB, day=spaDay(), today=day===ymd(new Date()), mgr=me&&me.role==='manager', beds=B.beds.filter(function(b){ return b.active; });
+  var appts=B.appts.filter(function(a){ return a.status!=='cancelled'; }), now=spaNowMin();
+  var startM=Math.min.apply(null,[600].concat(appts.map(function(a){ return hm2m(a.time); }))), endM=Math.max.apply(null,[1320].concat(appts.map(function(a){ return hm2m(a.time)+a.minutes; })));
+  startM=Math.floor(startM/60)*60; endM=Math.ceil(endM/60)*60; var PX=1.4, H=(endM-startM)*PX;
+  var nx=spaStaff(B.next), done=appts.filter(function(a){ return a.status==='done'; }).length;
+  var hours=[]; for(var m=startM;m<=endM;m+=60) hours.push(m);
+  function busyNow(sid){ return appts.filter(function(a){ return a.staff_id===sid&&a.status==='confirmed'&&a.started&&today&&hm2m(a.time)<=now&&now<hm2m(a.time)+a.minutes; })[0]; }
+  var grid=h('div',{class:'spagrid',style:'--cols:'+beds.length},
+    h('div',{class:'spatimes'},h('div',{class:'spahead'},''),h('div',{class:'spacol',style:'height:'+H+'px'},hours.map(function(m){ return h('span',{class:'spahr',style:'top:'+((m-startM)*PX)+'px'},m2hm(m)); }))),
+    beds.map(function(b){
+      var col=h('div',{class:'spacol',style:'height:'+H+'px',onclick:function(ev){ if(ev.target!==col) return; var r=col.getBoundingClientRect(), mm=startM+Math.round((ev.clientY-r.top)/PX/15)*15; spaBook({bed_id:b.id,time:m2hm(mm)}); }},
+        hours.map(function(m){ return h('i',{class:'spaline-h',style:'top:'+((m-startM)*PX)+'px'}); }),
+        today&&now>=startM&&now<=endM?h('i',{class:'spanow',style:'top:'+((now-startM)*PX)+'px'}):null,
+        appts.filter(function(a){ return a.bed_id===b.id; }).map(function(a){ var st=spaStaff(a.staff_id), top=(hm2m(a.time)-startM)*PX, cls='spablock '+(a.status==='done'?'done':a.started?'on':'booked')+(a.paid?' paid':'');
+          return h('button',{type:'button',class:cls,style:'top:'+top+'px;height:'+Math.max(26,a.minutes*PX-3)+'px',onclick:function(){ spaAppt(a); }},
+            h('b',null,a.time+' '+a.who),h('span',null,a.service.replace(/, \d+ minutes$/,'')),h('span',null,(st?st.name:'')+(a.paid?' · paid':''))); }));
+      return h('div',{class:'spabed'},h('div',{class:'spahead'},h('b',null,b.name),h('small',null,b.department)),col); }));
+  return [pageHead('Board',fmtDate(day)+(today?', today':''),h('div',{class:'row wrap'},btn('Walk-in',function(){ spaBook({walk:true}); },'primary'),btn('New booking',function(){ spaBook(); }))),
+    h('div',{class:'row wrap spabar'},btn('‹',function(){ ui.spaDay=addDays(day,-1); SPAB=null; loadSpa(); schedule(); },'small'),btn('Today',function(){ ui.spaDay=null; SPAB=null; loadSpa(); schedule(); },'small'),btn('›',function(){ ui.spaDay=addDays(day,1); SPAB=null; loadSpa(); schedule(); },'small'),
+      h('span',{class:'chip'},appts.length+' bookings'),h('span',{class:'chip ok'},done+' done'),h('span',{class:'chip'},'Takings '+thb(B.takings)),
+      mgr?btn('Treatments',spaServices,'small'):null,mgr?btn('Beds',spaBeds,'small'):null),
+    today?h('div',{class:'panel pad spaq'},h('b',null,'Therapists'),
+      nx?h('span',{class:'spanext'},'Next walk-in: ',h('b',null,nx.name)):null,
+      h('div',{class:'spastaff'},B.staff.map(function(s){ var bz=busyNow(s.id);
+        return h('span',{class:'spachip '+(!s.working?'off':bz?'busy':s.id===B.next?'next':'free')},h('b',null,s.name),h('small',null,!s.working?'Day off':bz?'Busy until '+m2hm(hm2m(bz.time)+bz.minutes):'Free, '+s.done_today+' today')); }))):null,
+    !beds.length?h('div',{class:'panel empty'},mgr?'Add your beds first: Beds, above.':'No beds set up yet. Ask the owner.'):h('div',{class:'spawrap'},grid),
+    h('p',{class:'sub'},'Tap an empty space on a bed to book that time. Tap a booking to start, finish or take payment.')];
+}
+/* the customer app: book a treatment */
+function vCSpa(){
+  if(!SPAT){ if(!ui.spatAsked){ ui.spatAsked=true; sb.from('spa_services').select('id,name,department,minutes,price_thb,description,active,sort').eq('active',true).order('department').order('sort').then(function(r){ SPAT=r.data||[]; schedule(); }); } return [pageHead('Book',''),h('div',{class:'panel empty'},'Loading the menu.')]; }
+  var deps=[]; SPAT.forEach(function(s){ if(deps.indexOf(s.department)<0) deps.push(s.department); });
+  var mine=((CU&&CU.privates)||[]).filter(function(p){ return p.date>=CU.today&&(p.status==='confirmed'||p.status==='requested'); });
+  return [pageHead('Book a treatment','Choose a treatment, then a time.'),
+    mine.length?section('Your bookings',null,cards(mine.map(function(p){ return {when:fmtDate(p.date)+' '+p.time,title:thb(p.price)+(p.coach?', with '+p.coach:''),right:chip('Booked','ok'),note:p.paid?'Paid':'Pay at the spa'}; }),'')):null,
+    deps.map(function(dp){ return section(dp,null,h('div',{class:'panel cards'},SPAT.filter(function(s){ return s.department===dp; }).map(function(s){
+      return h('div',{class:'card menuitem'},h('div',{class:'ctop'},h('span',{class:'cwhen'},s.name),h('span',{class:'cright'},thb(s.price_thb))),s.description?h('div',{class:'cnote'},s.description):null,
+        h('div',{class:'row'},btn('Book',function(){ spaMeBook(s); },'primary small'))); }))); })];
+}
+function spaMeBook(s){
+  var d0=ymd(new Date());
+  openForm({title:s.name,note:s.minutes+' minutes, '+thb(s.price_thb)+'. Pay at the spa after your treatment.',saveLabel:'Book',doneMsg:'Booked. See you then!',values:{date:d0},
+    fields:[{key:'date',label:'Day',type:'date',onChange:function(v){ fill(v); }},{key:'time',label:'Time',type:'select',options:[['','Loading free times']]},{key:'note',label:'Anything we should know?',hint:'Pressure, areas to avoid, allergies'}],
+    onSave:function(v){ if(!v.time) return 'Choose a time.'; return sb.rpc('spa_book',{p:{service_id:s.id,date:v.date,time:v.time,note:v.note}}).then(must).then(function(){ return loadCustomer(); }); }});
+  function fill(d){ var sel=document.getElementById('f-time'); if(!sel) return; sb.rpc('spa_times',{p_service:s.id,p_date:d||d0,p_staff:null}).then(function(r){ var l=r.data||[]; sel.replaceChildren.apply(sel,l.length?l.map(function(t){ return h('option',{value:t},t); }):[h('option',{value:''},'Fully booked that day, try another')]); }); }
+  setTimeout(function(){ fill(d0); },30);
+}
+/* spa words: the shared screens say therapist and appointment instead of coach and private */
+var SPA_WORDS=[[/\bPrivates\b/g,'Appointments'],[/\bprivates\b/g,'appointments'],[/\bPrivate\b/g,'Appointment'],[/\bprivate\b/g,'appointment'],[/\bCoaches\b/g,'Therapists'],[/\bcoaches\b/g,'therapists'],[/\bCoach\b/g,'Therapist'],[/\bcoach\b/g,'therapist'],[/\bMuay Thai\b/g,'Massage'],[/\bGym\b/g,'Spa'],[/\bgym\b/g,'spa'],[/\bClasses\b/g,'Treatments'],[/\bclasses\b/g,'treatments'],[/\btraining\b/g,'treatments'],[/\bTraining\b/g,'Treatments']];
+function spaWords(root){
+  if(!SPA||!root) return; var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null), n, list=[];
+  while((n=w.nextNode())) list.push(n);
+  list.forEach(function(t){ var p=t.parentNode; if(!p||p.closest&&p.closest('.nospa,script,style,textarea,input')) return; var s=t.nodeValue, o=s; if(!/[A-Za-z]/.test(s)) return; SPA_WORDS.forEach(function(x){ s=s.replace(x[0],x[1]); }); if(s!==o) t.nodeValue=s; });
+}
+if(SPA){ try{ new MutationObserver(function(ms){ ms.forEach(function(m){ m.addedNodes.forEach(function(nd){ if(nd.nodeType===1) spaWords(nd); else if(nd.nodeType===3&&nd.parentNode) spaWords(nd.parentNode); }); }); }).observe(document.body,{childList:true,subtree:true}); }catch(e){} }
+
 /* food menu in the member app */
 function loadMenu(){ return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_my_orders')]).then(function(r){ if(r[0].error) throw r[0].error; SHOP=r[0].data; MYORDERS=r[1].error?[]:r[1].data; schedule(); }).catch(function(e){ ui.menuErr=errText(e); schedule(); }); }
 setInterval(function(){ if(me&&me.role==='customer'&&ui.tab==='c_food'&&document.visibilityState!=='hidden') sb.rpc('shop_my_orders').then(function(r){ if(!r.error&&JSON.stringify(r.data)!==JSON.stringify(MYORDERS)){ MYORDERS=r.data; schedule(); } }); },15000);
@@ -6699,7 +6865,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={board:function(){ return vSpaBoard(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 /* Messages: a floating button on phones, and the first item in the menu on computers, with the unread count */
 var $fab=null;
@@ -6870,7 +7036,7 @@ function coErr(e){
   if(/last day off/.test(m)) return 'วันสุดท้ายต้องไม่อยู่ก่อนวันแรก';
   return 'ทำไม่สำเร็จ '+m;
 }
-function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=[['mine',C('work')],['clock',K('tab')],['fights',F('tab')]]; schedule(); }
+function setCoLang(l){ pref('pk_lang_coach',l==='th'?'th':null); document.documentElement.lang=l==='th'?'th':'en'; TABS=SPA?[['mine',C('work')],['clock',K('tab')]]:[['mine',C('work')],['clock',K('tab')],['fights',F('tab')]]; schedule(); }
 function loadCoach(){ lastLoad=Date.now(); return sb.rpc('coach_home').then(function(res){ CO=must(res); schedule(); }); }
 function coachDo(fn,args,okMsg){ sb.rpc(fn,args).then(must).then(loadCoach).then(function(){ if(okMsg) toast(okMsg); },function(e){ toast(coErr(e)); }); }
 function coForm(spec){ spec.cancelLabel=C('cancel'); spec.needMsg=C('need'); var save=spec.onSave;
@@ -7056,7 +7222,7 @@ function cards(items,emptyMsg){
 
 /* ---------- customer app ---------- */
 var CU=null, cuCode=null, cuAt=0, cuDone=null, cuBusy=false;
-var CTABS=[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates'],['c_coach','Coaching'],['c_learn','Learn']];
+var CTABS=SPA?[['c_home','Home'],['c_spa','Book'],['c_buy','Packs']]:[['c_home','Home'],['c_food','Food'],['c_classes','Timetable'],['c_buy','Packages'],['c_pt','Privates'],['c_coach','Coaching'],['c_learn','Learn']];
 (function(){
   /* the QR poster opens the app with ?c=code. Keep it for 20 minutes so it survives signing in. */
   try{
@@ -7847,7 +8013,7 @@ function exitKiosk(){
   var email=me.email||currentEmail;
   function leave(){ pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk');
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
-    TABS=staffTabs(me); ui.tab='today'; schedule(); }
+    TABS=staffTabs(me); ui.tab=SPA?'board':'today'; schedule(); }
   if(window.DEMO_LOGINS){ leave(); toast('Desk mode off. In your own gym, staff type their password here.'); return; } // demo only: no password to leave desk mode
   openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
     {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:true}],
@@ -8031,6 +8197,7 @@ function staffTabs(row){
       if(cp('staff')) keep.push('staff','hours'); if(cp('staff')&&has('gym')) keep.push('commission');
       if(cp('settings')) keep.push('settings','packages','webpages');
       if(cp('marketing')) keep.push('contacts','email','social','webpages','sitestats'); } }
+  if(SPA) keep.push('board','privates');
   return ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
 function switchView(v){
@@ -8253,7 +8420,7 @@ function enter(user){
     if(row.role==='coach'){ me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row.role==='admin'?Object.assign({},row,{role:'manager',admin:true}):row; db=makeDb();
     if(me.admin&&!can('edit')) $who.firstChild.appendChild(h('span',{class:'chip warn',style:'margin-left:6px'},'View only'));
-    TABS=staffTabs(row);
+    TABS=staffTabs(row); if(SPA&&ui.tab==='today') ui.tab='board';
     if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
     if(!TABS.some(function(t){return t[0]===ui.tab;})&&!(ui.tab==='chat'&&ui.openChatId)) ui.tab=TABS[0][0];
     return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });

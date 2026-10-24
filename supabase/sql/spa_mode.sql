@@ -112,15 +112,17 @@ create or replace function public.spa_book(p jsonb)
 returns jsonb language plpgsql security definer set search_path to '' as $$
 declare role text := private.staff_role(); sv public.spa_services; d date; t time; cid uuid; who uuid; bed uuid; free uuid[]; v uuid; pct numeric; nm text;
 begin
-  if role is null or role not in ('manager','admin','front_desk') then raise exception 'Only the front desk or a manager can book.'; end if;
+  if role is null and private.customer_id() is null then raise exception 'Sign in first.'; end if;
+  if role is not null and role not in ('manager','admin','front_desk') then raise exception 'Only the front desk or a manager can book.'; end if;
   select * into sv from public.spa_services where id = nullif(p->>'service_id','')::uuid and active;
   if sv.id is null then raise exception 'Choose a treatment.'; end if;
   d := coalesce(nullif(p->>'date','')::date, private.bkk_today());
   begin t := (p->>'time')::time; exception when others then raise exception 'Choose a time.'; end;
   if t is null then raise exception 'Choose a time.'; end if;
-  if d < private.bkk_today() and role <> 'manager' then raise exception 'Only a manager can add a booking on a past date.'; end if;
-  -- the customer
-  cid := nullif(p->>'customer_id','')::uuid;
+  if d < private.bkk_today() and coalesce(role,'') <> 'manager' then raise exception 'Only a manager can add a booking on a past date.'; end if;
+  if role is null and (d > private.bkk_today() + 60 or (d = private.bkk_today() and t < (now() at time zone 'Asia/Bangkok')::time)) then raise exception 'Choose a time from now up to 60 days ahead.'; end if;
+  -- the customer (a signed-in customer always books for themselves)
+  cid := case when role is null then private.customer_id() else nullif(p->>'customer_id','')::uuid end;
   if cid is null then
     nm := btrim(coalesce(p->>'name',''));
     if char_length(nm) < 2 then nm := 'Walk-in guest'; end if;
@@ -150,7 +152,7 @@ begin
   select coalesce(commission_pct, 50) into pct from public.staff where id = who;
   insert into public.privates (customer_id, coach_id, date, start_time, minutes, price_thb, coach_pct, status, paid, notes, any_coach, service_id, bed_id, walk_in)
     values (cid, who, d, t, sv.minutes, sv.price_thb, pct, 'confirmed', false, nullif(left(btrim(coalesce(p->>'note','')), 300), ''),
-      nullif(p->>'staff_id','') is null, sv.id, bed, coalesce((p->>'walk_in')::boolean, false))
+      nullif(p->>'staff_id','') is null, sv.id, bed, role is not null and coalesce((p->>'walk_in')::boolean, false))
     returning id into v;
   return jsonb_build_object('id', v, 'staff', (select name from public.staff where id = who), 'bed', (select name from public.spa_beds where id = bed), 'time', to_char(t,'HH24:MI'));
 end $$;
@@ -173,6 +175,19 @@ begin
   else raise exception 'Unknown step.'; end if;
   return jsonb_build_object('ok', true);
 end $$;
+
+-- take payment for an appointment at the desk: cash, card or transfer (a payment row is made by the privates_paid trigger)
+create or replace function public.spa_pay(p_id uuid, p_method text)
+returns jsonb language plpgsql security definer set search_path to '' as $$
+begin
+  if coalesce(private.staff_role(),'') not in ('manager','admin','front_desk') then raise exception 'Only the front desk takes payment.'; end if;
+  if p_method not in ('cash','card','transfer') then raise exception 'Choose cash, card or transfer.'; end if;
+  update public.privates set paid = true, method = p_method where id = p_id and not paid and status <> 'cancelled';
+  if not found then raise exception 'That booking is already paid or was cancelled.'; end if;
+  return jsonb_build_object('ok', true);
+end $$;
+revoke all on function public.spa_pay(uuid, text) from public, anon;
+grant execute on function public.spa_pay(uuid, text) to authenticated;
 
 -- the treatment menu and the beds (manager)
 create or replace function public.spa_service_save(p jsonb)
