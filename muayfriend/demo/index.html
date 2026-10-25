@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=3"></script>
+<script src="changelog.js?v=4"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -683,6 +683,8 @@ function purchaseState(p,today,usedThisWeek){
 }
 function startPurchase(p,day){ var o={starts_on:day}; if(p.duration_days) o.expires_on=addDays(day,p.duration_days-1); return o; }
 function coachShare(price,pct){ return Math.round((Number(price)||0)*(pct==null?50:Number(pct))/100); }
+/* what the coach gets for one private: the amount set on it, or their usual percent */
+function pShare(p){ return p.coach_share_thb!=null&&p.coach_share_thb!==''?Number(p.coach_share_thb):coachShare(netPrice(p)+(Number(p.extra_thb)||0),p.coach_pct); }
 /* card payment fee and tax: price_thb is what the customer pays; fee_thb and tax_thb are the parts that are not ours to share */
 var PX=null;
 var FXS=null;
@@ -781,6 +783,7 @@ var FEATURES=[
   {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
   {k:'classes_block_privates',g:'Training',n:'Group classes block privates',d:'No private can be booked during a group class. Off: only classes ticked "Blocks privates" block them.'},
+  {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
@@ -1230,6 +1233,7 @@ function editPrivate(p,approving){ p=p||{};
     {key:'source_id',label:'Where the booking came from',type:'select',options:opts(src,'Other'),def:first?first.id:'',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first?srcPrice(first,groupOf(cid0)):null,hint:'After any agency fee. With a pack it is worked out for you: the pack price divided by its sessions. Coaches never see this, only their share.',onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
     {key:'pack_note',label:'From the pack',readonly:true,def:pack0?packLine(pack0):''},
+    {key:'coach_share_thb',label:'Coach gets (THB)',type:'number',hide:!featOn('private_share'),hint:'Leave empty for the coach\'s usual share. Set it when it is different, for example 2 people: the coach gets 600.'},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
     {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us. If the pack above is not paid yet, the pack goes on the room bill.'},
@@ -1243,7 +1247,7 @@ function editPrivate(p,approving){ p=p||{};
         if(!pack||pack.customer_id!==v.customer_id) return 'That pack belongs to a different customer.';
         if(v.status!=='cancelled'&&pack.class_limit-packUsed(pack,p.id)<=0) return 'That pack has no sessions left.';
         if(v.status!=='cancelled'&&pack.expires_on&&v.date>pack.expires_on) return 'That pack expired on '+fmtDate(pack.expires_on)+'. Book a date before then.'; }
-      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); delete body.pack_note; delete body.free_note; delete body.rate_note; body.minutes=Number(v.minutes)||60;
+      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); body.coach_share_thb=v.coach_share_thb===''||v.coach_share_thb==null?null:Math.round(Number(v.coach_share_thb)); delete body.pack_note; delete body.free_note; delete body.rate_note; body.minutes=Number(v.minutes)||60;
       var x=v.purchase_id?{fee:0,tax:0}:pxOf(v); body.fee_thb=x.fee; body.tax_thb=x.tax; body.price_thb=Math.round(Number(v.price_thb)||0)+x.fee+x.tax;
       if(v.purchase_id){ body.paid=true; var pk=byId('purchases',v.purchase_id); if(pk) body.price_thb=perSession(pk); }
       else if(v.method==='room'){ if(!v.customer_id) return 'Charge to room needs a customer who is staying with us.'; body.paid=true; }
@@ -6819,7 +6823,7 @@ function vPrivates(){
       {label:'Coach',cell:function(p){return coachCell(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Customer pays',num:true,cell:function(p){ var n=pxNote(p), x=Number(p.extra_thb)||0; return h('span',null,thb(p.price_thb),n?[h('br'),h('small',{class:'sub'},n)]:null,x?[h('br'),h('small',{class:p.extra_paid?'sub':'warnt'},'+ '+thb(x)+' top up'+(p.extra_paid?', paid':', not paid'))]:null); }},
-      {label:'Coach share',num:true,cell:function(p){return thb(coachShare(netPrice(p)+(Number(p.extra_thb)||0),p.coach_pct));}},
+      {label:'Coach share',num:true,cell:function(p){return h('span',null,thb(pShare(p)),p.coach_share_thb!=null?h('div',{class:'sub'},'set by hand'):null);}},
       {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':p.status==='requested'?'warn':p.status==='cancelled'?'bad':null),p.status==='requested'&&p.coach_answer==='no'?chip('Coach cannot','bad'):null,p.status==='requested'&&p.alt_date?chip('Backup '+fmtDate(p.alt_date)+' '+String(p.alt_time||'').slice(0,5)):null,arrivedChip(p));}},
       {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip('Not paid','warn');}},
       {label:'',cell:function(p){ return p.status==='requested'?h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small')):p.status==='cancelled'&&p.decline_reason?h('small',{class:'sub'},'Declined: '+p.decline_reason+(p.offers?(p.offer_taken!=null?'. They took an offered time.':'. '+p.offers.length+' other time'+(p.offers.length>1?'s':'')+' offered.'):'')):(Number(p.extra_thb)>0&&!p.extra_paid&&p.status!=='cancelled'?btn('Take '+thb(p.extra_thb)+' top up',function(){ takeTopUp(p); },'small primary'):p.status==='confirmed'&&p.date<=day?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):''); }}],
@@ -6883,7 +6887,7 @@ function vCommission(){
   var day=ymd(new Date()), m=ui.month;
   var open=S.privates.filter(function(p){ return p.status==='done'&&!p.refunded_at&&!p.payout_id&&p.coach_id; });
   var late=S.privates.filter(function(p){ return p.status==='confirmed'&&p.date&&p.date<day; }).length;
-  var by={}; open.forEach(function(p){ var r=by[p.coach_id]||(by[p.coach_id]={id:p.coach_id,n:0,got:0,share:0,from:p.date}); r.n++; r.got+=netPrice(p)+(Number(p.extra_thb)||0); r.share+=coachShare(netPrice(p)+(Number(p.extra_thb)||0),p.coach_pct); if(p.date<r.from) r.from=p.date; });
+  var by={}; open.forEach(function(p){ var r=by[p.coach_id]||(by[p.coach_id]={id:p.coach_id,n:0,got:0,share:0,from:p.date}); r.n++; r.got+=netPrice(p)+(Number(p.extra_thb)||0); r.share+=pShare(p); if(p.date<r.from) r.from=p.date; });
   var rows=Object.keys(by).map(function(k){return by[k];}).sort(function(a,b){return b.share-a.share;});
   var T=rows.reduce(function(t,r){ t.n+=r.n; t.got+=r.got; t.share+=r.share; return t; },{n:0,got:0,share:0});
   var mgr=me&&me.role==='manager', paid=(PAYOUTS||[]);
@@ -6904,7 +6908,7 @@ function vCommission(){
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Paid with',cell:payLabel},
       {label:'Received',num:true,cell:function(p){return thb(netPrice(p));}},
-      {label:'Coach share',num:true,cell:function(p){return thb(coachShare(netPrice(p)+(Number(p.extra_thb)||0),p.coach_pct));}}],sortBy(open,'date','time'),'')):null,
+      {label:'Coach share',num:true,cell:function(p){return thb(pShare(p));}}],sortBy(open,'date','time'),'')):null,
     section('Paid commission',null,PAYOUTS===null?h('div',{class:'panel empty'},'Loading.'):table([
       {label:'Paid on',cell:function(po){ return linkBtn(fmtDate(po.paid_on),function(){ payoutView(po); }); }},
       {label:'Coach',cell:function(po){ return nameOf('staff',po.coach_id); }},
@@ -6939,7 +6943,7 @@ function vCoach(){
   var late=sortBy(mine.filter(function(p){return p.status==='confirmed'&&p.date<day;}),'date','time');
   var upcoming=sortBy(mine.filter(function(p){return p.date>day;}),'date','time');
   var doneM=sortBy(mine.filter(function(p){return p.status==='done'&&p.date.slice(0,7)===month;}),'date','time');
-  var earned=doneM.reduce(function(t,p){return t+coachShare(netPrice(p)+(Number(p.extra_thb)||0),p.coach_pct);},0);
+  var earned=doneM.reduce(function(t,p){return t+pShare(p);},0);
   var hol=sortBy(S.holidays.filter(function(x){return x.staff_id===me.id&&x.to>=day;}),'from');
   function moveBtn(p){ return p.reschedule?chip('Move asked, waiting for a manager','warn'):(p.status==='confirmed'?btn('Ask to move',function(){ askMove(p,'coach'); },'small'):null); }
   function doneBtn(p){ return p.status==='confirmed'?h('div',{class:'row'},btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'),moveBtn(p)):chip('Done','ok'); }
@@ -6956,7 +6960,7 @@ function vCoach(){
       {label:'',cell:function(p){ return h('div',{class:'row'},btn('I agree',function(){ if(guard()) run(save('privates',p.id,Object.assign({},p,{reschedule:Object.assign({},p.reschedule,{coach_agreed:true})})),'Sent to a manager to authorize.'); },'primary small'),btn('I do not agree',function(){ refuseMove(p); },'small')); }}],asks,'')):null,
     late.length?section('Earlier privates not marked done',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'',cell:doneBtn}],late,'')):null,
     section('Coming up',null,table([{label:'When',cell:function(p){return fmtDate(p.date)+' '+pSpan(p);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Notes',cell:function(p){return p.notes||'';}},{label:'',cell:moveBtn}],upcoming,'No privates coming up.')),
-    section('Privates done this month',null,table([{label:'Date',cell:function(p){return fmtDate(p.date);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Your share',num:true,cell:function(p){return thb(coachShare(netPrice(p)+(Number(p.extra_thb)||0),p.coach_pct));}}],doneM,'None marked done yet this month.',['Total','',thb(earned)])),
+    section('Privates done this month',null,table([{label:'Date',cell:function(p){return fmtDate(p.date);}},{label:'Customer',cell:function(p){return pWho(p);}},{label:'Your share',num:true,cell:function(p){return thb(pShare(p));}}],doneM,'None marked done yet this month.',['Total','',thb(earned)])),
     section('Holidays',btn('Request holiday',function(){
       openForm({title:'Request holiday',saveLabel:'Send request',fields:[{key:'from',label:'First day off',type:'date',required:true},{key:'to',label:'Last day off',type:'date',required:true},{key:'note',label:'Note'}],
         onSave:function(v){ if(v.to<v.from) return 'The last day is before the first day.'; return save('holidays',null,Object.assign({staff_id:me.id,status:'requested'},v)); }});
@@ -7247,7 +7251,7 @@ var MAP={
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
   classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
-  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb'],clear:['reschedule']},
+  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','coach_share_thb','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked','affiliate_id']},
