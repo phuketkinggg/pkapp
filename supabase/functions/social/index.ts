@@ -2,6 +2,7 @@
 // Facebook page and Instagram (business account linked to the page) through Meta's own API. No other service in between.
 // POST {mode:'check'}  manager: is the AI key and the Meta page set up (page name, Instagram username)
 // POST {mode:'write', brief, caption?, ask?, platforms?, images?}  manager: 3 caption options from Claude
+// POST {mode:'cover', frames, brief?, caption?}  manager: 3 cover ideas for a reel (best frame and a short headline); the app draws the cover
 // POST {mode:'run'}    the 5 minute timer (x-sync-token) or a manager (Post now): sends every post that is due
 // Secrets: ANTHROPIC_API_KEY (AI captions), META_PAGE_TOKEN (a never-expiring Facebook page token)
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -77,6 +78,41 @@ async function write(b: Record<string, unknown>) {
   } catch { return { options: [{ style: "Caption", caption: tidy(out).slice(0, 2200) }] }; }
 }
 
+// ---------- AI covers for reels: picks the best frames and writes a short headline; the app draws the cover ----------
+async function cover(b: Record<string, unknown>) {
+  if (!AI_KEY()) return { error: "The AI is not set up yet. Add ANTHROPIC_API_KEY in Supabase, Edge Functions, Secrets." };
+  const frames = (Array.isArray(b.frames) ? b.frames : []).map(String).filter((u) => u.startsWith(MEDIA)).slice(0, 8);
+  if (frames.length < 2) return { error: "Could not read frames from the video. Try again." };
+  const brief = String(b.brief ?? "").slice(0, 1500).trim(), cap = String(b.caption ?? "").slice(0, 1500).trim();
+  const content: unknown[] = [];
+  frames.forEach((u, i) => { content.push({ type: "text", text: `Frame ${i + 1}:` }); content.push({ type: "image", source: { type: "url", url: u } }); });
+  content.push({ type: "text", text: [
+    "These are frames from a short upright video (a Reel). Make 3 different cover ideas.",
+    brief ? `What the video is about: ${brief}` : "", cap ? `The caption: ${cap}` : "",
+    "For each: pick the frame that makes the strongest cover (sharp, a clear face or a strong action moment, not blurry, not a black or title frame), and write a headline of 2 to 5 words that makes people stop scrolling. A short second line of up to 6 words is optional.",
+    "Headlines in plain words, no hashtags, no emojis, no long dashes, no & sign. Do not invent names, prices or facts.",
+    'Reply with JSON only: {"covers":[{"frame":1,"headline":"...","sub":"..."}]}',
+  ].filter(Boolean).join("\n\n") });
+  const slot = await admin.rpc("ai_usage_take", { p_fn: "cover" });
+  if (slot.error) return { error: "Could not check the AI allowance. Try again." };
+  if (!slot.data) return { error: "This month's AI allowance is used up. It starts again on the 1st of next month." };
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers: { "x-api-key": AI_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: MODEL, max_tokens: 800, system: VOICE, messages: [{ role: "user", content }] }),
+  });
+  const j = await r.json().catch(() => ({}));
+  await admin.from("ai_usage").update({ in_tokens: j?.usage?.input_tokens ?? null, out_tokens: j?.usage?.output_tokens ?? null, ok: r.ok }).eq("id", slot.data);
+  if (!r.ok) return { error: "The AI said: " + (j?.error?.message ?? r.status) };
+  const out = String((j.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join(""));
+  try {
+    const o = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+    const covers = (o.covers ?? []).map((x: { frame?: number; headline?: string; sub?: string }) => ({
+      frame: Math.min(frames.length, Math.max(1, Number(x.frame) || 1)) - 1, headline: tidy(String(x.headline ?? "")).slice(0, 60), sub: tidy(String(x.sub ?? "")).slice(0, 60) })).filter((x: { headline: string }) => x.headline).slice(0, 3);
+    if (!covers.length) throw new Error("empty");
+    return { covers };
+  } catch { return { error: "The AI did not give covers this time. Try again." }; }
+}
+
 // ---------- Meta ----------
 // the secret can be a page token or a system user token; for a system user token the page's own token is fetched once
 let pageTok = "";
@@ -105,10 +141,18 @@ async function account() {
   return acct;
 }
 
-type Media = { url: string; type: "image" | "video" };
+type Media = { url: string; type: "image" | "video"; cover?: string };
 type Res = { id?: string; url?: string; error?: string; container?: string };
 type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null };
 
+// the cover the gym chose: uploaded as the video's thumbnail (best effort, the video is already up)
+async function fbCover(videoId: string, cover: string) {
+  try {
+    const img = await fetch(cover); if (!img.ok) return;
+    const fd = new FormData(); fd.append("source", new Blob([await img.arrayBuffer()], { type: "image/jpeg" }), "cover.jpg"); fd.append("is_preferred", "true"); fd.append("access_token", pageTok || PAGE_TOKEN());
+    await fetch(`${G}/${videoId}/thumbnails`, { method: "POST", body: fd });
+  } catch { /* the reel stays up with Facebook's own thumbnail */ }
+}
 async function toFacebook(p: Post, a: { page: string }): Promise<Res> {
   const m = p.media ?? [], cap = p.caption ?? "";
   let id: string;
@@ -120,11 +164,12 @@ async function toFacebook(p: Post, a: { page: string }): Promise<Res> {
       const uj = await up.json().catch(() => ({}));
       if (!up.ok || uj.success === false) throw new Error(uj?.debug_info?.message ?? `upload ${up.status}`);
       await graph(`${a.page}/video_reels`, { upload_phase: "finish", video_id: st.video_id, video_state: "PUBLISHED", description: cap });
+      if (m[0].cover?.startsWith(MEDIA)) await fbCover(st.video_id, m[0].cover);
       return { id: st.video_id, url: `https://www.facebook.com/reel/${st.video_id}` };
     } catch {
       // not a shape Facebook takes as a Reel (for example landscape or over 90 seconds): post it as a normal video
       const j = await graph(`${a.page}/videos`, { file_url: m[0].url, description: cap });
-      id = j.id; return { id, url: `https://www.facebook.com/${a.page}/videos/${id}` };
+      id = j.id; if (m[0].cover?.startsWith(MEDIA)) await fbCover(id, m[0].cover); return { id, url: `https://www.facebook.com/${a.page}/videos/${id}` };
     }
   }
   if (m.length === 1) { const j = await graph(`${a.page}/photos`, { url: m[0].url, message: cap }); id = j.post_id ?? j.id; }
@@ -147,6 +192,7 @@ async function toInstagram(p: Post, a: { ig: string | null }, prev: Res | undefi
   if (!container) {
     if (m[0].type === "video") {
       const prm: Record<string, string> = { media_type: "REELS", video_url: m[0].url, caption: cap };
+      if (m[0].cover?.startsWith(MEDIA)) prm.cover_url = m[0].cover;
       // a Trial Reel is shown to people who do not follow you first; MANUAL: you share it to followers in the Instagram app, SS_PERFORMANCE: Instagram does it if it does well
       if (p.kind === "trial") prm.trial_params = JSON.stringify({ graduation_strategy: p.trial_strategy === "SS_PERFORMANCE" ? "SS_PERFORMANCE" : "MANUAL" });
       else prm.share_to_feed = "true";
@@ -214,6 +260,7 @@ Deno.serve(async (req) => {
     }
     if (!(await manager(req))) return json({ error: "Only a manager can do this." }, 401);
     if (b.mode === "write") return json(await write(b));
+    if (b.mode === "cover") return json(await cover(b));
     if (b.mode === "check") {
       const out: Record<string, unknown> = { ai: !!AI_KEY(), meta: false };
       if (PAGE_TOKEN()) {

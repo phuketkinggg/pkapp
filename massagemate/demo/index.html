@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=8"></script>
+<script src="changelog.js?v=9"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -566,6 +566,8 @@ body.cuview #view button:not(.pvexit){opacity:.75}
 .featgrp{margin-bottom:10px}.featsw{flex:none;min-width:64px}.clrow{padding:12px 16px}.clrow:first-child{border-top:0}.cldate{flex:none;width:86px;font-size:13px;color:var(--muted)}.clbody{flex:1}
 .grpbox h3{margin-top:14px}.grpchips{gap:6px;margin:8px 0}.grpchip button{border:0;background:none;font-size:16px;line-height:1;cursor:pointer;color:inherit;padding:0 0 0 6px}.grpres{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chatonly{padding:10px 14px;margin:0}
 .availbox{margin-bottom:10px;border-left:4px solid var(--ok,#2e7d4f)}.availbox.off{border-left-color:var(--bad,#b3261e)}.availst{font-size:18px}
+.covrow{display:flex;gap:12px;align-items:flex-start}.covprev{position:relative;width:90px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:var(--sunken);flex:none;display:grid;place-items:center}.covprev img{width:100%;height:100%;object-fit:cover}
+.covideas{display:flex;gap:10px;flex-wrap:wrap}.covidea{width:120px;aspect-ratio:9/16;padding:0;border:3px solid transparent;border-radius:10px;overflow:hidden;background:var(--sunken);cursor:pointer}.covidea.on{border-color:var(--gold)}.covidea img{width:100%;height:100%;object-fit:cover;display:block}
 .pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 .pstrip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
@@ -797,6 +799,7 @@ var FEATURES=[
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
   {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
+  {k:'reel_covers',g:'Marketing',n:'Reel covers',d:'Choose the cover of a reel: pick a frame, upload a picture, or let the AI suggest covers with a short headline drawn in your colours.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -4598,6 +4601,24 @@ function socFrame(f){ return new Promise(function(ok){ var u=URL.createObjectURL
   v.onseeked=function(){ try{ var k=Math.min(1,720/Math.max(v.videoWidth,v.videoHeight)), c=document.createElement('canvas'); c.width=Math.round(v.videoWidth*k); c.height=Math.round(v.videoHeight*k);
     c.getContext('2d').drawImage(v,0,0,c.width,c.height); c.toBlob(function(b){ fin(b); },'image/jpeg',0.8); }catch(e){ fin(null); } };
   v.onerror=function(){ fin(null); }; setTimeout(function(){ fin(null); },15000); }); }
+/* a reel cover: the picture cropped upright (9:16), and optional words drawn big at the bottom in the app colours */
+function coverBars(img){ /* black bars above and below a letterboxed video: find where the picture starts and ends */
+  var k=Math.min(1,200/img.width), c=document.createElement('canvas'); c.width=Math.max(1,Math.round(img.width*k)); c.height=Math.max(1,Math.round(img.height*k)); var g=c.getContext('2d'); g.drawImage(img,0,0,c.width,c.height);
+  var d=g.getImageData(0,0,c.width,c.height).data; function dark(y){ var t=0; for(var x=0;x<c.width;x++){ var i=(y*c.width+x)*4; t+=d[i]+d[i+1]+d[i+2]; } return t/(c.width*3)<18; }
+  var top=0, bot=c.height-1; while(top<c.height/3&&dark(top)) top++; while(bot>c.height*2/3&&dark(bot)) bot--; return {y:top/k,h:(bot-top+1)/k}; }
+function coverDraw(src,head,sub,w){ return createImageBitmap(src).then(function(img){ var W=w, H=Math.round(w*16/9), c=document.createElement('canvas'); c.width=W; c.height=H; var g=c.getContext('2d');
+  var bar=coverBars(img), sw=img.width, sh=bar.h, s=Math.max(W/sw,H/sh), dw=sw*s, dh=sh*s; g.drawImage(img,0,bar.y,sw,sh,(W-dw)/2,(H-dh)/2,dw,dh);
+  head=String(head||'').trim(); sub=String(sub||'').trim();
+  if(head){ var gr=g.createLinearGradient(0,H*0.45,0,H); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,0.85)'); g.fillStyle=gr; g.fillRect(0,H*0.45,W,H*0.55);
+    var accent=(APPTHEME&&APPTHEME.accent)||getComputedStyle(document.documentElement).getPropertyValue('--gold').trim()||'#C9A227';
+    var font=getComputedStyle(document.querySelector('h1')||document.body).fontFamily||'sans-serif', size=Math.round(W*0.12), lines=[], words=head.toUpperCase().split(/\s+/), line='';
+    g.font='800 '+size+'px '+font; words.forEach(function(x){ var t=line?line+' '+x:x; if(g.measureText(t).width>W*0.86&&line){ lines.push(line); line=x; } else line=t; }); if(line) lines.push(line);
+    while(lines.length>3&&size>40){ size-=6; g.font='800 '+size+'px '+font; }
+    var y=H*0.80-(lines.length-1)*size*1.02-(sub?size*0.6:0); g.textBaseline='alphabetic'; g.fillStyle=accent; g.fillRect(W*0.07,y-size*1.05,W*0.18,Math.max(6,size*0.08));
+    g.fillStyle='#fff'; g.shadowColor='rgba(0,0,0,0.5)'; g.shadowBlur=size*0.15; lines.forEach(function(l,i){ g.fillText(l,W*0.07,y+i*size*1.02); });
+    if(sub){ g.font='600 '+Math.round(size*0.42)+'px '+font; g.fillStyle='rgba(255,255,255,0.92)'; g.fillText(sub,W*0.07,y+(lines.length-1)*size*1.02+size*0.62); } }
+  return new Promise(function(ok,no){ c.toBlob(function(b){ b?ok(b):no({plain:true,message:'Could not make the cover.'}); },'image/jpeg',0.88); }); },
+  function(){ throw {plain:true,message:'Could not read that picture.'}; }); }
 function socUp(blob,ext,type){ var path=new Date().toISOString().slice(0,7)+'/'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)+'.'+ext;
   return sb.storage.from('social').upload(path,blob,{contentType:type,upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('social').getPublicUrl(path).data.publicUrl; }); }
 function socEdit(p0){
@@ -4610,7 +4631,7 @@ function socEdit(p0){
   function drawMedia(){ strip.replaceChildren.apply(strip,media.map(function(m,i){ return h('div',{class:'pthumb'},socThumb(m),m.type==='video'?h('span',{class:'ptag'},'Video'):null,
       locked?null:h('div',{class:'pacts'},i>0?h('button',{type:'button','aria-label':'Move left',onclick:function(){ media.splice(i-1,0,media.splice(i,1)[0]); drawMedia(); }},'‹'):null,
         h('button',{type:'button','aria-label':'Remove',onclick:function(){ media.splice(i,1); drawMedia(); }},'×'))); }));
-    addB.textContent=busy?'Uploading, please wait':'Add photos or video'; addB.disabled=locked||!!busy||media.length>=10||(media[0]&&media[0].type==='video'); }
+    addB.textContent=busy?'Uploading, please wait':'Add photos or video'; addB.disabled=locked||!!busy||media.length>=10||(media[0]&&media[0].type==='video'); if(typeof drawCover==='function') drawCover(); }
   function pick(){ var inp=h('input',{type:'file',multiple:true,accept:'image/*,video/mp4,video/quicktime',hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[]); inp.remove(); if(!fs.length) return;
       var vids=fs.filter(function(f){ return /^video\//.test(f.type); });
       if(vids.length&&(fs.length>1||media.length)){ bad('A post can have one video on its own, or up to 10 photos.'); return; }
@@ -4640,6 +4661,43 @@ function socEdit(p0){
   }
   function setKind(k){ kind=k; drawKind(); }
   drawKind();
+  /* reel cover: pick a frame, upload your own, or let the AI suggest covers (best frame plus a headline drawn in your colours) */
+  var coverBox=h('div',{class:'field'}), cv={ideas:null,frames:null,busy:false,sel:null,head:'',sub:''};
+  function vidItem(){ return media[0]&&media[0].type==='video'?media[0]:null; }
+  function drawCover(){ var m=vidItem(); coverBox.hidden=!m||!featOn('reel_covers'); if(coverBox.hidden){ coverBox.replaceChildren(); return; }
+    var cur=m.cover||m.thumb;
+    var prev=h('div',{class:'covprev'},cur?h('img',{src:cur,alt:'Cover'}):h('span',{class:'sub'},'No cover yet'),m.cover?h('span',{class:'ptag'},'Your cover'):h('span',{class:'ptag'},'Auto'));
+    var acts=locked?null:h('div',{class:'row wrap'},btn('Pick a frame',pickFrame,'small'),btn('Upload a cover',upCover,'small'),btn(cv.busy?'The AI is looking...':'Make covers with AI',aiCovers,'primary small'),m.cover?btn('Use the auto cover',function(){ delete m.cover; drawCover(); },'small'):null);
+    var ideas=cv.ideas?h('div',null,h('p',{class:'sub'},'Tap one to use it. Change the words first if you like.'),
+      h('div',{class:'covideas'},cv.ideas.map(function(x,i){ return h('button',{type:'button',class:'covidea'+(cv.sel===i?' on':''),onclick:function(){ cv.sel=i; cv.head=x.headline; cv.sub=x.sub||''; drawCover(); }},h('img',{src:x.preview,alt:x.headline})); })),
+      cv.sel!=null?h('div',{class:'row wrap',style:'margin-top:8px'},(function(){ var a=h('input',{value:cv.head,'aria-label':'Headline',style:'flex:1;min-width:160px'}), b2=h('input',{value:cv.sub,'aria-label':'Second line',placeholder:'Second line (optional)',style:'flex:1;min-width:160px'});
+          return [a,b2,btn('Use this cover',function(){ var it=cv.ideas[cv.sel]; cv.busy=true; drawCover(); coverDraw(cv.frames[it.frame].blob,a.value,b2.value,1080).then(function(bl){ return socUp(bl,'jpg','image/jpeg'); })
+            .then(function(u){ m.cover=u; cv.ideas=null; cv.sel=null; toast('Cover set.'); }).catch(function(e){ bad(errText(e)); }).then(function(){ cv.busy=false; drawCover(); }); },'primary small')]; })()):null):null;
+    coverBox.replaceChildren(h('label',null,'Reel cover'),h('div',{class:'covrow'},prev,h('div',{style:'flex:1'},h('small',null,'The picture people see before the reel plays, on your profile and in the feed.'),acts)),ideas); }
+  /* frames from the video (the browser reads them), as small files the AI can see and full ones to draw on */
+  function grabFrames(n){ var m=vidItem(); return new Promise(function(ok,no){ var v=document.createElement('video'), out=[], i=0; v.crossOrigin='anonymous'; v.muted=true; v.playsInline=true; v.preload='auto'; v.src=m.url;
+    function shot(){ try{ var c=document.createElement('canvas'), k=Math.min(1,1080/v.videoWidth); c.width=Math.round(v.videoWidth*k); c.height=Math.round(v.videoHeight*k); c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+        c.toBlob(function(b){ out.push({t:v.currentTime,blob:b}); i++; if(i<n) v.currentTime=(v.duration*(i+0.5))/n; else ok(out); },'image/jpeg',0.85); }catch(e){ no({plain:true,message:'This browser cannot read frames from the video. Use Upload a cover.'}); } }
+    v.onloadedmetadata=function(){ v.currentTime=(v.duration*0.5)/n; }; v.onseeked=shot; v.onerror=function(){ no({plain:true,message:'Could not open the video.'}); };
+    setTimeout(function(){ if(out.length<n) no({plain:true,message:'Reading the video took too long. Try again.'}); },45000); }); }
+  function small(b){ return createImageBitmap(b).then(function(img){ var k=480/Math.max(img.width,img.height), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    return new Promise(function(ok){ c.toBlob(ok,'image/jpeg',0.75); }); }); }
+  function aiCovers(){ if(cv.busy) return; cv.busy=true; cv.ideas=null; err.hidden=true; drawCover();
+    grabFrames(6).then(function(fr){ cv.frames=fr; return Promise.all(fr.map(function(f){ return small(f.blob).then(function(b){ return socUp(b,'jpg','image/jpeg'); }); })); })
+      .then(function(urls){ return socCall({mode:'cover',frames:urls,brief:brief.value,caption:cap.value}); })
+      .then(function(d){ return Promise.all((d.covers||[]).map(function(x){ return coverDraw(cv.frames[x.frame].blob,x.headline,x.sub,360).then(function(bl){ x.preview=URL.createObjectURL(bl); return x; }); })); })
+      .then(function(ideas){ cv.ideas=ideas; cv.sel=null; })
+      .catch(function(e){ bad(errText(e)); }).then(function(){ cv.busy=false; drawCover(); }); }
+  function pickFrame(){ var m=vidItem(); var v=h('video',{src:m.url,muted:true,playsinline:true,preload:'auto',crossorigin:'anonymous',style:'width:100%;max-height:360px;background:#000;border-radius:8px'}); v.muted=true;
+    var rng=h('input',{type:'range',min:'0',max:'1000',value:'100','aria-label':'Choose the moment',style:'width:100%'}); rng.addEventListener('input',function(){ if(v.duration) v.currentTime=v.duration*rng.value/1000; });
+    var head=h('input',{placeholder:'Words on the cover (optional)',style:'width:100%'});
+    var box=h('div',{class:'panel pad'},v,rng,head,h('div',{class:'row'},btn('Use this frame',function(){ try{ var c=document.createElement('canvas'), k=Math.min(1,1080/v.videoWidth); c.width=Math.round(v.videoWidth*k); c.height=Math.round(v.videoHeight*k); c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+        c.toBlob(function(b){ coverDraw(b,head.value,'',1080).then(function(bl){ return socUp(bl,'jpg','image/jpeg'); }).then(function(u){ m.cover=u; toast('Cover set.'); drawCover(); }).catch(function(e){ bad(errText(e)); }); },'image/jpeg',0.9); }
+      catch(e){ bad('This browser cannot read frames from the video. Use Upload a cover.'); } },'primary small'),btn('Cancel',function(){ drawCover(); },'small')));
+    coverBox.replaceChildren(h('label',null,'Reel cover: pick the moment'),box); }
+  function upCover(){ var m=vidItem(); var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+      coverDraw(f,'','',1080).then(function(bl){ return socUp(bl,'jpg','image/jpeg'); }).then(function(u){ m.cover=u; toast('Cover set.'); drawCover(); }).catch(function(e){ bad(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); }
+  drawCover();
   var brief=h('textarea',{id:'soc-brief',rows:'3',placeholder:'For example: Saturday sparring with the fight team, Tom and Kru Max coaching, open to all levels'}); brief.value=p.brief||''; brief.disabled=locked;
   var cap=h('textarea',{id:'soc-cap',rows:'10',maxlength:'2200'}); cap.value=p.caption||''; cap.disabled=locked;
   var count=h('small',null,''); function cnt(){ count.textContent=cap.value.length+' of 2200 characters'; } cap.addEventListener('input',cnt); cnt();
@@ -4682,6 +4740,7 @@ function socEdit(p0){
   $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,p.id?(locked?'Social post':'Edit post'):'New social post'),
     p.status!=='draft'&&p.id?h('p',null,socStatus(p)):null, p.error&&p.status==='failed'?h('p',{class:'ferr'},p.error):null, res,
     h('div',{class:'field'},h('label',null,'Photos or video'),strip,locked?null:h('div',{class:'row'},addB),h('small',null,'Up to 10 photos, or one video (MP4 or MOV). The first photo is the cover.')),
+    coverBox,
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
     h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
@@ -8146,7 +8205,7 @@ function applyTheme(t){
   var m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content',side||bg||v.light.ink);
 }
 (function(){ try{ applyTheme(JSON.parse(pref('app_theme')||'null')); }catch(e){} })();
-function loadTheme(){ return sb.rpc('app_theme').then(function(res){ if(res.error) return; var t=res.data&&res.data.accent?res.data:null; pref('app_theme',t?JSON.stringify(t):null); applyTheme(t); APPTHEME=t; schedule(); }); }
+function loadTheme(){ return sb.rpc('app_theme').then(function(res){ if(res.error) return; var t=res.data&&Object.keys(res.data).length?res.data:null; pref('app_theme',t?JSON.stringify(t):null); applyTheme(t); APPTHEME=t; schedule(); }); }
 var APPTHEME=null;
 // colours from a logo: the strongest few colours, ignoring white, black and grey
 function logoColours(file){ return new Promise(function(ok,bad){ var img=new Image(), u=URL.createObjectURL(file);
