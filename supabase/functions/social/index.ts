@@ -4,7 +4,9 @@
 // POST {mode:'write', brief, caption?, ask?, platforms?, images?}  manager: 3 caption options from Claude
 // POST {mode:'cover', frames, brief?, caption?}  manager: 3 cover ideas for a reel (best frame and a short headline); the app draws the cover
 // POST {mode:'run'}    the 5 minute timer (x-sync-token) or a manager (Post now): sends every post that is due
-// Secrets: ANTHROPIC_API_KEY (AI captions), META_PAGE_TOKEN (a never-expiring Facebook page token)
+// POST {mode:'yt_connect'} manager: the Google sign in link to connect a YouTube channel; Google comes back here (GET ?code&state)
+// Secrets: ANTHROPIC_API_KEY (AI captions), META_PAGE_TOKEN (a never-expiring Facebook page token),
+//          GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (YouTube; the redirect address is this function's own URL)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
@@ -218,6 +220,62 @@ async function toInstagram(p: Post, a: { ig: string | null }, prev: Res | undefi
   return { id: pub.id, url, container };
 }
 
+// ---------- YouTube Shorts ----------
+const SELF = URL_ + "/functions/v1/social";
+const GID = () => (Deno.env.get("GOOGLE_CLIENT_ID") ?? "").trim();
+const GSECRET = () => (Deno.env.get("GOOGLE_CLIENT_SECRET") ?? "").trim();
+async function ytAccess(): Promise<string> {
+  const { data } = await admin.rpc("yt_get");
+  const refresh = (data as { refresh?: string } | null)?.refresh;
+  if (!refresh) throw new Error("YouTube is not connected. Tap Connect YouTube in Social media.");
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", body: new URLSearchParams({ client_id: GID(), client_secret: GSECRET(), refresh_token: refresh, grant_type: "refresh_token" }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.access_token) throw new Error("Google did not accept the YouTube link (" + (j.error_description ?? j.error ?? r.status) + "). Connect YouTube again.");
+  return j.access_token;
+}
+async function toYouTube(p: Post): Promise<Res> {
+  const m = p.media ?? [];
+  if (m[0]?.type !== "video") return { error: "YouTube Shorts needs a video." };
+  const tok = await ytAccess(), cap = p.caption ?? "";
+  // the title: the first line of the caption, without hashtags, plus #Shorts
+  let title = cap.split("\n").map((l) => l.replace(/#\S+/g, "").trim()).find((l) => l) ?? "New video";
+  if (title.length > 88) title = title.slice(0, 85).replace(/\s+\S*$/, "") + "...";
+  title = title.replace(/[<>]/g, "") + " #Shorts";
+  const vid = await fetch(m[0].url);
+  if (!vid.ok || !vid.body) return { error: "Could not read the video from storage." };
+  const size = vid.headers.get("content-length") ?? "";
+  const start = await fetch("https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status", {
+    method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": vid.headers.get("content-type") ?? "video/mp4", ...(size ? { "X-Upload-Content-Length": size } : {}) },
+    body: JSON.stringify({ snippet: { title, description: cap.replace(/[<>]/g, "").slice(0, 4900), categoryId: "17" }, status: { privacyStatus: "public", selfDeclaredMadeForKids: false } }),
+  });
+  const loc = start.headers.get("location");
+  if (!start.ok || !loc) { const e = await start.json().catch(() => ({})); return { error: "YouTube said: " + (e?.error?.message ?? start.status) }; }
+  const up = await fetch(loc, { method: "PUT", headers: { "Content-Type": vid.headers.get("content-type") ?? "video/mp4", ...(size ? { "Content-Length": size } : {}) }, body: vid.body, // @ts-ignore stream upload
+    duplex: "half" });
+  const uj = await up.json().catch(() => ({}));
+  if (!up.ok || !uj.id) return { error: "YouTube upload did not finish: " + (uj?.error?.message ?? up.status) };
+  // the cover, when the channel may set custom thumbnails (a verified channel); best effort
+  if (m[0].cover?.startsWith(MEDIA)) {
+    try { const img = await fetch(m[0].cover); if (img.ok) await fetch(`https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId=${uj.id}`, { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "image/jpeg" }, body: await img.arrayBuffer() }); }
+    catch { /* YouTube keeps its own thumbnail */ }
+  }
+  return { id: uj.id, url: `https://www.youtube.com/shorts/${uj.id}` };
+}
+const page = (t: string, ok: boolean) => new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube</title><body style="font-family:system-ui,sans-serif;padding:32px;max-width:520px;margin:auto"><h2>${ok ? "YouTube connected" : "YouTube not connected"}</h2><p>${t.replace(/[<>&]/g, "")}</p><p>You can close this tab and go back to the app.</p></body>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+async function ytCallback(u: URL) {
+  if (u.searchParams.get("error")) return page("Google said: " + u.searchParams.get("error"), false);
+  const code = u.searchParams.get("code") ?? "", state = u.searchParams.get("state") ?? "";
+  const { data: ok } = await admin.rpc("yt_state_ok", { p_s: state });
+  if (ok !== true) return page("The link was too old or was used already. Tap Connect YouTube in the app again.", false);
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", body: new URLSearchParams({ code, client_id: GID(), client_secret: GSECRET(), redirect_uri: SELF, grant_type: "authorization_code" }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.refresh_token) return page("Google did not give access (" + (j.error_description ?? j.error ?? "no refresh token") + "). Try again, and allow every permission asked.", false);
+  let channel = "";
+  try { const c = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", { headers: { Authorization: `Bearer ${j.access_token}` } }); const cj = await c.json(); channel = cj?.items?.[0]?.snippet?.title ?? ""; } catch { /* name is a nice-to-have */ }
+  await admin.rpc("yt_set", { p: { refresh: j.refresh_token, channel, at: new Date().toISOString() } });
+  return page(channel ? `Shorts will post to the channel "${channel}".` : "Shorts will post to your channel.", true);
+}
+
 async function run() {
   const { data, error } = await admin.rpc("social_take");
   if (error) return { error: error.message };
@@ -231,8 +289,8 @@ async function run() {
     const results: Record<string, Res> = { ...(p.results ?? {}) };
     for (const pl of p.platforms) {
       if (results[pl]?.id) continue;
-      if (!a) { results[pl] = { error: aErr }; continue; }
-      try { results[pl] = pl === "facebook" ? await toFacebook(p, a) : await toInstagram(p, a, results[pl]); }
+      if (!a && pl !== "youtube") { results[pl] = { error: aErr }; continue; }
+      try { results[pl] = pl === "facebook" ? await toFacebook(p, a!) : pl === "youtube" ? await toYouTube(p) : await toInstagram(p, a!, results[pl]); }
       catch (e) { results[pl] = { ...(results[pl]?.container ? { container: results[pl].container } : {}), error: (e as Error).message }; }
     }
     const vals = p.platforms.map((pl) => results[pl] ?? {});
@@ -247,6 +305,7 @@ async function run() {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method === "GET") { const u = new URL(req.url); if (u.searchParams.has("state")) return await ytCallback(u); }
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   const b = await req.json().catch(() => ({}));
   try {
@@ -261,8 +320,18 @@ Deno.serve(async (req) => {
     if (!(await manager(req))) return json({ error: "Only a manager can do this." }, 401);
     if (b.mode === "write") return json(await write(b));
     if (b.mode === "cover") return json(await cover(b));
+    if (b.mode === "yt_connect") {
+      if (!GID() || !GSECRET()) return json({ error: "YouTube is not set up yet: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing in Supabase, Edge Functions, Secrets." });
+      const user = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("authorization") ?? "" } }, auth: { persistSession: false } });
+      const { data: st, error } = await user.rpc("yt_state_new");
+      if (error || !st) return json({ error: error?.message ?? "Could not start." });
+      const q = new URLSearchParams({ client_id: GID(), redirect_uri: SELF, response_type: "code", access_type: "offline", prompt: "consent", include_granted_scopes: "true", state: String(st),
+        scope: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly" });
+      return json({ url: "https://accounts.google.com/o/oauth2/v2/auth?" + q });
+    }
     if (b.mode === "check") {
-      const out: Record<string, unknown> = { ai: !!AI_KEY(), meta: false };
+      const yt = ((await admin.rpc("yt_get")).data ?? {}) as { refresh?: string; channel?: string };
+      const out: Record<string, unknown> = { ai: !!AI_KEY(), meta: false, youtube_ready: !!(GID() && GSECRET()), youtube: yt.refresh ? (yt.channel || "connected") : null };
       if (PAGE_TOKEN()) {
         try { const a = await account(); out.meta = true; out.page = a.name; out.instagram = a.ig_name; }
         catch (e) { out.meta_error = (e as Error).message; }

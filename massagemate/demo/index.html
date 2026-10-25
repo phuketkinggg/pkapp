@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=9"></script>
+<script src="changelog.js?v=10"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -800,6 +800,7 @@ var FEATURES=[
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
   {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
   {k:'reel_covers',g:'Marketing',n:'Reel covers',d:'Choose the cover of a reel: pick a frame, upload a picture, or let the AI suggest covers with a short headline drawn in your colours.'},
+  {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -4567,7 +4568,11 @@ function socCheck(){ socCall({mode:'check'}).then(function(c){ SOC.cfg=c; schedu
 function bkkWhen(x){ return x?new Date(x).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
 function bkkInput(x){ return new Date((x?Date.parse(x):Date.now())+7*3600e3).toISOString().slice(0,16); }
 function socDefaultTime(){ var d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.getUTCHours()>=17){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T18:00'; }
-var SOC_PL={facebook:'Facebook',instagram:'Instagram'};
+var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts'};
+function ytOn(){ return featOn('youtube_shorts'); }
+function ytConnect(){ socCall({mode:'yt_connect'}).then(function(d){ if(d&&d.url){ toast('Opening Google. Sign in with the account that owns your YouTube channel.'); window.open(d.url,'_blank','noopener'); } })
+  .catch(function(e){ toast(errText(e)); }); }
+function ytDisconnect(){ if(!confirm('Disconnect YouTube? Shorts stop posting until you connect again.')) return; run(sb.rpc('yt_disconnect').then(must).then(socCheck),'YouTube disconnected.'); }
 function socThumb(m){ var u=m&&(m.type==='video'?m.thumb:m.url); return u?h('img',{src:u,alt:'',loading:'lazy'}):h('span',null,m&&m.type==='video'?'Video':''); }
 function socStatus(p){ return p.status==='posted'?chip('Posted','ok'):p.status==='failed'?chip('Did not post','bad'):p.status==='posting'?chip('Posting now','warn'):p.status==='scheduled'?chip('Approved, '+bkkWhen(p.post_at),'ok'):chip('Draft'); }
 function socFirst(p){ var t=String(p.caption||p.brief||'').split('\n')[0]; return t.length>70?t.slice(0,68)+'...':t||'(no text yet)'; }
@@ -4575,13 +4580,14 @@ function vSocial(){
   if(!SOC.list){ if(!SOC.busy){ socLoad(); socCheck(); } return [pageHead('Social media',''),h('div',{class:'panel empty'},SOC.err||'Loading.')]; }
   var c=SOC.cfg, conn=!c?'Checking the connection.':c.err?c.err:[
     c.meta?'Facebook page: '+c.page+'. Instagram: '+(c.instagram?'@'+c.instagram:'not linked to the page')+'.':(c.meta_error?'Facebook did not accept the page token: '+c.meta_error:'Facebook and Instagram are not connected yet.'),
-    c.ai?'':' The AI writer is not set up yet.'].join('');
+    c.ai?'':' The AI writer is not set up yet.',
+    ytOn()?(c.youtube?' YouTube: '+c.youtube+'.':' YouTube is not connected.'):''].join('');
   function rows(list,empty){ return table([{label:'',cell:function(p){ return h('span',{class:'socmini'},socThumb((p.media||[])[0])); }},
       {label:'Post',cell:function(p){ return linkBtn(socFirst(p),function(){ socEdit(p); }); }},
       {label:'Where',cell:function(p){ return h('span',null,(p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '),p.kind==='reel'||p.kind==='trial'?h('div',{class:'sub'},p.kind==='trial'?'Trial reel':'Reel'):null); }},
       {label:'',cell:function(p){ return socStatus(p); }}],list,empty); }
   var L=SOC.list, up=L.filter(function(p){ return p.status==='scheduled'||p.status==='posting'; }).sort(function(a,b){ return Date.parse(a.post_at)-Date.parse(b.post_at); });
-  return [pageHead('Social media',conn,btn('New post',function(){ socEdit(); },'primary')),
+  return [pageHead('Social media',conn,h('div',{class:'row'},ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
     section('Coming up',null,rows(up,'Nothing approved yet. Approved posts go out on their own at the time you set.')),
     section('Drafts',null,rows(L.filter(function(p){ return p.status==='draft'; }),'No drafts.')),
     section('Posted',null,rows(L.filter(function(p){ return p.status==='posted'||p.status==='failed'; }).slice(0,40),'Nothing posted from the app yet.')),
@@ -4642,7 +4648,7 @@ function socEdit(p0){
           : socFitPhoto(f).then(function(b){ return socUp(b,'jpg','image/jpeg'); }).then(function(u){ media.push({url:u,type:'image'}); });
         return job.catch(function(e){ bad(errText(e)); }).then(function(){ busy--; drawMedia(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
-  var pls=['facebook','instagram'].map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
+  var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
   /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
   var kind=p.kind||((media[0]&&media[0].type==='video')?'reel':'post'), trial=p.trial_strategy==='SS_PERFORMANCE'?'SS_PERFORMANCE':'MANUAL', fbWas=null;
   var kindBox=h('div',{class:'seg',role:'group','aria-label':'Post type'}), trialBox=h('div',{class:'field'}), kindNote=h('small',null,'');
@@ -4655,9 +4661,11 @@ function socEdit(p0){
         var r=h('input',{type:'radio',name:'soc-trial',value:o[0],id:'soc-tr-'+o[0]}); r.checked=trial===o[0]; r.disabled=locked; r.addEventListener('change',function(){ if(r.checked) trial=o[0]; });
         return h('label',{class:'check',for:r.id},r,h('span',null,o[1])); })),
       h('small',null,'Trial reels need a public professional Instagram account, and Instagram turns the feature on account by account.'));
-    var fb=pls[0], ig=pls[1];
+    var fb=pls[0], ig=pls[1], yt=pls[2];
     if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
     else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
+    /* YouTube Shorts: reels and trial reels only (a video) */
+    if(yt){ var vidOk=kind!=='post'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels (one upright video).'; }
   }
   function setKind(k){ kind=k; drawKind(); }
   drawKind();
