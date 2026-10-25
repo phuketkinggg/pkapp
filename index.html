@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=10"></script>
+<script src="changelog.js?v=11"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -570,7 +570,10 @@ body.cuview #view button:not(.pvexit){opacity:.75}
 .pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 .pstrip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
-.pthumb img{width:100%;height:100%;object-fit:cover;display:block}.ptag{position:absolute;left:4px;top:4px;background:var(--gold);color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px}
+.pthumb img,.pthumb video{width:100%;height:100%;object-fit:cover;display:block}
+.pthumb.pend img,.pthumb.pend video{opacity:.55}.pthumb .pbar{position:absolute;left:6px;right:6px;bottom:8px;height:6px;border-radius:3px;background:rgba(0,0,0,.35);overflow:hidden}.pthumb .pbar i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+.pthumb.pend b{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;color:#fff;font-size:15px;font-weight:800;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.vprev{margin:6px 0 12px}.vprev label{display:block;font-weight:600;margin-bottom:4px}.vprev video{display:block;width:100%;max-width:240px;aspect-ratio:9/16;max-height:420px;background:#000;border-radius:10px;object-fit:contain}.ptag{position:absolute;left:4px;top:4px;background:var(--gold);color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px}
 .pacts{position:absolute;right:4px;bottom:4px;display:flex;gap:4px}.pacts button{width:28px;height:28px;border-radius:14px;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;cursor:pointer;padding:0}
 .crsgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
 .crscard{display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);color:inherit;font:inherit;cursor:pointer}
@@ -4624,28 +4627,48 @@ function coverDraw(src,head,sub,w){ return createImageBitmap(src).then(function(
     if(sub){ g.font='600 '+Math.round(size*0.42)+'px '+font; g.fillStyle='rgba(255,255,255,0.92)'; g.fillText(sub,W*0.07,y+(lines.length-1)*size*1.02+size*0.62); } }
   return new Promise(function(ok,no){ c.toBlob(function(b){ b?ok(b):no({plain:true,message:'Could not make the cover.'}); },'image/jpeg',0.88); }); },
   function(){ throw {plain:true,message:'Could not read that picture.'}; }); }
-function socUp(blob,ext,type){ var path=new Date().toISOString().slice(0,7)+'/'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)+'.'+ext;
-  return sb.storage.from('social').upload(path,blob,{contentType:type,upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('social').getPublicUrl(path).data.publicUrl; }); }
+function socUp(blob,ext,type,onProg){ var path=new Date().toISOString().slice(0,7)+'/'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)+'.'+ext;
+  var pub=function(){ return sb.storage.from('social').getPublicUrl(path).data.publicUrl; };
+  if(!onProg||typeof XMLHttpRequest==='undefined') return sb.storage.from('social').upload(path,blob,{contentType:type,upsert:false}).then(function(r){ if(r.error) throw r.error; return pub(); });
+  /* with a progress bar: the same storage upload, sent so the app can see how far it is */
+  return sb.auth.getSession().then(function(r){ var tok=r&&r.data&&r.data.session&&r.data.session.access_token;
+    return new Promise(function(ok,no){ var x=new XMLHttpRequest(); x.open('POST',SB_URL+'/storage/v1/object/social/'+path);
+      x.setRequestHeader('Authorization','Bearer '+(tok||SB_KEY)); x.setRequestHeader('apikey',SB_KEY); x.setRequestHeader('x-upsert','false'); x.setRequestHeader('Content-Type',type); x.setRequestHeader('cache-control','max-age=3600');
+      x.upload.onprogress=function(e){ if(e.lengthComputable) onProg(e.loaded/e.total); };
+      x.onload=function(){ if(x.status>=200&&x.status<300){ onProg(1); ok(pub()); } else { var m=''; try{ m=JSON.parse(x.responseText).message; }catch(e){} no({plain:true,message:'Upload failed'+(m?': '+m:' ('+x.status+')')+'.'}); } };
+      x.onerror=function(){ no({plain:true,message:'Upload stopped. Check the internet and try again.'}); };
+      x.send(blob); }); }); }
 function socEdit(p0){
   if(!guard()) return;
   var p=p0||{platforms:['facebook','instagram'],media:[],status:'draft'}, media=(p.media||[]).slice(), busy=0, armed=false;
   var locked=p.status==='posted'||p.status==='posting';
   var close=function(){ $dlg.close(); };
   var err=h('p',{class:'ferr',role:'alert',hidden:true}); function bad(m){ err.textContent=m; err.hidden=false; }
-  var strip=h('div',{class:'pstrip'}), addB=btn('Add photos or video',function(){ pick(); },'small');
+  var strip=h('div',{class:'pstrip'}), addB=btn('Add photos or video',function(){ pick(); },'small'), pend=[], vprev=h('div',{class:'vprev',hidden:true}), vprevUrl='';
+  /* a file being uploaded: shown straight away from the phone, with a bar and the percent */
+  function pendTile(q){ if(!q.el){ q.bar=h('i'); q.pc=h('b',null,'0%');
+      q.el=h('div',{class:'pthumb pend'},q.video?h('video',{src:q.local+'#t=0.1',muted:'',playsinline:'',preload:'metadata'}):h('img',{src:q.local,alt:''}),q.video?h('span',{class:'ptag'},'Video'):null,
+        h('div',{class:'pbar'},q.bar),q.pc); }
+    return q.el; }
+  function pendSet(q,f){ q.pct=f; if(q.bar){ q.bar.style.width=Math.round(f*100)+'%'; q.pc.textContent=f>=1?'Saving':Math.round(f*100)+'%'; } }
+  function drawPrev(){ var m=media[0]&&media[0].type==='video'?media[0]:null; vprev.hidden=!m; if(!m){ if(vprevUrl){ vprev.replaceChildren(); vprevUrl=''; } return; }
+    if(vprevUrl===m.url) return; vprevUrl=m.url;
+    vprev.replaceChildren(h('label',null,'Preview'),h('video',{src:m.url+(m.thumb?'':'#t=0.1'),poster:m.thumb||null,controls:'',playsinline:'',preload:'metadata'}),h('small',null,'Uploaded. Play it to check it before you save.')); }
   function drawMedia(){ strip.replaceChildren.apply(strip,media.map(function(m,i){ return h('div',{class:'pthumb'},socThumb(m),m.type==='video'?h('span',{class:'ptag'},'Video'):null,
       locked?null:h('div',{class:'pacts'},i>0?h('button',{type:'button','aria-label':'Move left',onclick:function(){ media.splice(i-1,0,media.splice(i,1)[0]); drawMedia(); }},'‹'):null,
-        h('button',{type:'button','aria-label':'Remove',onclick:function(){ media.splice(i,1); drawMedia(); }},'×'))); }));
+        h('button',{type:'button','aria-label':'Remove',onclick:function(){ media.splice(i,1); drawMedia(); }},'×'))); }).concat(pend.map(pendTile)));
+    drawPrev();
     addB.textContent=busy?'Uploading, please wait':'Add photos or video'; addB.disabled=locked||!!busy||media.length>=10||(media[0]&&media[0].type==='video'); if(typeof drawCover==='function') drawCover(); }
   function pick(){ var inp=h('input',{type:'file',multiple:true,accept:'image/*,video/mp4,video/quicktime',hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[]); inp.remove(); if(!fs.length) return;
       var vids=fs.filter(function(f){ return /^video\//.test(f.type); });
       if(vids.length&&(fs.length>1||media.length)){ bad('A post can have one video on its own, or up to 10 photos.'); return; }
       fs=fs.slice(0,10-media.length); err.hidden=true; busy=fs.length; drawMedia();
-      fs.reduce(function(pr,f){ return pr.then(function(){
-        var job=/^video\//.test(f.type)
-          ? (f.size>250*1024*1024?Promise.reject({plain:true,message:f.name+' is over 250 MB.'}):Promise.all([socUp(f,/quicktime/.test(f.type)?'mov':'mp4',f.type),socFrame(f).then(function(b){ return b?socUp(b,'jpg','image/jpeg'):null; })]).then(function(r){ media.push({url:r[0],type:'video',thumb:r[1]}); if(kind==='post') setKind('reel'); }))
-          : socFitPhoto(f).then(function(b){ return socUp(b,'jpg','image/jpeg'); }).then(function(u){ media.push({url:u,type:'image'}); });
-        return job.catch(function(e){ bad(errText(e)); }).then(function(){ busy--; drawMedia(); }); }); },Promise.resolve()); }});
+      var qs=fs.map(function(f){ return {f:f,video:/^video\//.test(f.type),local:URL.createObjectURL(f),pct:0}; }); pend=pend.concat(qs); if(vids.length&&kind==='post') setKind('reel'); drawMedia();
+      qs.reduce(function(pr,q){ return pr.then(function(){ var f=q.f, prog=function(x){ pendSet(q,x); };
+        var job=q.video
+          ? (f.size>250*1024*1024?Promise.reject({plain:true,message:f.name+' is over 250 MB.'}):Promise.all([socUp(f,/quicktime/.test(f.type)?'mov':'mp4',f.type,prog),socFrame(f).then(function(b){ return b?socUp(b,'jpg','image/jpeg'):null; })]).then(function(r){ media.push({url:r[0],type:'video',thumb:r[1]}); if(kind==='post') setKind('reel'); toast('Video uploaded.'); }))
+          : socFitPhoto(f).then(function(b){ return socUp(b,'jpg','image/jpeg',prog); }).then(function(u){ media.push({url:u,type:'image'}); });
+        return job.catch(function(e){ bad(errText(e)); }).then(function(){ busy--; pend=pend.filter(function(x){ return x!==q; }); try{ URL.revokeObjectURL(q.local); }catch(e){} drawMedia(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
   var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
   /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
@@ -4747,6 +4770,7 @@ function socEdit(p0){
   $dlg.replaceChildren(h('div',{class:'billbox socedit'},h('h2',null,p.id?(locked?'Social post':'Edit post'):'New social post'),
     p.status!=='draft'&&p.id?h('p',null,socStatus(p)):null, p.error&&p.status==='failed'?h('p',{class:'ferr'},p.error):null, res,
     h('div',{class:'field'},h('label',null,'Photos or video'),strip,locked?null:h('div',{class:'row'},addB),h('small',null,'Up to 10 photos, or one video (MP4 or MOV). The first photo is the cover.')),
+    vprev,
     coverBox,
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
