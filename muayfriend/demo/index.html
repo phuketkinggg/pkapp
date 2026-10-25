@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=17"></script>
+<script src="changelog.js?v=18"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -800,6 +800,7 @@ var FEATURES=[
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package',d:'One online course can be offered as a tick box when someone buys a package, on the website and at the desk, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
+  {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
   {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
@@ -2193,7 +2194,7 @@ function customerOrders(cid){
     {label:'When',cell:function(o){ return fmtDate(String(o.at).slice(0,10))+' '+bkkTime(o.at); }},
     {label:'Sale',cell:function(o){ return h('span',null,'#'+o.number+' ',h('span',{class:'sub'},o.items||'')); }},
     {label:'Total',num:true,cell:function(o){ return thb(o.total)||'0 THB'; }},
-    {label:'',cell:function(o){ var k=ST[o.status]||[o.status]; return h('span',{class:'row'},chip(k[0]+(o.status==='room'&&o.room?', '+o.room:''),k[1]),o.refund_reason?h('span',{class:'sub'},o.refund_reason):null); }}],x.d,'Nothing bought in the shop or cafe yet.'));
+    {label:'',cell:function(o){ var k=ST[o.status]||[o.status]; return h('span',{class:'row'},chip(k[0]+(o.status==='room'&&o.room?', '+o.room:''),k[1]),o.refund_reason?h('span',{class:'sub'},o.refund_reason):null,featOn('receipt_send')&&(o.status==='paid'||o.status==='room')?btn('Receipt',function(){ sendReceipt('shop',o.id,'sale #'+o.number); },'small'):null); }}],x.d,'Nothing bought in the shop or cafe yet.'));
 }
 function checkOutStay(st){
   var exO=stayExtras(st).reduce(function(t,x){ return t+x.owe; },0);
@@ -5457,7 +5458,7 @@ function payDlg(method,waitingOrder){
       var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
       var disc=waitingOrder?0:cartDisc(); if(!waitingOrder) clearCart();
       $dlg.close(); toast('Sale #'+r.number+' done.'+(r.change?' Change '+thb(r.change)+'.':''));
-      receiptDlg({loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:base+disc,discount:disc,fee:p.fee||0,tax:p.tax||0,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
+      receiptDlg({id:r.id,loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:base+disc,discount:disc,fee:p.fee||0,tax:p.tax||0,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
       shopRefresh(); loadShop(); if(hadPk) reload('purchases');
     }).catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; });
   }
@@ -5482,9 +5483,50 @@ function receiptNode(o){
       o.change?h('div',null,h('span',null,'Change'),h('span',null,thb(o.change))):null),
     h('div',{class:'rc-foot'},'Thank you. Work hard, fight easy.'));
 }
+/* a receipt for the customer: a private link to the receipt page, sent the way they like (the last way used is picked first) */
+function rcBase(){ return location.protocol==='https:'?location.origin+location.pathname.replace(/[^\/]*$/,''):'https://muayfriend.com/demo/'; }
+function sendReceipt(kind,ref,what){ if(!featOn('receipt_send')) return;
+  sb.rpc('receipt_link',{p_kind:kind,p_ref:ref}).then(must).then(function(d){
+    var link=rcBase()+'receipt.html?t='+d.token, first=String(d.name||'').trim().split(/\s+/)[0]||'', biz=(typeof BIZ_MAIN!=='undefined'&&BIZ_MAIN)||'us';
+    var msg='Hi'+(first?' '+first:'')+', here is your receipt from '+biz+(what?' for '+what:'')+': '+link+'\nThank you!';
+    var how=(function(){ try{ return localStorage.getItem('rc_how')||''; }catch(e){ return ''; } })()||(d.email?'email':'whatsapp');
+    var em=h('input',{id:'rc-email',type:'email',autocomplete:'off',placeholder:'their email'}); em.value=d.email||'';
+    var ph=h('input',{id:'rc-phone',type:'tel',autocomplete:'off',placeholder:'with country code, for example +66 81 234 5678'}); ph.value=d.phone||'';
+    var err=h('p',{class:'ferr',role:'alert',hidden:true}), body=h('div',{class:'rcbody'}), tabs=h('div',{class:'seg',style:'flex-wrap:wrap',role:'group','aria-label':'How to send'});
+    function digits(){ var x=String(ph.value||'').replace(/[^\d+]/g,''); if(/^0\d{8,9}$/.test(x)) x='66'+x.slice(1); return x.replace(/^\+/,''); }
+    function mark(hw,to){ try{ localStorage.setItem('rc_how',hw); }catch(e){} sb.rpc('receipt_sent',{p_token:d.token,p_how:hw,p_to:to||''}).then(function(){},function(){}); }
+    function copy(){ var t=link; (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ toast('Link copied.'); mark('link',''); },function(){ window.prompt('Copy the link',t); }); }
+    function draw(){ err.hidden=true;
+      tabs.replaceChildren.apply(tabs,[['email','Email'],['whatsapp','WhatsApp'],['line','LINE'],['sms','Text'],['qr','QR'],['link','Link']].map(function(o){ return h('button',{type:'button','aria-pressed':how===o[0]?'true':'false',onclick:function(){ how=o[0]; draw(); }},o[1]); }));
+      var b;
+      if(how==='email') b=[field('rc-email','Email',em),btn('Send the receipt',function(){ var to=em.value.trim(), me2=this;
+          if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){ err.textContent='Type their email.'; err.hidden=false; return; }
+          me2.disabled=true; me2.textContent='Sending...';
+          sb.auth.getSession().then(function(r){ var tok=r&&r.data&&r.data.session&&r.data.session.access_token;
+            return fetch(SB_URL+'/functions/v1/receipt-mail',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY)},body:JSON.stringify({token:d.token,to:to,link:link})}); })
+            .then(function(r){ return r.json(); }).then(function(j){ if(j.error) throw {plain:true,message:j.error}; try{ localStorage.setItem('rc_how','email'); }catch(e){} $dlg.close(); toast('Receipt emailed to '+to+'.'); })
+            .catch(function(e){ err.textContent=errText(e); err.hidden=false; me2.disabled=false; me2.textContent='Send the receipt'; }); },'primary')];
+      else if(how==='whatsapp'||how==='sms') b=[field('rc-phone','Phone',ph),h('a',{class:'btn primary',href:'#',onclick:function(e){ var n=digits(); if(n.length<8){ e.preventDefault(); err.textContent='Type their phone number with the country code.'; err.hidden=false; return; }
+          this.href=how==='whatsapp'?'https://wa.me/'+n+'?text='+encodeURIComponent(msg):'sms:+'+n+'?&body='+encodeURIComponent(msg); this.target=how==='whatsapp'?'_blank':''; mark(how,'+'+n); }},how==='whatsapp'?'Open WhatsApp with the message':'Open Messages with the message'),
+        h('small',null,'The message opens on this phone or computer, ready to send.')];
+      else if(how==='line') b=[h('a',{class:'btn primary',href:'https://line.me/R/share?text='+encodeURIComponent(msg),target:'_blank',rel:'noopener',onclick:function(){ mark('line',''); }},'Open LINE with the message'),h('small',null,'Choose the customer in LINE and send.')];
+      else if(how==='qr'){ var q=null; try{ if(window.qrcode){ var qq=window.qrcode(0,'M'); qq.addData(link); qq.make(); q=h('div',{class:'qr'}); q.innerHTML=qq.createSvgTag({cellSize:6,margin:2,scalable:true}); } }catch(e){}
+        b=[q||h('p',{class:'sub'},'The QR could not be drawn. Use Link instead.'),h('small',null,'The customer scans this with their phone camera to open the receipt.')]; mark('qr',''); }
+      else b=[h('div',{class:'row',style:'flex-wrap:nowrap'},h('input',{value:link,readonly:'',id:'rc-link',onclick:function(){ this.select(); }}),btn('Copy',copy,'small')),h('a',{class:'btn small',href:link,target:'_blank',rel:'noopener'},'Open the receipt')];
+      body.replaceChildren.apply(body,b); }
+    $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Send a receipt'),h('p',{class:'sub'},(d.name?d.name+(what?', ':''):'')+(what||'')),tabs,body,err,
+      h('div',{class:'factions'},me&&me.role==='manager'?btn('Receipt details',function(){ receiptInfoEdit(); },'small'):h('span'),btn('Done',function(){ $dlg.close(); }))));
+    draw(); if($dlg.showModal&&!$dlg.open) $dlg.showModal(); else $dlg.setAttribute('open','');
+  }).catch(function(e){ toast(errText(e)); }); }
+/* what the receipt shows about the business (manager) */
+function receiptInfoEdit(){ sb.from('app_settings').select('value').eq('key','receipt_info').maybeSingle().then(function(r){ var v={}; try{ v=JSON.parse(r.data&&r.data.value||'{}'); }catch(e){}
+  openForm({title:'Receipt details',note:'Shown on every receipt you send. The business name comes from Accounts.',values:{address:v.address||'',tax_id:v.tax_id||'',email:v.email||'',footer:v.footer||''},
+    fields:[{key:'address',label:'Address',type:'textarea',rows:2},{key:'tax_id',label:'Tax ID (optional)'},{key:'email',label:'Email to show (optional)',hint:'Leave empty to use the reply address from the welcome email.'},{key:'footer',label:'Thank you line',hint:'For example: Thank you for training with us. See you on the mats!'}],
+    onSave:function(x){ var val=JSON.stringify({address:String(x.address||'').trim(),tax_id:String(x.tax_id||'').trim(),email:String(x.email||'').trim(),footer:String(x.footer||'').trim()});
+      return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','receipt_info').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; }); }}); }); }
 function receiptDlg(o){
   shopDlg(h('div',{class:'billbox'},receiptNode(o),
-    h('div',{class:'factions noprint'},h('span'),h('div',{class:'row'},btn('Print',function(){ document.body.classList.add('print-receipt'); window.print(); }),btn('Done',function(){ $dlg.close(); },'primary')))));
+    h('div',{class:'factions noprint'},h('span'),h('div',{class:'row'},o.id&&featOn('receipt_send')?btn('Send to the customer',function(){ sendReceipt('shop',o.id,'sale #'+o.number); }):null,btn('Print',function(){ document.body.classList.add('print-receipt'); window.print(); }),btn('Done',function(){ $dlg.close(); },'primary')))));
 }
 window.addEventListener('afterprint',function(){ document.body.classList.remove('print-receipt'); });
 function refundDlg(o){
@@ -5787,7 +5829,7 @@ function vShop(){
       var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip(o.billed?'On their bill':'Not paid','warn'):chip(payName(o.method)+(o.fee?', card fee '+thb(o.fee):''),'ok');
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
-        act:[btn('Receipt',function(){ receiptDlg({loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
+        act:[btn('Receipt',function(){ receiptDlg({id:o.id,loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
           o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null,
           o.status==='paid'||o.status==='room'||o.status==='waiting'?btn('Mistake',function(){ saleMistake(o); },'small'):null]}; }),'No sales yet today.'))];
 }
@@ -6900,7 +6942,7 @@ function vCustomers(){
         {label:'Runs',cell:function(p){return p.covers&&!p.covers.length?'':p.starts_on?fmtDate(p.starts_on)+(p.expires_on?' to '+fmtDate(p.expires_on):''):(p.start_by?'Start by '+fmtDate(p.start_by):'Not started');}},
         {label:'Status',cell:function(p){return p.refunded_at?chip('Refunded'+(p.refund_thb?' '+thb(p.refund_thb):''),'bad'):p.covers&&!p.covers.length?(p.cancelled?chip('Cancelled','bad'):chip('Extra')):stateChip(stateOf(p,day));}},
         {label:'',cell:function(p){ var stayTr=p.stay_id&&p.package_name==='Stay: group Muay Thai included';
-          return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,btn('Edit',function(){ editPurchase(p); },'small'),
+          return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,featOn('receipt_send')&&Number(p.paid_thb)>0&&!stayTr?btn('Receipt',function(){ sendReceipt('purchase',p.id,p.package_name); },'small'):null,btn('Edit',function(){ editPurchase(p); },'small'),
             !p.refunded_at&&!stayTr?btn('Refund',function(){ refundTab('purchase',p); },'small'):null,me&&me.role==='manager'&&!stayTr?btn('Delete (mistake)',function(){ deletePurchase(p); },'small'):null);}}],ps,'No packages yet. Use Sell a package to record the first one.')),
       (function(){ var pv=S.privates.filter(function(x){ return x.customer_id===c.id; }).sort(function(a,b){ return (a.date+(a.time||''))<(b.date+(b.time||''))?1:-1; }); return pv.length?section('Privates',null,table([
         {label:'When',cell:function(x){ return linkBtn(fmtDate(x.date)+' '+pSpan(x),function(){ editPrivate(x); }); }},
@@ -6908,7 +6950,7 @@ function vCustomers(){
         {label:'Paid with',cell:payLabel},
         {label:'Price',num:true,cell:function(x){ return x.purchase_id?'':thb(x.price_thb); }},
         {label:'Status',cell:function(x){ return x.refunded_at?chip('Refunded'+(x.refund_thb?' '+thb(x.refund_thb):''),'bad'):chip(PSTATUS[x.status]||x.status,x.status==='done'?'ok':x.status==='cancelled'?'bad':null); }},
-        {label:'',cell:function(x){ return !x.refunded_at&&x.status!=='requested'&&(x.purchase_id?x.status!=='cancelled':(x.paid||x.method==='room'))?btn('Refund',function(){ refundTab('private',x); },'small'):null; }}],pv.slice(0,30),'')):null; })(),
+        {label:'',cell:function(x){ return h('span',{class:'row'},featOn('receipt_send')&&!x.purchase_id&&x.paid?btn('Receipt',function(){ sendReceipt('private',x.id,'your private session'); },'small'):null,!x.refunded_at&&x.status!=='requested'&&(x.purchase_id?x.status!=='cancelled':(x.paid||x.method==='room'))?btn('Refund',function(){ refundTab('private',x); },'small'):null); }}],pv.slice(0,30),'')):null; })(),
       customerOrders(c.id),
       section('Recent visits',null,table([
         {label:'Date',cell:function(v){return fmtDate(v.day);}},{label:'Time',cell:function(v){return v.e.time;}},
