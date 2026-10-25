@@ -1,5 +1,5 @@
 {
- "at": "2026-10-25T11:42:34Z",
+ "at": "2026-10-25T16:31:31Z",
  "classes": [
   {
    "day": 0,
@@ -217,18 +217,18 @@
  "packages": [
   {
    "covers": [
-    "Muay Thai",
-    "Striking"
-   ],
-   "name": "Fighter Techniques wiht Kru Pot",
-   "price": 200
-  },
-  {
-   "covers": [
     "Fitness zone",
     "Open gym"
    ],
    "name": "Fitness Zone 1 time",
+   "price": 200
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Striking"
+   ],
+   "name": "Fighter Techniques wiht Kru Pot",
    "price": 200
   },
   {
@@ -287,14 +287,14 @@
    "covers": [
     "Privates"
    ],
-   "name": "Private Muay Thai",
+   "name": "1 private",
    "price": 900
   },
   {
    "covers": [
     "Privates"
    ],
-   "name": "1 private",
+   "name": "Private Muay Thai",
    "price": 900
   },
   {
@@ -304,6 +304,20 @@
    ],
    "name": "Fitness Zone, 10 times",
    "price": 1000
+  },
+  {
+   "covers": [
+    "Spa"
+   ],
+   "name": "Spa Access, 1 Week",
+   "price": 1800
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "Kids package limited under 15",
+   "price": 1800
   },
   {
    "covers": [
@@ -322,10 +336,10 @@
   },
   {
    "covers": [
-    "Spa"
+    "Muay Thai"
    ],
-   "name": "Spa Access, 1 Week",
-   "price": 1800
+   "name": "Training Only, 1 Week",
+   "price": 2500
   },
   {
    "covers": [
@@ -333,13 +347,6 @@
     "Kids"
    ],
    "name": "Kids monthly, 4:30pm class",
-   "price": 2500
-  },
-  {
-   "covers": [
-    "Muay Thai"
-   ],
-   "name": "Training Only, 1 Week",
    "price": 2500
   },
   {
@@ -470,18 +477,18 @@
   {
    "covers": [
     "Muay Thai",
-    "Spa"
+    "Fitness zone",
+    "Open gym"
    ],
-   "name": "Training + Recovery, 3 Month",
+   "name": "DTV 6 Months Unlimited",
    "price": 28000
   },
   {
    "covers": [
     "Muay Thai",
-    "Fitness zone",
-    "Open gym"
+    "Spa"
    ],
-   "name": "DTV 6 Months Unlimited",
+   "name": "Training + Recovery, 3 Month",
    "price": 28000
   },
   {
