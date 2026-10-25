@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Updates show sooner', what: 'The app now always fetches its newest version when you open it, so new features show on the next open instead of up to 10 minutes later.', where: 'Everywhere'},
   {date: '2026-10-25', title: 'Upload bar and video preview', what: 'When you add photos or a video to a social post, each one shows straight away with a bar and the percent uploaded. When a video is up, a preview player shows under it so you can watch it before you save.', where: 'Social media, New post'},
   {date: '2026-10-25', title: 'YouTube Shorts', what: 'Connect your YouTube channel once in Social media, then tick YouTube Shorts on any reel or trial reel. It posts as a Short at the same time, with the caption, a title from its first line and your cover.', where: 'Social media, Connect YouTube', feature: 'youtube_shorts'},
   {date: '2026-10-25', title: 'Reel covers and the AI cover maker', what: 'Choose the cover of a reel before it posts: pick the moment from the video, upload your own picture, or tap Make covers with AI. The AI looks through the video, picks the strongest moments and writes a short headline, and the app draws 3 covers in your colours. Change the words, tap one, done. Instagram and Facebook both use it.', where: 'Social media, New post, Reel cover', feature: 'reel_covers'},

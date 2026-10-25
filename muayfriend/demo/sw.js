@@ -1,6 +1,6 @@
 // Keeps the app installable and opens the last copy when there is no signal.
 // Always tries the network first, so updates show up straight away. Data calls are never cached.
-const CACHE = 'mf-demo-v118';
+const CACHE = 'mf-demo-v119';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './vendor/supabase-js-2.117.2.js', './vendor/qrcode-generator-1.4.4.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
@@ -9,10 +9,13 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request, url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
-  e.respondWith(fetch(req).then((res) => {
+  const root0 = new URL('./', self.location).pathname;
+  const isApp = req.mode === 'navigate' && (url.pathname === root0 || url.pathname === root0 + 'index.html');
+  // the app page always asks the server for the newest copy (skips the browser's 10 minute cache), so an update shows on the next open
+  e.respondWith((isApp ? fetch(url.href, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req)).then((res) => {
     // only the app itself is kept as the offline copy, never other pages (invoice, booking)
-    const root = new URL('./', self.location).pathname;
-    const appPage = req.mode === 'navigate' && (url.pathname === root || url.pathname === root + 'index.html');
+    const root = root0;
+    const appPage = isApp;
     if (res.ok && (appPage || (req.mode !== 'navigate' && SHELL.some((p) => url.pathname.endsWith(p.replace('./', '/')))))) {
       const copy = res.clone(); caches.open(CACHE).then((c) => c.put(appPage ? './' : req, copy));
     }
