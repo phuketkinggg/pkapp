@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Offer a course with packages', what: 'Pick one online course to offer when someone buys a package. On the website and at the desk they see a tick box with your words and the offer price, and the course unlocks in their app when they pay. You choose the price, which packages it goes with, and whether it is for new members only.', where: 'Courses, open a course, Offer with packages', feature: 'course_offer'},
   {date: '2026-10-25', title: 'Connect YouTube in the same window', what: 'Connect YouTube now opens Google in the same window and brings you straight back to Social media with a message saying which channel is connected.', where: 'Social media, Connect YouTube', feature: 'youtube_shorts'},
   {date: '2026-10-25', title: 'Updates show sooner', what: 'The app now always fetches its newest version when you open it, so new features show on the next open instead of up to 10 minutes later.', where: 'Everywhere'},
   {date: '2026-10-25', title: 'Upload bar and video preview', what: 'When you add photos or a video to a social post, each one shows straight away with a bar and the percent uploaded. When a video is up, a preview player shows under it so you can watch it before you save.', where: 'Social media, New post'},

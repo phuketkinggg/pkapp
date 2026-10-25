@@ -152,7 +152,27 @@ function privBox(p,sb){
 /* privates: add recovery (spa) to the order, as many single sessions as they want, or a spa week or month */
 var REC=null;
 function coachTop(){ if(!cur||!PVon||!PV) return 0; var v=PV.value(); if(!v.rate||!cur.visits) return 0; return Math.max(0,v.rate-Math.round(cur.price/cur.visits)); }
-function recTotal(){ return cur?cur.price+(REC?REC.price:0)+coachTop():0; }
+function recTotal(){ return cur?cur.price+(REC?REC.price:0)+coachTop()+(ADD&&OFR?OFR.price:0):0; }
+/* the online course on offer with packages (set in the app: Courses, Offer with packages); priced by the database */
+var OFR=null, ADD=false;
+fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/course_offer',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:'{}'})
+  .then(function(r){ return r.ok?r.json():null; }).then(function(d){ OFR=d&&d.id?d:null; }).catch(function(){});
+function offerFits(p){ return !!OFR&&(OFR['with']==='all'||(p.covers||[]).indexOf('Muay Thai')>=0); }
+function offerBox(box){
+  if(!document.getElementById('pp-css')&&!document.getElementById('ofr-css')){ var st=document.createElement('style'); st.id='ofr-css';
+    st.textContent='.pp-yn{display:flex;gap:8px;flex-wrap:wrap}.pp-yn button{font:inherit;font-weight:600;color:inherit;background:transparent;border:1.5px solid #D9D5C8;border-radius:10px;cursor:pointer;padding:9px 14px;min-height:42px}.pp-yn button[aria-pressed="true"]{background:#171B23;border-color:#171B23;color:#fff}';
+    document.head.appendChild(st); }
+  var wrap=document.createElement('div'); wrap.className='recbox'; box.appendChild(wrap);
+  function draw(){
+    wrap.innerHTML='<b style="display:block;margin:14px 0 4px">Add '+PK.esc(OFR.title)+'?</b>'+
+      (OFR.text?'<p class="sub" style="margin:0 0 8px;white-space:pre-line">'+PK.esc(OFR.text)+'</p>':'')+
+      '<div class="pp-yn"><button type="button" data-o="1" aria-pressed="'+ADD+'">Yes, add it, '+PK.thb(OFR.price)+'</button><button type="button" data-o="0" aria-pressed="'+(!ADD)+'">No thanks</button></div>'+
+      (OFR.new_only?'<p class="sub" style="margin:8px 0 0">For new members, with your first package.'+(OFR.full_price&&OFR.full_price>OFR.price?' Usually '+PK.thb(OFR.full_price)+'.':'')+'</p>':'')+
+      (ADD?'<p class="sub" style="margin:8px 0 0">It opens in the Phuket King app, in the Learn tab. Sign in with the same email.</p>':'');
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-o]'),function(b){ b.onclick=function(){ ADD=b.getAttribute('data-o')==='1'; T('buy_course_offer',ADD?'yes':'no'); draw(); payLabel(); }; });
+  }
+  draw();
+}
 function topNote(){ var t=coachTop(), el=document.getElementById('topnote'); if(!el) return; el.hidden=!t; if(t){ var v=PV.value(); el.textContent=v.coach_name+' has their own rate of '+PK.thb(v.rate)+' a session. Your first session with '+v.coach_name+' includes a '+PK.thb(t)+' top up. Other sessions in the pack can be with any coach, or with '+v.coach_name+' for the same top up, paid at the gym.'; } }
 function payLabel(){ $('payBtn').textContent='Pay '+PK.thb(recTotal()); }
 function recBox(box){
@@ -186,7 +206,7 @@ function buy(p,g){
   cur=p; T('buy_open',p.name); $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
   var dtv=/^DTV/i.test(p.name), priv=(p.covers||[]).indexOf('Privates')>=0;
   $('buyWhat').innerHTML='<p style="margin:0 0 6px"><b>'+PK.esc(p.name)+'</b><br><span style="font-size:26px;font-weight:700">'+PK.thb(p.price)+'</span></p><p class="sub" style="margin:0">'+PK.esc(detail(p))+'</p>';
-  var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false; REC=null;
+  var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false; REC=null; ADD=false;
   if(priv&&p.visits){ privBox(p,sb); var rb=document.createElement('div'); sb.appendChild(rb); recBox(rb); }
   else if(p.pick_start){
     sb.innerHTML='<label>When do you want to start?<input type="date" id="b-start" required></label><p class="sub" style="margin:0">Your package runs from this date'+(p.days?' for '+span(p.days):'')+'.</p>';
@@ -197,7 +217,8 @@ function buy(p,g){
       (p.covers||[]).indexOf('Muay Thai')>=0?'<b>No booking needed.</b> Just turn up to any group class. Your package starts automatically from your first class.':
       '<b>No booking needed.</b> Just come in. Your package starts automatically from your first visit.')+within+(dtv?' We prepare your DTV paperwork after payment. DTV courses cannot be refunded once the paperwork is issued.':'')+'</p>';
   }
-  $('payBtn').textContent='Pay '+PK.thb(p.price); $('payBtn').disabled=false; $('berr').hidden=true; $('buyForm').hidden=false; $('ppView').hidden=true; $('buyWhat').hidden=false;
+  if(offerFits(p)){ var ob=document.createElement('div'); sb.appendChild(ob); offerBox(ob); }
+  payLabel(); $('payBtn').disabled=false; $('berr').hidden=true; $('buyForm').hidden=false; $('ppView').hidden=true; $('buyWhat').hidden=false;
   try{ var m=JSON.parse(localStorage.getItem('pk_buyer')||'{}'); ['name','email','phone'].forEach(function(k){ if(m[k]&&!$('b-'+k).value) $('b-'+k).value=m[k]; }); }catch(e){}
   openDlg($('buy'));
 }
@@ -211,10 +232,10 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   if(st&&!st.value){ err.textContent='Choose the date you want to start.'; err.hidden=false; st.focus(); return; }
   if(PVon&&PV){ var pe=PV.check(); if(pe){ err.textContent=pe; err.hidden=false; PV.el.scrollIntoView({block:'center',behavior:'smooth'}); return; } }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
-  T('buy_pay',cur.name+(REC?' + recovery':'')); if(PVon&&PV&&PV.value().coach) T('buy_private',PV.value().coach_name);
+  T('buy_pay',cur.name+(REC?' + recovery':'')+(ADD?' + course':'')); if(PVon&&PV&&PV.value().coach) T('buy_private',PV.value().coach_name);
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
-  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,recovery:REC?{package_id:REC.package_id,qty:REC.qty}:null,back:location.origin+location.pathname})
+  call({mode:'order',pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,recovery:REC?{package_id:REC.package_id,qty:REC.qty}:null,course_addon:ADD&&OFR?OFR.id:null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ btn.disabled=false; payLabel(); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
 });
