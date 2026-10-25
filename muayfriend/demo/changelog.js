@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Pay first to check in', what: 'At the check in screen, someone who owes for a package or private sees Please pay first to check in, pays by card or QR there or at the desk, taps I have paid, then checks in. Staff can still check anyone in from Today.', where: 'Desk mode', feature: 'pay_first'},
   {date: '2026-10-25', title: 'Please pay now at check in', what: 'When someone checks in and has not paid for their package or private, the check in screen shows Please pay now with the amount and a Pay now button (card or QR). Staff see them on Today under Checked in today, not paid, with Take payment.', where: 'Desk mode, Today', feature: 'pay_prompt'},
   {date: '2026-10-25', title: 'Desk mode stays on', what: 'A back swipe on a laptop trackpad or a phone, or the Back key, no longer takes the check in screen out of desk mode. Only Leave desk mode with the staff password does.', where: 'Today, Desk mode'},
   {date: '2026-10-25', title: 'Set what the coach gets on any private', what: 'Type the coach\'s pay on a private when it is not their usual percent, for example 2 people. Commission, payouts and the coach\'s own screen use it.', where: 'Privates, open a private, Coach gets', feature: 'private_share'},

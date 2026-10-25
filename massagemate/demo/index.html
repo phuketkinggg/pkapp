@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=6"></script>
+<script src="changelog.js?v=7"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -795,6 +795,7 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
+  {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -1381,9 +1382,13 @@ function unpaidToday(){ if(!featOn('pay_prompt')) return []; var day=ymd(new Dat
   entriesOf(day).forEach(function(e){ if(e.customer_id) ids[e.customer_id]=1; });
   S.privates.forEach(function(x){ if(x.customer_id&&x.date===day&&x.arrived_at&&x.status!=='cancelled') ids[x.customer_id]=1; });
   return Object.keys(ids).map(function(id){ return {c:byId('customers',id),owe:owesNow(id)}; }).filter(function(x){ return x.c&&x.owe>0; }); }
+function payFirst(){ return featOn('pay_prompt')&&featOn('pay_first'); }
 function payNowBox(c,owe,big){
-  return h('div',{class:'paynow'+(big?' big':''),role:'alert'},h('div',null,h('b',{class:'paynowt'},'Please pay now: '+thb(owe)),h('div',null,'Pay at the front desk before you train, or pay by card or QR here.')),
-    h('button',{type:'button',class:'btn primary',onclick:function(){ stripePay('customer',c.id,c.name); }},'Pay '+thb(owe)+' now')); }
+  var first=payFirst()&&!big;
+  return h('div',{class:'paynow'+(big?' big':''),role:'alert'},h('div',null,h('b',{class:'paynowt'},(first?'Please pay first to check in: ':'Please pay now: ')+thb(owe)),
+      h('div',null,first?'Pay here by card or QR, or at the front desk. Then tap I have paid.':'Pay at the front desk before you train, or pay by card or QR here.')),
+    h('div',{class:'row'},h('button',{type:'button',class:'btn primary',onclick:function(){ stripePay('customer',c.id,c.name); }},'Pay '+thb(owe)+' now'),
+      first?h('button',{type:'button',class:'btn',onclick:function(){ toast('Checking your payment.'); Promise.all([reload('purchases'),reload('privates')]).then(function(){ if(owesNow(c.id)>0) toast('Not paid yet. Pay here, or see the front desk.'); else toast('Paid. Thank you, you can check in now.'); schedule(); }); }},'I have paid'):null)); }
 function pastCheckIn(c){
   var today=ymd(new Date()), y=addDays(today,-1);
   function targetsFor(d){ var wd=(parseYmd(d).getDay()+6)%7;
@@ -8519,17 +8524,16 @@ function vKiosk(){
     h('div',{class:'cnote'},ui.kdone.kind==='buy'?ui.kdone.name+', thank you. '+ui.kdone.pack:ui.kdone.name+', enjoy your session. '+ui.kdone.pack+'.'),h('div',null,h('button',{type:'button',class:'btn primary',onclick:kReset},'Done'))),foot];
   if(ui.kc){
     var c=byId('customers',ui.kc); if(!c){ kReset(); return [head]; }
-    var ts=kTargets(c,day), pv=kPrivToday(c,day);
+    var ts=kTargets(c,day), pv=kPrivToday(c,day), kOwe=owesNow(c.id), block=kOwe>0&&payFirst();
     var more=h('div',{class:'kmore'},h('button',{type:'button',class:'kbig kalt',onclick:function(){ kPrivate(c); }},h('span',null,'Book a private'),h('span',{class:'chip'},'Now or later')),
       h('button',{type:'button',class:'kbig kalt',onclick:function(){ kBuy(c); }},h('span',null,'Buy a package'),h('span',{class:'chip'},'Buy')));
     var pvRows=pv.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'', wait=x.status==='requested';
-      return h('button',{type:'button',class:'kbig',disabled:wait||x.arrived_at||ui.kbusy?true:null,onclick:function(){ kPrivHere(c,x); }},
+      return h('button',{type:'button',class:'kbig',disabled:wait||x.arrived_at||ui.kbusy||block?true:null,onclick:function(){ if(!block) kPrivHere(c,x); }},
         h('span',{class:'row'},x.time?h('span',{class:'ktime'},x.time):null,h('span',null,'Private'+who)),
-        x.arrived_at?chip('Checked in','ok'):wait?chip('Not confirmed yet, see the front desk','warn'):!x.purchase_id&&!x.paid&&x.method!=='room'&&Number(x.price_thb)>0&&featOn('pay_prompt')?h('span',{class:'chip bad'},'Check in, then pay '+thb(x.price_thb)):h('span',{class:'chip ok'},'Check in')); });
+        x.arrived_at?chip('Checked in','ok'):wait?chip('Not confirmed yet, see the front desk','warn'):block?h('span',{class:'chip bad'},'Pay first'):!x.purchase_id&&!x.paid&&x.method!=='room'&&Number(x.price_thb)>0&&featOn('pay_prompt')?h('span',{class:'chip bad'},'Check in, then pay '+thb(x.price_thb)):h('span',{class:'chip ok'},'Check in')); });
     var rows=pvRows.concat(ts.map(function(t){
-        return h('button',{type:'button',class:'kbig',disabled:t.done||ui.kbusy?true:null,onclick:function(){ kCheckIn(c,t); }},
-          h('span',{class:'row'},t.time?h('span',{class:'ktime'},t.time):null,h('span',null,t.label)),t.done?chip('Checked in','ok'):h('span',{class:'chip ok'},'Check in')); }));
-    var kOwe=owesNow(c.id);
+        return h('button',{type:'button',class:'kbig',disabled:t.done||ui.kbusy||block?true:null,onclick:function(){ if(!block) kCheckIn(c,t); }},
+          h('span',{class:'row'},t.time?h('span',{class:'ktime'},t.time):null,h('span',null,t.label)),t.done?chip('Checked in','ok'):block?h('span',{class:'chip bad'},'Pay first'):h('span',{class:'chip ok'},'Check in')); }));
     return [head,ui.kerr?h('div',{class:'kerr',role:'alert'},ui.kerr):null,kOwe>0?payNowBox(c,kOwe):null,
       rows.length?h('div',{class:'klist'},h('p',{class:'sub'},'Tap what you are here for.'),rows)
       :h('div',{class:'panel empty'},'Nothing to check in for right now on a package. Buy one below, or book a private.'),more,foot];
