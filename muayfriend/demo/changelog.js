@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Desk mode stays on', what: 'A back swipe on a laptop trackpad or a phone, or the Back key, no longer takes the check in screen out of desk mode. Only Leave desk mode with the staff password does.', where: 'Today, Desk mode'},
   {date: '2026-10-25', title: 'Set what the coach gets on any private', what: 'Type the coach\'s pay on a private when it is not their usual percent, for example 2 people. Commission, payouts and the coach\'s own screen use it.', where: 'Privates, open a private, Coach gets', feature: 'private_share'},
   {date: '2026-10-25', title: 'Coaches switch privates on or off', what: 'Coaches tap Not available when they are out, or Not available today, and switch back on when they are ready. Their weekly hours and closed days stay as they are, and privates already booked stay.', where: 'Coach app, My private hours'},
   {date: '2026-10-25', title: 'Group classes block privates', what: 'No private can be booked during a group class, for any coach.', where: 'Settings, Features', feature: 'classes_block_privates'},

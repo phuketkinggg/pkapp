@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=4"></script>
+<script src="changelog.js?v=5"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -482,6 +482,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
   .scroll table{min-width:620px}
 }
 body.kiosk .side{display:none}
+html:has(body.kiosk),body.kiosk{overscroll-behavior:none;overflow-x:hidden}
 body.kiosk main{padding:24px}
 body.kiosk #view{max-width:1100px;margin:0 auto}
 /* till: the side menu slides away so the till has the whole screen; drag in from the left edge (or tap the line) to bring it back */
@@ -7130,7 +7131,7 @@ function whatsNewSection(){
     l.length>12&&!ui.clAll?btn('Show all '+l.length,function(){ ui.clAll=true; schedule(); },'small'):null));
 }
 function clNotice(){
-  if(!me||me.role!=='manager'||ui.tab==='settings'||ui.clHide) return null; var n=clUnseen(); if(!n.length) return null;
+  if(!me||me.role!=='manager'||ui.tab==='settings'||ui.tab==='kiosk'||ui.clHide||document.body.classList.contains('kiosk')) return null; var n=clUnseen(); if(!n.length) return null;
   return h('div',{class:'pvbar clbar',role:'status'},h('span',null,h('b',null,'New in the app: '),n[0].title+(n.length>1?' and '+(n.length-1)+' more':'')),
     h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; schedule(); },'small')));
 }
@@ -8358,11 +8359,13 @@ function promoSection(){
 function enterKiosk(){
   loadPromos().catch(function(){});
   document.body.classList.add('kiosk'); TABS=[]; ui.tab='kiosk'; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr='';
-  try{ history.replaceState(null,'','#'); }catch(e){}
+  try{ history.replaceState(null,'','#'); history.pushState({kiosk:1},'','#desk'); }catch(e){}
   try{ if(document.documentElement.requestFullscreen&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); }catch(e){}
   clearInterval(kRefresh); kRefresh=setInterval(function(){ if(ui.tab==='kiosk'&&!ui.kc&&!ui.kdone) loadAll().catch(function(){}); },60000);
   schedule();
 }
+/* desk mode stays put: a back swipe on a trackpad or phone, or the Back key, does not leave it (only Leave desk mode with the password does) */
+window.addEventListener('popstate',function(){ if(document.body.classList.contains('kiosk')){ try{ history.pushState({kiosk:1},'','#desk'); }catch(e){} } });
 function kReset(){ try{ if($dlg.open) $dlg.close(); }catch(e){} ui.kintent=null; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr=''; schedule(); }
 function kIdle(ms){ clearTimeout(kTimer); kTimer=setTimeout(kReset,ms); }
 document.addEventListener('pointerdown',function(){ if(ui.tab==='kiosk'&&(ui.kc||ui.kq)&&!ui.kdone) kIdle(30000); },true);
