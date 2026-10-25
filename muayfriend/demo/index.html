@@ -8338,7 +8338,8 @@ function webPhotosSection(){
   return section('Website photos',null,h('div',null,
     h('p',{class:'sub'},'Every photo on the Muay Fight Gym website. Tap Change photo and pick one from your phone. The website shows it within a minute. Landscape photos work best for the big wide spots.'),
     WEBP.err?h('p',{class:'ferr'},WEBP.err):null,
-    Object.keys(pages).map(function(pg){ var items=list.filter(function(s){ return s.page===pg; }); if(!items.length) return null;
+    featOn('web_team')?h('div',{class:'panel pad',style:'margin-top:10px'},h('b',null,'Team photos, videos and order: '),'set in ',linkBtn('Staff',function(){ ui.tab='staff'; schedule(); }),'. Open a person, tick Show on the website team, and set their photo, video, title, text and order (smaller numbers show first).'):null,
+    Object.keys(pages).map(function(pg){ var items=list.filter(function(s){ return s.page===pg&&!(featOn('web_team')&&/^coach_/.test(s.id)); }); if(!items.length) return null;
       return h('div',{style:'margin:18px 0 6px'},
         h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},pg+' page'),h('a',{href:pages[pg],target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
         h('div',{style:'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:10px'},items.map(function(s){
