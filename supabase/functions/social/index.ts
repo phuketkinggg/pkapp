@@ -3,6 +3,7 @@
 // POST {mode:'check'}  manager: is the AI key and the Meta page set up (page name, Instagram username)
 // POST {mode:'write', brief, caption?, ask?, platforms?, images?}  manager: 3 caption options from Claude
 // POST {mode:'cover', frames, brief?, caption?}  manager: 3 cover ideas for a reel (best frame and a short headline); the app draws the cover
+// Kinds: post, reel, trial (Instagram trial reel), story (one photo or video, 24 hours, Instagram and Facebook)
 // POST {mode:'run'}    the 5 minute timer (x-sync-token) or a manager (Post now): sends every post that is due
 // POST {mode:'stats', n?}  timer token or manager: views, reach, likes, saves and shares of the last Instagram posts, marked if sent from the app
 // POST {mode:'yt_connect'} manager: the Google sign in link to connect a YouTube channel; Google comes back here (GET ?code&state)
@@ -160,7 +161,24 @@ async function fbCover(videoId: string, cover: string) {
     await fetch(`${G}/${videoId}/thumbnails`, { method: "POST", body: fd });
   } catch { /* the reel stays up with Facebook's own thumbnail */ }
 }
+// a Facebook page story: one photo (uploaded hidden, then shared as a story) or one video (upload, then finish)
+async function fbStory(p: Post, a: { page: string }): Promise<Res> {
+  const m = (p.media ?? [])[0];
+  if (!m) return { error: "A story needs a photo or a video." };
+  if (m.type === "video") {
+    const st = await graph(`${a.page}/video_stories`, { upload_phase: "start" });
+    const up = await fetch(`https://rupload.facebook.com/video-upload/v23.0/${st.video_id}`, { method: "POST", headers: { Authorization: `OAuth ${pageTok || PAGE_TOKEN()}`, file_url: m.url } });
+    const uj = await up.json().catch(() => ({}));
+    if (!up.ok || uj.success === false) throw new Error(uj?.debug_info?.message ?? `Facebook story upload ${up.status}`);
+    const fin = await graph(`${a.page}/video_stories`, { upload_phase: "finish", video_id: st.video_id });
+    return { id: fin.post_id ?? st.video_id, url: `https://www.facebook.com/${a.page}` };
+  }
+  const ph = await graph(`${a.page}/photos`, { url: m.url, published: "false" });
+  const st = await graph(`${a.page}/photo_stories`, { photo_id: ph.id });
+  return { id: st.post_id ?? ph.id, url: `https://www.facebook.com/${a.page}` };
+}
 async function toFacebook(p: Post, a: { page: string }): Promise<Res> {
+  if (p.kind === "story") return await fbStory(p, a);
   const m = p.media ?? [], cap = p.caption ?? "";
   let id: string;
   if (m[0]?.type === "video") {
@@ -206,6 +224,8 @@ async function toInstagram(p: Post, a: { ig: string | null; place: string | null
   const m = p.media ?? [], cap = p.caption ?? "";
   if (!m.length) return { error: "Instagram needs a photo or video." };
   let container = prev?.container;
+  // a story: one photo or one video, no caption (Instagram does not take one for stories)
+  if (!container && p.kind === "story") container = (await graph(`${a.ig}/media`, m[0].type === "video" ? { media_type: "STORIES", video_url: m[0].url } : { media_type: "STORIES", image_url: m[0].url })).id;
   if (!container) {
     if (m[0].type === "video") {
       const prm: Record<string, string> = { media_type: "REELS", video_url: m[0].url, caption: cap };

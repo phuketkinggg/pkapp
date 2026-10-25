@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=15"></script>
+<script src="changelog.js?v=16"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -804,6 +804,7 @@ var FEATURES=[
   {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
   {k:'reel_covers',g:'Marketing',n:'Reel covers',d:'Choose the cover of a reel: pick a frame, upload a picture, or let the AI suggest covers with a short headline drawn in your colours.'},
   {k:'social_tags',g:'Marketing',n:'Location and collab tags',d:'Instagram posts from the app are tagged at your business location, and you can add up to 3 collaborators (a coach, a guest, a partner) so the post shows on their profile too.'},
+  {k:'social_stories',g:'Marketing',n:'Stories',d:'Send Instagram and Facebook stories from Social media: one photo or one video that shows for 24 hours, at the time you choose.'},
   {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
@@ -4608,7 +4609,7 @@ function ytConnect(){ socCall({mode:'yt_connect',back:location.origin+location.p
 function ytDisconnect(){ if(!confirm('Disconnect YouTube? Shorts stop posting until you connect again.')) return; run(sb.rpc('yt_disconnect').then(must).then(socCheck),'YouTube disconnected.'); }
 function socThumb(m){ var u=m&&(m.type==='video'?m.thumb:m.url); return u?h('img',{src:u,alt:'',loading:'lazy'}):h('span',null,m&&m.type==='video'?'Video':''); }
 function socStatus(p){ return p.status==='posted'?chip('Posted','ok'):p.status==='failed'?chip('Did not post','bad'):p.status==='posting'?chip('Posting now','warn'):p.status==='scheduled'?chip('Approved, '+bkkWhen(p.post_at),'ok'):chip('Draft'); }
-function socFirst(p){ var t=String(p.caption||p.brief||'').split('\n')[0]; return t.length>70?t.slice(0,68)+'...':t||'(no text yet)'; }
+function socFirst(p){ var t=String(p.caption||p.brief||'').split('\n')[0]; return t.length>70?t.slice(0,68)+'...':t||(p.kind==='story'?'Story':'(no text yet)'); }
 function vSocial(){
   if(!SOC.list){ if(!SOC.busy){ socLoad(); socCheck(); } return [pageHead('Social media',''),h('div',{class:'panel empty'},SOC.err||'Loading.')]; }
   var c=SOC.cfg, conn=!c?'Checking the connection.':c.err?c.err:[
@@ -4617,7 +4618,7 @@ function vSocial(){
     ytOn()?(c.youtube?' YouTube: '+c.youtube+'.':' YouTube is not connected.'):''].join('');
   function rows(list,empty){ return table([{label:'',cell:function(p){ return h('span',{class:'socmini'},socThumb((p.media||[])[0])); }},
       {label:'Post',cell:function(p){ return linkBtn(socFirst(p),function(){ socEdit(p); }); }},
-      {label:'Where',cell:function(p){ return h('span',null,(p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '),p.kind==='reel'||p.kind==='trial'?h('div',{class:'sub'},p.kind==='trial'?'Trial reel':'Reel'):null); }},
+      {label:'Where',cell:function(p){ return h('span',null,(p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '),p.kind==='reel'||p.kind==='trial'||p.kind==='story'?h('div',{class:'sub'},p.kind==='trial'?'Trial reel':p.kind==='story'?'Story':'Reel'):null); }},
       {label:'',cell:function(p){ return socStatus(p); }}],list,empty); }
   var L=SOC.list, up=L.filter(function(p){ return p.status==='scheduled'||p.status==='posting'; }).sort(function(a,b){ return Date.parse(a.post_at)-Date.parse(b.post_at); });
   if(SOCTIME===null){ SOCTIME=''; loadSocTime().then(schedule); }
@@ -4628,8 +4629,8 @@ function vSocial(){
     h('p',{class:'sub narrow'},'How it works: add photos or a video, say in a few words what the post is about, and tap Write with AI. Pick a caption, change anything you like, choose the day and time, then Approve. Nothing goes out until a manager approves it. Photos are cropped to fit Instagram on upload.')];
 }
 // photos: JPEG, max 1440 wide, cropped into Instagram's allowed shapes (4:5 tall to 1.91:1 wide)
-function socFitPhoto(f){ return createImageBitmap(f).then(function(img){ var w=img.width, ht=img.height, sx=0, sy=0, r=w/ht;
-  if(r<0.8){ var nh=Math.round(w/0.8); sy=Math.round((ht-nh)/2); ht=nh; } else if(r>1.91){ var nw=Math.round(ht*1.91); sx=Math.round((w-nw)/2); w=nw; }
+function socFitPhoto(f,story){ return createImageBitmap(f).then(function(img){ var w=img.width, ht=img.height, sx=0, sy=0, r=w/ht, tall=story?0.5625:0.8;
+  if(r<tall){ var nh=Math.round(w/tall); sy=Math.round((ht-nh)/2); ht=nh; } else if(r>1.91){ var nw=Math.round(ht*1.91); sx=Math.round((w-nw)/2); w=nw; }
   var k=Math.min(1,1440/w), c=document.createElement('canvas'); c.width=Math.round(w*k); c.height=Math.round(ht*k);
   c.getContext('2d').drawImage(img,sx,sy,w,ht,0,0,c.width,c.height);
   return new Promise(function(ok,bad){ c.toBlob(function(b){ b?ok(b):bad({plain:true,message:'Could not read the photo.'}); },'image/jpeg',0.86); }); },
@@ -4690,25 +4691,27 @@ function socEdit(p0){
       locked?null:h('div',{class:'pacts'},i>0?h('button',{type:'button','aria-label':'Move left',onclick:function(){ media.splice(i-1,0,media.splice(i,1)[0]); drawMedia(); }},'‹'):null,
         h('button',{type:'button','aria-label':'Remove',onclick:function(){ media.splice(i,1); drawMedia(); }},'×'))); }).concat(pend.map(pendTile)));
     drawPrev();
-    addB.textContent=busy?'Uploading, please wait':'Add photos or video'; addB.disabled=locked||!!busy||media.length>=10||(media[0]&&media[0].type==='video'); if(typeof drawCover==='function') drawCover(); }
+    addB.textContent=busy?'Uploading, please wait':'Add photos or video'; addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video'); if(typeof drawCover==='function') drawCover(); }
   function pick(){ var inp=h('input',{type:'file',multiple:true,accept:'image/*,video/mp4,video/quicktime',hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[]); inp.remove(); if(!fs.length) return;
       var vids=fs.filter(function(f){ return /^video\//.test(f.type); });
+      if(kind==='story'&&(fs.length>1||media.length)){ bad('A story is one photo or one video.'); return; }
       if(vids.length&&(fs.length>1||media.length)){ bad('A post can have one video on its own, or up to 10 photos.'); return; }
       fs=fs.slice(0,10-media.length); err.hidden=true; busy=fs.length; drawMedia();
       var qs=fs.map(function(f){ return {f:f,video:/^video\//.test(f.type),local:URL.createObjectURL(f),pct:0}; }); pend=pend.concat(qs); if(vids.length&&kind==='post') setKind('reel'); drawMedia();
       qs.reduce(function(pr,q){ return pr.then(function(){ var f=q.f, prog=function(x){ pendSet(q,x); };
         var job=q.video
           ? (f.size>250*1024*1024?Promise.reject({plain:true,message:f.name+' is over 250 MB.'}):Promise.all([socUp(f,/quicktime/.test(f.type)?'mov':'mp4',f.type,prog),socFrame(f).then(function(b){ return b?socUp(b,'jpg','image/jpeg'):null; })]).then(function(r){ media.push({url:r[0],type:'video',thumb:r[1]}); if(kind==='post') setKind('reel'); toast('Video uploaded.'); }))
-          : socFitPhoto(f).then(function(b){ return socUp(b,'jpg','image/jpeg',prog); }).then(function(u){ media.push({url:u,type:'image'}); });
+          : socFitPhoto(f,kind==='story').then(function(b){ return socUp(b,'jpg','image/jpeg',prog); }).then(function(u){ media.push({url:u,type:'image'}); });
         return job.catch(function(e){ bad(errText(e)); }).then(function(){ busy--; pend=pend.filter(function(x){ return x!==q; }); try{ URL.revokeObjectURL(q.local); }catch(e){} drawMedia(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
   var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
   /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
+  var capWrap=null, tagBox=null;
   var kind=p.kind||((media[0]&&media[0].type==='video')?'reel':'post'), trial=p.trial_strategy==='SS_PERFORMANCE'?'SS_PERFORMANCE':'MANUAL', fbWas=null;
   var kindBox=h('div',{class:'seg',role:'group','aria-label':'Post type'}), trialBox=h('div',{class:'field'}), kindNote=h('small',null,'');
   function drawKind(){
-    kindBox.replaceChildren.apply(kindBox,[['post','Post'],['reel','Reel'],['trial','Trial reel']].map(function(o){ return h('button',{type:'button','aria-pressed':kind===o[0]?'true':'false',disabled:locked?'':null,onclick:function(){ setKind(o[0]); }},o[1]); }));
-    kindNote.textContent=kind==='post'?'Photos (one or up to 10). A video always goes out as a Reel.':kind==='reel'?'One upright video (9:16, 3 to 90 seconds). Goes out as a Reel on Instagram and Facebook, and shows to your followers.':'Instagram only. One upright video. Shown to people who do not follow you first, so you can test it before your followers see it.';
+    kindBox.replaceChildren.apply(kindBox,[['post','Post'],['reel','Reel'],['trial','Trial reel']].concat(featOn('social_stories')||kind==='story'?[['story','Story']]:[]).map(function(o){ return h('button',{type:'button','aria-pressed':kind===o[0]?'true':'false',disabled:locked?'':null,onclick:function(){ setKind(o[0]); }},o[1]); }));
+    kindNote.textContent=kind==='story'?'One photo or one video, upright 9:16 is best. Shows for 24 hours on Instagram and Facebook. Stories have no caption, so put any words on the picture before you upload it.':kind==='post'?'Photos (one or up to 10). A video always goes out as a Reel.':kind==='reel'?'One upright video (9:16, 3 to 90 seconds). Goes out as a Reel on Instagram and Facebook, and shows to your followers.':'Instagram only. One upright video. Shown to people who do not follow you first, so you can test it before your followers see it.';
     trialBox.hidden=kind!=='trial';
     trialBox.replaceChildren(h('fieldset',{class:'field checks'},h('legend',null,'After the trial'),
       [['MANUAL','I share it to my followers myself in the Instagram app'],['SS_PERFORMANCE','Share it to my followers automatically if it does well']].map(function(o){
@@ -4719,14 +4722,15 @@ function socEdit(p0){
     if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
     else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
     /* YouTube Shorts: reels and trial reels only (a video) */
-    if(yt){ var vidOk=kind!=='post'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels (one upright video).'; }
+    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(coverBox) drawCover(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
+    if(yt){ var vidOk=kind==='reel'||kind==='trial'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels and trial reels.'; }
   }
   function setKind(k){ kind=k; drawKind(); }
   drawKind();
   /* reel cover: pick a frame, upload your own, or let the AI suggest covers (best frame plus a headline drawn in your colours) */
   var coverBox=h('div',{class:'field'}), cv={ideas:null,frames:null,busy:false,sel:null,head:'',sub:''};
   function vidItem(){ return media[0]&&media[0].type==='video'?media[0]:null; }
-  function drawCover(){ var m=vidItem(); coverBox.hidden=!m||!featOn('reel_covers'); if(coverBox.hidden){ coverBox.replaceChildren(); return; }
+  function drawCover(){ var m=vidItem(); coverBox.hidden=!m||!featOn('reel_covers')||kind==='story'; if(coverBox.hidden){ coverBox.replaceChildren(); return; }
     var cur=m.cover||m.thumb;
     var prev=h('div',{class:'covprev'},cur?h('img',{src:cur,alt:'Cover'}):h('span',{class:'sub'},'No cover yet'),m.cover?h('span',{class:'ptag'},'Your cover'):h('span',{class:'ptag'},'Auto'));
     var acts=locked?null:h('div',{class:'row wrap'},btn('Pick a frame',pickFrame,'small'),btn('Upload a cover',upCover,'small'),btn(cv.busy?'The AI is looking...':'Make covers with AI',aiCovers,'primary small'),m.cover?btn('Use the auto cover',function(){ delete m.cover; drawCover(); },'small'):null);
@@ -4781,14 +4785,15 @@ function socEdit(p0){
   /* Instagram: tag the business location, and up to 3 collaborators (they accept the invite in Instagram) */
   var placeName=SOC.cfg&&SOC.cfg.place, tagPlace=h('input',{type:'checkbox',id:'soc-place'}); tagPlace.checked=p.tag_place!==false; tagPlace.disabled=locked;
   var collab=h('input',{id:'soc-collab',placeholder:'for example krumax, a guest\u2019s account',autocomplete:'off'}); collab.value=(p.collaborators||[]).map(function(x){ return '@'+x; }).join(' '); collab.disabled=locked;
-  var tagBox=featOn('social_tags')?h('div',{class:'field'},placeName?h('label',{class:'check',for:'soc-place'},tagPlace,h('span',null,'Tag our location on Instagram: '+placeName)):null,
+  tagBox=featOn('social_tags')?h('div',{class:'field'},placeName?h('label',{class:'check',for:'soc-place'},tagPlace,h('span',null,'Tag our location on Instagram: '+placeName)):null,
     h('label',{for:'soc-collab'},'Collab with (Instagram usernames, up to 3)'),collab,
     h('small',null,'They get an invite in Instagram. Once they accept, the post shows on their profile and to their followers too. Not for trial reels.')):null;
   function vals(approve){ return {id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
       post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null,
       tag_place:tagPlace.checked,collaborators:String(collab.value||'').split(/[\s,]+/).map(function(x){ return x.replace(/^@+/,'').trim(); }).filter(Boolean)}; }
   function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true;
-    if(approve&&kind!=='post'&&!(media[0]&&media[0].type==='video')){ bad('A '+(kind==='trial'?'trial reel':'Reel')+' needs one video. Add a video, or choose Post.'); return; }
+    if(approve&&kind==='story'&&media.length!==1){ bad('A story is one photo or one video. Add one.'); return; }
+    if(approve&&kind!=='post'&&kind!=='story'&&!(media[0]&&media[0].type==='video')){ bad('A '+(kind==='trial'?'trial reel':'Reel')+' needs one video. Add a video, or choose Post.'); return; }
     if(kind==='post'&&media[0]&&media[0].type==='video') kind='reel';
     b.disabled=true;
     sb.rpc('social_save',{p:vals(approve)}).then(must).then(function(r){
@@ -4814,13 +4819,13 @@ function socEdit(p0){
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
     tagBox,
-    h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
-    locked?null:h('div',{class:'row'},aiB), opts,
-    h('div',{class:'field'},h('label',{for:'soc-cap'},'Caption'),cap,count),
-    locked?null:h('div',{class:'field'},h('label',{for:'soc-ask'},'Change it with AI'),h('div',{class:'row socask'},ask,tweakB)),
+    (capWrap=h('div',null,h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
+      locked?null:h('div',{class:'row'},aiB), opts,
+      h('div',{class:'field'},h('label',{for:'soc-cap'},'Caption'),cap,count),
+      locked?null:h('div',{class:'field'},h('label',{for:'soc-ask'},'Change it with AI'),h('div',{class:'row socask'},ask,tweakB)))),
     h('div',{class:'field'},h('label',{for:'soc-when'},'When (Phuket time)'),when,locked?null:h('label',{class:'check',for:'soc-now'},now,h('span',null,'Post as soon as I approve'))),
     err, h('div',{class:'factions'},left,h('div',{class:'row'},btn('Close',close),locked?null:saveB,locked?null:okB))));
-  drawMedia();
+  drawMedia(); drawKind();
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
 
