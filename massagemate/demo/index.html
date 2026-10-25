@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=16"></script>
+<script src="changelog.js?v=17"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -4661,6 +4661,26 @@ function coverDraw(src,head,sub,w){ return createImageBitmap(src).then(function(
     if(sub){ g.font='600 '+Math.round(size*0.42)+'px '+font; g.fillStyle='rgba(255,255,255,0.92)'; g.fillText(sub,W*0.07,y+(lines.length-1)*size*1.02+size*0.62); } }
   return new Promise(function(ok,no){ c.toBlob(function(b){ b?ok(b):no({plain:true,message:'Could not make the cover.'}); },'image/jpeg',0.88); }); },
   function(){ throw {plain:true,message:'Could not read that picture.'}; }); }
+/* a story picture with words on it: the photo fills an upright 9:16 frame, the words sit at the top, middle or bottom in the app colours */
+function storyDraw(src,head,sub,pos){ return createImageBitmap(src).then(function(img){ var W=1080, H=1920, c=document.createElement('canvas'); c.width=W; c.height=H; var g=c.getContext('2d');
+  var s=Math.max(W/img.width,H/img.height), dw=img.width*s, dh=img.height*s; g.drawImage(img,(W-dw)/2,(H-dh)/2,dw,dh);
+  head=String(head||'').trim(); sub=String(sub||'').trim(); if(!head&&!sub) return new Promise(function(ok,no){ c.toBlob(function(b){ b?ok(b):no({plain:true,message:'Could not make the story.'}); },'image/jpeg',0.9); });
+  var accent=(APPTHEME&&APPTHEME.accent)||getComputedStyle(document.documentElement).getPropertyValue('--gold').trim()||'#C9A227';
+  var font=getComputedStyle(document.querySelector('h1')||document.body).fontFamily||'sans-serif', size=Math.round(W*0.11), lines=[], words=head.toUpperCase().split(/\s+/).filter(Boolean), line='';
+  g.font='800 '+size+'px '+font; function wrap(){ lines=[]; line=''; words.forEach(function(x){ var t=line?line+' '+x:x; if(g.measureText(t).width>W*0.84&&line){ lines.push(line); line=x; } else line=t; }); if(line) lines.push(line); }
+  wrap(); while(lines.length>4&&size>48){ size-=6; g.font='800 '+size+'px '+font; wrap(); }
+  var subSize=Math.round(size*0.42), subLines=[]; if(sub){ g.font='600 '+subSize+'px '+font; var l2=''; sub.split(/\s+/).forEach(function(x){ var t=l2?l2+' '+x:x; if(g.measureText(t).width>W*0.84&&l2){ subLines.push(l2); l2=x; } else l2=t; }); if(l2) subLines.push(l2); }
+  var block=lines.length*size*1.02+(subLines.length?subLines.length*subSize*1.3+size*0.3:0);
+  var top=pos==='top'?H*0.12+size:pos==='middle'?(H-block)/2+size*0.85:H*0.80-block+size;
+  var band=pos==='top'?[0,H*0.5,'0','1']:pos==='middle'?null:[H*0.45,H,'0','1'];
+  if(band){ var gr=g.createLinearGradient(0,pos==='top'?H*0.5:H*0.45,0,pos==='top'?0:H); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,0.8)'); g.fillStyle=gr; g.fillRect(0,pos==='top'?0:H*0.45,W,H*0.55); }
+  else { g.fillStyle='rgba(0,0,0,0.45)'; g.fillRect(0,top-size*1.3,W,block+size*0.9); }
+  g.textBaseline='alphabetic';
+  if(lines.length){ g.fillStyle=accent; g.fillRect(W*0.08,top-size*1.08,W*0.16,Math.max(6,size*0.08)); }
+  g.font='800 '+size+'px '+font; g.fillStyle='#fff'; g.shadowColor='rgba(0,0,0,0.5)'; g.shadowBlur=size*0.15; lines.forEach(function(l,i){ g.fillText(l,W*0.08,top+i*size*1.02); });
+  g.font='600 '+subSize+'px '+font; g.fillStyle='rgba(255,255,255,0.95)'; var y0=top+(lines.length-1)*size*1.02+(lines.length?size*0.75:0); subLines.forEach(function(l,i){ g.fillText(l,W*0.08,y0+i*subSize*1.3); });
+  return new Promise(function(ok,no){ c.toBlob(function(b){ b?ok(b):no({plain:true,message:'Could not make the story.'}); },'image/jpeg',0.9); }); },
+  function(){ throw {plain:true,message:'Could not read that picture.'}; }); }
 function socUp(blob,ext,type,onProg){ var path=new Date().toISOString().slice(0,7)+'/'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)+'.'+ext;
   var pub=function(){ return sb.storage.from('social').getPublicUrl(path).data.publicUrl; };
   if(!onProg||typeof XMLHttpRequest==='undefined') return sb.storage.from('social').upload(path,blob,{contentType:type,upsert:false}).then(function(r){ if(r.error) throw r.error; return pub(); });
@@ -4691,7 +4711,7 @@ function socEdit(p0){
   function drawMedia(){ strip.replaceChildren.apply(strip,media.map(function(m,i){ return h('div',{class:'pthumb'},socThumb(m),m.type==='video'?h('span',{class:'ptag'},'Video'):null,
       locked?null:h('div',{class:'pacts'},i>0?h('button',{type:'button','aria-label':'Move left',onclick:function(){ media.splice(i-1,0,media.splice(i,1)[0]); drawMedia(); }},'‹'):null,
         h('button',{type:'button','aria-label':'Remove',onclick:function(){ media.splice(i,1); drawMedia(); }},'×'))); }).concat(pend.map(pendTile)));
-    drawPrev();
+    drawPrev(); if(typeof storyBox!=='undefined'&&storyBox) drawStory();
     addB.textContent=busy?'Uploading, please wait':'Add photos or video'; addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video'); if(typeof drawCover==='function') drawCover(); }
   function pick(){ var inp=h('input',{type:'file',multiple:true,accept:'image/*,video/mp4,video/quicktime',hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[]); inp.remove(); if(!fs.length) return;
       var vids=fs.filter(function(f){ return /^video\//.test(f.type); });
@@ -4723,7 +4743,7 @@ function socEdit(p0){
     if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
     else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
     /* YouTube Shorts: reels and trial reels only (a video) */
-    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(coverBox) drawCover(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
+    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(coverBox) drawCover(); if(storyBox) drawStory(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
     if(yt){ var vidOk=kind==='reel'||kind==='trial'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels and trial reels.'; }
   }
   function setKind(k){ kind=k; drawKind(); }
@@ -4765,6 +4785,25 @@ function socEdit(p0){
   function upCover(){ var m=vidItem(); var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
       coverDraw(f,'','',1080).then(function(bl){ return socUp(bl,'jpg','image/jpeg'); }).then(function(u){ m.cover=u; toast('Cover set.'); drawCover(); }).catch(function(e){ bad(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); }
   drawCover();
+  /* story text: words drawn onto a photo story (the clean photo is kept, so the words can be changed) */
+  var storyBox=h('div',{class:'field'}), stx={head:'',sub:'',pos:'bottom',busy:false};
+  function drawStory(){ var m=media[0]; storyBox.hidden=!(kind==='story'&&m&&m.type==='image')||locked; if(storyBox.hidden){ storyBox.replaceChildren(); return; }
+    if(m.words){ stx.head=m.words.head||''; stx.sub=m.words.sub||''; stx.pos=m.words.pos||'bottom'; }
+    var hd=h('input',{id:'st-head',maxlength:'60',placeholder:'Headline, for example: FIGHT NIGHT FRIDAY'}); hd.value=stx.head;
+    var sb2=h('input',{id:'st-sub',maxlength:'90',placeholder:'Second line, for example: Link in bio'}); sb2.value=stx.sub;
+    var ps=h('div',{class:'seg',role:'group','aria-label':'Where the words go'},[['top','Top'],['middle','Middle'],['bottom','Bottom']].map(function(o){ return h('button',{type:'button','aria-pressed':stx.pos===o[0]?'true':'false',onclick:function(){ stx.head=hd.value; stx.sub=sb2.value; stx.pos=o[0]; drawStory(); }},o[1]); }));
+    var go=btn(stx.busy?'Adding...':m.words?'Change the words':'Add the words',function(){ stx.head=hd.value; stx.sub=sb2.value;
+      if(!stx.head.trim()&&!stx.sub.trim()) return bad('Type a headline or a second line first.');
+      stx.busy=true; drawStory(); var src=m.orig||m.url;
+      fetch(src).then(function(r){ if(!r.ok) throw {plain:true,message:'Could not read the photo.'}; return r.blob(); }).then(function(b){ return storyDraw(b,stx.head,stx.sub,stx.pos); })
+        .then(function(bl){ return socUp(bl,'jpg','image/jpeg'); }).then(function(u){ if(!m.orig) m.orig=m.url; m.url=u; m.words={head:stx.head,sub:stx.sub,pos:stx.pos}; toast('Words added.'); })
+        .catch(function(e){ bad(errText(e)); }).then(function(){ stx.busy=false; drawMedia(); drawStory(); }); },'primary small');
+    go.disabled=stx.busy;
+    var clear=m.orig?btn('Remove the words',function(){ m.url=m.orig; delete m.orig; delete m.words; stx.head=''; stx.sub=''; drawMedia(); drawStory(); },'small'):null;
+    storyBox.replaceChildren(h('label',null,'Words on the story'),
+      h('div',{class:'covrow'},h('div',{class:'covprev'},h('img',{src:m.url,alt:'Story'})),
+        h('div',{style:'flex:1;min-width:0;display:grid;gap:8px'},hd,sb2,ps,h('div',{class:'row wrap'},go,clear))),
+      h('small',null,'Drawn onto the photo in your colours. Links cannot be tapped in a story sent from an app, so write the address or Link in bio.')); }
   var brief=h('textarea',{id:'soc-brief',rows:'3',placeholder:'For example: Saturday sparring with the fight team, Tom and Kru Max coaching, open to all levels'}); brief.value=p.brief||''; brief.disabled=locked;
   var cap=h('textarea',{id:'soc-cap',rows:'10',maxlength:'2200'}); cap.value=p.caption||''; cap.disabled=locked;
   var count=h('small',null,''); function cnt(){ count.textContent=cap.value.length+' of 2200 characters'; } cap.addEventListener('input',cnt); cnt();
@@ -4816,7 +4855,7 @@ function socEdit(p0){
     p.status!=='draft'&&p.id?h('p',null,socStatus(p)):null, p.error&&p.status==='failed'?h('p',{class:'ferr'},p.error):null, res,
     h('div',{class:'field'},h('label',null,'Photos or video'),strip,locked?null:h('div',{class:'row'},addB),h('small',null,'Up to 10 photos, or one video (MP4 or MOV). The first photo is the cover.')),
     vprev,
-    coverBox,
+    coverBox, storyBox,
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
     tagBox,
