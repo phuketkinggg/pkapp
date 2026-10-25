@@ -4,6 +4,7 @@
 // POST {mode:'write', brief, caption?, ask?, platforms?, images?}  manager: 3 caption options from Claude
 // POST {mode:'cover', frames, brief?, caption?}  manager: 3 cover ideas for a reel (best frame and a short headline); the app draws the cover
 // POST {mode:'run'}    the 5 minute timer (x-sync-token) or a manager (Post now): sends every post that is due
+// POST {mode:'stats', n?}  timer token or manager: views, reach, likes, saves and shares of the last Instagram posts, marked if sent from the app
 // POST {mode:'yt_connect'} manager: the Google sign in link to connect a YouTube channel; Google comes back here (GET ?code&state)
 // Secrets: ANTHROPIC_API_KEY (AI captions), META_PAGE_TOKEN (a never-expiring Facebook page token),
 //          GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (YouTube; the redirect address is this function's own URL)
@@ -288,6 +289,25 @@ async function ytCallback(u: URL) {
   return done(channel ? `YouTube connected. Shorts will post to the channel "${channel}".` : "YouTube connected. Shorts will post to your channel.", true);
 }
 
+async function stats(n: number) {
+  if (!PAGE_TOKEN()) return { error: "Facebook and Instagram are not connected yet." };
+  const a = await account();
+  if (!a.ig) return { error: "No Instagram business account is linked to the Facebook page." };
+  const { data: mine } = await admin.from("social_posts").select("results").eq("status", "posted");
+  const fromApp = new Set((mine ?? []).map((r: { results: Record<string, Res> }) => r.results?.instagram?.id).filter(Boolean));
+  const list = await graph(`${a.ig}/media`, { fields: "id,timestamp,media_type,media_product_type,permalink,like_count,comments_count,caption", limit: String(n) }, "GET");
+  const out = [];
+  for (const m of (list.data ?? []) as Record<string, unknown>[]) {
+    const ins: Record<string, number> = {};
+    for (const metric of ["views", "reach", "saved", "shares"]) {
+      try { const r = await graph(`${m.id}/insights`, { metric }, "GET"); ins[metric] = r?.data?.[0]?.values?.[0]?.value ?? null; } catch { /* not every type has every number */ }
+    }
+    out.push({ id: m.id, at: m.timestamp, type: m.media_product_type ?? m.media_type, media: m.media_type, url: m.permalink, likes: m.like_count, comments: m.comments_count,
+      from_app: fromApp.has(String(m.id)), caption: String(m.caption ?? "").split("\n")[0].slice(0, 80), ...ins });
+  }
+  return { account: a.ig_name, posts: out };
+}
+
 async function run() {
   const { data, error } = await admin.rpc("social_take");
   if (error) return { error: error.message };
@@ -321,6 +341,15 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   const b = await req.json().catch(() => ({}));
   try {
+    // numbers for the last Instagram posts (from the app or not): views, reach, likes, comments, saves, shares
+    if (b.mode === "stats") {
+      const tok = req.headers.get("x-sync-token");
+      let ok = false;
+      if (tok) { const { data } = await admin.rpc("sync_token_ok", { p_token: tok }); ok = data === true; }
+      if (!ok) ok = await manager(req);
+      if (!ok) return json({ error: "Not allowed." }, 401);
+      return json(await stats(Math.min(50, Math.max(1, Number(b.n) || 25))));
+    }
     if (b.mode === "run") {
       const tok = req.headers.get("x-sync-token");
       let ok = false;
