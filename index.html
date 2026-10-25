@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=7"></script>
+<script src="changelog.js?v=8"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -795,6 +795,7 @@ var FEATURES=[
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
+  {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -7155,8 +7156,36 @@ function clNotice(){
   return h('div',{class:'pvbar clbar',role:'status'},h('span',null,h('b',null,'New in the app: '),n[0].title+(n.length>1?' and '+(n.length-1)+' more':'')),
     h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; schedule(); },'small')));
 }
+/* ---------- Clean up (AI package): scan, see the report, tick what to fix, apply ---------- */
+var CLN=null;
+function cleanupScan(){ CLN={busy:true}; schedule(); sb.rpc('cleanup_scan').then(must).then(function(d){ var pick={}; (d.items||[]).forEach(function(x){ if(x.on&&x.kind!=='note') pick[x.key]=true; }); CLN={items:d.items||[],last:d.last,pick:pick}; schedule(); })
+  .catch(function(e){ CLN={err:errText(e)}; schedule(); }); }
+function cleanupApply(){ var keys=Object.keys(CLN.pick).filter(function(k){ return CLN.pick[k]; }); if(!keys.length){ toast('Tick at least one thing to clean up.'); return; }
+  if(!confirm('Apply '+keys.length+' clean up change'+(keys.length===1?'':'s')+'? Merges and deletes cannot be undone.')) return;
+  CLN.busy=true; schedule();
+  sb.rpc('cleanup_apply',{p_keys:keys}).then(must).then(function(r){ var ok=(r||[]).filter(function(x){ return x.ok; }).length; CLN={done:r||[]}; toast(ok+' of '+(r||[]).length+' done.'); return Promise.all([reload('customers'),reload('privates'),reload('purchases'),reload('packages'),reload('staff')]); })
+    .catch(function(e){ CLN.busy=false; toast(errText(e)); }).then(schedule); }
+function cleanupSection(){
+  if(!featOn('cleanup')||!me||me.role!=='manager'||!can('settings')) return null;
+  var head=h('p',{class:'sub'},'Goes through customers, emails, staff, bookings and packages and finds duplicates, mess and things nobody uses. Nothing changes until you tick what to fix and tap Apply.');
+  if(!CLN) return section('Clean up',btn('Scan now',cleanupScan,'primary small'),h('div',{class:'panel pad'},head));
+  if(CLN.busy) return section('Clean up',null,h('div',{class:'panel empty'},'Working on it.'));
+  if(CLN.err) return section('Clean up',btn('Try again',cleanupScan,'small'),h('div',{class:'panel pad'},h('p',{class:'ferr'},CLN.err)));
+  if(CLN.done) return section('Clean up: done',btn('Scan again',cleanupScan,'small'),h('div',{class:'panel'},CLN.done.map(function(x){ return h('div',{class:'clrow'},h('div',{class:'clbody'},h('b',null,x.title),h('div',{class:'sub'},x.msg)),chip(x.ok?'Done':'Not done',x.ok?'ok':'warn')); })));
+  var items=CLN.items, groups=[]; items.forEach(function(x){ if(groups.indexOf(x.group)<0) groups.push(x.group); });
+  var n=Object.keys(CLN.pick).filter(function(k){ return CLN.pick[k]; }).length;
+  if(!items.length) return section('Clean up',btn('Scan again',cleanupScan,'small'),h('div',{class:'panel pad'},h('p',null,h('b',null,'All clean.'),' Nothing to fix right now.'),CLN.last?h('p',{class:'sub'},'Last clean up '+new Date(CLN.last.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(CLN.last.by?' by '+CLN.last.by:'')+'.'):null));
+  return section('Clean up report',h('div',{class:'row'},btn('Tick all',function(){ items.forEach(function(x){ if(x.kind!=='note') CLN.pick[x.key]=true; }); schedule(); },'small'),btn('Untick all',function(){ CLN.pick={}; schedule(); },'small'),btn('Scan again',cleanupScan,'small')),
+    h('div',null,head,h('p',{class:'sub'},items.length+' found. Ticked ones are safe to fix. Unticked ones need you to check first.'),
+      groups.map(function(g){ var l=items.filter(function(x){ return x.group===g; });
+        return h('div',{class:'panel featgrp'},h('h3',{class:'billh',style:'padding:12px 16px 0'},g+' ('+l.length+')'),l.map(function(x){ var id='cl-'+x.key.replace(/[^a-z0-9]/gi,'');
+          return h('label',{class:'clrow',for:id},x.kind==='note'?h('span',{class:'chip'},'Check'):h('input',{type:'checkbox',id:id,checked:CLN.pick[x.key]?true:null,onchange:function(ev){ CLN.pick[x.key]=ev.target.checked; schedule(); }}),
+            h('div',{class:'clbody'},h('b',null,x.title),h('div',{class:'sub'},x.detail))); })); }),
+      h('div',{class:'row',style:'margin-top:12px'},btn('Apply '+n+' selected',cleanupApply,'primary'),h('span',{class:'sub'},'Merges and deletes cannot be undone. Everything is checked again before it changes, and each clean up is logged.'))));
+}
 function vSettings(){
   return [pageHead('Settings'),
+    cleanupSection(),
     h('div',{id:'whatsnew'},whatsNewSection()),
     featuresSection(),
     backupSection(),
