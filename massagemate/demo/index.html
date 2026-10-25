@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=12"></script>
+<script src="changelog.js?v=13"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -4573,7 +4573,7 @@ function bkkInput(x){ return new Date((x?Date.parse(x):Date.now())+7*3600e3).toI
 function socDefaultTime(){ var d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.getUTCHours()>=17){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T18:00'; }
 var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts'};
 function ytOn(){ return featOn('youtube_shorts'); }
-function ytConnect(){ socCall({mode:'yt_connect'}).then(function(d){ if(d&&d.url){ toast('Opening Google. Sign in with the account that owns your YouTube channel.'); window.open(d.url,'_blank','noopener'); } })
+function ytConnect(){ socCall({mode:'yt_connect',back:location.origin+location.pathname}).then(function(d){ if(d&&d.url){ toast('Opening Google. Sign in with the account that owns your YouTube channel.'); location.href=d.url; } })
   .catch(function(e){ toast(errText(e)); }); }
 function ytDisconnect(){ if(!confirm('Disconnect YouTube? Shorts stop posting until you connect again.')) return; run(sb.rpc('yt_disconnect').then(must).then(socCheck),'YouTube disconnected.'); }
 function socThumb(m){ var u=m&&(m.type==='video'?m.thumb:m.url); return u?h('img',{src:u,alt:'',loading:'lazy'}):h('span',null,m&&m.type==='video'?'Video':''); }
@@ -8934,6 +8934,9 @@ function enter(user){
 }
 
 var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
+/* back from connecting YouTube: open Social media and say how it went */
+(function(){ var m=start.match(/^yt=(ok|err)&m=(.*)$/); if(!m) return; var msg=''; try{ msg=decodeURIComponent(m[2]); }catch(e){} ui.tab='social'; try{ history.replaceState(null,'',location.pathname+'#social'); }catch(e){}
+  setTimeout(function(){ toast(msg||(m[1]==='ok'?'YouTube connected.':'YouTube did not connect.')); },800); })();
 (function(){ var m=start.match(/^chat=([0-9a-f-]{36})$/); if(m){ ui.tab='chat'; ui.openChatId=m[1]; try{ history.replaceState(null,'',location.pathname+'#chat'); }catch(e){} } })();
 if(!window.supabase||!window.supabase.createClient){
   noDb('The app could not load fully. Check your connection and reload the page.');

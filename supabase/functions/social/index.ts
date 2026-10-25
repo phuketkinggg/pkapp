@@ -262,18 +262,30 @@ async function toYouTube(p: Post): Promise<Res> {
   return { id: uj.id, url: `https://www.youtube.com/shorts/${uj.id}` };
 }
 const page = (t: string, ok: boolean) => new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube</title><body style="font-family:system-ui,sans-serif;padding:32px;max-width:520px;margin:auto"><h2>${ok ? "YouTube connected" : "YouTube not connected"}</h2><p>${t.replace(/[<>&]/g, "")}</p><p>You can close this tab and go back to the app.</p></body>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+// the app page to go back to after Google (sent by the app when it starts the sign in); only a plain https page address
+function backUrl(x: unknown): string {
+  try { const u = new URL(String(x ?? "")); if (u.protocol !== "https:" && u.hostname !== "localhost") return ""; return u.origin + u.pathname; } catch { return ""; }
+}
+const b64e = (s: string) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64d = (s: string) => { try { return decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/")))); } catch { return ""; } };
 async function ytCallback(u: URL) {
-  if (u.searchParams.get("error")) return page("Google said: " + u.searchParams.get("error"), false);
-  const code = u.searchParams.get("code") ?? "", state = u.searchParams.get("state") ?? "";
+  const raw = u.searchParams.get("state") ?? "", cut = raw.indexOf("~");
+  const state = cut >= 0 ? raw.slice(0, cut) : raw, back = cut >= 0 ? backUrl(b64d(raw.slice(cut + 1))) : "";
+  // straight back to the app with the result (Supabase shows pages from functions as plain text, so the app shows the message)
+  const done = (msg: string, ok: boolean) => back
+    ? new Response(null, { status: 302, headers: { Location: back + "#yt=" + (ok ? "ok" : "err") + "&m=" + encodeURIComponent(msg) } })
+    : page(msg, ok);
+  if (u.searchParams.get("error")) return done("Google said: " + u.searchParams.get("error"), false);
+  const code = u.searchParams.get("code") ?? "";
   const { data: ok } = await admin.rpc("yt_state_ok", { p_s: state });
-  if (ok !== true) return page("The link was too old or was used already. Tap Connect YouTube in the app again.", false);
+  if (ok !== true) return done("The link was too old or was used already. Tap Connect YouTube again.", false);
   const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", body: new URLSearchParams({ code, client_id: GID(), client_secret: GSECRET(), redirect_uri: SELF, grant_type: "authorization_code" }) });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.refresh_token) return page("Google did not give access (" + (j.error_description ?? j.error ?? "no refresh token") + "). Try again, and allow every permission asked.", false);
+  if (!r.ok || !j.refresh_token) return done("Google did not give access (" + (j.error_description ?? j.error ?? "no refresh token") + "). Try again, and allow every permission asked.", false);
   let channel = "";
   try { const c = await fetch("https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", { headers: { Authorization: `Bearer ${j.access_token}` } }); const cj = await c.json(); channel = cj?.items?.[0]?.snippet?.title ?? ""; } catch { /* name is a nice-to-have */ }
   await admin.rpc("yt_set", { p: { refresh: j.refresh_token, channel, at: new Date().toISOString() } });
-  return page(channel ? `Shorts will post to the channel "${channel}".` : "Shorts will post to your channel.", true);
+  return done(channel ? `YouTube connected. Shorts will post to the channel "${channel}".` : "YouTube connected. Shorts will post to your channel.", true);
 }
 
 async function run() {
@@ -325,7 +337,7 @@ Deno.serve(async (req) => {
       const user = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("authorization") ?? "" } }, auth: { persistSession: false } });
       const { data: st, error } = await user.rpc("yt_state_new");
       if (error || !st) return json({ error: error?.message ?? "Could not start." });
-      const q = new URLSearchParams({ client_id: GID(), redirect_uri: SELF, response_type: "code", access_type: "offline", prompt: "consent", include_granted_scopes: "true", state: String(st),
+      const q = new URLSearchParams({ client_id: GID(), redirect_uri: SELF, response_type: "code", access_type: "offline", prompt: "consent", include_granted_scopes: "true", state: String(st) + (backUrl(b.back) ? "~" + b64e(backUrl(b.back)) : ""),
         scope: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly" });
       return json({ url: "https://accounts.google.com/o/oauth2/v2/auth?" + q });
     }
