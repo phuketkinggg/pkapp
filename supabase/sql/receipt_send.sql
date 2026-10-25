@@ -81,7 +81,8 @@ begin
     pays := case when paid > 0 then jsonb_build_array(jsonb_build_object('amount', tot, 'method', so.method, 'day', dt)) else '[]'::jsonb end;
     num := '#' || so.number::text;
   end if;
-  return jsonb_build_object('business', private.biz_main(), 'address', info->>'address', 'tax_id', info->>'tax_id', 'footer', coalesce(nullif(info->>'footer', ''), 'Thank you.'),
+  -- tpl: the branded letter (Invoices, Template: logo, address, colour, numbers); biz_key picks the business in it
+  return jsonb_build_object('biz_key', private.biz_main(), 'tpl', (select case when value ~ '^\s*\{' then value::jsonb end from public.app_settings where key = 'invoice_template'), 'business', private.biz_main(), 'address', info->>'address', 'tax_id', info->>'tax_id', 'footer', coalesce(nullif(info->>'footer', ''), 'Thank you.'),
     'email', coalesce(nullif(info->>'email', ''), we->>'reply_to'), 'whatsapp', we->>'whatsapp', 'accent', th->>'accent',
     'number', num, 'date', dt, 'customer', (select name from public.customers where id = cid),
     'lines', lines, 'discount', disc, 'fee', fee, 'tax', tax, 'total', tot, 'paid', least(paid, tot), 'owed', greatest(tot - paid, 0), 'payments', pays,
