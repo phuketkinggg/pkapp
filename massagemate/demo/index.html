@@ -4020,6 +4020,52 @@ var ACC_DEPTS={'Massage Mate Demo Spa':['Gym training','Privates','Spa','Visa an
 var ACC_OUT=['Staff wages','Coach commission','Rent','Electricity','Water','Internet and phone','Food and drink stock','Cafe and drinks supplies','Shop stock','Spa supplies','Cleaning and laundry','Repairs and maintenance','Equipment','Marketing and ads','Software and subscriptions','Bank and card fees','Visa and government fees','Transport and fuel','Office and admin','Professional fees','Tax','Insurance','Owner drawings','Other'];
 var ACC_IN=['Booking site payout','Agent payment','Event or fight income','Sponsorship','Refund received','Other income','Sales before the app'];
 var ACC_MOVE=['Staff meals','Staff room','Shared bill','Loan','Repayment','Other'];
+/* businesses and departments: the owner adds them (Accounts, Businesses and departments) */
+var ACC_STRUCT=null, ACC_INCOME_ONLY=['Gym training','Privates','Rooms'];
+function loadAccStruct(){ return sb.rpc('acc_structure').then(function(r){ if(r.error||!r.data) return; var d=r.data; ACC_STRUCT=d;
+  var list=(d.businesses||[]).filter(function(b){ return b&&b.name; });
+  (d.builtin||[]).forEach(function(n){ if(!list.some(function(b){ return b.name===n; })) list.unshift({name:n,depts:ACC_DEPTS[n]||[]}); });
+  BIZ.length=0; list.forEach(function(b){ BIZ.push(b.name); ACC_DEPTS[b.name]=(b.depts||[]).slice(); });
+  schedule(); }); }
+function bizAllLabel(){ return BIZ.length>2?'All businesses':'Both businesses'; }
+/* receipt form: the usual departments, plus those of added businesses or added to a business */
+function rxDeptOpts(){ var o=RDEPTS.map(function(d){ return [d,RX('d')[d]||d]; }), seen={};
+  RDEPTS.forEach(function(d){ seen[d]=1; });
+  BIZ.forEach(function(b){ var builtin=b==='Massage Mate Demo Spa'||b==='Guest Rooms';
+    (ACC_DEPTS[b]||[]).forEach(function(d){ if(ACC_INCOME_ONLY.indexOf(d)>=0) return; if(builtin&&seen[d]) return; o.push([b+'|'+d,builtin?d:d+' ('+b+')']); }); });
+  return o; }
+function allDeptOpts(){ var out=[], seen={}; BIZ.forEach(function(b){ (ACC_DEPTS[b]||[]).forEach(function(d){ if(!seen[d]){ seen[d]=1; out.push([d,d]); } }); }); RDEPTS.forEach(function(d){ if(!seen[d]){ seen[d]=1; out.push([d,d]); } }); return out; }
+function accStructDlg(){
+  var d=ACC_STRUCT; if(!d){ toast('Loading.'); loadAccStruct().then(function(){ if(ACC_STRUCT) accStructDlg(); }); return; }
+  var builtin=d.builtin||[], locked=d.locked||{};
+  function bizCard(b){ var lk=locked[b]||[], isB=builtin.indexOf(b)>=0;
+    return h('div',{class:'panel pad',style:'margin:0 0 8px'},h('div',{class:'row',style:'justify-content:space-between'},h('b',null,b),h('div',{class:'row'},
+        btn('Edit',function(){ accBizEdit(b); },'small'),isB?null:btn('Remove',function(){ if(!confirm('Remove '+b+'? This only works if nothing has been recorded for it yet.')) return; sb.rpc('acc_business_remove',{p_name:b}).then(must).then(function(){ toast('Removed.'); ACC.data=null; return loadAccStruct(); }).then(accStructDlg).catch(function(e){ toast(errText(e)); }); },'small'))),
+      h('div',{class:'row wrap',style:'margin-top:6px'},(ACC_DEPTS[b]||[]).map(function(x){ return h('span',{class:'chip'+(lk.indexOf(x)>=0?' ok':'')},x); }))); }
+  var opts=[['','Automatic']]; BIZ.forEach(function(b){ (ACC_DEPTS[b]||[]).forEach(function(x){ opts.push([b+'|'+x,b+': '+x]); }); });
+  function linkRows(kind,list){ return list.map(function(x){ var cur=x.b?x.b+'|'+x.d:'';
+      var sel=h('select',{'aria-label':x.name,onchange:function(){ var v=sel.value.split('|'); sb.rpc('acc_link_save',{p_kind:kind,p_id:x.id,p_business:v[0]||null,p_department:v[1]||null}).then(must).then(function(){ x.b=v[0]||null; x.d=v[1]||null; ACC.data=null; toast('Saved. Sales from now and before follow it in Accounts.'); }).catch(function(e){ sel.value=cur; toast(errText(e)); }); }},
+        opts.concat(cur&&!opts.some(function(o){ return o[0]===cur; })?[[cur,x.b+': '+x.d]]:[]).map(function(o){ return h('option',{value:o[0]},o[1]); }));
+      sel.value=cur; return h('tr',null,h('td',null,x.name),h('td',null,sel)); }); }
+  var L=d.links;
+  var links=L?h('div',null,h('h3',{class:'billh'},'Where sales go'),
+    h('p',{class:'sub'},'Automatic sorts sales the usual way (gym, privates, spa, cafe, rooms, shop). Choose a business and department to send a package, a shop category or a till somewhere else, for example a new business.'),
+    [['package','Packages',L.packages],['category','Shop categories',L.categories],['till','Tills',L.tills]].map(function(g){ return g[2].length?h('div',null,h('b',null,g[1]),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,linkRows(g[0],g[2]))))):null; })):null;
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Businesses and departments'),
+    h('p',{class:'sub'},'Used in Accounts, receipts, invoices, monthly bills and places. Green departments fill by themselves from sales, so they stay.'),
+    BIZ.map(bizCard),h('div',{class:'row'},btn('Add a business',function(){ accBizEdit(null); },'small')),links,
+    h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); schedule(); },'primary'))));
+}
+function accBizEdit(b){
+  var d=ACC_STRUCT||{}, isB=b&&(d.builtin||[]).indexOf(b)>=0, lk=(d.locked||{})[b]||[];
+  openForm({title:b?'Edit '+b:'Add a business',values:{name:b||'',depts:b?(ACC_DEPTS[b]||[]).join('\n'):'Sales\nStaff\nOffice\nMarketing\nOther',fixed:b||''},
+    fields:[isB?{key:'fixed',label:'Name',type:'info'}:{key:'name',label:'Business name',required:true,hint:b?'Renaming moves everything already recorded to the new name.':'For example Spa Peptides.'},
+      {key:'depts',label:'Departments, one per line',type:'textarea',rows:9,hint:(lk.length?lk.join(', ')+' fill by themselves from sales, so they stay. ':'')+'Removing a department here keeps what is already recorded under it.'}],
+    saveLabel:'Save',doneMsg:'Saved.',
+    onSave:function(v){ var name=isB?b:String(v.name||'').trim(); var deps=String(v.depts||'').split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+      if(!name) return Promise.reject({plain:true,message:'Give the business a name.'});
+      return sb.rpc('acc_business_save',{p:{old:b||null,name:name,depts:deps}}).then(must).then(function(){ ACC.data=null; if(ACC.biz===b) ACC.biz=name; return loadAccStruct(); }).then(function(){ setTimeout(accStructDlg,60); }); }});
+}
 var ACC_M={cash:'Cash',transfer:'Transfer',qr:'Scan (PromptPay)',scan:'Scan (PromptPay)',card:'Card',stripe:'Card (online)',agent:'Agent',room:'Room bill'};
 function accM(m){ return ACC_M[m]||m||'Other'; }
 function accMonth(d){ return d.slice(0,7); }
@@ -4052,10 +4098,10 @@ function vAccounts(){
   from.addEventListener('change',function(){ if(from.value) setR(from.value,ACC.to<from.value?from.value:ACC.to); }); to.addEventListener('change',function(){ if(to.value) setR(ACC.from>to.value?to.value:ACC.from,to.value); });
   var period=h('div',{class:'panel pad accbar'},h('div',{class:'row'},h('label',{for:'acc-from'},'From'),from,h('label',{for:'acc-to'},'to'),to),
     h('div',{class:'row'},[['today','Today'],['yesterday','Yesterday'],['week','This week'],['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
-    h('div',{class:'ctabs small'},[['all','Both businesses']].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
+    h('div',{class:'ctabs small'},[['all',bizAllLabel()]].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
   var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
   var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
-    h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Google Sheet',accSheetDlg),btn('Download for the accountant',function(){ accCsv(all); })));
+    h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Businesses and departments',accStructDlg),btn('Google Sheet',accSheetDlg),btn('Download for the accountant',function(){ accCsv(all); })));
   var body=ACC.tab==='invoices'?vInvoices():ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
   return [head,period,tabs,body];
 }
@@ -5862,7 +5908,7 @@ function expReceipt(){
   function took(inp){ var f=inp.files[0]; if(!f) return; picked=f; inp.value=''; fname.textContent=f.name||''; if(/^image\//.test(f.type)){ prev.src=URL.createObjectURL(f); prev.hidden=false; } else prev.hidden=true; }
   cam.onchange=function(){ took(cam); }; gal.onchange=function(){ took(gal); };
   var pick=h('div',{class:'row'},btn(RX('cam'),function(){ cam.click(); },'primary small'),btn(RX('gal'),function(){ gal.click(); },'small'),cam,gal);
-  var dept=h('select',{id:'rx-dept'},[h('option',{value:''},'')].concat(RDEPTS.map(function(d){ return h('option',{value:d},RX('d')[d]||d); })));
+  var dept=h('select',{id:'rx-dept'},[h('option',{value:''},'')].concat(rxDeptOpts().map(function(d){ return h('option',{value:d[0]},d[1]); })));
   var amt=h('input',{type:'number',id:'rx-amt',inputmode:'decimal',min:'0',step:'any'}), what=h('input',{type:'text',id:'rx-what'}), day=h('input',{type:'date',id:'rx-day',value:ymd(new Date()),max:ymd(new Date())});
   var meth=h('select',{id:'rx-m'},['transfer','scan','cash','card'].map(function(k){ return h('option',{value:k},RX('m')[k]); }));
   var purpose=h('input',{type:'text',id:'rx-for',placeholder:RX('forHint')}), where=placeSelect('rx-where',RX('whereNone'),ui.workPlace&&ui.tab==='work'?ui.workPlace:'');
@@ -5874,7 +5920,7 @@ function expReceipt(){
     busy=true; go.disabled=true; go.textContent=RX('sending');
     shrinkImage(f).then(function(blob){ var ext=blob.type==='application/pdf'?'pdf':'jpg', path=currentUser+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,7)+'.'+ext;
       return sb.storage.from('receipts').upload(path,blob,{contentType:blob.type||'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return path; }); })
-    .then(function(path){ return sb.rpc('receipt_add',{p:{photo_path:path,department:dept.value,amount:amt.value||null,method:meth.value,supplier:what.value||null,day:day.value||null,purpose:purpose.value||null,place_id:where.value||null}}).then(must); })
+    .then(function(path){ return sb.rpc('receipt_add',{p:{photo_path:path,department:dept.value.split('|').pop(),business:dept.value.indexOf('|')>0?dept.value.split('|')[0]:null,amount:amt.value||null,method:meth.value,supplier:what.value||null,day:day.value||null,purpose:purpose.value||null,place_id:where.value||null}}).then(must); })
     .then(function(){ $dlg.close(); toast(RX('sent')); WORK=null; if(me&&me.role==='manager'){ RCPT=null; schedule(); } })
     .catch(function(e){ busy=false; go.disabled=false; go.textContent=RX('save'); bad(errText(e)); });
   },'primary');
@@ -5987,8 +6033,8 @@ function rcPhoto(x){ sb.storage.from('receipts').createSignedUrl(x.photo_path,60
 function rcEdit(x){
   openForm({title:'Receipt from '+(x.by||'staff'),values:{day:x.day,department:x.department,business:x.business,amount:x.amount,method:x.method,supplier:x.supplier,note:x.note,status:x.status},fields:[
     {key:'day',label:'Date',type:'date',required:true},
-    {key:'business',label:'Business',type:'select',options:[['Massage Mate Demo Spa','Massage Mate Demo Spa'],['Guest Rooms','Guest Rooms'],['Intercompany','Intercompany']]},
-    {key:'department',label:'Department',type:'select',options:RDEPTS.map(function(d){ return [d,d]; })},
+    {key:'business',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; }).concat([['Intercompany','Intercompany']])},
+    {key:'department',label:'Department',type:'select',options:allDeptOpts()},
     {key:'amount',label:'Amount (THB)',type:'number'},
     {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan'],['cash','Cash'],['card','Card']]},
     {key:'supplier',label:'Supplier or what for'},{key:'note',label:'Note'},
@@ -8576,6 +8622,7 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),!staff?deleteAccBtn():null,signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
+    if(row.role!=='investor') loadAccStruct();
     if(row.role==='investor'){ document.getElementById('mode').textContent='Investors'; me=row; db=makeDb(); TABS=[['investor','Overview']]; ui.tab='investor'; allReady=true; schedule(); return; }
     if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen'],['clock','Clock']]; ui.tab=staffCodeOk()?'clock':'kitchen'; allReady=true; schedule(); return loadKitchen(); }
     if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
