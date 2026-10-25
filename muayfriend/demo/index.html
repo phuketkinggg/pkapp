@@ -4024,6 +4024,9 @@ var ACC_M={cash:'Cash',transfer:'Transfer',qr:'Scan (PromptPay)',scan:'Scan (Pro
 function accM(m){ return ACC_M[m]||m||'Other'; }
 function accMonth(d){ return d.slice(0,7); }
 function accRange(k){ var t=ymd(new Date()), y=t.slice(0,4), m=Number(t.slice(5,7));
+  if(k==='today') return [t,t];
+  if(k==='yesterday'){ var yd=addDays(t,-1); return [yd,yd]; }
+  if(k==='week'){ var wd=(new Date(t+'T12:00:00').getDay()+6)%7; return [addDays(t,-wd),t]; }
   if(k==='last'){ var d=new Date(Number(y),m-2,1); return [ymd(d),ymd(new Date(d.getFullYear(),d.getMonth()+1,0))]; }
   if(k==='year') return [y+'-01-01',t];
   if(k==='quarter'){ var q=Math.floor((m-1)/3)*3; return [ymd(new Date(Number(y),q,1)),t]; }
@@ -4048,7 +4051,7 @@ function vAccounts(){
   function setR(a,b){ ACC.from=a; ACC.to=b; accReload(); }
   from.addEventListener('change',function(){ if(from.value) setR(from.value,ACC.to<from.value?from.value:ACC.to); }); to.addEventListener('change',function(){ if(to.value) setR(ACC.from>to.value?to.value:ACC.from,to.value); });
   var period=h('div',{class:'panel pad accbar'},h('div',{class:'row'},h('label',{for:'acc-from'},'From'),from,h('label',{for:'acc-to'},'to'),to),
-    h('div',{class:'row'},[['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
+    h('div',{class:'row'},[['today','Today'],['yesterday','Yesterday'],['week','This week'],['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
     h('div',{class:'ctabs small'},[['all','Both businesses']].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
   var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
   var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
