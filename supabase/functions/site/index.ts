@@ -14,7 +14,7 @@ const today = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const [pk, cl, src, ph, tx, ga, st] = await Promise.all([
+    const [pk, cl, src, ph, tx, ga, st, fe] = await Promise.all([
       admin.from("packages").select("id,name,price_thb,covers,visit_limit,per_week_limit,duration_days,audience,addon_fz_thb,notes,clock,start_within_days").eq("active", true).not("price_thb", "is", null).order("price_thb"),
       admin.from("classes").select("day,start_time,end_time,title,discipline,off_from,off_to"),
       admin.from("booking_sources").select("price_thb").ilike("name", "direct").maybeSingle(),
@@ -22,10 +22,15 @@ Deno.serve(async (req) => {
       admin.from("app_settings").select("value").eq("key", "site_texts").maybeSingle(),
       admin.from("app_settings").select("value").eq("key", "site_gallery").maybeSingle(),
       admin.from("staff").select("name,web_name,web_title,web_about,bio,photo_url,video_url,web_sort").eq("active", true).eq("web_show", true).order("web_sort").order("name"),
+      admin.from("app_settings").select("value").eq("key", "features").maybeSingle(),
     ]);
+    // feature switches (Settings, Features): the website team and its videos can be switched off
+    let feat: Record<string, unknown> = {};
+    try { feat = JSON.parse(fe.data?.value ?? "{}") ?? {}; } catch { feat = {}; }
+    const on = (k: string) => feat[k] !== false;
     // the team on the website: set in the app, Staff (show on the website, title, text, photo and 360 video)
     const pub = (u: unknown) => typeof u === "string" && /^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\/storage\/v1\/object\/public\/(promos|coach-media)\//.test(u) ? u : null;
-    const team = (st.data ?? []).map((x) => ({ name: x.web_name || x.name, title: x.web_title ?? "", about: x.web_about || x.bio || "", photo: pub(x.photo_url), video: pub(x.video_url) }));
+    const team = !on("web_team") ? [] : (st.data ?? []).map((x) => ({ name: x.web_name || x.name, title: x.web_title ?? "", about: x.web_about || x.bio || "", photo: pub(x.photo_url), video: on("profile_video") ? pub(x.video_url) : null }));
     let photos: Record<string, string> = {};
     try { photos = JSON.parse(ph.data?.value ?? "{}") ?? {}; } catch { photos = {}; }
     let texts: Record<string, string> = {};

@@ -16,7 +16,8 @@ The apps are built for durability and utility: wherever a business could want it
    live `jijnshwduhgegacfvpkh`, Muay Friend demo `yojllgjjekitbktzblcc`, Massage Mate demo `phjekupadmjwzrocahiv`.
    Patches that edit an existing function must check that they applied, and skip cleanly where a demo has an older version.
 5. Bump the cache name in `sw.js`, then run `python3 tools/build_massagemate.py`, `python3 tools/build_demo.py` and `python3 tools/build_site.py`.
-6. Check the JavaScript (`node --check` on the script blocks) and test the database functions before telling Tom it is done.
+6. The demo builds check their own JavaScript (`tools/check_js.py`) and stop if a word swap broke the code. Check `index.html` the same way
+   (`python3 tools/check_js.py index.html`) and test the database functions before telling Tom it is done.
 
 ## Never hardcode one business
 

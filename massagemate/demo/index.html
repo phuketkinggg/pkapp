@@ -20,6 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
+<script src="changelog.js?v=1"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -557,6 +558,8 @@ body.lang-my .btn{min-height:44px}
 .billsum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 4px;font-size:16px}
 body.cuview #view button:not(.pvexit),body.cuview #view input,body.cuview #view select,body.cuview #view textarea,body.cuview #view a{pointer-events:none}
 body.cuview #view button:not(.pvexit){opacity:.75}
+.featrow,.clrow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.featrow:first-of-type{border-top:0}
+.featgrp{margin-bottom:10px}.featsw{flex:none;min-width:64px}.clrow{padding:12px 16px}.clrow:first-child{border-top:0}.cldate{flex:none;width:86px;font-size:13px;color:var(--muted)}.clbody{flex:1}
 .pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 .pstrip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
@@ -767,9 +770,41 @@ var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
 var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
+/* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
+   def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
+var FEATURES=[
+  {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
+  {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
+  {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
+  {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
+  {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
+  {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
+  {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
+  {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
+  {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
+  {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
+  {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
+  {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
+  {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
+  {k:'receipts_all',g:'Team',n:'Everyone adds receipts',d:'All staff can photograph receipts, and the app keeps who added each one. Off: only managers and admins add them.'},
+  {k:'profile_video',g:'Team',n:'Profile videos',d:'A 360 video plays in place of the staff photo in the app, in online booking and on the website.'},
+  {k:'receipts',g:'Money',n:'Receipts',d:'All receipts for the month, checked and downloaded for the accounts.',tabs:['receipts']},
+  {k:'accounts',g:'Money',n:'Accounts',d:'Money in and out for each business and department, monthly bills and invoices.',tabs:['accounts']},
+  {k:'investor',g:'Money',n:'Investor view',d:'Totals for investors, never customer names.',tabs:['investor']},
+  {k:'contacts',g:'Marketing',n:'Contacts',d:'Leads, tags, who said yes to emails, and lists to download.',tabs:['contacts']},
+  {k:'email',g:'Marketing',n:'Newsletters',d:'Emails to your customers and leads.',tabs:['email']},
+  {k:'social',g:'Marketing',n:'Social media',d:'Plan and post to your social accounts.',tabs:['social']},
+  {k:'webpages',g:'Website',n:'Web pages',d:'Make and change pages on your website.',tabs:['webpages']},
+  {k:'sitestats',g:'Website',n:'Website numbers',d:'Visits and bookings from your website.',tabs:['sitestats']},
+  {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
+var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
+function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
+function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
+function tabOn(t){ var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
+function loadFeatures(){ return sb.rpc('app_features').then(function(r){ if(r.error||!r.data) return; FEAT=r.data; try{ localStorage.setItem('app_features',JSON.stringify(FEAT)); }catch(e){} schedule(); }); }
 /* spa and salon mode (Massage Mate builds set window.SHOP_TYPE='spa'): the bed board first, gym-only screens hidden */
 var SPA=window.SHOP_TYPE==='spa';
-if(SPA){ var SPA_HIDE=['today','kitchen','stays','housekeeping','timetable','fights','courses','coaching'], SPA_NAMES={privates:'Appointments',coach:'Therapist view',packages:'Packs and prices'};
+if(SPA){ var SPA_HIDE=['today'], SPA_NAMES={privates:'Appointments',coach:'Therapist view',packages:'Packs and prices'};
   ALLTABS=[['board','Board'],['spasetup','Setup']].concat(ALLTABS.filter(function(t){ return SPA_HIDE.indexOf(t[0])<0; }).map(function(t){ return SPA_NAMES[t[0]]?[t[0],SPA_NAMES[t[0]]]:t; })); }
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -942,22 +977,22 @@ function editStaff(s){ s=s||{}; var own=isOwner();
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
     {key:'role',onChange:function(v,set,get,o,show){ show('x_areas',own&&(v==='admin'||v==='front_desk')); show('x_perms',own&&v==='admin'); },label:'Role',type:'select',def:'coach',options:(own?[['manager','Owner: everything'],['admin','Admin: only the departments and rights you tick below']]:[]).concat([['coach','Coach'],['front_desk','Front desk: only the departments you tick below'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['maintenance','Maintenance: jobs to fix, check in and out'],['investor','Investor: sees the numbers only, for the parts you tick below']])},
-    {key:'x_areas',label:'Departments',type:'checks',hide:!(own&&(s.role==='admin'||s.role==='front_desk')),options:[['gym','Gym: training, classes, privates, gym shop'],['spa','Spa'],['resort','Guest Rooms: rooms, stays, housekeeping'],['cafe','Tea Corner']],hint:'What they look after. Tick none for all departments.'},
+    {key:'x_areas',label:'Departments',type:'checks',hide:!(own&&(s.role==='admin'||s.role==='front_desk')),options:[['gym','Gym: training, classes, privates, gym shop'],['spa','Spa'],['resort',BIZ_STAY+': rooms, stays, housekeeping'],['cafe',DEPT_CAFE]],hint:'What they look after. Tick none for all departments.'},
     {key:'x_perms',label:'What they can do',type:'checks',hide:!(own&&s.role==='admin'),options:[['edit','Change things (without this they can only look)'],['refunds','Refunds, discounts and fixing mistakes'],['money','Accounts, receipts, invoices and money reports'],['staff','Staff, hours, pay and commission'],['settings','Settings, packages, prices and website'],['marketing','Newsletters, social media and contacts']]},
     {key:'investor_zones',label:'Investor can see',type:'checks',options:[['gym','Gym'],['spa','Spa'],['cafe','Cafe'],['resort','Resort']],hint:'Only for investors. They see totals and numbers, never customer names.'},
     {key:'also_coach',label:'Also a coach (teaches privates or classes)',type:'checkbox',hint:'For an owner, admin or front desk who also coaches. They keep their own screens and can be picked as a coach for privates, classes and online booking.'},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches. Set 100 for a coach who keeps the whole private (no gym commission).'},
-    {key:'private_rate_thb',label:'Own private rate (THB)',type:'number',hint:'Leave empty for the normal price. With a rate, a private with this coach costs this much, and on a private pack the customer pays the difference as a top up.'},
+    {key:'private_rate_thb',label:'Own private rate (THB)',type:'number',hide:!featOn('coach_rates'),hint:'Leave empty for the normal price. With a rate, a private with this coach costs this much, and on a private pack the customer pays the difference as a top up.'},
     {key:'bio',label:'Coach intro for online booking',hint:'One short line customers see when they book a private, for example: Former stadium fighter, technique and clinch.'},
     {key:'photo_url',label:'Coach photo for online booking (link)',hint:'Tap Add a photo below, or paste a link.'},
     {key:'photo_btn',label:'',type:'info'},
-    {key:'video_url',label:'Profile video, 360 view (link)',hint:'Plays in place of the photo when they book a private, on the website team and in the app. MP4, up to 50 MB. Short and small is best (10 to 20 seconds).'},
+    {key:'video_url',label:'Profile video, 360 view (link)',hide:!featOn('profile_video'),hint:'Plays in place of the photo when they book a private, on the website team and in the app. MP4, up to 50 MB. Short and small is best (10 to 20 seconds).'},
     {key:'video_btn',label:'',type:'info'},
-    {key:'web_show',label:'Show on the website team (The Massage Mate Demo Spa family)',type:'checkbox',hint:'Uses the photo and video above.'},
-    {key:'web_name',label:'Name on the website',hint:'Leave empty to use their name. For example Coach Tom.'},
-    {key:'web_title',label:'Title on the website',hint:'For example Head Muay Thai coach.'},
-    {key:'web_about',label:'Text on the website',type:'textarea',hint:'Two short sentences. Empty uses the coach intro above.'},
-    {key:'web_sort',label:'Order on the website',type:'number',def:100,hint:'Smaller numbers show first.'},
+    {key:'web_show',hide:!featOn('web_team'),label:'Show on the website team (The Massage Mate Demo Spa family)',type:'checkbox',hint:'Uses the photo and video above.'},
+    {key:'web_name',hide:!featOn('web_team'),label:'Name on the website',hint:'Leave empty to use their name. For example Coach Tom.'},
+    {key:'web_title',hide:!featOn('web_team'),label:'Title on the website',hint:'For example Head Muay Thai coach.'},
+    {key:'web_about',hide:!featOn('web_team'),label:'Text on the website',type:'textarea',hint:'Two short sentences. Empty uses the coach intro above.'},
+    {key:'web_sort',hide:!featOn('web_team'),label:'Order on the website',type:'number',def:100,hint:'Smaller numbers show first.'},
     {key:'phone',label:'Phone'},
     {key:'work_days',label:'Working days',type:'checks',options:DAYS.map(function(d,i){ return [String(i),d]; }),hint:'With a start time the app shows if they are late or did not check in. Coaches go by their classes and privates instead.'},
     {key:'work_start',label:'Starts work at',type:'time'},
@@ -971,7 +1006,7 @@ function editStaff(s){ s=s||{}; var own=isOwner();
   var pb=document.getElementById('f-photo_btn'); if(pb) pb.replaceChildren(btn('Add a photo',function(){ var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return; toast('Uploading the photo.');
     shrinkPhoto(f,600).then(function(blob){ var path='coaches/'+Date.now()+'.jpg'; return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); })
       .then(function(url){ var i=document.getElementById('f-photo_url'); if(i) i.value=url; toast('Photo added. Tap Save.'); },function(e){ toast(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); },'small'));
-  var vb=document.getElementById('f-video_btn'), vu=document.getElementById('f-video_url');
+  var vb=featOn('profile_video')?document.getElementById('f-video_btn'):null, vu=document.getElementById('f-video_url');
   function vprev(){ if(!vb) return; var u=vu&&vu.value.trim(); vb.replaceChildren(h('div',null,btn('Add a video',function(){ var inp=h('input',{type:'file',accept:'video/mp4,video/webm,video/quicktime',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
       if(f.size>50*1024*1024){ toast('That video is '+Math.round(f.size/1048576)+' MB. The limit is 50 MB, so make it shorter or smaller first.'); return; }
       var ext=(/webm/.test(f.type)?'webm':/quicktime/.test(f.type)?'mov':'mp4'), path='coaches/video-'+Date.now()+'.'+ext; toast('Uploading the video. Keep this open.');
@@ -983,7 +1018,7 @@ function editStaff(s){ s=s||{}; var own=isOwner();
 }
 /* a staff member's 360 video (or photo) as a small face */
 function staffFace(s,cls){ cls=cls||'staffface';
-  if(s.video_url){ var v=document.createElement('video'); v.muted=true; v.defaultMuted=true; v.loop=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.className=cls; v.setAttribute('aria-hidden','true');
+  if(s.video_url&&featOn('profile_video')){ var v=document.createElement('video'); v.muted=true; v.defaultMuted=true; v.loop=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.className=cls; v.setAttribute('aria-hidden','true');
     if(s.photo_url) v.poster=s.photo_url; v.src=s.video_url; if(!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){ v.autoplay=true; v.setAttribute('autoplay',''); } return v; }
   return s.photo_url?h('img',{class:cls,src:s.photo_url,alt:'',loading:'lazy'}):null; }
 var LEADSRC=['Website','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
@@ -3583,7 +3618,7 @@ function coClient(){
   var waiting=d.forms.filter(function(f){ return !f.reply; }).length;
   var tabs=[['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['logs','Workout logs'+((d.logs||[]).some(function(l){ return l.hurt&&l.day>=cAdd(t,-14); })?' (pain)':'')],['about','About them'],['videos','Videos'+(waiting?' ('+waiting+')':'')],['pangea','Spa']];
   var sub=h('div',{class:'ctabs'},tabs.map(function(x){ return h('button',{type:'button',class:'ctab'+(COACH.sub===x[0]?' on':''),onclick:function(){ COACH.sub=x[0]; schedule(); }},x[1]); }));
-  var body=COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):COACH.sub==='pangea'?coSpa(d):COACH.sub==='about'?intakePanel(d.customer.id):coHabits(d);
+  var body=COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):COACH.sub==='pangea'?coStayPanel(d):COACH.sub==='about'?intakePanel(d.customer.id):coHabits(d);
   return [back,pageHead(d.customer.name,'Coaching. Private to this client, their coaches and the managers.'),coaches,sub,body];
 }
 /* one customer's "About you" answers (Coaching, About them, and the customer page) */
@@ -3600,7 +3635,7 @@ function intakePanel(cid,asSection){
 /* Spa app data for this client (pangea/index.html): level, health numbers, blood tests, yearly plan */
 var PGK={bp:['Blood pressure','mmHg'],rhr:['Resting heart rate','bpm'],sleep:['Sleep','hours'],steps:['Steps',''],waist:['Waist','cm'],bodyfat:['Body fat','%'],energy:['Energy','of 5'],mood:['Mood','of 5'],stress:['Stress','of 5'],
   glucose:['Fasting glucose','mmol/L'],hba1c:['HbA1c','%'],chol:['Total cholesterol','mmol/L'],ldl:['LDL','mmol/L'],hdl:['HDL','mmol/L'],trig:['Triglycerides','mmol/L'],vitd:['Vitamin D','ng/mL'],crp:['CRP','mg/L'],testo:['Testosterone','nmol/L'],ferritin:['Ferritin','ng/mL'],bloods:['Blood test file','']};
-function coSpa(d){
+function coStayPanel(d){
   var cid=d.customer.id, mgr=me&&me.role==='manager';
   if(!COACH.pg||COACH.pg.cid!==cid){ COACH.pg={cid:cid,data:null}; sb.rpc('pangea_client',{p_customer:cid}).then(must).then(function(x){ if(COACH.pg&&COACH.pg.cid===cid){ COACH.pg.data=x; schedule(); } }).catch(function(e){ toast(errText(e)); }); }
   var x=COACH.pg.data; if(!x) return h('div',{class:'panel empty'},'Loading.');
@@ -4039,14 +4074,21 @@ function wpgEditor(){
 
 /* ---------- Accounts: money in from everything the app records, money out from receipts, bills and coach shares, for each business ---------- */
 var ACC={data:null,busy:false,from:null,to:null,tab:'overview',biz:'all',rc:null};
-var BIZ=['Massage Mate Demo Spa','Guest Rooms'];
+/* the business names come from the database (acc_names): each business that uses the app has its own */
+var BIZ_MAIN='Massage Mate Demo Spa', BIZ_STAY='Guest Rooms', DEPT_CAFE='Tea Corner';
+var BIZ=[BIZ_MAIN,BIZ_STAY];
 var ACC_DEPTS={'Massage Mate Demo Spa':['Gym training','Privates','Spa','Visa and DTV','Gym shop','Gym','Office','Marketing','Maintenance','Other'],'Guest Rooms':['Rooms','Tea Corner','Guest Rooms','Housekeeping','Maintenance','Office','Marketing','Other']};
 var ACC_OUT=['Staff wages','Coach commission','Rent','Electricity','Water','Internet and phone','Food and drink stock','Cafe and drinks supplies','Shop stock','Spa supplies','Cleaning and laundry','Repairs and maintenance','Equipment','Marketing and ads','Software and subscriptions','Bank and card fees','Visa and government fees','Transport and fuel','Office and admin','Professional fees','Tax','Insurance','Owner drawings','Other'];
 var ACC_IN=['Booking site payout','Agent payment','Event or fight income','Sponsorship','Refund received','Other income','Sales before the app'];
 var ACC_MOVE=['Staff meals','Staff room','Shared bill','Loan','Repayment','Other'];
 /* businesses and departments: the owner adds them (Accounts, Businesses and departments) */
 var ACC_STRUCT=null, ACC_INCOME_ONLY=['Gym training','Privates','Rooms'];
-function loadAccStruct(){ return sb.rpc('acc_structure').then(function(r){ if(r.error||!r.data) return; var d=r.data; ACC_STRUCT=d;
+function loadAccStruct(){ sb.rpc('acc_names').then(function(r){ var n=r&&r.data; if(!n) return; var om=BIZ_MAIN, os=BIZ_STAY, oc=DEPT_CAFE;
+    BIZ_MAIN=n.main||BIZ_MAIN; BIZ_STAY=n.stay||BIZ_STAY; DEPT_CAFE=n.cafe||DEPT_CAFE;
+    RDEPTS=RDEPTS.map(function(d){ return d===os?BIZ_STAY:d===oc?DEPT_CAFE:d; });
+    Object.keys(RXT).forEach(function(l){ var D=RXT[l].d; if(!D) return; [[os,BIZ_STAY],[oc,DEPT_CAFE]].forEach(function(x){ if(x[0]!==x[1]) D[x[1]]=l==='en'?x[1]:(D[x[0]]||x[1]); }); });
+    if(om!==BIZ_MAIN) ACC_DEPTS[BIZ_MAIN]=ACC_DEPTS[BIZ_MAIN]||ACC_DEPTS[om]; schedule(); }).catch(function(){});
+  return sb.rpc('acc_structure').then(function(r){ if(r.error||!r.data) return; var d=r.data; ACC_STRUCT=d;
   var list=(d.businesses||[]).filter(function(b){ return b&&b.name; });
   (d.builtin||[]).forEach(function(n){ if(!list.some(function(b){ return b.name===n; })) list.unshift({name:n,depts:ACC_DEPTS[n]||[]}); });
   BIZ.length=0; list.forEach(function(b){ BIZ.push(b.name); ACC_DEPTS[b.name]=(b.depts||[]).slice(); });
@@ -4055,7 +4097,7 @@ function bizAllLabel(){ return BIZ.length>2?'All businesses':'Both businesses'; 
 /* receipt form: the usual departments, plus those of added businesses or added to a business */
 function rxDeptOpts(){ var o=RDEPTS.map(function(d){ return [d,RX('d')[d]||d]; }), seen={};
   RDEPTS.forEach(function(d){ seen[d]=1; });
-  BIZ.forEach(function(b){ var builtin=b==='Massage Mate Demo Spa'||b==='Guest Rooms';
+  BIZ.forEach(function(b){ var builtin=b===BIZ_MAIN||b===BIZ_STAY;
     (ACC_DEPTS[b]||[]).forEach(function(d){ if(ACC_INCOME_ONLY.indexOf(d)>=0) return; if(builtin&&seen[d]) return; o.push([b+'|'+d,builtin?d:d+' ('+b+')']); }); });
   return o; }
 function allDeptOpts(){ var out=[], seen={}; BIZ.forEach(function(b){ (ACC_DEPTS[b]||[]).forEach(function(d){ if(!seen[d]){ seen[d]=1; out.push([d,d]); } }); }); RDEPTS.forEach(function(d){ if(!seen[d]){ seen[d]=1; out.push([d,d]); } }); return out; }
@@ -4142,7 +4184,7 @@ function accOverview(lines,all,d){
   var notes=[];
   if(Number(d.before_app)) notes.push(accThb(d.before_app)+' was recorded as paid before the app, so it is not counted here (it is in your old spreadsheet).');
   if(d.no_amount) notes.push(d.no_amount+' receipt'+(d.no_amount>1?'s have':' has')+' no amount yet, so '+(d.no_amount>1?'they are':'it is')+' not counted. Use Sort receipts.');
-  if(Number(d.room_sales)&&(ACC.biz==='all'||ACC.biz==='Guest Rooms')) notes.push('Rooms sold for nights in this period: '+accThb(d.room_sales)+'. Room money shows here when it is paid. For Booking.com, Agoda or Airbnb, add each payout with Add money in, as "Booking site payout".');
+  if(Number(d.room_sales)&&(ACC.biz==='all'||ACC.biz===BIZ_STAY)) notes.push('Rooms sold for nights in this period: '+accThb(d.room_sales)+'. Room money shows here when it is paid. For Booking.com, Agoda or Airbnb, add each payout with Add money in, as "Booking site payout".');
   return [h('div',{class:'acccards'},cards),accDepts(lines),accChecks(),
     mk.length>1?section('Last 12 months',null,h('div',{class:'panel pad'},pChart([{label:'Money in',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].i)}; })},{label:'Money out',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].o)}; })}],'THB'),
       table([{label:'Month',cell:function(m){ return parseYmd(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }},{label:'In',num:true,cell:function(m){ return accThb(months[m].i); }},{label:'Out',num:true,cell:function(m){ return accThb(months[m].o); }},
@@ -4374,12 +4416,12 @@ function accBills(d){ var R=(d.recurring||[]).filter(function(r){ return ACC.biz
     table([{label:'Bill',cell:function(r){ return linkBtn((r.party||r.category)+(r.note?' ('+r.note+')':''),function(){ accBill(r); }); }},{label:'Business',cell:function(r){ return accSplit(r)||r.business; }},{label:'Category',cell:function(r){ return r.category; }},
       {label:'Day',num:true,cell:function(r){ return String(r.day_of_month); }},{label:'Amount',num:true,cell:function(r){ return accThb(r.amount); }},{label:'',cell:function(r){ return r.active?chip('On','ok'):chip('Stopped'); }}],R,'No monthly bills yet.'),
     R.length?h('p',{class:'sub'},'Monthly total: '+accThb(R.filter(function(r){ return r.active&&r.kind==='out'; }).reduce(function(t,r){ return t+Number(r.amount); },0))+' out.'):null]; }
-function accSplit(r){ var s=r.split||[]; if(!s.length) return null; return s.map(function(x){ return (x.business==='Guest Rooms'?'Resort':'Gym')+' '+Number(x.pct)+'%'; }).join(' / '); }
+function accSplit(r){ var s=r.split||[]; if(!s.length) return null; return s.map(function(x){ return (x.business===BIZ_STAY?'Resort':x.business===BIZ_MAIN?'Gym':x.business)+' '+Number(x.pct)+'%'; }).join(' / '); }
 function accBill(r){ r=r||{kind:'out',business:ACC.biz!=='all'?ACC.biz:BIZ[0],method:'transfer',day_of_month:1,active:true,from_month:ymd(new Date()).slice(0,8)+'01'};
-  var sp=r.split||[], gp=sp.filter(function(x){ return x.business==='Massage Mate Demo Spa'; })[0]||{}, rp=sp.filter(function(x){ return x.business==='Guest Rooms'; })[0]||{};
+  var sp=r.split||[], gp=sp.filter(function(x){ return x.business===BIZ_MAIN; })[0]||{}, rp=sp.filter(function(x){ return x.business===BIZ_STAY; })[0]||{};
   var isSplit=sp.length>0, depOpts=function(b){ return [['','None']].concat((ACC_DEPTS[b]||[]).map(function(x){ return [x,x]; })); };
   function splitInfo(get,set){ var a=Number(get('amount'))||0, g=Number(get('split_gym')); if(!(g>0&&g<100)){ set('split_info','Type a percent between 1 and 99 for the gym.'); return; }
-    var gt=Math.round(a*g)/100; set('split_info','Each month: Massage Mate Demo Spa '+accThb(gt)+' ('+g+'%), Guest Rooms '+accThb(a-gt)+' ('+(Math.round((100-g)*100)/100)+'%).'); }
+    var gt=Math.round(a*g)/100; set('split_info','Each month: '+BIZ_MAIN+' '+accThb(gt)+' ('+g+'%), '+BIZ_STAY+' '+accThb(a-gt)+' ('+(Math.round((100-g)*100)/100)+'%).'); }
   function showSplit(on,show){ ['split_gym','gym_department','resort_department','split_info'].forEach(function(k){ show(k,on); }); ['business','department'].forEach(function(k){ show(k,!on); }); }
   openForm({title:r.id?'Edit monthly bill':'Add a monthly bill',values:{business:r.business,department:r.department||'',category:r.category||'Rent',party:r.party||'',amount:r.amount,day_of_month:r.day_of_month,method:r.method,from_month:String(r.from_month||'').slice(0,10),note:r.note||'',active:r.active!==false,
       split_on:isSplit,split_gym:isSplit?Number(gp.pct||0):50,gym_department:gp.department||'',resort_department:rp.department||''},
@@ -4388,9 +4430,9 @@ function accBill(r){ r=r||{kind:'out',business:ACC.biz!=='all'?ACC.biz:BIZ[0],me
       {key:'split_on',label:'Split it between the gym and the resort (for staff who work for both)',type:'checkbox',onChange:function(v,set,get,so,show){ showSplit(v,show); if(v) splitInfo(get,set); }},
       {key:'business',label:'Business',type:'select',hide:isSplit,options:BIZ.map(function(b){ return [b,b]; }),onChange:function(v,set,get,so){ so('department',depOpts(v)); }},
       {key:'department',label:'Department',type:'select',hide:isSplit,options:depOpts(r.business)},
-      {key:'split_gym',label:'Massage Mate Demo Spa share in %',type:'number',hide:!isSplit,hint:'Guest Rooms pays the rest. For example 60 means 60% gym, 40% resort.',onChange:function(v,set,get){ splitInfo(get,set); }},
-      {key:'gym_department',label:'Gym department',type:'select',hide:!isSplit,options:depOpts('Massage Mate Demo Spa')},
-      {key:'resort_department',label:'Resort department',type:'select',hide:!isSplit,options:depOpts('Guest Rooms')},
+      {key:'split_gym',label:BIZ_MAIN+' share in %',type:'number',hide:!isSplit,hint:BIZ_STAY+' pays the rest. For example 60 means 60% and 40%.',onChange:function(v,set,get){ splitInfo(get,set); }},
+      {key:'gym_department',label:'Gym department',type:'select',hide:!isSplit,options:depOpts(BIZ_MAIN)},
+      {key:'resort_department',label:'Resort department',type:'select',hide:!isSplit,options:depOpts(BIZ_STAY)},
       {key:'split_info',label:'',type:'info',hide:!isSplit},
       {key:'category',label:'Category',type:'select',options:ACC_OUT.map(function(c){ return [c,c]; })},
       {key:'amount',label:'Amount in THB',type:'number',required:true,hint:'The full monthly amount, before any split.',onChange:function(v,set,get){ if(get('split_on')) splitInfo(get,set); }},{key:'day_of_month',label:'Day of the month it is paid',type:'number',hint:'1 to 28.'},
@@ -4399,11 +4441,11 @@ function accBill(r){ r=r||{kind:'out',business:ACC.biz!=='all'?ACC.biz:BIZ[0],me
       {key:'note',label:'Note'},{key:'active',label:'On (untick to stop it)',type:'checkbox'}],
     onSave:function(v){ var g=Number(v.split_gym), split=[];
       if(v.split_on){ if(!(g>0&&g<100)) return 'Type the gym share as a percent between 1 and 99.';
-        split=[{business:'Massage Mate Demo Spa',department:v.gym_department,pct:g},{business:'Guest Rooms',department:v.resort_department,pct:Math.round((100-g)*100)/100}]; }
+        split=[{business:BIZ_MAIN,department:v.gym_department,pct:g},{business:BIZ_STAY,department:v.resort_department,pct:Math.round((100-g)*100)/100}]; }
       var p={id:r.id||null,kind:'out',party:v.party,category:v.category,amount:v.amount,day_of_month:v.day_of_month,method:v.method,from_month:v.from_month,note:v.note,active:v.active,split:split,
-        business:v.split_on?'Massage Mate Demo Spa':v.business,department:v.split_on?v.gym_department:v.department};
+        business:v.split_on?BIZ_MAIN:v.business,department:v.split_on?v.gym_department:v.department};
       return sb.rpc('acc_recurring_save',{p:p}).then(must).then(accReload); }});
-  if(isSplit) setTimeout(function(){ var i=document.getElementById('f-split_info'); if(i){ var a=Number(r.amount)||0, g=Number(gp.pct)||0, gt=Math.round(a*g)/100; i.textContent='Each month: Massage Mate Demo Spa '+accThb(gt)+' ('+g+'%), Guest Rooms '+accThb(a-gt)+' ('+(Math.round((100-g)*100)/100)+'%).'; } },0); }
+  if(isSplit) setTimeout(function(){ var i=document.getElementById('f-split_info'); if(i){ var a=Number(r.amount)||0, g=Number(gp.pct)||0, gt=Math.round(a*g)/100; i.textContent='Each month: '+BIZ_MAIN+' '+accThb(gt)+' ('+g+'%), '+BIZ_STAY+' '+accThb(a-gt)+' ('+(Math.round((100-g)*100)/100)+'%).'; } },0); }
 /* sorting receipts: photo next to the fields, AI reads it, one tap to save */
 function accReceipts(){
   var R=ACC.rc; if(!R||R.from!==ACC.from||R.to!==ACC.to){ if(!ACC.rcBusy){ ACC.rcBusy=true; sb.rpc('receipts_list',{p_from:ACC.from,p_to:ACC.to}).then(must).then(function(l){ ACC.rcBusy=false; ACC.rc={from:ACC.from,to:ACC.to,list:l,all:false}; schedule(); }).catch(function(e){ ACC.rcBusy=false; toast(errText(e)); }); }
@@ -4424,7 +4466,7 @@ function accRcCard(x){
   if(f.purpose===undefined) f.purpose=x.purpose||''; if(f.place_id===undefined) f.place_id=x.place_id||'';
   function inp(k,a){ a=a||{}; var e=h('input',{id:id+k,type:a.type||'text',step:a.type==='number'?'0.01':null,placeholder:a.ph||null}); e.value=f[k]==null?'':f[k]; e.addEventListener('input',function(){ f[k]=e.value; }); return e; }
   function sel(k,opts){ var e=h('select',{id:id+k,onchange:function(ev){ f[k]=ev.target.value; if(k==='business') schedule(); }},opts.map(function(o){ return h('option',{value:o[0]},o[1]); })); e.value=f[k]||''; return e; }
-  var deps=(ACC_DEPTS[f.business]||[]).concat(['Gym','Gym shop','Spa','Guest Rooms','Tea Corner','Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other']).filter(function(v,i,a){ return a.indexOf(v)===i; });
+  var deps=(ACC_DEPTS[f.business]||[]).concat(['Gym','Gym shop','Spa',BIZ_STAY,DEPT_CAFE,'Housekeeping','Maintenance','Office','Marketing','Visa and DTV','Other']).filter(function(v,i,a){ return a.indexOf(v)===i; });
   var img=h('div',{class:'accrcimg'},'Loading the photo');
   if(x.photo_path){ if(x._url) img.replaceChildren(h('img',{src:x._url,alt:'Receipt'})); else if(!x._urlAsked){ x._urlAsked=true; sb.storage.from('receipts').createSignedUrl(x.photo_path,3600).then(function(r){ if(r.data&&r.data.signedUrl){ x._url=r.data.signedUrl; schedule(); } }); } }
   var save=btn('Save',function(){ var a=f.amount===''||f.amount==null?null:Number(f.amount); if(a==null||isNaN(a)){ toast('Type the amount.'); return; } if(!f.category){ toast('Choose a category.'); return; } save.disabled=true;
@@ -5193,7 +5235,7 @@ function payDlg(method,waitingOrder){
 function receiptNode(o){
   var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
   return h('div',{id:'receipt',class:'receipt'},
-    h('div',{class:'rc-head'},h('b',null,/cafe/i.test(o.loc||'')?'TEA CORNER':'MASSAGE MATE'),h('span',null,(o.loc||'Muay Thai and Tea Corner')+', Patong, Phuket')),
+    h('div',{class:'rc-head'},h('b',null,(/cafe/i.test(o.loc||'')?DEPT_CAFE:BIZ_MAIN.replace(/ gym$/i,'')).toUpperCase()),h('span',null,(o.loc||'Muay Thai and Tea Corner')+', Patong, Phuket')),
     h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
     h('table',null,h('tbody',null,(o.items||[]).map(function(l){ return h('tr',null,h('td',null,l.qty+' x '+l.name+(l.note?' ('+l.note+')':'')),h('td',{class:'num'},l.price!=null?thb(l.price*l.qty):'')); }))),
     h('div',{class:'rc-tot'},
@@ -5915,10 +5957,10 @@ var RXT={
     d:{'Gym':'Gym','Gym shop':'Gym shop','Spa':'Spa','Guest Rooms':'Guest Rooms','Tea Corner':'Tea Corner','Housekeeping':'Housekeeping','Maintenance':'Maintenance','Office':'Office','Marketing':'Marketing','Visa and DTV':'Visa and DTV','Other':'Other'}},
   th:{for:'ซื้อเพื่ออะไร',forHint:'เช่น ซ่อมท่อรั่วในห้องน้ำ, ก๊อกน้ำใหม่',where:'ที่ไหน (ห้อง หรือ พื้นที่)',whereNone:'ไม่ได้ใช้ที่ใดที่หนึ่ง',cam:'ถ่ายรูป',gal:'เลือกจากคลังรูปหรือไฟล์',btn:'ใบเสร็จ',title:'เพิ่มใบเสร็จ',note:'ถ่ายรูปใบเสร็จ ผู้จัดการจะเห็นและนำเข้าบัญชี',photo:'รูปใบเสร็จ',dept:'แผนก',amount:'ยอดที่จ่าย (บาท)',what:'ร้าน หรือ ซื้ออะไร',paid:'จ่ายโดย',day:'วันที่ในใบเสร็จ',save:'ส่ง',cancel:'ยกเลิก',sent:'ส่งใบเสร็จแล้ว ขอบคุณ',needPhoto:'ถ่ายรูปใบเสร็จก่อน',needDept:'เลือกแผนก',sending:'กำลังส่ง...',
     m:{transfer:'โอน หรือ พร้อมเพย์',scan:'สแกน QR',cash:'เงินสด',card:'บัตร'},
-    d:{'Gym':'ยิม','Gym shop':'ร้านค้ายิม','Spa':'สปา','Guest Rooms':'รีสอร์ท Spa','Tea Corner':'คาเฟ่ Spa','Housekeeping':'แม่บ้าน','Maintenance':'ซ่อมบำรุง','Office':'ออฟฟิศ','Marketing':'การตลาด','Visa and DTV':'วีซ่า และ DTV','Other':'อื่นๆ'}},
+    d:{'Gym':'ยิม','Gym shop':'ร้านค้ายิม','Spa':'สปา','Guest Rooms':'รีสอร์ท','Tea Corner':'คาเฟ่','Housekeeping':'แม่บ้าน','Maintenance':'ซ่อมบำรุง','Office':'ออฟฟิศ','Marketing':'การตลาด','Visa and DTV':'วีซ่า และ DTV','Other':'อื่นๆ'}},
   my:{for:'ဘာအတွက်လဲ',forHint:'ဥပမာ ရေချိုးခန်း ယိုစိမ့်မှု ပြင်ရန်',where:'ဘယ်နေရာ (အခန်း သို့မဟုတ် နေရာ)',whereNone:'နေရာတစ်ခုအတွက် မဟုတ်ပါ',cam:'ဓာတ်ပုံရိုက်ရန်',gal:'ဓာတ်ပုံများ သို့မဟုတ် ဖိုင်မှ ရွေးရန်',btn:'ပြေစာ',title:'ပြေစာ ထည့်ရန်',note:'ပြေစာကို ဓာတ်ပုံရိုက်ပါ။ မန်နေဂျာ မြင်ပြီး စာရင်းထဲ ထည့်ပါမည်။',photo:'ပြေစာ ဓာတ်ပုံ',dept:'ဌာန',amount:'ပေးခဲ့သော စုစုပေါင်း (ဘတ်)',what:'ဆိုင် သို့မဟုတ် ဘာအတွက်',paid:'ပေးချေနည်း',day:'ပြေစာပါ ရက်စွဲ',save:'ပို့ရန်',cancel:'မလုပ်တော့ပါ',sent:'ပြေစာ ပို့ပြီးပါပြီ။ ကျေးဇူးတင်ပါတယ်။',needPhoto:'ပြေစာကို အရင် ဓာတ်ပုံရိုက်ပါ။',needDept:'ဌာန ရွေးပါ။',sending:'ပို့နေသည်...',
     m:{transfer:'ငွေလွှဲ / PromptPay',scan:'QR စကန်',cash:'ငွေသား',card:'ကတ်'},
-    d:{'Gym':'ဂျင်','Gym shop':'ဂျင် ဆိုင်','Spa':'စပါ','Guest Rooms':'Spa ရီဆော့','Tea Corner':'Spa ကဖေး','Housekeeping':'အိမ်ထိန်း','Maintenance':'ပြုပြင်ထိန်းသိမ်းရေး','Office':'ရုံး','Marketing':'စျေးကွက်','Visa and DTV':'ဗီဇာ နှင့် DTV','Other':'အခြား'}}};
+    d:{'Gym':'ဂျင်','Gym shop':'ဂျင် ဆိုင်','Spa':'စပါ','Guest Rooms':'ရီဆော့','Tea Corner':'ကဖေး','Housekeeping':'အိမ်ထိန်း','Maintenance':'ပြုပြင်ထိန်းသိမ်းရေး','Office':'ရုံး','Marketing':'စျေးကွက်','Visa and DTV':'ဗီဇာ နှင့် DTV','Other':'အခြား'}}};
 function RX(k){ var l=RXT[clkLang()]||RXT.en; return l[k]!==undefined?l[k]:RXT.en[k]; }
 function shrinkImage(file){
   return new Promise(function(ok,bad){ if(!/^image\//.test(file.type)) return ok(file);
@@ -5926,6 +5968,7 @@ function shrinkImage(file){
       c.getContext('2d').drawImage(img,0,0,c.width,c.height); c.toBlob(function(b){ b?ok(b):bad({message:'Could not read the photo.'}); },'image/jpeg',0.8); },function(){ ok(file); }); });
 }
 function expReceipt(){
+  if(!featOn('receipts_all')&&!(me&&me.role==='manager')){ toast('Only managers add receipts here.'); return; }
   /* two ways in: the camera, or a photo or PDF already on the phone */
   var picked=null, prev=h('img',{class:'rxprev',alt:'',hidden:true}), fname=h('small',{class:'sub'},'');
   var cam=h('input',{type:'file',id:'rx-cam',accept:'image/*',capture:'environment',hidden:true}), gal=h('input',{type:'file',id:'rx-gal',accept:'image/*,application/pdf',hidden:true});
@@ -5952,7 +5995,7 @@ function expReceipt(){
     h('div',{class:'field'},h('label',null,RX('photo')),pick,fname),prev,field('rx-dept',RX('dept'),dept),field('rx-amt',RX('amount'),amt),field('rx-what',RX('what'),what),field('rx-for',RX('for'),purpose),field('rx-where',RX('where'),where),field('rx-m',RX('paid'),meth),field('rx-day',RX('day'),day),err,
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(RX('cancel'),function(){ $dlg.close(); }),go))));
 }
-function receiptBtn(){ return h('button',{type:'button',class:'btn small',onclick:expReceipt},RX('btn')); }
+function receiptBtn(){ if(!featOn('receipts_all')&&!(me&&me.role==='manager')) return null; return h('button',{type:'button',class:'btn small',onclick:expReceipt},RX('btn')); }
 /* ---------- places and the work log: every room and area, the work done there, and the receipts for it ---------- */
 var PLACES=null, PLACES_P=null, WORK=null;
 function loadPlaces(){ if(PLACES) return Promise.resolve(PLACES); if(PLACES_P) return PLACES_P;
@@ -6004,7 +6047,7 @@ function workReport(x,placeId){
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn(WX('cancel'),function(){ $dlg.close(); }),go))));
 }
 function workPlaceEdit(p){
-  openForm({title:p&&p.id?'Change place':WX('addPlace'),values:{name:p?p.name:'',business:p?p.business:'Guest Rooms',active:p?p.active!==false:true},saveLabel:'Save',doneMsg:'Saved.',
+  openForm({title:p&&p.id?'Change place':WX('addPlace'),values:{name:p?p.name:'',business:p?p.business:BIZ_STAY,active:p?p.active!==false:true},saveLabel:'Save',doneMsg:'Saved.',
     fields:[{key:'name',label:'Name',required:true,hint:'A room, or an area like the pool or car park.'},{key:'business',label:'Business',type:'select',options:BIZ.map(function(b){ return [b,b]; })},
       p&&p.id?{key:'active',label:'In use (untick to hide it from the lists)',type:'checkbox'}:null].filter(Boolean),
     onSave:function(v){ return sb.rpc('place_save',{p:Object.assign({id:p&&p.id||null},v)}).then(must).then(function(){ PLACES=null; WORK=null; schedule(); }); }}); }
@@ -7026,8 +7069,39 @@ function pxSettings(){
   },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+cardFeeLong()+', tax '+pxRate('tax_pct')+'%. Booking page in USD, GBP and EUR: today\'s rate plus '+fxMargin()+'%.'),
     h('p',{class:'sub'},'Tick boxes on Sell a package, Book a private and Take payment add them on top of the price. The customer pays them, Accounts shows them as Card fees charged and Tax collected, and they are never part of a coach share.')));
 }
+/* ---------- Settings: Features (switch parts of the app on or off) and What's new (the changelog, changelog.js) ---------- */
+function featCanSet(){ return !!me&&me.role==='manager'&&can('settings'); }
+function featToggle(k,on){ return sb.rpc('feature_set',{p_key:k,p_on:on}).then(must).then(function(d){ FEAT=d||FEAT; try{ localStorage.setItem('app_features',JSON.stringify(FEAT)); }catch(e){} toast(on?'Switched on for everyone.':'Switched off for everyone.'); schedule(); }).catch(function(e){ toast(errText(e)); schedule(); }); }
+function featSwitch(k){ var on=featOn(k), ok=featCanSet();
+  return h('label',{class:'check featsw'},h('input',{type:'checkbox',checked:on?true:null,disabled:ok?null:true,onchange:function(ev){ featToggle(k,ev.target.checked); }}),h('span',null,on?'On':'Off')); }
+function featuresSection(){
+  var groups=[]; FEATURES.forEach(function(f){ if(groups.indexOf(f.g)<0) groups.push(f.g); });
+  return section('Features',null,h('div',null,
+    h('p',{class:'sub'},'Switch on what your business uses. Switched off parts disappear for everyone, staff and customers, and nothing is deleted: switch them back on any time.'+(featCanSet()?'':' Only the owner or an admin with settings can change these.')),
+    groups.map(function(g){ return h('div',{class:'panel pad featgrp'},h('h3',{class:'billh'},g),FEATURES.filter(function(f){ return f.g===g; }).map(function(f){
+      return h('div',{class:'featrow'},h('div',null,h('b',null,f.n),h('div',{class:'sub'},f.d||'')),featSwitch(f.k)); })); })));
+}
+function clList(){ return (window.CHANGELOG||[]).slice().sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); }
+function clSeen(){ try{ return localStorage.getItem('cl_seen')||''; }catch(e){ return ''; } }
+function clMarkSeen(){ var l=clList(); if(!l.length) return; try{ localStorage.setItem('cl_seen',l[0].date); }catch(e){} }
+function clUnseen(){ var seen=clSeen(); return clList().filter(function(x){ return x.date>seen; }); }
+function whatsNewSection(){
+  var l=clList(); if(!l.length) return null; setTimeout(clMarkSeen,1500);
+  return section("What's new",null,h('div',null,h('p',{class:'sub'},'Every change to the app, newest first. Anything with a switch can be turned on or off for your business here or under Features.'),
+    h('div',{class:'panel'},l.slice(0,ui.clAll?999:12).map(function(x){ var f=x.feature&&FEATURES.filter(function(y){ return y.k===x.feature; })[0];
+      return h('div',{class:'clrow'},h('div',{class:'cldate'},fmtDate(x.date)),h('div',{class:'clbody'},h('b',null,x.title),h('div',{class:'sub'},x.what),
+        x.where?h('div',{class:'sub'},'Where: '+x.where):null),f?featSwitch(f.k):null); })),
+    l.length>12&&!ui.clAll?btn('Show all '+l.length,function(){ ui.clAll=true; schedule(); },'small'):null));
+}
+function clNotice(){
+  if(!me||me.role!=='manager'||ui.tab==='settings'||ui.clHide) return null; var n=clUnseen(); if(!n.length) return null;
+  return h('div',{class:'pvbar clbar',role:'status'},h('span',null,h('b',null,'New in the app: '),n[0].title+(n.length>1?' and '+(n.length-1)+' more':'')),
+    h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; schedule(); },'small')));
+}
 function vSettings(){
   return [pageHead('Settings'),
+    h('div',{id:'whatsnew'},whatsNewSection()),
+    featuresSection(),
     backupSection(),
     posterSection(),
     me.role==='manager'?ppSettings():null,
@@ -7079,7 +7153,7 @@ function msgFab(){
   $fab.setAttribute('aria-label',CHAT.unread>0?'Messages, '+CHAT.unread+' unread':'Messages');
 }
 function renderNav(){
-  var tabs=TABS.length&&chatOn()?[['chat',M('tab')]].concat(TABS):TABS;
+  var tabs=(TABS.length&&chatOn()?[['chat',M('tab')]].concat(TABS):TABS).filter(function(t){ return tabOn(t[0]); });
   msgFab();
   $nav.replaceChildren.apply($nav,tabs.map(function(t){ return h('button',{type:'button',class:t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):null,'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
@@ -7090,8 +7164,10 @@ function render(){
   renderNav();
   tillSide(!!(allReady&&me&&ui.tab==='shop'&&!ui.shopView&&!document.body.classList.contains('kiosk')));
   if(!allReady) return;
+  if(TABS.length&&!tabOn(ui.tab)){ var firstOn=TABS.filter(function(t){ return tabOn(t[0]); })[0]; if(firstOn) ui.tab=firstOn[0]; }
   var act=document.activeElement, keep=act&&act.id&&$view.contains(act)?{id:act.id,s:act.selectionStart,e:act.selectionEnd}:null;
   var nodes=[]; (function flat(l){ l.forEach(function(n){ if(Array.isArray(n)) flat(n); else if(n) nodes.push(n); }); })(VIEWS[ui.tab]());
+  var cln=clNotice(); if(cln) nodes.unshift(cln);
   if(PV) nodes.unshift(h('div',{class:'pvbar',role:'status'},h('span',null,h('b',null,PV.name+'\u2019s app'),' as they see it. View only, nothing here can be changed.'),h('button',{type:'button',class:'btn small primary pvexit',onclick:exitCustomerView},'Back to back office')));
   $view.replaceChildren.apply($view,nodes);
   if(keep){ var el=document.getElementById(keep.id); if(el){ el.focus(); try{ el.setSelectionRange(keep.s,keep.e); }catch(e){} } }
@@ -8679,6 +8755,7 @@ if(!window.supabase||!window.supabase.createClient){
   })();
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   loadTheme().catch(function(){});
+  loadFeatures().catch(function(){});
   if(READYTOKEN) readyClaim();
   sb.auth.onAuthStateChange(function(event,session){
     if(event==='PASSWORD_RECOVERY'){ recovering=true; if(session&&session.access_token&&!recoveryToken) recoveryToken=session.access_token; setTimeout(showNewPassword,0); return; }

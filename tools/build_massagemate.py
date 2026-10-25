@@ -116,7 +116,12 @@ def main():
     os.makedirs(os.path.join(OUT, 'pk'), exist_ok=True)
     shutil.copy(os.path.join(ROOT, 'pk', 'privpick.js'), os.path.join(OUT, 'pk', 'privpick.js'))
     open(os.path.join(OUT, 'invdoc.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'invdoc.js'), encoding='utf-8').read()))
+    # what's new, the same for every app
+    open(os.path.join(OUT, 'changelog.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'changelog.js'), encoding='utf-8').read()))
     icons()
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import check_js
+    if not check_js.check(os.path.join(OUT, 'index.html')): sys.exit('The build has broken JavaScript: fix the swap or the code.')
     print('Massage Mate demo built in massagemate/demo/')
 
 

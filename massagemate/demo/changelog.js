@@ -1,0 +1,18 @@
+/* What's new: every change to the app, for every business that uses it (Settings, What's new).
+   Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
+   Write for any business: no business names, no em dashes, no "&". */
+window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Switch parts of the app on or off', what: 'Settings, Features lists every part of the app. Turn on what your business uses: the rest disappears for staff and customers, and nothing is deleted.', where: 'Settings, Features'},
+  {date: '2026-10-25', title: "What's new", what: 'Every change to the app is listed here, with its switch where it has one. Owners see a short notice when something new arrives.', where: 'Settings'},
+  {date: '2026-10-25', title: 'Your business names everywhere', what: 'Your businesses and cafe are named in your own settings, so accounts, receipts and invoices always show your names.', where: 'Accounts'},
+  {date: '2026-10-25', title: 'Profile videos', what: 'Add a short 360 video to any staff member. It plays in place of their photo in the staff list, when customers book a private, and on your website.', where: 'Staff, open a person, Add a video', feature: 'profile_video'},
+  {date: '2026-10-25', title: 'Your website team comes from Staff', what: 'Choose who shows on your website team, with their title, text, photo and video, straight from Staff.', where: 'Staff, Show on the website team', feature: 'web_team'},
+  {date: '2026-10-25', title: 'Add your own businesses and departments', what: 'Add a new business or department to the accounts, and send packages, shop categories or a till to it so its sales count there.', where: 'Accounts, Businesses and departments'},
+  {date: '2026-10-25', title: 'Today, Yesterday and This week in Accounts', what: 'One tap shows the money in and out for today, yesterday or this week.', where: 'Accounts'},
+  {date: '2026-10-25', title: 'Everyone adds receipts, only owners remove them', what: 'All staff can photograph receipts and the app keeps who added each one. Only an owner or admin can remove one, the app keeps who removed it and why, and it can be put back.', where: 'Receipts', feature: 'receipts_all'},
+  {date: '2026-10-24', title: 'Choose your app colours', what: 'Pick a ready theme or set your own highlight, background, title and menu colours, light or dark.', where: 'Settings, App colours'},
+  {date: '2026-10-24', title: 'Coaches with their own private rate', what: 'A coach can have their own price for privates and keep it all. On a private pack, the customer pays the difference as a top up, online or at the desk.', where: 'Staff, Own private rate', feature: 'coach_rates'},
+  {date: '2026-10-24', title: 'Spa mode', what: 'The same app runs a massage or beauty business: the board, rooms, treatments, therapist levels and several shops.', where: 'Board, Setup'},
+  {date: '2026-10-23', title: 'Recovery with a private', what: 'Customers booking a private online can add recovery sessions and pay for them in the same order.', where: 'Website, Prices', feature: 'privates'},
+  {date: '2026-10-23', title: 'Kitchen open and closed', what: 'Set kitchen hours, close it for a while, or mark a dish sold out. Customers see when the kitchen opens again.', where: 'Kitchen', feature: 'kitchen'}
+];
