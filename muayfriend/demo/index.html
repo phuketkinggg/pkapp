@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=2"></script>
+<script src="changelog.js?v=3"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -561,6 +561,7 @@ body.cuview #view button:not(.pvexit){opacity:.75}
 .featrow,.clrow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.featrow:first-of-type{border-top:0}
 .featgrp{margin-bottom:10px}.featsw{flex:none;min-width:64px}.clrow{padding:12px 16px}.clrow:first-child{border-top:0}.cldate{flex:none;width:86px;font-size:13px;color:var(--muted)}.clbody{flex:1}
 .grpbox h3{margin-top:14px}.grpchips{gap:6px;margin:8px 0}.grpchip button{border:0;background:none;font-size:16px;line-height:1;cursor:pointer;color:inherit;padding:0 0 0 6px}.grpres{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chatonly{padding:10px 14px;margin:0}
+.availbox{margin-bottom:10px;border-left:4px solid var(--ok,#2e7d4f)}.availbox.off{border-left-color:var(--bad,#b3261e)}.availst{font-size:18px}
 .pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 .pstrip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
@@ -779,6 +780,7 @@ var FEATURES=[
   {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
   {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
+  {k:'classes_block_privates',g:'Training',n:'Group classes block privates',d:'No private can be booked during a group class. Off: only classes ticked "Blocks privates" block them.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
@@ -1115,7 +1117,7 @@ function editClass(c){ c=c||{};
     {key:'title',label:'Class name',required:true},
     {key:'discipline',label:'Discipline',type:'select',def:'Muay Thai',options:DISCIPLINES.map(function(d){return [d,d];})},
     {key:'checkin',label:'Check in',type:'select',def:'yes',options:[['yes','Check in needed'],['no','No check in needed']],hint:'No check in needed: the class shows on the timetable, but nobody checks in for it and it never uses a visit from a package.'},
-    {key:'blocks_privates',label:'Blocks privates (the hall is in use, so no private can be booked at this time)',type:'checkbox',hint:'For example yoga. Without an end time it blocks one hour. When the class is off, privates can be booked.'},
+    {key:'blocks_privates',hide:featOn('classes_block_privates'),label:'Blocks privates (the hall is in use, so no private can be booked at this time)',type:'checkbox',hint:'For example yoga. Without an end time it blocks one hour. When the class is off, privates can be booked.'},
     {key:'coach_ids',label:'Coaches',type:'checks',options:coaches().map(function(x){ return [x.id,x.name]; }),hint:'The coaches ticked here clock in and out for this class. Coaches not ticked do not have to. A coach on approved holiday is left out for those days.'}],
     onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; var nc=v.checkin==='no'; delete v.checkin; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null,no_checkin:nc,blocks_privates:!!v.blocks_privates})); },
     onDelete:c.id?function(){ return db.doc('classes/'+c.id).delete(); }:null});
@@ -7386,7 +7388,8 @@ function coachBookFor(c){
 }
 /* private hours: when a coach takes privates (each weekday, with an optional break) and closed days or hours. Used in the coach app and by the desk. */
 var HT={
-  en:{hTitle:'My private hours',hMgr:'Private hours',hSet:'Set hours',hClose:'Close a day or hours',hNone:'No hours set yet. Customers cannot book this coach online until hours are set.',
+  en:{avOn:'Taking privates',avOff:'Not taking privates',avOnNote:'Customers can book you in your hours below.',avOffNote:'Nobody can book a private with you until you switch back on. Privates already booked stay.',avTurnOff:'Not available',avTurnOn:'Available again',avToday:'Not available today',avDoneOff:'You are not available for privates.',avDoneOn:'You are available for privates again.',avDoneToday:'Closed for the rest of today.',
+    hTitle:'My private hours',hMgr:'Private hours',hSet:'Set hours',hClose:'Close a day or hours',hNone:'No hours set yet. Customers cannot book this coach online until hours are set.',
     hEdit:'Hours for privates',hEditNote:'Customers can book a private in these hours. Booked, waiting and closed times are blocked by themselves.',hOn:'Open',hFrom:'From',hTo:'to',hBreak:'Break',hCopy:'Copy Monday to every open day',hSave:'Save hours',hSaved:'Hours saved.',
     hOrder:function(d){ return d+': the finish time is before the start time.'; },hBreakIn:function(d){ return d+': the break must be inside the hours.'; },hNeed:function(d){ return d+': add both times.'; },
     hClosed:'Closed',hAllDay:'All day',hOpen:'Open again',hOpened:'Open again.',
@@ -7394,7 +7397,8 @@ var HT={
     clKept:function(n){ return 'Closed. '+n+' booked private'+(n===1?' stays':'s stay')+' booked in that time. Ask a manager to move '+(n===1?'it':'them')+'.'; },clTimes:'Add both times, or close the whole day.',
     req:'Private requests for you',reqAcc:'Accept',reqNo:'I cannot take it',reqAny:'Another coach is OK',reqOnly:'Wants you only',reqBk:'Backup time',reqDone:'Confirmed. It is on your list.',reqSent:'Sent back to a manager.',reqWhy:'Reason (optional)',reqNoT:'Cannot take this private',reqNoSave:'Send to a manager',lvl:'Level',
     lv:{complete:'Complete beginner',beginner:'Beginner',intermediate:'Intermediate',advanced:'Advanced'},cancel:'Cancel',coach:'Coach'},
-  th:{hTitle:'เวลารับสอนคลาสส่วนตัว',hMgr:'เวลารับสอนคลาสส่วนตัว',hSet:'ตั้งเวลา',hClose:'ปิดวันหรือช่วงเวลา',hNone:'ยังไม่ได้ตั้งเวลา ลูกค้าจะจองออนไลน์ไม่ได้จนกว่าจะตั้งเวลา',
+  th:{avOn:'รับสอนคลาสส่วนตัว',avOff:'ไม่รับสอนคลาสส่วนตัว',avOnNote:'ลูกค้าจองคุณได้ในเวลาด้านล่าง',avOffNote:'จะไม่มีใครจองคลาสส่วนตัวกับคุณได้ จนกว่าคุณจะเปิดอีกครั้ง คลาสที่จองไว้แล้วยังอยู่',avTurnOff:'ไม่ว่าง',avTurnOn:'ว่างอีกครั้ง',avToday:'ไม่ว่างวันนี้',avDoneOff:'ตอนนี้คุณไม่รับคลาสส่วนตัว',avDoneOn:'คุณรับคลาสส่วนตัวอีกครั้งแล้ว',avDoneToday:'ปิดถึงสิ้นวันนี้แล้ว',
+    hTitle:'เวลารับสอนคลาสส่วนตัว',hMgr:'เวลารับสอนคลาสส่วนตัว',hSet:'ตั้งเวลา',hClose:'ปิดวันหรือช่วงเวลา',hNone:'ยังไม่ได้ตั้งเวลา ลูกค้าจะจองออนไลน์ไม่ได้จนกว่าจะตั้งเวลา',
     hEdit:'เวลารับสอนคลาสส่วนตัว',hEditNote:'ลูกค้าจองได้ในช่วงเวลานี้ เวลาที่มีคนจองแล้ว รอยืนยัน หรือปิดไว้ จะถูกบล็อกเอง',hOn:'เปิด',hFrom:'ตั้งแต่',hTo:'ถึง',hBreak:'พัก',hCopy:'ใช้เวลาวันจันทร์กับทุกวันที่เปิด',hSave:'บันทึกเวลา',hSaved:'บันทึกเวลาแล้ว',
     hOrder:function(d){ return d+': เวลาเลิกอยู่ก่อนเวลาเริ่ม'; },hBreakIn:function(d){ return d+': เวลาพักต้องอยู่ในช่วงเวลาสอน'; },hNeed:function(d){ return d+': ใส่เวลาให้ครบ'; },
     hClosed:'ปิด',hAllDay:'ทั้งวัน',hOpen:'เปิดอีกครั้ง',hOpened:'เปิดแล้ว',
@@ -7442,11 +7446,21 @@ function closeDlg(staffId,after){
       return sb.rpc('coach_close',{p_staff:staffId||null,p_from:v.day,p_to:v.last||null,p_from_t:v.all?null:v.start,p_to_t:v.all?null:v.end,p_note:v.note||null}).then(must)
         .then(function(r){ setTimeout(function(){ toast(r.kept&&r.kept.length?hT('clKept')(r.kept.length):hT('clDone')); },50); after(); }); }});
 }
+/* the one tap switch: available or not for privates, and closed for the rest of today */
+function availBox(av,staffId,after){
+  var off=!!av.off;
+  function set(v){ sb.rpc('coach_privates_set',{p_off:v,p_staff:staffId||null}).then(must).then(function(){ toast(hT(v?'avDoneOff':'avDoneOn')); after(); },function(e){ toast(errText(e)); }); }
+  function today(){ var now=new Date(), t=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+    sb.rpc('coach_close',{p_staff:staffId||null,p_from:ymd(now),p_to:null,p_from_t:t<'23:00'?t:null,p_to_t:t<'23:00'?'23:59':null,p_note:'Not available today'}).then(must).then(function(){ toast(hT('avDoneToday')); after(); },function(e){ toast(errText(e)); }); }
+  return h('div',{class:'panel pad availbox'+(off?' off':'')},
+    h('div',{class:'row',style:'justify-content:space-between'},h('div',null,h('b',{class:'availst'},hT(off?'avOff':'avOn')),h('div',{class:'sub'},hT(off?'avOffNote':'avOnNote'))),
+      h('div',{class:'row'},off?btn(hT('avTurnOn'),function(){ set(false); },'primary'):btn(hT('avTurnOff'),function(){ set(true); }),off?null:btn(hT('avToday'),today,'small'))));
+}
 function hoursSection(av,staffId,after,title){
   var lines=hoursLines(av), closed=(av.closed||[]).map(function(c){ return {when:hDate(c.day),title:hT('hClosed')+': '+(c.from?c.from+' '+hT('hTo')+' '+c.to:hT('hAllDay')),note:c.note,
     act:btn(hT('hOpen'),function(){ sb.rpc('coach_reopen',{p_id:c.id}).then(must).then(function(){ toast(hT('hOpened')); after(); },function(e){ toast(errText(e)); }); },'small')}; });
   return section(title||hT('hTitle'),h('div',{class:'row'},btn(hT('hSet'),function(){ hoursDlg(av,staffId,after); },'small'),btn(hT('hClose'),function(){ closeDlg(staffId,after); },'small')),
-    lines.length?cards(lines.concat(closed),''):h('div',{class:'panel empty'},hT('hNone'),closed.length?cards(closed,''):null));
+    h('div',null,availBox(av,staffId,after),lines.length?cards(lines.concat(closed),''):h('div',{class:'panel empty'},hT('hNone'),closed.length?cards(closed,''):null)));
 }
 /* the desk sets hours for any coach */
 function mgrHours(id){
