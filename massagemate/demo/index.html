@@ -4636,7 +4636,7 @@ function socUp(blob,ext,type,onProg){ var path=new Date().toISOString().slice(0,
     return new Promise(function(ok,no){ var x=new XMLHttpRequest(); x.open('POST',SB_URL+'/storage/v1/object/social/'+path);
       x.setRequestHeader('Authorization','Bearer '+(tok||SB_KEY)); x.setRequestHeader('apikey',SB_KEY); x.setRequestHeader('x-upsert','false'); x.setRequestHeader('Content-Type',type); x.setRequestHeader('cache-control','max-age=3600');
       x.upload.onprogress=function(e){ if(e.lengthComputable) onProg(e.loaded/e.total); };
-      x.onload=function(){ if(x.status>=200&&x.status<300){ onProg(1); ok(pub()); } else { var m=''; try{ m=JSON.parse(x.responseText).message; }catch(e){} no({plain:true,message:'Upload failed'+(m?': '+m:' ('+x.status+')')+'.'}); } };
+      x.onload=function(){ if(x.status>=200&&x.status<300){ onProg(1); ok(pub()); } else { var m=''; try{ m=JSON.parse(x.responseText).message; }catch(e){} no({plain:true,message:/maximum allowed size|too large|payload/i.test(m)||x.status===413?'This file is '+Math.round(blob.size/1048576)+' MB, bigger than your storage takes. Make it smaller (1080p is plenty for reels), or raise the limit in Supabase: Storage, Settings, Upload file size limit.':'Upload failed'+(m?': '+m:' ('+x.status+')')+'.'}); } };
       x.onerror=function(){ no({plain:true,message:'Upload stopped. Check the internet and try again.'}); };
       x.send(blob); }); }); }
 function socEdit(p0){
