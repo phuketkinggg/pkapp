@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Location tag, collabs and posting time', what: 'Instagram posts from the app are tagged at your business location (from the address on your Facebook page), and you can add up to 3 collaborators so the post also shows on their profile. New posts go out at your usual posting time, which you set in Social media.', where: 'Social media, New post and Posting time', feature: 'social_tags'},
   {date: '2026-10-25', title: 'Offer a course with packages', what: 'Pick one online course to offer when someone buys a package. On the website and at the desk they see a tick box with your words and the offer price, and the course unlocks in their app when they pay. You choose the price, which packages it goes with, and whether it is for new members only.', where: 'Courses, open a course, Offer with packages', feature: 'course_offer'},
   {date: '2026-10-25', title: 'Connect YouTube in the same window', what: 'Connect YouTube now opens Google in the same window and brings you straight back to Social media with a message saying which channel is connected.', where: 'Social media, Connect YouTube', feature: 'youtube_shorts'},
   {date: '2026-10-25', title: 'Updates show sooner', what: 'The app now always fetches its newest version when you open it, so new features show on the next open instead of up to 10 minutes later.', where: 'Everywhere'},

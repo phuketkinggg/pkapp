@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=14"></script>
+<script src="changelog.js?v=15"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -804,6 +804,7 @@ var FEATURES=[
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
   {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
   {k:'reel_covers',g:'Marketing',n:'Reel covers',d:'Choose the cover of a reel: pick a frame, upload a picture, or let the AI suggest covers with a short headline drawn in your colours.'},
+  {k:'social_tags',g:'Marketing',n:'Location and collab tags',d:'Instagram posts from the app are tagged at your business location, and you can add up to 3 collaborators (a coach, a guest, a partner) so the post shows on their profile too.'},
   {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
@@ -4593,7 +4594,14 @@ function socLoad(){ SOC.busy=true; return sb.rpc('social_list').then(must).then(
 function socCheck(){ socCall({mode:'check'}).then(function(c){ SOC.cfg=c; schedule(); }).catch(function(e){ SOC.cfg={err:errText(e)}; schedule(); }); }
 function bkkWhen(x){ return x?new Date(x).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
 function bkkInput(x){ return new Date((x?Date.parse(x):Date.now())+7*3600e3).toISOString().slice(0,16); }
-function socDefaultTime(){ var d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.getUTCHours()>=17){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T18:00'; }
+/* the usual posting time for new posts (Social media, Posting time), Bangkok time */
+var SOCTIME=null;
+function socTime(){ return /^\d\d:\d\d$/.test(SOCTIME||'')?SOCTIME:'20:30'; }
+function loadSocTime(){ return sb.from('app_settings').select('value').eq('key','social_time').maybeSingle().then(function(r){ SOCTIME=r.data&&r.data.value||null; },function(){}); }
+function socTimeEdit(){ openForm({title:'Posting time',note:'New posts are set to go out at this time (Phuket time). Pick when your followers are online: Instagram, Professional dashboard, Total followers, Most active times.',values:{t:socTime()},
+  fields:[{key:'t',label:'Time',type:'time',required:true}],
+  onSave:function(v){ if(!/^\d\d:\d\d$/.test(v.t||'')) return 'Choose a time.'; return sb.from('app_settings').update({value:v.t,updated_at:new Date().toISOString()}).eq('key','social_time').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; SOCTIME=v.t; schedule(); }); }}); }
+function socDefaultTime(){ var t=socTime(), d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.toISOString().slice(11,16)>=t){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T'+t; }
 var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts'};
 function ytOn(){ return featOn('youtube_shorts'); }
 function ytConnect(){ socCall({mode:'yt_connect',back:location.origin+location.pathname}).then(function(d){ if(d&&d.url){ toast('Opening Google. Sign in with the account that owns your YouTube channel.'); location.href=d.url; } })
@@ -4613,7 +4621,8 @@ function vSocial(){
       {label:'Where',cell:function(p){ return h('span',null,(p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '),p.kind==='reel'||p.kind==='trial'?h('div',{class:'sub'},p.kind==='trial'?'Trial reel':'Reel'):null); }},
       {label:'',cell:function(p){ return socStatus(p); }}],list,empty); }
   var L=SOC.list, up=L.filter(function(p){ return p.status==='scheduled'||p.status==='posting'; }).sort(function(a,b){ return Date.parse(a.post_at)-Date.parse(b.post_at); });
-  return [pageHead('Social media',conn,h('div',{class:'row'},ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
+  if(SOCTIME===null){ SOCTIME=''; loadSocTime().then(schedule); }
+  return [pageHead('Social media',conn,h('div',{class:'row'},btn('Posting time, '+socTime(),socTimeEdit,'small'),ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
     section('Coming up',null,rows(up,'Nothing approved yet. Approved posts go out on their own at the time you set.')),
     section('Drafts',null,rows(L.filter(function(p){ return p.status==='draft'; }),'No drafts.')),
     section('Posted',null,rows(L.filter(function(p){ return p.status==='posted'||p.status==='failed'; }).slice(0,40),'Nothing posted from the app yet.')),
@@ -4770,8 +4779,15 @@ function socEdit(p0){
   aiB.disabled=tweakB.disabled=locked;
   var when=h('input',{id:'soc-when',type:'datetime-local'}); when.value=p.post_at?bkkInput(p.post_at):socDefaultTime(); when.disabled=locked;
   var now=h('input',{type:'checkbox',id:'soc-now'}); now.disabled=locked; now.addEventListener('change',function(){ when.disabled=now.checked; });
+  /* Instagram: tag the business location, and up to 3 collaborators (they accept the invite in Instagram) */
+  var placeName=SOC.cfg&&SOC.cfg.place, tagPlace=h('input',{type:'checkbox',id:'soc-place'}); tagPlace.checked=p.tag_place!==false; tagPlace.disabled=locked;
+  var collab=h('input',{id:'soc-collab',placeholder:'for example krumax, a guest\u2019s account',autocomplete:'off'}); collab.value=(p.collaborators||[]).map(function(x){ return '@'+x; }).join(' '); collab.disabled=locked;
+  var tagBox=featOn('social_tags')?h('div',{class:'field'},placeName?h('label',{class:'check',for:'soc-place'},tagPlace,h('span',null,'Tag our location on Instagram: '+placeName)):null,
+    h('label',{for:'soc-collab'},'Collab with (Instagram usernames, up to 3)'),collab,
+    h('small',null,'They get an invite in Instagram. Once they accept, the post shows on their profile and to their followers too. Not for trial reels.')):null;
   function vals(approve){ return {id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
-      post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null}; }
+      post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null,
+      tag_place:tagPlace.checked,collaborators:String(collab.value||'').split(/[\s,]+/).map(function(x){ return x.replace(/^@+/,'').trim(); }).filter(Boolean)}; }
   function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true;
     if(approve&&kind!=='post'&&!(media[0]&&media[0].type==='video')){ bad('A '+(kind==='trial'?'trial reel':'Reel')+' needs one video. Add a video, or choose Post.'); return; }
     if(kind==='post'&&media[0]&&media[0].type==='video') kind='reel';
@@ -4798,6 +4814,7 @@ function socEdit(p0){
     coverBox,
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
+    tagBox,
     h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
     locked?null:h('div',{class:'row'},aiB), opts,
     h('div',{class:'field'},h('label',{for:'soc-cap'},'Caption'),cap,count),

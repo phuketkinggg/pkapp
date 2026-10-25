@@ -32,3 +32,6 @@ begin
   if s not like '%tag_place%' then raise notice 'social_take is a different version here: skipped.'; return; end if;
   execute s;
 end $$;
+
+-- the usual posting time for new posts (Social media, Posting time), Bangkok time
+insert into public.app_settings (key, value) values ('social_time', '20:30') on conflict (key) do nothing;

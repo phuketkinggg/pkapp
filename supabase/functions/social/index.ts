@@ -126,12 +126,13 @@ async function graph(path: string, params: Record<string, string> = {}, method =
   if (!r.ok || j.error) throw new Error(j?.error?.error_user_msg ?? j?.error?.message ?? `Meta said ${r.status}`);
   return j;
 }
-let acct: { page: string; name: string; ig: string | null; ig_name: string | null } | null = null;
+// place: the page itself, when it has an address, so posts can be tagged at the business location
+let acct: { page: string; name: string; ig: string | null; ig_name: string | null; place: string | null; place_name: string | null } | null = null;
 async function account() {
   if (acct) return acct;
   pageTok = "";
   const me = await graph("me", { fields: "id,name" }, "GET");
-  let j: { id: string; name: string; access_token?: string; instagram_business_account?: { id: string; username: string } };
+  let j: { id: string; name: string; access_token?: string; location?: { city?: string; street?: string }; instagram_business_account?: { id: string; username: string } };
   try { j = await graph(me.id, { fields: "id,name,instagram_business_account{id,username}" }, "GET"); }
   catch {
     // a system user token: use the first page it manages, with that page's own token
@@ -140,13 +141,16 @@ async function account() {
     if (!j) throw new Error("The token cannot see any Facebook page. Assign the page to the system user.");
     pageTok = j.access_token ?? "";
   }
-  acct = { page: j.id, name: j.name, ig: j.instagram_business_account?.id ?? null, ig_name: j.instagram_business_account?.username ?? null };
+  // the address on the page (best effort: no address, no location tag)
+  try { j.location = (await graph(j.id, { fields: "location" }, "GET")).location; } catch { /* no location */ }
+  acct = { page: j.id, name: j.name, ig: j.instagram_business_account?.id ?? null, ig_name: j.instagram_business_account?.username ?? null,
+    place: j.location ? j.id : null, place_name: j.location ? [j.name, j.location.city].filter(Boolean).join(", ") : null };
   return acct;
 }
 
 type Media = { url: string; type: "image" | "video"; cover?: string };
 type Res = { id?: string; url?: string; error?: string; container?: string };
-type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null };
+type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null; tag_place?: boolean; collaborators?: string[] };
 
 // the cover the gym chose: uploaded as the video's thumbnail (best effort, the video is already up)
 async function fbCover(videoId: string, cover: string) {
@@ -187,7 +191,17 @@ async function toFacebook(p: Post, a: { page: string }): Promise<Res> {
 }
 
 // Instagram makes a "container" first; videos need time to process, so the container is kept and checked again on the next run
-async function toInstagram(p: Post, a: { ig: string | null }, prev: Res | undefined): Promise<Res> {
+// a container with the location tag and collaborators; if Instagram refuses one of them, the post still goes out without it
+async function igMake(a: { ig: string | null; place: string | null }, p: Post, prm: Record<string, string>) {
+  const tags: Record<string, string> = {};
+  if (p.tag_place !== false && a.place) tags.location_id = a.place;
+  if ((p.collaborators ?? []).length && p.kind !== "trial") tags.collaborators = JSON.stringify((p.collaborators ?? []).slice(0, 3));
+  const tries = [tags, tags.location_id ? { location_id: tags.location_id } : null, {}].filter((t) => t) as Record<string, string>[];
+  let err: unknown = null;
+  for (const t of tries) { try { return (await graph(`${a.ig}/media`, { ...prm, ...t })).id as string; } catch (e) { err = e; if (!Object.keys(t).length) break; } }
+  throw err;
+}
+async function toInstagram(p: Post, a: { ig: string | null; place: string | null }, prev: Res | undefined): Promise<Res> {
   if (!a.ig) return { error: "No Instagram business account is linked to the Facebook page." };
   const m = p.media ?? [], cap = p.caption ?? "";
   if (!m.length) return { error: "Instagram needs a photo or video." };
@@ -199,13 +213,13 @@ async function toInstagram(p: Post, a: { ig: string | null }, prev: Res | undefi
       // a Trial Reel is shown to people who do not follow you first; MANUAL: you share it to followers in the Instagram app, SS_PERFORMANCE: Instagram does it if it does well
       if (p.kind === "trial") prm.trial_params = JSON.stringify({ graduation_strategy: p.trial_strategy === "SS_PERFORMANCE" ? "SS_PERFORMANCE" : "MANUAL" });
       else prm.share_to_feed = "true";
-      container = (await graph(`${a.ig}/media`, prm)).id;
+      container = await igMake(a, p, prm);
     }
-    else if (m.length === 1) container = (await graph(`${a.ig}/media`, { image_url: m[0].url, caption: cap })).id;
+    else if (m.length === 1) container = await igMake(a, p, { image_url: m[0].url, caption: cap });
     else {
       const kids: string[] = [];
       for (const x of m) kids.push((await graph(`${a.ig}/media`, { image_url: x.url, is_carousel_item: "true" })).id);
-      container = (await graph(`${a.ig}/media`, { media_type: "CAROUSEL", children: kids.join(","), caption: cap })).id;
+      container = await igMake(a, p, { media_type: "CAROUSEL", children: kids.join(","), caption: cap });
     }
   }
   for (let i = 0; i < 10; i++) {
@@ -374,7 +388,7 @@ Deno.serve(async (req) => {
       const yt = ((await admin.rpc("yt_get")).data ?? {}) as { refresh?: string; channel?: string };
       const out: Record<string, unknown> = { ai: !!AI_KEY(), meta: false, youtube_ready: !!(GID() && GSECRET()), youtube: yt.refresh ? (yt.channel || "connected") : null };
       if (PAGE_TOKEN()) {
-        try { const a = await account(); out.meta = true; out.page = a.name; out.instagram = a.ig_name; }
+        try { const a = await account(); out.meta = true; out.page = a.name; out.instagram = a.ig_name; out.place = a.place_name; }
         catch (e) { out.meta_error = (e as Error).message; }
       }
       return json(out);
