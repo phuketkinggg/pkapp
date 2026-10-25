@@ -148,7 +148,7 @@ ul.ticks li:before{content:"";position:absolute;left:2px;top:15px;width:14px;hei
 
 /* coaches */
 .coaches{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:26px}
-.coach img{border-radius:16px;aspect-ratio:3/4;object-fit:cover;width:100%;background:var(--stone2)}
+.coach img,.coach video{border-radius:16px;aspect-ratio:3/4;object-fit:cover;width:100%;background:var(--stone2)}
 .coach b{display:block;margin-top:10px;font:600 19px var(--serif)}
 .coach small{color:var(--muted);font-size:13px;line-height:1.4;display:block}
 @media(max-width:900px){.coaches{grid-template-columns:repeat(3,1fr)}}@media(max-width:520px){.coaches{grid-template-columns:repeat(2,1fr)}}

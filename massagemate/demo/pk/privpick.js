@@ -10,6 +10,7 @@ var CSS='.pp{display:flex;flex-direction:column;gap:14px;color:inherit;min-width
 '.pp-sub{margin:0;font-size:13px;opacity:.75}.pp-coaches{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}'+
 '.pp-coach{display:flex;gap:10px;align-items:center;text-align:left;font:inherit;color:inherit;background:transparent;border:1.5px solid var(--pp-line,#D9D5C8);border-radius:12px;padding:8px 10px;cursor:pointer;min-height:56px}'+
 '.pp-coach img,.pp-coach .pp-ini{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;background:var(--pp-soft,#eee);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;color:#555}'+
+'.pp-coach video{width:56px;height:56px;border-radius:50%;object-fit:cover;flex:none;background:var(--pp-soft,#eee)}'+
 '.pp-coach b{display:block;font-size:14px;line-height:1.2}.pp-coach small{display:block;font-size:12px;opacity:.7;line-height:1.3;margin-top:2px}'+
 '.pp-coach[aria-pressed="true"]{border-color:var(--pp-on,#171B23);box-shadow:0 0 0 1.5px var(--pp-on,#171B23) inset}'+
 '.pp-days{display:flex;gap:6px;overflow-x:auto;max-width:100%;padding-bottom:4px;scrollbar-width:thin}'+
@@ -30,6 +31,10 @@ function longDay(d){ return dt(d).toLocaleDateString('en-GB',{weekday:'long',day
 function plus(d,n){ var x=dt(d); x.setUTCDate(x.getUTCDate()+n); return x.toISOString().slice(0,10); }
 function initials(n){ return String(n||'?').split(/\s+/).map(function(w){ return w.charAt(0); }).join('').slice(0,2).toUpperCase(); }
 
+/* a coach's 360 video in place of the photo (muted, looping) */
+function vid(c){ var v=document.createElement('video'); v.muted=true; v.defaultMuted=true; v.loop=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted','');
+  v.setAttribute('aria-hidden','true'); if(c.photo) v.poster=c.photo; v.src=c.video;
+  if(!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){ v.autoplay=true; v.setAttribute('autoplay',''); } return v; }
 window.PrivPick=function(opts){
   css();
   var S={data:null,coach:opts.coach||null,date:null,time:null,any:null,alt_date:null,alt_time:null,loading:false,err:null,until:null};
@@ -62,7 +67,7 @@ window.PrivPick=function(opts){
     if(!S.data.coaches.length){ root.appendChild(el('p',{class:'pp-empty',text:'No coach is taking online bookings right now. Book your time later, or message us.'})); return; }
     root.appendChild(el('div',null,el('h4',{text:'1. Choose your coach'}),el('div',{class:'pp-coaches'},S.data.coaches.map(function(c){
       return el('button',{type:'button',class:'pp-coach','aria-pressed':String(S.coach===c.id),onclick:function(){ if(S.coach!==c.id){ S.coach=c.id; S.time=null; S.alt_date=null; S.alt_time=null; if(S.date&&!freeOn(S.date,c.id).length) S.date=null; } draw(); }},
-        c.photo?el('img',{src:c.photo,alt:'',loading:'lazy'}):el('span',{class:'pp-ini','aria-hidden':'true',text:initials(c.name)}),
+        c.video?vid(c):c.photo?el('img',{src:c.photo,alt:'',loading:'lazy'}):el('span',{class:'pp-ini','aria-hidden':'true',text:initials(c.name)}),
         el('span',null,el('b',{text:c.name}),c.bio?el('small',{text:c.bio}):null,c.rate?el('small',{class:'pp-rate',text:'Own rate: '+Number(c.rate).toLocaleString('en-US')+' THB'+(opts.rateNote?' '+opts.rateNote(c):'')}):null)); }))));
     if(!S.coach) return;
     var co=coachOf(S.coach);

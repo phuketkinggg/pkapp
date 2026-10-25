@@ -72,6 +72,20 @@ PK.data().then(function(d){ var ph=(d&&d.photos)||{}, ok=/^https:\/\/jijnshwduhg
     document.querySelectorAll('[data-photo="'+k+'"]').forEach(function(e){ e.src=u; });
     document.querySelectorAll('[data-photo-bg="'+k+'"]').forEach(function(e){ e.style.backgroundImage='url("'+u.replace(/["\\]/g,'')+'")'; }); });
 },function(){});
+// the team (home page, The Phuket King family): from the app, Staff. A 360 video plays in place of the photo while it is on screen.
+PK.media=function(x,alt){ var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(x.video){ var v=document.createElement('video'); v.muted=true; v.defaultMuted=true; v.loop=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted','');
+    v.preload='none'; if(x.photo) v.poster=x.photo; v.src=x.video; v.setAttribute('aria-label',alt);
+    if(!calm){ if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ var r=v.play(); if(r&&r.catch) r.catch(function(){}); } else v.pause(); }); },{threshold:.25}).observe(v); }
+      else { v.autoplay=true; } }
+    return v; }
+  var i=document.createElement('img'); i.src=x.photo||''; i.alt=alt; i.loading='lazy'; return i; };
+PK.data().then(function(d){ var team=(d&&d.team)||[], g=document.querySelector('#coaches .grid3'); if(!g||!team.length) return;
+  var cards=team.filter(function(x){ return x.photo||x.video; }).map(function(x){ var c=document.createElement('div'); c.className='coach';
+    c.appendChild(PK.media(x,x.name)); var w=document.createElement('div'); w.className='in';
+    w.innerHTML=(x.title?'<div class="role">'+PK.esc(x.title)+'</div>':'')+'<h3>'+PK.esc(x.name)+'</h3>'+(x.about?'<p>'+PK.esc(x.about)+'</p>':''); c.appendChild(w); return c; });
+  if(cards.length) g.replaceChildren.apply(g,cards);
+},function(){});
 // pages made in the app (Web pages) that should show in the footer
 PK.rest('site_pages?select=slug,title,footer_label&in_footer=eq.true&status=eq.published&removed=eq.false&order=title').then(function(list){
   if(!list||!list.length) return; var blog=document.querySelector('footer a[href$="blog.html"]'); if(!blog) return;

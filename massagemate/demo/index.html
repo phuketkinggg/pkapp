@@ -18,7 +18,7 @@
 <script>window.SHOP_TYPE="spa";window.DEMO_BRAND="Massage Mate";window.DEMO_HOME="./";window.DEMO_LOGINS=[{"label": "Owner", "note": "Everything: board, money, staff, menu", "email": "owner@demo.massagemate.app", "pw": "MassageMateDemo1", "main": true}, {"label": "Front desk", "note": "Board, walk-ins, bookings, till", "email": "desk@demo.massagemate.app", "pw": "MassageMateDemo1"}, {"label": "Therapist", "note": "My day, clock in, my money", "email": "therapist@demo.massagemate.app", "pw": "MassageMateDemo1"}, {"label": "Customer", "note": "Book a treatment", "email": "guest@demo.massagemate.app", "pw": "MassageMateDemo1"}];</script>
 <script src="vendor/supabase-js-2.117.2.js"></script>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
-<script src="pk/privpick.js?v=3"></script>
+<script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
@@ -264,6 +264,8 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .ff label{font-weight:600;font-size:14px}
 .ff input,.ff select{width:100%;box-sizing:border-box}
 .ff .sub{font-size:12px}
+.staffname{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}.staffface{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none;background:var(--line)}
+.staffvid{width:120px;height:120px;border-radius:12px;object-fit:cover;display:block;margin:8px 0;background:var(--line)}
 .receipt{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;max-width:320px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
 .receipt table{width:100%}
 .rc-head{text-align:center;display:flex;flex-direction:column}
@@ -949,19 +951,41 @@ function editStaff(s){ s=s||{}; var own=isOwner();
     {key:'bio',label:'Coach intro for online booking',hint:'One short line customers see when they book a private, for example: Former stadium fighter, technique and clinch.'},
     {key:'photo_url',label:'Coach photo for online booking (link)',hint:'Tap Add a photo below, or paste a link.'},
     {key:'photo_btn',label:'',type:'info'},
+    {key:'video_url',label:'Profile video, 360 view (link)',hint:'Plays in place of the photo when they book a private, on the website team and in the app. MP4, up to 50 MB. Short and small is best (10 to 20 seconds).'},
+    {key:'video_btn',label:'',type:'info'},
+    {key:'web_show',label:'Show on the website team (The Massage Mate Demo Spa family)',type:'checkbox',hint:'Uses the photo and video above.'},
+    {key:'web_name',label:'Name on the website',hint:'Leave empty to use their name. For example Coach Tom.'},
+    {key:'web_title',label:'Title on the website',hint:'For example Head Muay Thai coach.'},
+    {key:'web_about',label:'Text on the website',type:'textarea',hint:'Two short sentences. Empty uses the coach intro above.'},
+    {key:'web_sort',label:'Order on the website',type:'number',def:100,hint:'Smaller numbers show first.'},
     {key:'phone',label:'Phone'},
     {key:'work_days',label:'Working days',type:'checks',options:DAYS.map(function(d,i){ return [String(i),d]; }),hint:'With a start time the app shows if they are late or did not check in. Coaches go by their classes and privates instead.'},
     {key:'work_start',label:'Starts work at',type:'time'},
     {key:'work_end',label:'Finishes at',type:'time'},
     {key:'active',label:'Working here now',type:'checkbox',def:true}],
-    onSave:function(v){ delete v.photo_btn; if(v.role==='coach') v.also_coach=false; v.private_rate_thb=v.private_rate_thb?Math.round(Number(v.private_rate_thb)):null; v.bio=v.bio||null; v.photo_url=v.photo_url||null; if(v.work_end&&!v.work_start) return 'Add the start time too.'; if(v.work_start&&v.work_end&&v.work_end<=v.work_start) return 'The finish time must be after the start time.';
+    onSave:function(v){ delete v.photo_btn; delete v.video_btn; v.video_url=v.video_url||null; v.web_name=v.web_name||null; v.web_title=v.web_title||null; v.web_about=v.web_about||null; v.web_sort=v.web_sort==null?100:Math.round(Number(v.web_sort)); v.web_show=!!v.web_show;
+      if(v.video_url&&!/^https:\/\//.test(v.video_url)) return 'The video link must start with https://'; if(v.role==='coach') v.also_coach=false; v.private_rate_thb=v.private_rate_thb?Math.round(Number(v.private_rate_thb)):null; v.bio=v.bio||null; v.photo_url=v.photo_url||null; if(v.work_end&&!v.work_start) return 'Add the start time too.'; if(v.work_start&&v.work_end&&v.work_end<=v.work_start) return 'The finish time must be after the start time.';
       var b=Object.assign({},s,v); b.work_days=(v.work_days||[]).length?v.work_days.map(Number):null; b.work_start=v.work_start||null; b.work_end=v.work_end||null; delete b.work_days_s;
       if(own){ b.access=v.role==='admin'||v.role==='front_desk'?{areas:v.x_areas||[],perms:v.role==='admin'?(v.x_perms||[]):[]}:null; if(v.role==='admin'&&!(v.x_perms||[]).length&&!confirm('No rights ticked: they can only look. Save?')) return 'Tick what they can do.'; } delete b.x_areas; delete b.x_perms; return save('staff',s.id,b); },
     onDelete:s.id?function(){ return db.doc('staff/'+s.id).delete(); }:null});
   var pb=document.getElementById('f-photo_btn'); if(pb) pb.replaceChildren(btn('Add a photo',function(){ var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return; toast('Uploading the photo.');
     shrinkPhoto(f,600).then(function(blob){ var path='coaches/'+Date.now()+'.jpg'; return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); })
       .then(function(url){ var i=document.getElementById('f-photo_url'); if(i) i.value=url; toast('Photo added. Tap Save.'); },function(e){ toast(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); },'small'));
+  var vb=document.getElementById('f-video_btn'), vu=document.getElementById('f-video_url');
+  function vprev(){ if(!vb) return; var u=vu&&vu.value.trim(); vb.replaceChildren(h('div',null,btn('Add a video',function(){ var inp=h('input',{type:'file',accept:'video/mp4,video/webm,video/quicktime',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+      if(f.size>50*1024*1024){ toast('That video is '+Math.round(f.size/1048576)+' MB. The limit is 50 MB, so make it shorter or smaller first.'); return; }
+      var ext=(/webm/.test(f.type)?'webm':/quicktime/.test(f.type)?'mov':'mp4'), path='coaches/video-'+Date.now()+'.'+ext; toast('Uploading the video. Keep this open.');
+      sb.storage.from('promos').upload(path,f,{contentType:f.type||'video/mp4',upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; })
+        .then(function(url){ if(vu) vu.value=url; vprev(); toast('Video added. Tap Save.'); },function(e){ toast(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); },'small'),
+      u?staffFace({video_url:u,photo_url:(document.getElementById('f-photo_url')||{}).value},'staffvid'):null,
+      u?btn('Take the video off',function(){ vu.value=''; vprev(); },'small'):null)); }
+  if(vu) vu.addEventListener('change',vprev); vprev();
 }
+/* a staff member's 360 video (or photo) as a small face */
+function staffFace(s,cls){ cls=cls||'staffface';
+  if(s.video_url){ var v=document.createElement('video'); v.muted=true; v.defaultMuted=true; v.loop=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.className=cls; v.setAttribute('aria-hidden','true');
+    if(s.photo_url) v.poster=s.photo_url; v.src=s.video_url; if(!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){ v.autoplay=true; v.setAttribute('autoplay',''); } return v; }
+  return s.photo_url?h('img',{class:cls,src:s.photo_url,alt:'',loading:'lazy'}):null; }
 var LEADSRC=['Website','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
 function editCustomer(c){ c=c||{};
   openForm({title:c.id?'Edit customer':'New customer',values:Object.assign({},c,{tags_txt:(c.tags||[]).join(', '),ok_txt:c.marketing_ok===false?'no':'yes',is_fighter:!!c.is_fighter,f_train:c.fighter_free?'free':'paid'}),fields:[
@@ -6730,7 +6754,7 @@ function vStaff(){
   var hol=sortBy(S.holidays.filter(function(x){return x.to>=day;}),'from');
   return [pageHead('Staff',null,btn('Add staff member',function(){ editStaff(); },'primary')),
     table([
-      {label:'Name',cell:function(s){return [linkBtn(s.name,function(){ editStaff(s); }),exChip(s)];}},
+      {label:'Name',cell:function(s){return h('span',{class:'staffname'},staffFace(s),linkBtn(s.name,function(){ editStaff(s); }),exChip(s),s.web_show?chip('On website','ok'):null);}},
       {label:'Role',cell:function(s){ var A=s.access&&s.access.areas||[], P=s.access&&s.access.perms||[], AN={gym:'Gym',spa:'Spa',resort:'Resort',cafe:'Cafe'}, PN={edit:'change',refunds:'refunds',money:'money',staff:'staff',settings:'settings',marketing:'marketing'};
         var extra=s.role==='admin'||s.role==='front_desk'?(A.length?A.map(function(x){ return AN[x]||x; }).join(', '):'All departments')+(s.role==='admin'?'. '+(P.length?(P.indexOf('edit')<0?'View only, ':'')+P.filter(function(x){ return x!=='edit'; }).map(function(x){ return PN[x]; }).join(', '):'View only'):''):'';
         return h('span',null,s.role==='manager'?'Owner':ROLES[s.role]||s.role,extra?h('div',{class:'sub'},extra):null); }},
@@ -6945,7 +6969,7 @@ function icalLine(){
 }
 /* ---------- backups: download everything as one file, and see the nightly copies ---------- */
 var BK=null;
-var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,work_days,work_start,work_end,access,bio,photo_url,also_coach,private_rate_thb';
+var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,work_days,work_start,work_end,access,bio,photo_url,also_coach,private_rate_thb,video_url,web_show,web_name,web_title,web_about,web_sort';
 function cols(t){ return t==='staff'?STAFF_COLS:'*'; }
 var BACKUP_TABLES=['staff','customers','packages','purchases','classes','checkins','booking_sources','privates','holidays','rooms','stays','room_charges','minibar_items','room_cleanings','room_issues','app_settings'];
 function downloadBackup(){
@@ -7109,7 +7133,7 @@ var SB_URL='https://phjekupadmjwzrocahiv.supabase.co', SB_KEY='sb_publishable_lb
 var sb=null, me=null, currentUser=null, lastLoad=0;
 var MAP={
   packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit']},
-  staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access','bio','photo_url','also_coach','private_rate_thb']},
+  staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access','bio','photo_url','also_coach','private_rate_thb','video_url','web_show','web_name','web_title','web_about','web_sort']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country','is_fighter','fighter_name','fighter_free','fight_weight']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
   classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates']},

@@ -14,8 +14,23 @@
   var y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
 
   var tt = document.getElementById('timetable'), pr = document.getElementById('prices');
-  if (!tt && !pr) return;
+  var co = document.querySelector('.coaches');
+  if (!tt && !pr && !co) return;
   fetch(FN).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+    // coaches from the app (Staff): their 360 video plays in place of the photo while on screen
+    if (co && d.team && d.team.length) {
+      var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var cards = d.team.filter(function (x) { return x.photo || x.video; }).map(function (x) {
+        var c = document.createElement('div'); c.className = 'coach'; var m;
+        if (x.video) { m = document.createElement('video'); m.muted = true; m.defaultMuted = true; m.loop = true; m.playsInline = true; m.setAttribute('playsinline', ''); m.setAttribute('muted', ''); m.preload = 'none';
+          if (x.photo) m.poster = x.photo; m.src = x.video; m.setAttribute('aria-label', x.name);
+          if (!calm && 'IntersectionObserver' in window) new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { var r = m.play(); if (r && r.catch) r.catch(function () {}); } else m.pause(); }); }, { threshold: .25 }).observe(m); }
+        else { m = document.createElement('img'); m.src = x.photo; m.alt = x.name; m.loading = 'lazy'; }
+        c.appendChild(m); var b = document.createElement('b'); b.textContent = x.name; c.appendChild(b);
+        if (x.title) { var sm = document.createElement('small'); sm.textContent = x.title; c.appendChild(sm); }
+        return c; });
+      if (cards.length) co.replaceChildren.apply(co, cards);
+    }
     if (tt) {
       var cls = (d.classes || []).filter(function (c) { return !c.off; });
       var bar = document.getElementById('days'), cur = weekday();

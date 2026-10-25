@@ -108,7 +108,7 @@ section.band{padding:clamp(60px,9vw,110px) 0}
 
 /* coaches */
 .coach{background:var(--char2);border:1px solid var(--lineD);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
-.coach img,.coach .mono{width:100%;aspect-ratio:1;object-fit:cover;object-position:top;background:var(--char3)}
+.coach img,.coach video,.coach .mono{width:100%;aspect-ratio:1;object-fit:cover;object-position:top;background:var(--char3)}
 .coach .mono{display:grid;place-items:center;font:600 64px var(--font);color:var(--red)}
 .coach .in{padding:18px 20px 22px}.coach .in p{margin:6px 0 0;color:var(--mutedD);font-size:15px}
 .coach .role{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--red)}
