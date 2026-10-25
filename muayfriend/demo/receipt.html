@@ -29,6 +29,7 @@ button{font:inherit;font-weight:600;padding:10px 16px;border-radius:8px;border:1
 </head>
 <body>
 <div id="out"><p class="err">Loading your receipt.</p></div>
+<script src="invdoc.js?v=3"></script>
 <script>
 (function(){
 var URL_='https://yojllgjjekitbktzblcc.supabase.co', KEY='sb_publishable_RSMrHUIN5CFQgUX0o_gIpw_MyogMxJX';
@@ -36,11 +37,27 @@ var PAY={cash:'Cash',qr:'PromptPay QR',card:'Card',transfer:'Bank transfer',stri
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function thb(n){ return Math.round(Number(n)||0).toLocaleString('en-US')+' THB'; }
 function day(d){ try{ return new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}); }catch(e){ return d||''; } }
+/* the branded letter: the same letterhead, colour and footer as your invoices (Invoices, Template) */
+function letter(r){
+  var items=(r.lines||[]).map(function(l){ return {desc:l.name,qty:1,price:l.amount,amount:l.amount}; });
+  if(r.fee) items.push({desc:'Card fee',qty:1,price:r.fee,amount:r.fee});
+  if(r.tax) items.push({desc:'Tax',qty:1,price:r.tax,amount:r.tax});
+  var sub=items.reduce(function(t,i){ return t+Number(i.amount||0); },0), pm=(r.payments||[])[0];
+  var notes=[r.room?'Added to the room bill.':'', r.owed&&!r.room?'Paid so far: THB '+Number(r.paid||0).toLocaleString('en-US')+'. Still to pay: THB '+Number(r.owed).toLocaleString('en-US')+'.':'', r.refunded?'This sale was refunded.':''].filter(Boolean).join('\n');
+  var inv={business:r.biz_key,receipt_ref:r.number,paid_on:(pm&&pm.day)||r.date,paid_method:pm?pm.method:null,to_name:r.customer||'Customer',items:items,subtotal:sub,discount:r.discount||0,total:r.total,notes:notes,status:'paid'};
+  var page=window.INVDOC.html(inv,r.tpl||{},{mode:'receipt'});
+  document.open(); document.write(page); document.close();
+  var b=document.createElement('button'); b.textContent='Save or print'; b.type='button';
+  b.style.cssText='position:fixed;right:16px;bottom:16px;font:600 15px system-ui,sans-serif;padding:12px 18px;border-radius:10px;border:0;background:#1d1d1f;color:#fff;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25)';
+  b.onclick=function(){ window.print(); }; document.body.appendChild(b);
+  var st=document.createElement('style'); st.textContent='@media print{button{display:none!important}}'; document.head.appendChild(st);
+}
 var out=document.getElementById('out'), t=new URLSearchParams(location.search).get('t')||'';
 if(!/^[0-9a-f]{24,64}$/.test(t)){ out.innerHTML='<p class="err">This receipt link is not complete. Ask us to send it again.</p>'; return; }
 fetch(URL_+'/rest/v1/rpc/receipt_view',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p_token:t})})
   .then(function(r){ return r.json(); }).then(function(r){
     if(!r||!r.number){ out.innerHTML='<p class="err">Receipt not found. Ask us to send it again.</p>'; return; }
+    if(window.INVDOC&&r.biz_key){ letter(r); return; }
     if(/^#[0-9a-f]{6}$/i.test(r.accent||'')) document.documentElement.style.setProperty('--accent',r.accent);
     document.title='Receipt '+r.number+', '+r.business;
     var row=function(k,v,c){ return '<tr'+(c?' class="'+c+'"':'')+'><td>'+k+'</td><td class="n">'+v+'</td></tr>'; };

@@ -6,7 +6,7 @@ var DEF={prefix:'INV-',receipt_prefix:'RC-',pad:4,color:'#B8892E',terms:'Payment
   footer:'Thank you for your business.',
   biz:{'Muay Fight Gym':{name:'Muay Fight Gym Muay Thai',address:'42/9 Moo 5, Chiang Mai 83120, Thailand',phone:'+66 96 907 6150',email:'hello@muayfriend.com',website:'phuketking.com',logo:'https://muayfriend.com/demo/icons/icon-512.png'},
        'Camp Rooms':{name:'Camp Rooms',address:'Chiang Mai, Thailand',phone:'+66 96 907 6150',email:'hello@muayfriend.com',website:'phuketking.com',logo:''}}};
-var METHOD={transfer:'Bank transfer',cash:'Cash',card:'Card',qr:'PromptPay',stripe:'Card (online)',cheque:'Cheque',other:'Other'};
+var METHOD={transfer:'Bank transfer',cash:'Cash',card:'Card',qr:'PromptPay',stripe:'Card (online)',cheque:'Cheque',other:'Other',room:'Room bill',pack:'From a pack'};
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function money(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function day(d){ if(!d) return ''; var x=new Date(String(d).slice(0,10)+'T00:00:00Z'); return x.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}); }
@@ -30,7 +30,7 @@ function qrSvg(text){ if(!text||!window.qrcode) return ''; try{ var q=window.qrc
 function html(inv,t,o){
   o=o||{}; var T=tplOf(t,inv.business), depR=o.mode==='deposit', receipt=o.mode==='receipt'||depR, col=T.color||'#B8892E';
   var dep=Number(inv.deposit)||0, depPaid=!!inv.deposit_paid_on, due=dueNow(inv), bal=Number(inv.total)-dep;
-  var title=depR?'Deposit receipt':receipt?'Receipt':'Invoice', no=depR?num(T.receipt_prefix,inv.deposit_receipt,T.pad):receipt?num(T.receipt_prefix,inv.receipt_number,T.pad):num(T.prefix,inv.number,T.pad);
+  var title=depR?'Deposit receipt':receipt?'Receipt':'Invoice', no=depR?num(T.receipt_prefix,inv.deposit_receipt,T.pad):receipt?(inv.receipt_ref||num(T.receipt_prefix,inv.receipt_number,T.pad)):num(T.prefix,inv.number,T.pad);
   var items=(inv.items||[]).map(function(it){ return '<tr><td>'+esc(it.desc)+'</td><td class="r">'+esc(Number(it.qty))+'</td><td class="r">'+money(it.price)+'</td><td class="r">'+money(it.amount!=null?it.amount:it.qty*it.price)+'</td></tr>'; }).join('');
   var tots='<tr><td>Subtotal</td><td class="r">'+money(inv.subtotal)+'</td></tr>'+(Number(inv.discount)?'<tr><td>Discount</td><td class="r">-'+money(inv.discount)+'</td></tr>':'')+
     (Number(inv.vat_rate)?'<tr><td>VAT '+esc(Number(inv.vat_rate))+'%</td><td class="r">'+money(inv.vat)+'</td></tr>':'');
@@ -45,7 +45,7 @@ function html(inv,t,o){
   var from=['<b>'+esc(T.name)+'</b>',T.address?esc(T.address).replace(/\n/g,'<br>'):'',T.tax_id?'Tax ID: '+esc(T.tax_id):'',[T.phone,T.email].filter(Boolean).map(esc).join(' &middot; '),T.website?esc(T.website):''].filter(Boolean).join('<br>');
   var pm=depR?inv.deposit_method:inv.paid_method;
   var meta=receipt
-    ?'<tr><th>Receipt no.</th><td>'+esc(no)+'</td></tr><tr><th>Date paid</th><td>'+esc(day(depR?inv.deposit_paid_on:inv.paid_on))+'</td></tr><tr><th>Paid by</th><td>'+esc(METHOD[pm]||pm||'')+'</td></tr><tr><th>For invoice</th><td>'+esc(num(T.prefix,inv.number,T.pad))+'</td></tr>'
+    ?'<tr><th>Receipt no.</th><td>'+esc(no)+'</td></tr><tr><th>Date paid</th><td>'+esc(day(depR?inv.deposit_paid_on:inv.paid_on))+'</td></tr><tr><th>Paid by</th><td>'+esc(METHOD[pm]||pm||'')+'</td></tr>'+(inv.number!=null?'<tr><th>For invoice</th><td>'+esc(num(T.prefix,inv.number,T.pad))+'</td></tr>':'')
     :'<tr><th>Invoice no.</th><td>'+esc(no)+'</td></tr><tr><th>Date</th><td>'+esc(day(inv.issue_date))+'</td></tr>'+(dep?'<tr><th>Deposit due</th><td>'+esc(day(inv.due_date||inv.issue_date))+'</td></tr>'+(inv.balance_due?'<tr><th>Balance due</th><td>'+esc(day(inv.balance_due))+'</td></tr>':''):(inv.due_date?'<tr><th>Due</th><td>'+esc(day(inv.due_date))+'</td></tr>':''));
   var pay='';
   if(!receipt&&inv.status!=='paid'){

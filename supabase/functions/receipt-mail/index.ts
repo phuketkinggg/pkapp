@@ -14,18 +14,22 @@ const thb = (n: unknown) => Math.round(Number(n) || 0).toLocaleString("en-US") +
 const PAY: Record<string, string> = { cash: "Cash", qr: "PromptPay QR", card: "Card", transfer: "Bank transfer", stripe: "Card (online)", room: "Room bill", pack: "From a pack", staff: "Staff" };
 
 type Line = { name: string; amount: number };
-type R = { business: string; address?: string; tax_id?: string; footer: string; email?: string; accent?: string; number: string; date: string; customer?: string;
+type Biz = { name?: string; address?: string; phone?: string; email?: string; logo?: string };
+type R = { biz_key?: string; tpl?: { color?: string; footer?: string; biz?: Record<string, Biz> } | null; business: string; address?: string; tax_id?: string; footer: string; email?: string; accent?: string; number: string; date: string; customer?: string;
   lines: Line[]; discount: number; fee: number; tax: number; total: number; paid: number; owed: number; payments: { amount: number; method: string; day: string }[]; refunded: boolean; room: boolean };
 
+// the same letterhead as the invoices (Invoices, Template): logo, name, address, colour; the app icon when no logo is set
 function html(r: R, link: string) {
-  const a = /^#[0-9a-f]{6}$/i.test(r.accent ?? "") ? r.accent! : "#171B23";
+  const b: Biz = r.tpl?.biz?.[r.biz_key ?? ""] ?? {}, logo = b.logo || new URL(link).origin + new URL(link).pathname.replace(/[^/]*$/, "") + "icons/icon-512.png";
+  const a = /^#[0-9a-f]{6}$/i.test(r.tpl?.color ?? "") ? r.tpl!.color! : /^#[0-9a-f]{6}$/i.test(r.accent ?? "") ? r.accent! : "#171B23";
   const row = (k: string, v: string, b = false) => `<tr><td style="padding:6px 0;${b ? "font-weight:700;" : ""}">${k}</td><td style="padding:6px 0;text-align:right;${b ? "font-weight:700;" : ""}">${v}</td></tr>`;
   const day = new Date(r.date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>` +
     `<body style="margin:0;padding:16px;background:#f4f4f2;font-family:Arial,Helvetica,sans-serif;color:#171B23">` +
     `<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:10px;padding:24px;border-top:5px solid ${a}">` +
-    `<p style="margin:0;font-size:20px;font-weight:700">${esc(r.business)}</p>` +
-    (r.address ? `<p style="margin:4px 0 0;font-size:13px;color:#666">${esc(r.address)}</p>` : "") +
+    `<img src="${esc(logo)}" alt="" style="max-height:64px;max-width:160px;display:block;margin:0 0 10px">` +
+    `<p style="margin:0;font-size:20px;font-weight:700">${esc(b.name || r.business)}</p>` +
+    ((b.address || r.address) ? `<p style="margin:4px 0 0;font-size:13px;color:#666">${esc(b.address || r.address)}</p>` : "") +
     (r.tax_id ? `<p style="margin:2px 0 0;font-size:13px;color:#666">Tax ID ${esc(r.tax_id)}</p>` : "") +
     `<p style="margin:18px 0 2px;font-size:13px;color:#666">Receipt ${esc(r.number)}, ${esc(day)}</p>` +
     (r.customer ? `<p style="margin:0 0 12px;font-size:15px">For ${esc(r.customer)}</p>` : "") +
@@ -37,7 +41,7 @@ function html(r: R, link: string) {
     (r.owed ? row("Still to pay", thb(r.owed), true) : "") + `</table>` +
     (r.room ? `<p style="font-size:14px">Added to your room bill.</p>` : "") + (r.refunded ? `<p style="font-size:14px;color:#B8001A">Refunded.</p>` : "") +
     `<p style="margin:20px 0"><a href="${esc(link)}" style="display:inline-block;background:${a};color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700">View or save the receipt</a></p>` +
-    `<p style="margin:0;font-size:14px">${esc(r.footer)}</p></div></body></html>`;
+    `<p style="margin:0;font-size:14px">${esc(r.tpl?.footer || r.footer)}</p></div></body></html>`;
 }
 
 Deno.serve(async (req) => {

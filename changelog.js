@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Receipts on your letterhead', what: 'Receipts you send now use the same letterhead as your invoices: your logo, address, colour, PAID stamp and footer, ready to save as a PDF. The email has your logo too.', where: 'A customer, Receipt', feature: 'receipt_send'},
   {date: '2026-10-25', title: 'What every room includes', what: 'Write what every room comes with (for example unlimited group classes for 1 person) and the booking page shows it with a tick on every room.', where: 'Stays, Room booking offer on the website, Change'},
   {date: '2026-10-25', title: 'Send receipts', what: 'A Receipt button on a customer\'s packages, privates and shop sales, and Send to the customer on the till receipt. Send it by email, WhatsApp, LINE or text, show a QR they scan, or copy the link. The app remembers the way you used last. Managers set the address, tax ID and thank you line in Receipt details.', where: 'Customers, a customer, Receipt; Till, Send to the customer', feature: 'receipt_send'},
   {date: '2026-10-25', title: 'Words on photo stories', what: 'On a photo story, type a headline and a second line, choose top, middle or bottom, and the app draws them onto the photo in your colours. Change or remove the words any time before it goes out.', where: 'Social media, New post, Type: Story', feature: 'social_stories'},
