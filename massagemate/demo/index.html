@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=1"></script>
+<script src="changelog.js?v=2"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -560,6 +560,7 @@ body.cuview #view button:not(.pvexit),body.cuview #view input,body.cuview #view 
 body.cuview #view button:not(.pvexit){opacity:.75}
 .featrow,.clrow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.featrow:first-of-type{border-top:0}
 .featgrp{margin-bottom:10px}.featsw{flex:none;min-width:64px}.clrow{padding:12px 16px}.clrow:first-child{border-top:0}.cldate{flex:none;width:86px;font-size:13px;color:var(--muted)}.clbody{flex:1}
+.grpbox h3{margin-top:14px}.grpchips{gap:6px;margin:8px 0}.grpchip button{border:0;background:none;font-size:16px;line-height:1;cursor:pointer;color:inherit;padding:0 0 0 6px}.grpres{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chatonly{padding:10px 14px;margin:0}
 .pvbar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--warn-bg);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 .pstrip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .pthumb{position:relative;width:96px;height:96px;border-radius:8px;overflow:hidden;background:var(--sunken);border:2px solid transparent}.pthumb.main{border-color:var(--gold)}
@@ -783,6 +784,7 @@ var FEATURES=[
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
+  {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -2690,8 +2692,9 @@ function vChat(){
     if(mgr) acts.push(btn('New group',function(){ chatGroup(); },'primary small'));
   }
   if(ui.openChatId){ var oc=CHAT.list.filter(function(x){ return x.id===ui.openChatId; })[0]; ui.openChatId=null; if(oc) setTimeout(function(){ openChat(oc); },30); }
-  return [pageHead(M('tab'),cust?'Talk to the front desk or your private coach. The Massage Mate Demo Spa team can see these chats.':mgr?'Your chats first. As a manager you can also read every other chat below.':''),
+  return [pageHead(M('tab'),cust?'Talk to the front desk, your private coach and your groups. The Massage Mate Demo Spa team can see these chats.':mgr?'Your chats first. As a manager you can also read every other chat below.':''),
     webChatBox(),
+    isDeskRole()?null:h('div',{class:'row'},pushBtn()),
     h('div',{class:'row'},acts),
     mine.length?h('div',{class:'panel chatlist'},mine.map(chatItem)):h('div',{class:'panel empty'},M('none')),
     mgr&&others.length?section('Other chats you can read',null,h('div',{class:'panel chatlist'},others.map(chatItem))):null];
@@ -2717,26 +2720,54 @@ function chatPick(kind){
   }).catch(function(e){ toast(errText(e)); });
 }
 function chatGroup(c){
-  c=c||{}; var have={}; (c.members||[]).forEach(function(m){ if(m.staff_id) have[m.staff_id]=true; });
+  c=c||{}; var have={}, chosen={}; (c.members||[]).forEach(function(m){ if(m.staff_id) have[m.staff_id]=true; if(m.customer_id) chosen[m.customer_id]=m.name||'Customer'; });
   chatContacts().then(function(d){
-    var title=h('input',{id:'grp-title',type:'text',value:c.title_raw||c.title||'',placeholder:'For example: Coaching team'});
+    var title=h('input',{id:'grp-title',type:'text',value:c.title_raw||c.title||'',placeholder:'For example: Fight team, October camp, Coaches'});
     var boxes=d.staff.map(function(s){ var cb=h('input',{type:'checkbox',value:s.id}); cb.checked=!!have[s.id];
       return h('label',{class:'chk'},cb,' '+s.name+(ROLES[s.role]?' ('+ROLES[s.role]+')':'')); });
     var err=h('p',{class:'ferr',role:'alert',hidden:true});
+    var only=h('input',{type:'checkbox',id:'grp-only'}); only.checked=!!c.only_staff;
     function close(){ $dlg.close(); }
     function quick(roles){ boxes.forEach(function(l,i){ l.querySelector('input').checked=roles.indexOf(d.staff[i].role)>=0; }); }
+    /* customers: search anyone, or add a whole list in one tap */
+    var custs=(S.customers||[]).filter(function(x){ return !x.is_agency; }), today=ymd(new Date());
+    var chips=h('div',{class:'row wrap grpchips'}), results=h('div',{class:'grpres'}), q=h('input',{type:'search',id:'grp-q',placeholder:'Type a name, email or phone',autocomplete:'off'});
+    function drawChips(){ var ids=Object.keys(chosen); chips.replaceChildren.apply(chips,ids.length?ids.map(function(id){ var x=byId('customers',id), nm=(x&&x.name)||chosen[id];
+        return h('span',{class:'chip grpchip'},nm+(x&&!x.user_id?' (no app yet)':''),h('button',{type:'button','aria-label':'Take '+nm+' out',onclick:function(){ delete chosen[id]; drawChips(); }},'×')); })
+      :[h('span',{class:'sub'},'No customers in this group yet.')]); cnt.textContent=ids.length?ids.length+' customer'+(ids.length===1?'':'s'):''; }
+    var cnt=h('b',null,'');
+    function find(){ var t=q.value.trim().toLowerCase(); if(t.length<2){ results.replaceChildren(); return; }
+      var l=custs.filter(function(x){ return !chosen[x.id]&&[x.name,x.email,x.phone,x.fighter_name].join(' ').toLowerCase().indexOf(t)>=0; }).slice(0,8);
+      results.replaceChildren.apply(results,l.length?l.map(function(x){ return h('button',{type:'button',class:'btn small grpadd',onclick:function(){ chosen[x.id]=x.name; q.value=''; results.replaceChildren(); drawChips(); q.focus(); }},'+ '+x.name+(x.email?' ('+x.email+')':'')); }):[h('span',{class:'sub'},'Nobody found.')]); }
+    q.addEventListener('input',find);
+    function addMany(list,label){ var n=0; list.forEach(function(x){ if(x&&!chosen[x.id]){ chosen[x.id]=x.name; n++; } }); drawChips(); toast(n?n+' added: '+label+'.':'Nobody new to add: '+label+'.'); }
+    function active(){ var a={}; (S.purchases||[]).forEach(function(p){ if(p.customer_id&&!(p.covers&&!p.covers.length)&&stateOf(p,today).ok) a[p.customer_id]=1; }); return custs.filter(function(x){ return a[x.id]; }); }
+    function staying(){ var a={}; (S.stays||[]).forEach(function(st){ if(st.customer_id&&st.status!=='cancelled'&&st.check_in<=today&&st.check_out>today) a[st.customer_id]=1; }); return custs.filter(function(x){ return a[x.id]; }); }
+    var picks=[btn('Fighters',function(){ addMany(custs.filter(function(x){ return x.is_fighter; }),'fighters'); },'small'),
+      featOn('stays')?btn('Staying now',function(){ addMany(staying(),'staying now'); },'small'):null,
+      btn('Training now',function(){ addMany(active(),'training now'); },'small'),
+      btn('Everyone with the app',function(){ addMany(custs.filter(function(x){ return x.user_id; }),'everyone with the app'); },'small'),
+      btn('Clear customers',function(){ chosen={}; drawChips(); },'small')];
     function save(){
       var ids=boxes.map(function(l){ return l.querySelector('input'); }).filter(function(i){ return i.checked; }).map(function(i){ return i.value; });
       if(!title.value.trim()){ err.textContent='Give the group a name.'; err.hidden=false; return; }
-      sb.rpc('chat_group_save',{p_chat:c.id||null,p_title:title.value.trim(),p_staff:ids,p_customers:[]}).then(must).then(function(id){
+      sb.rpc('chat_group_save',{p_chat:c.id||null,p_title:title.value.trim(),p_staff:ids,p_customers:Object.keys(chosen)}).then(must)
+        .then(function(id){ return sb.rpc('chat_group_mode',{p_chat:id,p_only_staff:only.checked}).then(function(){ return id; }); }).then(function(id){
         close(); toast(c.id?'Group saved.':'Group made.'); chatRefresh().then(function(){ if(!c.id){ var g=(CHAT.list||[]).filter(function(x){ return x.id===id; })[0]; if(g) openChat(g); } });
       }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
     }
-    $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,c.id?'Edit group':'New group chat'),
+    drawChips();
+    $dlg.replaceChildren(h('div',{class:'billbox grpbox'},h('h2',null,c.id?'Edit group':'New group chat'),
       h('label',{for:'grp-title'},'Group name'),title,
-      h('div',{class:'row'},h('span',{class:'sub'},'Quick pick:'),btn('Coaches',function(){ quick(['coach']); },'small'),btn('Resort and desk',function(){ quick(['resort','front_desk','housekeeping']); },'small'),btn('Everyone',function(){ quick(['coach','resort','front_desk','housekeeping','manager']); },'small')),
+      h('h3',{class:'billh'},'Team'),
+      h('div',{class:'row'},h('span',{class:'sub'},'Quick pick:'),btn('Coaches',function(){ quick(['coach']); },'small'),btn('Resort and desk',function(){ quick(['resort','front_desk','housekeeping']); },'small'),btn('Everyone',function(){ quick(['coach','resort','front_desk','housekeeping','maintenance','kitchen','manager','admin']); },'small'),btn('None',function(){ quick([]); },'small')),
       h('div',{class:'chkgrid'},boxes),
-      h('p',{class:'sub'},'You are always in groups you make.'),err,
+      featOn('chat_customers')?h('div',null,h('h3',{class:'billh'},'Customers ',cnt),
+      h('div',{class:'row wrap'},h('span',{class:'sub'},'Add a whole list:'),picks),
+      h('label',{for:'grp-q'},'Add anyone'),q,results,chips,
+      h('p',{class:'sub'},'Customers see the group in Messages in their app. Anyone marked "no app yet" sees it once they sign in to the app with the same email.'),
+      h('label',{class:'check',for:'grp-only'},only,h('span',null,'Only the team can write (announcements). Customers read and get the notification.'))):null,
+      h('p',{class:'sub'},'You are always in groups you make. Everyone in the group gets a phone notification for new messages if they turned notifications on.'),err,
       h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',close),btn(c.id?'Save':'Make group',save,'primary')))));
     if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
   }).catch(function(e){ toast(errText(e)); });
@@ -2755,7 +2786,7 @@ function openChat(c){
     mgr&&c.kind==='group'?btn('Edit',function(){ chatGroup(c); },'small'):h('span'));
   var wrap=h('div',{class:'chatwrap'},h('div',{class:'chatbox'},head,msgs,
     me.role==='customer'?h('p',{class:'sub chatnote'},'The Massage Mate Demo Spa team can see this chat.'):null,
-    err,h('div',{class:'chatcompose'},input,sendBtn)));
+    err,c.only_staff&&me&&me.role==='customer'?h('p',{class:'sub chatonly'},'Announcements from the team. Only the team writes here.'):h('div',{class:'chatcompose'},input,sendBtn)));
   document.body.appendChild(wrap); document.body.classList.add('chatting');
   CHAT.open={id:c.id,wrap:wrap};
   function add(list){
@@ -2817,7 +2848,7 @@ function webVisitorLine(c){
 }
 function loadWebChat(){ if(!isDeskRole()) return Promise.resolve(); return sb.rpc('web_chat_settings').then(function(r){ if(!r.error){ WEBCHAT=r.data; schedule(); } },function(){}); }
 function webChatBox(){
-  if(!isDeskRole()) return null;
+  if(!isDeskRole()){ if(!ui.pushAsked){ ui.pushAsked=true; pushState(); } return null; }
   if(!WEBCHAT){ if(!ui.webChatAsked){ ui.webChatAsked=true; loadWebChat(); pushState(); } return null; }
   var mgr=me.role==='manager';
   return h('div',{class:'panel',style:'padding:12px 14px;margin-bottom:12px'},
@@ -2846,7 +2877,7 @@ function pushState(){
   }).catch(function(){ PUSH.on=false; schedule(); });
 }
 function pushBtn(){
-  if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'For chat notifications on iPhone: Share, Add to Home Screen, then open the app from the home screen.':'This browser cannot show notifications.');
+  if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'For message notifications on iPhone: Share, Add to Home Screen, then open the app from the home screen.':'This browser cannot show notifications.');
   if(PUSH.on===null) return null;
   return PUSH.on?btn('Notifications on this phone: ON',pushOff,'small'):btn('Turn on notifications on this phone',pushOn,'primary small');
 }
@@ -2859,7 +2890,7 @@ function pushOn(){
     if(!k) throw new Error('Notifications are not ready yet. Try again in a minute.');
     return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(old){ return old||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k)}); }); });
   }).then(function(sub){ var j=sub.toJSON(); return sb.rpc('push_sub_save',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}).then(must); })
-  .then(function(){ PUSH.on=true; toast('Done. This phone gets a notification for every website chat message.'); })
+  .then(function(){ PUSH.on=true; toast(isDeskRole()?'Done. This phone gets a notification for new messages and website chats.':'Done. This phone gets a notification for new messages.'); })
   .catch(function(e){ toast(errText(e)); }).then(function(){ PUSH.busy=false; schedule(); });
 }
 function pushOff(){

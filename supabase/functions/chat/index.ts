@@ -3,6 +3,7 @@
 // start:   first message (+ name, + WhatsApp or email). Returns the chat id and key.
 // send / contact / poll: need the id and key. Poll returns only this chat's messages.
 // Each visitor message sends a notification to desk staff phones that switched notifications on in the app.
+// app: a new message in an app chat (the database calls it with the sync token) notifies the other members' phones.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
@@ -28,11 +29,16 @@ async function vapid() {
   webpush.setVapidDetails("mailto:hello@phuketking.com", keys.public, keys.private);
   return keys;
 }
+type Sub = { endpoint: string; p256dh: string; auth: string };
 async function notify(p: { title: string; body: string; chat: string }) {
   try {
-    await vapid();
     const { data } = await admin.rpc("web_push_targets");
-    const subs = (data ?? []) as { endpoint: string; p256dh: string; auth: string }[];
+    await send((data ?? []) as Sub[], p);
+  } catch (_e) { /* notifications are best effort */ }
+}
+async function send(subs: Sub[], p: { title: string; body: string; chat: string }) {
+  try {
+    await vapid();
     const msg = JSON.stringify({ title: p.title, body: p.body, tag: "chat-" + p.chat, url: "https://app.phuketking.com/#chat=" + p.chat });
     await Promise.all(subs.map(async (s) => {
       try {
@@ -57,6 +63,15 @@ Deno.serve(async (req) => {
   const b = await req.json().catch(() => ({}));
   const mode = str(b.mode, 10);
   if (mode === "keys") { await vapid(); return json({ ok: true }); }
+  // a new message in the app (group, staff, coach or desk chat): the database asks, the other members' phones get it
+  if (mode === "app") {
+    const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
+    if (ok !== true) return json({ error: "Not allowed." }, 401);
+    const { data: t } = await admin.rpc("chat_push_targets", { p_message: str(b.id, 40) });
+    const tg = t as { title: string; body: string; chat: string; subs: { endpoint: string; p256dh: string; auth: string }[] } | null;
+    if (tg && tg.subs?.length) await send(tg.subs, { title: tg.title, body: tg.body, chat: tg.chat });
+    return json({ ok: true, sent: tg?.subs?.length ?? 0 });
+  }
   if (!["status", "start", "send", "contact", "poll"].includes(mode)) return json({ error: "Unknown request." }, 400);
   const p: Record<string, string> = { mode };
   if (mode === "start") { p.name = str(b.name, 80); p.contact = str(b.contact, 120); p.body = str(b.body, 2000); p.page = str(b.page, 200); p.ip = await ipHash(req); }

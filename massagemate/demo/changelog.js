@@ -2,6 +2,8 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Group chats with anyone', what: 'Make a group, give it a name, then add any staff and any customers: search by name, or add all fighters, everyone training now, everyone staying now or everyone with the app in one tap. Tick "Only the team can write" for an announcements group.', where: 'Messages, New group', feature: 'chat_customers'},
+  {date: '2026-10-25', title: 'Message notifications for everyone', what: 'Staff and customers can turn on phone notifications in Messages. Everyone in a chat or group gets a notification for each new message.', where: 'Messages, Turn on notifications on this phone'},
   {date: '2026-10-25', title: 'Switch parts of the app on or off', what: 'Settings, Features lists every part of the app. Turn on what your business uses: the rest disappears for staff and customers, and nothing is deleted.', where: 'Settings, Features'},
   {date: '2026-10-25', title: "What's new", what: 'Every change to the app is listed here, with its switch where it has one. Owners see a short notice when something new arrives.', where: 'Settings'},
   {date: '2026-10-25', title: 'Your business names everywhere', what: 'Your businesses and cafe are named in your own settings, so accounts, receipts and invoices always show your names.', where: 'Accounts'},
