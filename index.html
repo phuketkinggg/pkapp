@@ -4360,7 +4360,7 @@ function accRcCard(x){
       .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
   return h('div',{class:'panel pad accrc'+(ACC.rcFocus===x.id?' focus':'')},
     h('a',{class:'accrcimgw',href:x._url||null,target:'_blank',rel:'noopener'},x._url?h('img',{src:x._url,alt:'Receipt photo'}):img),
-    h('div',{class:'accrcf'},h('small',{class:'sub'},'Added by '+(x.by||'staff')+', '+fmtDate(x.day)+(x.status==='checked'?', checked':'')),
+    h('div',{class:'accrcf'},h('small',{class:'sub'},'Added by '+(x.by||'staff')+(x.at?' on '+new Date(x.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+', receipt date '+fmtDate(x.day)+(x.status==='checked'?', checked':'')),
       h('div',{class:'accrcg'},h('div',{class:'field'},h('label',{for:id+'supplier'},'Shop or supplier'),inp('supplier')),h('div',{class:'field'},h('label',{for:id+'day'},'Date'),inp('day',{type:'date'})),
         h('div',{class:'field'},h('label',{for:id+'amount'},'Amount THB'),inp('amount',{type:'number'})),h('div',{class:'field'},h('label',{for:id+'method'},'Paid by'),sel('method',[['transfer','Transfer'],['scan','Scan (PromptPay)'],['cash','Cash'],['card','Card']])),
         h('div',{class:'field'},h('label',{for:id+'category'},'Category'),sel('category',[['','Choose']].concat(ACC_OUT.map(function(c){ return [c,c]; })))),
@@ -4369,7 +4369,7 @@ function accRcCard(x){
         h('div',{class:'field'},h('label',{for:id+'purpose'},'What is it for'),inp('purpose',{ph:'For example: fix the bathroom leak'})),
         h('div',{class:'field'},h('label',{for:id+'place_id'},'Where (room or area)'),(function(){ var e=placeSelect(id+'place_id','Not for one place',f.place_id); e.addEventListener('change',function(){ f.place_id=e.value; }); return e; })()),
         h('div',{class:'field'},h('label',{for:id+'note'},'Note'),inp('note'))),
-      h('div',{class:'row'},btn(x._ai==='busy'?'Reading...':x._ai?'Read again':'Read with AI',function(){ accAi(x).catch(function(){}); },'small'),save))); }
+      h('div',{class:'row'},btn(x._ai==='busy'?'Reading...':x._ai?'Read again':'Read with AI',function(){ accAi(x).catch(function(){}); },'small'),rcBoss()?btn('Remove',function(){ rcRemove(x); },'small'):null,save))); }
 function accCsv(all){
   var rows=[['Date','Business','Department','Type','Category','Description','Paid by','Amount THB','Source']];
   all.slice().sort(function(a,b){ return a.d<b.d?-1:a.d>b.d?1:0; }).forEach(function(l){ rows.push([l.d,l.b,l.dep||'',l.move?(l.t==='in'?'In, from the other business':'Out, to the other business'):(l.t==='in'?'In':'Out'),l.cat||'',l.what||'',accM(l.m),(Math.round(l.a*100)/100).toFixed(2),
@@ -5988,8 +5988,26 @@ function rcEdit(x){
     {key:'amount',label:'Amount (THB)',type:'number'},
     {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan'],['cash','Cash'],['card','Card']]},
     {key:'supplier',label:'Supplier or what for'},{key:'note',label:'Note'},
-    {key:'status',label:'Status',type:'select',options:[['new','New, not checked'],['checked','Checked'],['removed','Remove (duplicate or wrong)']]}],
+    {key:'status',label:'Status',type:'select',options:[['new','New, not checked'],['checked','Checked']]}],
     onSave:function(v){ return sb.rpc('receipt_save',{p:Object.assign({id:x.id},v)}).then(must).then(loadReceipts); }});
+}
+function rcBoss(){ return !!me&&me.role==='manager'; }
+function rcRemove(x,done){
+  openForm({title:'Remove this receipt?',note:(x.supplier||x.purpose||x.department||'Receipt')+', '+fmtDate(x.day)+(x.amount!=null?', '+thb(Number(x.amount)):'')+'. Added by '+(x.by||'staff')+'. It comes off the accounts. The photo is kept and you can put it back from Removed receipts.',values:{why:''},
+    fields:[{key:'why',label:'Why (optional)',hint:'For example: duplicate, wrong receipt'}],saveLabel:'Remove',doneMsg:'Receipt removed.',
+    onSave:function(v){ return sb.rpc('receipt_remove',{p_id:x.id,p_why:v.why||null}).then(must).then(function(){ RCPT=null; ACC.rc=null; ACC.data=null; WORK=null; RCRM=null; if(done) done(); schedule(); }); }});
+}
+var RCRM=null;
+function rcRemoved(from,to){
+  if(!rcBoss()) return null;
+  if(!RCRM||RCRM.from!==from||RCRM.to!==to){ if(!ui.rcrmBusy){ ui.rcrmBusy=true; sb.rpc('receipts_removed',{p_from:from,p_to:to}).then(must).then(function(l){ ui.rcrmBusy=false; RCRM={from:from,to:to,list:l}; schedule(); }).catch(function(){ ui.rcrmBusy=false; }); } return null; }
+  if(!RCRM.list.length) return null;
+  return section('Removed receipts ('+RCRM.list.length+')',null,table([
+    {label:'Date',cell:function(x){ return fmtDate(x.day); }},
+    {label:'What',cell:function(x){ return h('span',null,x.supplier||x.purpose||x.department,h('div',{class:'sub'},x.amount!=null?thb(Number(x.amount)):'No amount')); }},
+    {label:'Added by',cell:function(x){ return x.by||''; }},
+    {label:'Removed by',cell:function(x){ return h('span',null,(x.removed_by||'')+(x.removed_at?', '+new Date(x.removed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''),x.removed_why?h('div',{class:'sub'},x.removed_why):null); }},
+    {label:'',cell:function(x){ return h('div',{class:'row'},btn('Photo',function(){ rcPhoto(x); },'small'),btn('Put back',function(){ run(sb.rpc('receipt_restore',{p_id:x.id}).then(must).then(function(){ RCPT=null; RCRM=null; ACC.rc=null; ACC.data=null; WORK=null; }),'Receipt put back.'); },'small')); }}],RCRM.list,''));
 }
 function rcDownload(){
   var list=(RCPT&&RCPT.list)||[]; if(!list.length){ toast('No receipts this month.'); return; }
@@ -6017,9 +6035,11 @@ function vReceipts(){
       {label:'What',cell:function(x){ return (x.supplier||'')+(x.note?' ('+x.note+')':''); }},
       {label:'Amount',num:true,cell:function(x){ return x.amount==null?chip('No amount','warn'):thb(Number(x.amount)); }},
       {label:'Paid by',cell:function(x){ return ({transfer:'Transfer',scan:'Scan',cash:'Cash',card:'Card'})[x.method]||x.method; }},
-      {label:'By',cell:function(x){ return x.by||''; }},
+      {label:'Added by',cell:function(x){ return h('span',null,x.by||'',x.at?h('div',{class:'sub'},new Date(x.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):null); }},
       {label:'',cell:function(x){ return h('div',{class:'row'},x.status==='checked'?chip('Checked','ok'):btn('Checked',function(){ run(sb.rpc('receipt_save',{p:{id:x.id,amount:x.amount,status:'checked',supplier:x.supplier,note:x.note}}).then(must).then(loadReceipts),'Marked checked.'); },'small'),
-        btn('Photo',function(){ rcPhoto(x); },'small'),btn('Edit',function(){ rcEdit(x); },'small')); }}],list,'No receipts this month. Anyone on the team can add one with the Receipt button at the top.'))];
+        btn('Photo',function(){ rcPhoto(x); },'small'),btn('Edit',function(){ rcEdit(x); },'small'),rcBoss()?btn('Remove',function(){ rcRemove(x); },'small'):null); }}],list,'No receipts this month. Anyone on the team can add one with the Receipt button at the top.')),
+    rcRemoved(RCPT.month+'-01',addDays(addDays(RCPT.month+'-01',32).slice(0,7)+'-01',-1)),
+    h('p',{class:'sub'},'Everyone on the team can add receipts, and the app keeps who added each one. Only an admin or the owner can remove one.')];
 }
 /* ---------- pending actions: anything broken or to fix, until someone ticks it off ---------- */
 var ACT=null;
