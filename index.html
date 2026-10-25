@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=2"></script>
-<script src="changelog.js?v=5"></script>
+<script src="changelog.js?v=6"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -517,6 +517,9 @@ body.till main{padding-left:30px}
 .kdone .donebig{font-size:64px}
 .kdone .donewhat{font-size:26px}
 .kfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-size:15px}
+.paynow{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;max-width:760px;margin:0 0 14px;padding:16px 20px;border-radius:12px;border:2px solid var(--bad,#b3261e);background:var(--bad-bg,#fdecea);color:var(--ink)}
+.paynow .paynowt{font-size:22px;color:var(--bad,#b3261e)}.paynow.big .paynowt{font-size:34px}.paynow.big{padding:24px}.paynow.staff{max-width:none;margin:0;border-width:0 0 1px;border-radius:0;border-color:var(--line)}
+.chip.bad{background:var(--bad-bg,#fdecea);color:var(--bad,#b3261e)}
 .kerr{max-width:760px;padding:16px 20px;border-radius:12px;background:var(--bad-bg);color:var(--bad);font-size:18px}
 
 /* booking calendar: dates across, rooms down, one bar per stay */
@@ -790,6 +793,7 @@ var FEATURES=[
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
+  {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -1369,6 +1373,16 @@ function customerOwes(cid){ var a=S.purchases.filter(function(p){ return p.custo
   var b=S.privates.filter(function(x){ return x.customer_id===cid&&!x.purchase_id&&!x.paid&&x.status!=='cancelled'&&Number(x.price_thb)>0; }).reduce(function(t,x){ return t+Number(x.price_thb); },0);
   var st=(S.stays||[]).filter(function(x){ return x.customer_id===cid&&(x.status==='booked'||x.status==='in')&&!x.settled; }).reduce(function(t,x){ return t+Math.max(0,billTotal(x)); },0);
   return {packages:a,privates:b,stays:st,total:a+b+st}; }
+/* what they should pay now when they check in: packages and privates, not a room bill (that is paid at check out) */
+function owesNow(cid){ if(!featOn('pay_prompt')) return 0; var o=customerOwes(cid); return (o.packages||0)+(o.privates||0); }
+/* staff: people checked in today who have not paid */
+function unpaidToday(){ if(!featOn('pay_prompt')) return []; var day=ymd(new Date()), ids={};
+  entriesOf(day).forEach(function(e){ if(e.customer_id) ids[e.customer_id]=1; });
+  S.privates.forEach(function(x){ if(x.customer_id&&x.date===day&&x.arrived_at&&x.status!=='cancelled') ids[x.customer_id]=1; });
+  return Object.keys(ids).map(function(id){ return {c:byId('customers',id),owe:owesNow(id)}; }).filter(function(x){ return x.c&&x.owe>0; }); }
+function payNowBox(c,owe,big){
+  return h('div',{class:'paynow'+(big?' big':''),role:'alert'},h('div',null,h('b',{class:'paynowt'},'Please pay now: '+thb(owe)),h('div',null,'Pay at the front desk before you train, or pay by card or QR here.')),
+    h('button',{type:'button',class:'btn primary',onclick:function(){ stripePay('customer',c.id,c.name); }},'Pay '+thb(owe)+' now')); }
 function pastCheckIn(c){
   var today=ymd(new Date()), y=addDays(today,-1);
   function targetsFor(d){ var wd=(parseYmd(d).getDay()+6)%7;
@@ -6516,7 +6530,8 @@ function vToday(){
     checkin:function(){ return [section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows))]; },
     staff:function(){ return [staffToday(false),coachBoardToday()]; },
-    urgent:function(){ return [claimsSection(),orders.length?section('App orders waiting for payment',null,table([
+    urgent:function(){ var unp=unpaidToday(); return [claimsSection(),unp.length?section('Checked in today, not paid',null,h('div',{class:'panel'},unp.map(function(x){
+        return h('div',{class:'paynow staff'},h('div',null,h('b',null,linkBtn(x.c.name,function(){ openCustomer(x.c.id); })),h('div',{class:'sub'},'Owes '+thb(x.owe))),btn('Take payment',function(){ payCustomer(x.c); },'primary small')); }))):null,orders.length?section('App orders waiting for payment',null,table([
       {label:'Customer',cell:function(p){return linkBtn(nameOf('customers',p.customer_id),function(){ openCustomer(p.customer_id); });}},
       {label:'Package',cell:function(p){return p.package_name;}},
       {label:'To pay',num:true,cell:function(p){return thb(p.price_thb);}},
@@ -8406,8 +8421,8 @@ function kTargets(c,day){
 function kCheckIn(c,t){
   if(ui.kbusy) return; ui.kbusy=true; ui.kerr='';
   sb.rpc('check_in',{p_customer:c.id,p_purchase:t.pack.id,p_class:t.kind==='class'?t.id:null,p_facility:t.kind==='facility'?t.name:null}).then(must).then(function(){
-    ui.kdone={name:String(c.name||'').split(' ')[0],what:(t.time?t.time+' ':'')+t.label,pack:t.pack.package_name};
-    kIdle(5000); return Promise.all([reload('checkin_days'),reload('purchases')]);
+    ui.kdone={cid:c.id,name:String(c.name||'').split(' ')[0],what:(t.time?t.time+' ':'')+t.label,pack:t.pack.package_name};
+    kIdle(owesNow(c.id)>0?30000:5000); return Promise.all([reload('checkin_days'),reload('purchases')]);
   }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; schedule(); }).then(function(){ ui.kbusy=false; schedule(); });
 }
 /* desk mode: privates booked for today show at the top, so the customer can check in for them */
@@ -8417,8 +8432,8 @@ function kPrivHere(c,x){
   var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
   sb.from('privates').update({arrived_at:new Date().toISOString(),arrived_by:'customer'}).eq('id',x.id).select('id').then(must).then(function(d){
     if(!d||!d.length) throw {message:'That did not work. See the front desk.'};
-    ui.kdone={name:String(c.name||'').split(' ')[0],what:'Private'+(x.time?' '+x.time:'')+who,pack:x.purchase_id?'From your pack':x.method==='room'?'On your room bill':x.paid?'Paid':'Pay at the front desk'};
-    kIdle(5000); return reload('privates');
+    ui.kdone={cid:c.id,name:String(c.name||'').split(' ')[0],what:'Private'+(x.time?' '+x.time:'')+who,pack:x.purchase_id?'From your pack':x.method==='room'?'On your room bill':x.paid?'Paid':'Pay at the front desk'};
+    kIdle(owesNow(c.id)>0?30000:5000); return reload('privates');
   }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; }).then(function(){ ui.kbusy=false; schedule(); });
 }
 /* desk mode: a customer books a private for now, or buys a package and picks how to pay */
@@ -8496,6 +8511,9 @@ function vKiosk(){
     h('p',{class:'sub'},new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}))),
     ui.kc&&!ui.kdone?h('button',{type:'button',class:'btn',onclick:kReset},'Not you? Back'):null);
   var foot=h('div',{class:'kfoot'},h('span',null,'Not listed? See the front desk.'),h('button',{type:'button',class:'link',onclick:exitKiosk},'Staff'));
+  var dOwe=ui.kdone&&ui.kdone.cid&&ui.kdone.kind!=='buy'?owesNow(ui.kdone.cid):0;
+  if(ui.kdone&&dOwe>0) return [head,h('div',{class:'panel kdone',role:'status'},h('div',{class:'donebig'},'Checked in'),h('div',{class:'donewhat'},ui.kdone.what)),
+    payNowBox(byId('customers',ui.kdone.cid)||{id:ui.kdone.cid,name:ui.kdone.name},dOwe,true),h('div',null,h('button',{type:'button',class:'btn',onclick:kReset},'Done')),foot];
   if(ui.kdone) return [head,h('div',{class:'panel kdone',role:'status'},h('div',{class:'donebig'},ui.kdone.kind==='buy'?'Bought':ui.kdone.kind==='private'?'Booked':'Checked in'),h('div',{class:'donewhat'},ui.kdone.what),
     h('div',{class:'cnote'},ui.kdone.kind==='buy'?ui.kdone.name+', thank you. '+ui.kdone.pack:ui.kdone.name+', enjoy your session. '+ui.kdone.pack+'.'),h('div',null,h('button',{type:'button',class:'btn primary',onclick:kReset},'Done'))),foot];
   if(ui.kc){
@@ -8506,11 +8524,12 @@ function vKiosk(){
     var pvRows=pv.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'', wait=x.status==='requested';
       return h('button',{type:'button',class:'kbig',disabled:wait||x.arrived_at||ui.kbusy?true:null,onclick:function(){ kPrivHere(c,x); }},
         h('span',{class:'row'},x.time?h('span',{class:'ktime'},x.time):null,h('span',null,'Private'+who)),
-        x.arrived_at?chip('Checked in','ok'):wait?chip('Not confirmed yet, see the front desk','warn'):h('span',{class:'chip ok'},'Check in')); });
+        x.arrived_at?chip('Checked in','ok'):wait?chip('Not confirmed yet, see the front desk','warn'):!x.purchase_id&&!x.paid&&x.method!=='room'&&Number(x.price_thb)>0&&featOn('pay_prompt')?h('span',{class:'chip bad'},'Check in, then pay '+thb(x.price_thb)):h('span',{class:'chip ok'},'Check in')); });
     var rows=pvRows.concat(ts.map(function(t){
         return h('button',{type:'button',class:'kbig',disabled:t.done||ui.kbusy?true:null,onclick:function(){ kCheckIn(c,t); }},
           h('span',{class:'row'},t.time?h('span',{class:'ktime'},t.time):null,h('span',null,t.label)),t.done?chip('Checked in','ok'):h('span',{class:'chip ok'},'Check in')); }));
-    return [head,ui.kerr?h('div',{class:'kerr',role:'alert'},ui.kerr):null,
+    var kOwe=owesNow(c.id);
+    return [head,ui.kerr?h('div',{class:'kerr',role:'alert'},ui.kerr):null,kOwe>0?payNowBox(c,kOwe):null,
       rows.length?h('div',{class:'klist'},h('p',{class:'sub'},'Tap what you are here for.'),rows)
       :h('div',{class:'panel empty'},'Nothing to check in for right now on a package. Buy one below, or book a private.'),more,foot];
   }
