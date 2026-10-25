@@ -33,7 +33,7 @@ create or replace function private.cust_unused(p uuid) returns boolean language 
 $$;
 
 create or replace function private.tidy_name(n text) returns text language sql immutable set search_path to '' as $$
-  select case when x = lower(x) or x = upper(x) then initcap(x) else x end from (select regexp_replace(btrim(coalesce(n,'')), '\s+', ' ', 'g') x) q
+  select case when x like '%@%' then x when x = lower(x) or x = upper(x) then initcap(x) else x end from (select regexp_replace(btrim(coalesce(n,'')), '\s+', ' ', 'g') x) q
 $$;
 
 create or replace function private.cleanup_items() returns jsonb language plpgsql stable security definer set search_path to '' as $$
@@ -57,8 +57,11 @@ begin
   end loop;
   -- 3. the same name (could be two people: not ticked)
   for r in select lower(regexp_replace(btrim(name), '\s+', ' ', 'g')) nm, array_agg(id order by private.cust_weight(id) desc) ids,
-                  array_agg(coalesce(nullif(email,''), nullif(phone,''), 'no contact') order by private.cust_weight(id) desc) ct
+                  array_agg(coalesce(nullif(email,''), nullif(phone,''), 'no contact') order by private.cust_weight(id) desc) ct,
+                  bool_and(coalesce(btrim(email),'') = '' and coalesce(btrim(phone),'') = '') nocontact
            from public.customers where name not like 'Merged into %' and not is_agency and length(btrim(name)) > 2 group by 1 having count(*) > 1 loop
+    -- placeholder names (one word, or many people, and nobody has an email or phone) are different visitors: skip
+    if r.nocontact and (cardinality(r.ids) > 2 or position(' ' in r.nm) = 0) then continue; end if;
     if not exists (select 1 from jsonb_array_elements(out) x where x->>'kind' = 'merge' and (x->>'keep')::uuid = any(r.ids)) then
       out := out || jsonb_build_object('key', 'merge:' || r.ids[1] || ':' || array_to_string(r.ids[2:], ','), 'group', 'Customers', 'kind', 'merge', 'on', false,
         'title', 'Same name on ' || cardinality(r.ids) || ' customers: ' || initcap(r.nm), 'detail', 'Could be two different people, check first: ' || array_to_string(r.ct, ' / ') || '. Ticked, they merge into the most used one.',
@@ -80,6 +83,10 @@ begin
       'detail', 'Marked no to emails, as they asked.', 'id', r.id);
   end loop;
   -- 6. names with extra spaces or all small or all capital letters
+  for r in select id, name from public.customers where name like '%@%' and name not like 'Merged into %' loop
+    out := out || jsonb_build_object('key', 'nameemail:' || r.id, 'group', 'Customers', 'kind', 'note', 'on', false, 'title', 'Name is an email: ' || r.name,
+      'detail', 'Open the customer and type their real name.', 'id', r.id);
+  end loop;
   for r in select id, name from public.customers where name not like 'Merged into %' and name <> private.tidy_name(name) loop
     out := out || jsonb_build_object('key', 'name:' || r.id, 'group', 'Customers', 'kind', 'name_fix', 'on', true, 'title', 'Tidy a name',
       'detail', '"' || r.name || '" becomes "' || private.tidy_name(r.name) || '"', 'id', r.id);
@@ -115,7 +122,8 @@ begin
   end loop;
   -- 11. packages switched off and never sold
   for r in select k.id, k.name from public.packages k where not k.active and not exists (select 1 from public.purchases p where p.package_id = k.id)
-             and not exists (select 1 from public.web_pkg_orders o where o.package_id = k.id) loop
+             and not exists (select 1 from public.web_pkg_orders o where o.package_id = k.id)
+             and not exists (select 1 from public.app_settings a where a.value like '%' || k.id || '%') loop
     out := out || jsonb_build_object('key', 'pkg:' || r.id, 'group', 'Packages', 'kind', 'pkg_delete', 'on', true, 'title', 'Unused package: ' || r.name,
       'detail', 'Switched off and never sold. Ticked, it is deleted from the list.', 'id', r.id);
   end loop;
