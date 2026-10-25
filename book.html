@@ -50,7 +50,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .g{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
 .g.chosen{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
 .g h3{font:700 22px/1.1 var(--display);margin:0;text-transform:uppercase}
-.price{font:700 24px var(--display)}.was{text-decoration:line-through;opacity:.6;margin-right:8px;font-weight:600}.offer{display:inline-flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:#C8102E;color:#fff;border-radius:10px;padding:10px 14px;margin:12px 0 0;font-weight:600;font-size:15px;line-height:1.35}.offer b{font:700 20px var(--display);letter-spacing:.02em}.offnote{color:#1F8A4C;font-weight:600}.g .rooms{display:flex;flex-wrap:wrap;gap:6px}
+.price{font:700 24px var(--display)}.was{text-decoration:line-through;opacity:.6;margin-right:8px;font-weight:600}.offer{display:inline-flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:#C8102E;color:#fff;border-radius:10px;padding:10px 14px;margin:12px 0 0;font-weight:600;font-size:15px;line-height:1.35}.offer b{font:700 20px var(--display);letter-spacing:.02em}.offnote{color:#1F8A4C;font-weight:600}.incl{font-weight:600;font-size:15px;line-height:1.4;padding:8px 12px;border-radius:8px;background:rgba(200,160,70,.14);border:1px solid rgba(200,160,70,.45)}.g .rooms{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-block;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sunken);cursor:pointer}
 .chip:not(.full):not(.on){border-color:var(--ok);color:var(--ok);background:transparent}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.chip.full{opacity:.5;cursor:default;text-decoration:line-through}
 .sum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
@@ -322,6 +322,7 @@ function render(){
     gs.appendChild(el('div',{cls:'g'+(chosen?' chosen':'')},el('h3',null,g.name.replace(/^[A-Z]\d+,\s*/,'')),el('div',{cls:'sub'},g.note||''),
       q?el('div',null,q.full>q.total?el('span',{cls:'was'},thb(q.full)):null,el('span',{cls:'price'},thb(q.total)),el('span',{cls:'sub'},' for '+Q.nights+' night'+(Q.nights===1?'':'s'))):el('div',{cls:'err'},'Full for these dates'),
       q&&q.full>q.total?el('div',{cls:'offnote'},'You save '+thb(q.full-q.total)+' booking direct'):null,
+      (INFO.offer||{}).includes?el('div',{cls:'incl'},'\u2713 '+INFO.offer.includes):null,
       q?el('div',{cls:'sub'},parts.join(', ')):null,
       el('div',{cls:'rooms'},rs.map(function(r){ var rr=room(r.id); return el('button',{type:'button',cls:'chip'+(r.state!=='free'?' full':'')+(pick&&pick.id===r.id?' on':''),disabled:r.state!=='free'?'':null,onclick:function(){ choose(r.id); }},short(rr?rr.name:'Room')); })),
       q?el('button',{type:'button',cls:'btn'+(chosen?' primary':''),onclick:function(){ choose(chosen?pick.id:q.id); }},chosen?'Chosen: '+short(room(pick.id).name):'Choose this room'):null)); });

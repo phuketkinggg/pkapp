@@ -89,12 +89,13 @@ function quote(R: Rates, g: Group, from: string, to: string) {
   return { total, nights, missing };
 }
 // the website offer (app_settings stay_offer): a direct booking discount on the room, and a gift for long stays
-type Offer = { on: boolean; pct: number; gift_nights: number; gift: string };
+type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string };
 async function offer(): Promise<Offer> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
   let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* none */ }
   const on = j.on === true, pct = Math.max(0, Math.min(50, Number(j.pct) || 0)), gn = Math.max(0, Math.min(90, Math.round(Number(j.gift_nights) || 0)));
-  return { on, pct: on ? pct : 0, gift_nights: on && String(j.gift ?? "").trim() ? gn : 0, gift: on ? String(j.gift ?? "").trim().slice(0, 80) : "" };
+  // includes: what every room comes with (for example unlimited group classes for 1 person), shown on each room; not part of the offer switch
+  return { on, pct: on ? pct : 0, gift_nights: on && String(j.gift ?? "").trim() ? gn : 0, gift: on ? String(j.gift ?? "").trim().slice(0, 80) : "", includes: String(j.includes ?? "").trim().slice(0, 120) };
 }
 const offPrice = (full: number, o: Offer) => o.pct > 0 ? Math.round(full * (100 - o.pct) / 100) : full;
 async function roomsOn() {
