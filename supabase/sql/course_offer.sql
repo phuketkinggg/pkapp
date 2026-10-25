@@ -81,7 +81,7 @@ begin
       nullif(coalesce(case when ex is not null and ex->>'package_id' is not null then jsonb_build_array(ex - 'coach_extra') end, '[]'::jsonb) || coalesce(jsonb_build_array(co), '[]'::jsonb), '[]'::jsonb),$a$);
   s := replace(s, $a$'what', k.name || coalesce(' + ' || (ex->>'label'), ''), 'email', em, 'private', pr)$a$,
     $a$'what', k.name || coalesce(' + ' || (ex->>'label'), '') || coalesce(' + ' || (co->>'label'), ''), 'email', em, 'private', pr)$a$);
-  if (length(s) - length(replace(s, 'course_addon', ''))) / 12 <> 1 or s not like '%(co->>''label'')%(co->>''label'')%' then
+  if s not like '%private.course_addon(%' or s not like '%(co->>''label'')%(co->>''label'')%' then
     raise notice 'web_pkg_order is a different version here: the course offer is not added to website orders on this database.'; return; end if;
   execute s;
 end $$;
