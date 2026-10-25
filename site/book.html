@@ -51,7 +51,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .g{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
 .g.chosen{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
 .g h3{font:700 22px/1.1 var(--display);margin:0;text-transform:uppercase}
-.price{font:700 24px var(--display)}.was{text-decoration:line-through;opacity:.6;margin-right:8px;font-weight:600}.offer{display:inline-flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:#C8102E;color:#fff;border-radius:10px;padding:10px 14px;margin:12px 0 0;font-weight:600;font-size:15px;line-height:1.35}.offer b{font:700 20px var(--display);letter-spacing:.02em}.offnote{color:#1F8A4C;font-weight:600}.incl{font-weight:600;font-size:15px;line-height:1.4;padding:8px 12px;border-radius:8px;background:rgba(200,160,70,.14);border:1px solid rgba(200,160,70,.45)}.g .rooms{display:flex;flex-wrap:wrap;gap:6px}
+.price{font:700 24px var(--display)}.was{text-decoration:line-through;opacity:.6;margin-right:8px;font-weight:600}.offer{display:inline-flex;flex-wrap:wrap;gap:6px 14px;align-items:center;background:#C8102E;color:#fff;border-radius:10px;padding:10px 14px;margin:12px 0 0;font-weight:600;font-size:15px;line-height:1.35}.offer b{font:700 20px var(--display);letter-spacing:.02em}.offer.mban{background:#171B23;border:1.5px solid #C8A046;display:flex;max-width:max-content}.offer.mban b{color:#E8C266}.offer.mban .ok{color:#fff}.offnote{color:#1F8A4C;font-weight:600}.incl{font-weight:600;font-size:15px;line-height:1.4;padding:8px 12px;border-radius:8px;background:rgba(200,160,70,.14);border:1px solid rgba(200,160,70,.45)}.g .rooms{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-block;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sunken);cursor:pointer}
 .chip:not(.full):not(.on){border-color:var(--ok);color:var(--ok);background:transparent}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}.chip.full{opacity:.5;cursor:default;text-decoration:line-through}
 .sum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
@@ -142,6 +142,7 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
   <h1 data-text="stay_t01">Book your stay</h1>
   <p data-text="stay_t02">Lakeside bungalows in the middle of Phuket, a 2 minute walk from the gym. Stay, train, recover and eat well, all in one place.</p>
   <div class="offer" id="offer" hidden></div>
+  <div class="offer mban" id="mban" hidden></div>
 </div></header>
 <main>
   <section class="card" id="step-dates">
@@ -448,6 +449,10 @@ function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){ ret
 call({mode:'info'}).then(function(d){ INFO=d;
   if(d.offer&&(d.offer.pct>0||d.offer.gift)){ $('offer').innerHTML=offerText(d.offer); $('offer').hidden=false; }
   (function(){ var sel=$('g-cur'); ['usd','gbp','eur'].forEach(function(c){ if(d.fx&&d.fx[c]) sel.appendChild(el('option',{value:c},CURN[c])); }); sel.onchange=function(){ summary(); }; if(sel.options.length<2) sel.parentNode.hidden=true; })();
+  (function(){ var o=d.offer||{}, ms=(d.groups||[]).map(function(g){ return g.month; }).filter(Boolean), a=[];
+    if(o.month_banner&&ms.length) a.push('<b>'+esc(o.month_banner.toUpperCase())+'</b><span>Monthly rooms from '+thb(Math.min.apply(null,ms))+', stay '+(d.month_nights||28)+' nights or more</span>');
+    if(o.all_include) a.push('<span class="ok">\u2713 '+esc(o.all_include)+'</span>');
+    if(a.length){ $('mban').innerHTML=a.join(''); $('mban').hidden=false; } })();
   seasonLine(); MAP=mapView(mapPick); if(MAP){ $('map').appendChild(MAP.node); paintMap(); }
   var f=qp.get('from'), t=qp.get('to'); if(f&&t&&!qp.get('ref')){ $('from').value=f; $('to').value=t; $('dates').requestSubmit(); } })
   .catch(function(){ $('derr').textContent='Booking is not available right now. Email hello@phuketking.com.'; $('derr').hidden=false; });

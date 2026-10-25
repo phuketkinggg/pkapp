@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-25', title: 'Monthly banner on the booking page', what: 'A banner at the top of the booking page: your words (for example Book monthly, save big), the lowest monthly room price, and a ticked line such as All prices include unlimited group classes. Change or clear the words any time.', where: 'Stays, Website offer, Monthly banner'},
   {date: '2026-10-25', title: 'Monthly room prices', what: 'Give each room price group a monthly price. Stays of 28 nights or more (you choose the number) pay the monthly price, and a shorter stay never costs more than a month. The booking page shows Monthly price and the saving, and points people searching 10 nights or more to the monthly prices.', where: 'Stays, Room prices, a price group, Monthly price'},
   {date: '2026-10-25', title: 'Receipts on your letterhead', what: 'Receipts you send now use the same letterhead as your invoices: your logo, address, colour, PAID stamp and footer, ready to save as a PDF. The email has your logo too.', where: 'A customer, Receipt', feature: 'receipt_send'},
   {date: '2026-10-25', title: 'What every room includes', what: 'Write what every room comes with (for example unlimited group classes for 1 person) and the booking page shows it with a tick on every room.', where: 'Stays, Room booking offer on the website, Change'},

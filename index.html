@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=21"></script>
+<script src="changelog.js?v=22"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -4048,17 +4048,19 @@ var SOFF=null;
 function stayOfferSection(){
   if(SOFF===null){ SOFF=false; sb.from('app_settings').select('value').eq('key','stay_offer').maybeSingle().then(function(res){ var v=must(res); try{ SOFF=v?JSON.parse(v.value):{}; }catch(e){ SOFF={}; } schedule(); }); }
   var o=SOFF||{};
-  var line=(!SOFF?'Loading.':o.on?((o.pct>0?o.pct+'% off every room booked on the website':'No discount')+(o.gift&&o.gift_nights?'. Stays of '+o.gift_nights+' nights or more get '+o.gift+'.':'.')):'Off. Rooms are full price on the website.')+(SOFF&&o.includes?' Every room shows: '+o.includes+'.':'');
+  var line=(!SOFF?'Loading.':o.on?((o.pct>0?o.pct+'% off every room booked on the website':'No discount')+(o.gift&&o.gift_nights?'. Stays of '+o.gift_nights+' nights or more get '+o.gift+'.':'.')):'Off. Rooms are full price on the website.')+(SOFF&&o.includes?' Every room shows: '+o.includes+'.':'')+(SOFF&&o.month_banner?' Banner: '+o.month_banner+'.':'');
   return section('Room booking offer on the website',me&&me.role==='manager'&&SOFF?btn('Change',function(){
     openForm({title:'Room booking offer',note:'Shown at the top of the booking page and on every room. The discount comes off the room price (not extras). The gift is written on the stay for the front desk.',
-      values:{on:o.on!==false,pct:o.pct==null?10:o.pct,gift_nights:o.gift_nights==null?7:o.gift_nights,gift:o.gift||'a free Phuket King training top',includes:o.includes||''},fields:[
+      values:{on:o.on!==false,pct:o.pct==null?10:o.pct,gift_nights:o.gift_nights==null?7:o.gift_nights,gift:o.gift||'a free Phuket King training top',includes:o.includes||'',month_banner:o.month_banner==null?'Book monthly, save big':o.month_banner,all_include:o.all_include==null?'All prices include unlimited group classes':o.all_include},fields:[
       {key:'on',label:'Offer is on',type:'checkbox'},
       {key:'pct',label:'Book direct discount, % off the room',type:'number',hint:'0 for no discount.'},
       {key:'gift_nights',label:'Gift for stays of at least (nights)',type:'number',hint:'0 for no gift.'},
       {key:'gift',label:'The gift',hint:'Written as: Stay 7 nights or more and get ... For example: a free Phuket King training top.'},
-      {key:'includes',label:'Every room includes',hint:'Shown with a tick on every room on the booking page, even when the offer is off. For example: Unlimited group Muay Thai classes for 1 person. Leave empty to show nothing.'}],
+      {key:'includes',label:'Every room includes',hint:'Shown with a tick on every room on the booking page, even when the offer is off. For example: Unlimited group Muay Thai classes for 1 person. Leave empty to show nothing.'},
+      {key:'month_banner',label:'Monthly banner',hint:'Big words at the top of the booking page when a room price group has a monthly price, with the lowest monthly price. Leave empty to hide it.'},
+      {key:'all_include',label:'Banner line, every price includes',hint:'Shown with a tick under the banner at the top of the booking page. Leave empty to hide it.'}],
       onSave:function(v){ var pct=Math.round(Number(v.pct)||0), gn=Math.round(Number(v.gift_nights)||0); if(pct<0||pct>50) return 'Choose a discount from 0 to 50%.'; if(gn<0||gn>90) return 'Choose 0 to 90 nights.';
-        var val={on:!!v.on,pct:pct,gift_nights:gn,gift:String(v.gift||'').trim(),includes:String(v.includes||'').trim()}, txt=JSON.stringify(val);
+        var val={on:!!v.on,pct:pct,gift_nights:gn,gift:String(v.gift||'').trim(),includes:String(v.includes||'').trim(),month_banner:String(v.month_banner||'').trim(),all_include:String(v.all_include||'').trim()}, txt=JSON.stringify(val);
         return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','stay_offer').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'stay_offer',value:txt}).then(must); }).then(function(){ SOFF=val; schedule(); }); }}); },'small'):null,
     h('div',{class:'panel pad'},h('p',{style:'margin:0'},line)));
 }
