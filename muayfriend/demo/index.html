@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=22"></script>
+<script src="changelog.js?v=23"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -4050,7 +4050,7 @@ function stayOfferSection(){
   if(SOFF===null){ SOFF=false; sb.from('app_settings').select('value').eq('key','stay_offer').maybeSingle().then(function(res){ var v=must(res); try{ SOFF=v?JSON.parse(v.value):{}; }catch(e){ SOFF={}; } schedule(); }); }
   var o=SOFF||{};
   var line=(!SOFF?'Loading.':o.on?((o.pct>0?o.pct+'% off every room booked on the website':'No discount')+(o.gift&&o.gift_nights?'. Stays of '+o.gift_nights+' nights or more get '+o.gift+'.':'.')):'Off. Rooms are full price on the website.')+(SOFF&&o.includes?' Every room shows: '+o.includes+'.':'')+(SOFF&&o.month_banner?' Banner: '+o.month_banner+'.':'');
-  return section('Room booking offer on the website',me&&me.role==='manager'&&SOFF?btn('Change',function(){
+  return section('Website offer and banners',me&&me.role==='manager'&&SOFF?btn('Change',function(){
     openForm({title:'Room booking offer',note:'Shown at the top of the booking page and on every room. The discount comes off the room price (not extras). The gift is written on the stay for the front desk.',
       values:{on:o.on!==false,pct:o.pct==null?10:o.pct,gift_nights:o.gift_nights==null?7:o.gift_nights,gift:o.gift||'a free Muay Fight Gym training top',includes:o.includes||'',month_banner:o.month_banner==null?'Book monthly, save big':o.month_banner,all_include:o.all_include==null?'All prices include unlimited group classes':o.all_include},fields:[
       {key:'on',label:'Offer is on',type:'checkbox'},
@@ -7441,6 +7441,7 @@ function vSettings(){
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
       {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
       {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
+    stayOfferSection(),
     ratesSettings(),
     extrasSettings(),
     mapSettings(),
