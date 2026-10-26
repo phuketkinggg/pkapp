@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=30"></script>
+<script src="changelog.js?v=31"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -55,7 +55,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 #nav button{appearance:none;border:0;background:transparent;color:var(--ink);font:500 15px var(--body);text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:44px;white-space:nowrap}
 #nav button:hover{background:var(--surface)}
 #nav button.navgrp{display:flex;justify-content:space-between;align-items:center;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;opacity:.75;margin-top:8px;min-height:40px}#nav button.navgrp:first-child{margin-top:0}#nav .navcar{font-size:13px;opacity:.8}#nav button.navin{padding-left:22px}#nav button.shut{display:none}
-.navedit{display:flex;flex-direction:column;gap:4px;max-height:55vh;overflow:auto}.navrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}.navrow.grp{background:var(--surface)}.navname{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1;min-width:0}.navname select{max-width:160px;font-size:13px;padding:4px 6px}.navrow.grp input{font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex:1;min-width:0}
+.navedit{display:flex;flex-direction:column;gap:4px;max-height:55vh;overflow:auto}.navrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}.navrow.grp{background:var(--surface)}.affrules{max-height:60vh;overflow:auto}.affrule{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 4px;border-bottom:1px solid var(--line)}.affrule.grp{background:var(--surface);padding:8px;margin-top:6px;border-radius:6px}.affrule.sub2{padding-left:26px}.affrule .check{margin:0}
+.navname{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1;min-width:0}.navname select{max-width:160px;font-size:13px;padding:4px 6px}.navrow.grp input{font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex:1;min-width:0}
 #nav button[aria-current="page"]{background:var(--surface);font-weight:600;box-shadow:inset 3px 0 0 var(--gold)}
 .who{margin:auto 8px 0;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .who b{color:var(--ink)}
@@ -2426,6 +2427,55 @@ function affPages(){
   if(featOn('shop')) o.push(['/shop','Shop']);
   o.push(['/about','About us'],['/blog','Blog']);
   return o; }
+/* what an affiliate earns on: everything at one %, or their own list (rooms, packages one by one or by group, courses, anything added later) */
+function affRulesLine(a){ var r=a.rules||{}, p=[], np=Object.keys(r.packages||{}).length, nc=Object.keys(r.courses||{}).length;
+  if(r.stays!=null) p.push('rooms '+r.stays+'%'); if(np) p.push(np+' package'+(np===1?'':'s')); if(nc) p.push(nc+' course'+(nc===1?'':'s')); if(r.other!=null) p.push('anything else '+r.other+'%');
+  return p.length?p.join(', '):'nothing yet'; }
+/* package groups from the names: the words before the first comma, or the first word (DTV 6 Months Lite: DTV; Training Only, 1 Month: Training Only) */
+function pkgGroup(n){ var s=String(n||'').trim(), c=s.indexOf(','); if(c>0) return s.slice(0,c).trim(); var w=s.replace(/^\d+\s+/,'').split(/\s+/)[0]||'Other'; return w.charAt(0).toUpperCase()+w.slice(1); }
+function affRules(a){
+  var base=Number(a.pct)||10, r=a.rules?JSON.parse(JSON.stringify(a.rules)):null, err=h('p',{class:'ferr',role:'alert',hidden:true});
+  if(featOn('courses')&&!CRS.list&&!CRS.busy) crsLoad().then(function(){ if($dlg.open) draw(); });
+  var pk=sortBy((S.packages||[]).filter(function(k){ return k.active!==false; }),'name'), groups={}, order=[];
+  pk.forEach(function(k){ var g=pkgGroup(k.name), key=g.toLowerCase(); if(!groups[key]){ groups[key]={name:g,list:[]}; order.push(key); } groups[key].list.push(k); });
+  order.sort(function(x,y){ return groups[x].name.localeCompare(groups[y].name); });
+  var box=h('div');
+  function pctIn(val,on,lab,set){ var i=h('input',{type:'number',min:'0',max:'50',step:'any',value:val==null?'':String(val),'aria-label':lab+', percent',style:'width:74px',disabled:on?null:''});
+    i.addEventListener('input',function(){ set(i.value===''?null:Number(i.value)); }); return i; }
+  function line(lab,val,set,sub){ var on=val!=null, cb=h('input',{type:'checkbox'}); cb.checked=on;
+    var p=pctIn(val,on,lab,function(v){ set(v); }); cb.addEventListener('change',function(){ set(cb.checked?(p.value===''?base:Number(p.value)):null); draw(); });
+    return h('div',{class:'affrule'+(sub?' sub2':'')},h('label',{class:'check'},cb,h('span',null,lab)),h('span',{class:'row'},p,'%')); }
+  function draw(){
+    if(!r){ box.replaceChildren(h('div',{class:'panel pad'},h('p',null,h('b',null,'Everything at '+base+'%. '),'Rooms, every package and every online course count.'),btn('Choose what they earn on',function(){ r={stays:base,packages:{},courses:{},other:null}; draw(); },'primary small'))); return; }
+    r.packages=r.packages||{}; r.courses=r.courses||{};
+    var parts=[h('div',{class:'row wrap',style:'margin-bottom:8px'},btn('Everything at one % instead',function(){ r=null; draw(); },'small'))];
+    if(featOn('stays')) parts.push(h('h3',{class:'billh'},'Rooms'),line('Room stays',r.stays,function(v){ r.stays=v; }));
+    parts.push(h('h3',{class:'billh'},'Packages'),h('p',{class:'sub'},'Tick a whole group or single packages, and set the % for each. A % typed on the group fills every package in it.'));
+    order.forEach(function(key){ var g=groups[key], all=g.list.every(function(k){ return r.packages[k.id]!=null; }), some=g.list.some(function(k){ return r.packages[k.id]!=null; });
+      var gcb=h('input',{type:'checkbox'}); gcb.checked=all; gcb.indeterminate=some&&!all;
+      var vals=g.list.map(function(k){ return r.packages[k.id]; }).filter(function(v){ return v!=null; }), same=vals.length&&vals.every(function(v){ return v===vals[0]; })?vals[0]:null;
+      var gp=h('input',{type:'number',min:'0',max:'50',step:'any',value:same==null?'':String(same),'aria-label':g.name+', percent for every package in it',style:'width:74px'});
+      gcb.addEventListener('change',function(){ g.list.forEach(function(k){ if(gcb.checked){ if(r.packages[k.id]==null) r.packages[k.id]=gp.value===''?base:Number(gp.value); } else delete r.packages[k.id]; }); draw(); });
+      gp.onchange=function(){ if(gp.value==='') return; var v=Number(gp.value); g.list.forEach(function(k){ r.packages[k.id]=v; }); setTimeout(draw,0); };
+      parts.push(h('div',{class:'affrule grp'},h('label',{class:'check'},gcb,h('b',null,g.name+' ('+g.list.length+')')),h('span',{class:'row'},gp,'%')));
+      g.list.forEach(function(k){ parts.push(line(k.name,r.packages[k.id],function(v){ if(v==null) delete r.packages[k.id]; else r.packages[k.id]=v; },true)); }); });
+    var cl=(CRS.list||[]).filter(function(c){ return c.status==='published'; });
+    if(featOn('courses')&&cl.length){ parts.push(h('h3',{class:'billh'},'Online courses'));
+      cl.forEach(function(c){ parts.push(line(c.title,r.courses[c.id],function(v){ if(v==null) delete r.courses[c.id]; else r.courses[c.id]=v; })); }); }
+    parts.push(h('h3',{class:'billh'},'Anything else'),line('Packages and courses added later, or not ticked above',r.other,function(v){ r.other=v; }));
+    box.replaceChildren.apply(box,parts);
+  }
+  function save(){ var bad=null;
+    if(r){ [r.stays,r.other].concat(Object.keys(r.packages).map(function(k){ return r.packages[k]; }),Object.keys(r.courses).map(function(k){ return r.courses[k]; })).forEach(function(v){ if(v!=null&&!(v>=0&&v<=50)) bad='Each % must be between 0 and 50.'; });
+      if(!bad&&r.stays==null&&r.other==null&&!Object.keys(r.packages).length&&!Object.keys(r.courses).length) bad='Tick at least one thing they earn on.'; }
+    if(bad){ err.textContent=bad; err.hidden=false; return; }
+    sb.rpc('affiliate_rules_set',{p_id:a.id,p_rules:r}).then(must).then(function(){ $dlg.close(); toast('Saved. New bookings and sales use this.'); AFF=null; affLoad(); },function(e){ err.textContent=errText(e); err.hidden=false; }); }
+  draw();
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'What '+a.name+' earns on'),
+    h('p',{class:'sub'},'Only what is ticked counts: a booking or sale of anything else through their link is not tagged to them. Changes count for new bookings and sales.'),
+    h('div',{class:'affrules'},box),err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',save,'primary')))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
 function affLinks(a){
   if(featOn('courses')&&!CRS.list&&!CRS.busy) crsLoad().then(function(){ if($dlg.open&&box.isConnected) drawPick(); });
   var box=h('div'), out=h('div',{class:'panel pad',style:'overflow-wrap:anywhere'}), pick=h('select',{id:'aff-page','aria-label':'Page'}), paste=h('input',{id:'aff-paste',type:'url',placeholder:SITE_URL+'/...',autocomplete:'off'});
@@ -2472,7 +2522,7 @@ function vAff(){
     owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
     table([
       {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),a.active?null:h('div',{class:'sub'},'Switched off')); }},
-      {label:'Share',num:true,cell:function(a){ return Number(a.pct)+'%'; }},
+      {label:'Share',num:true,cell:function(a){ return a.rules?h('span',null,'Own list',h('div',{class:'sub'},affRulesLine(a))):Number(a.pct)+'%'; }},
       {label:'Bookings',num:true,cell:function(a){ return String(affCount(a)); }},
       {label:'Coming',num:true,cell:function(a){ return thb(a.coming)||'0 THB'; }},
       {label:'Earned',num:true,cell:function(a){ return thb(a.earned)||'0 THB'; }},
@@ -2486,14 +2536,14 @@ function editAff(a){
   openForm({title:a.id?'Affiliate: '+a.name:'Add an affiliate',values:{name:a.name||'',code:a.code||'',pct:a.pct,email:a.email||'',phone:a.phone||'',customer_id:a.customer_id||'',note:a.note||'',active:a.active!==false},
     fields:[{key:'name',label:'Name',required:true,hint:'A person, a hotel, a travel agent, a fighter, a blogger.'},
       {key:'code',label:'Link code',hint:'Small letters, numbers and dashes. Leave empty to make one from the name. Their link: '+SITE_URL.replace(/^https:\/\//,'')+'/?ref=code'},
-      {key:'pct',label:'Their share of the room or package price (%)',type:'number',required:true,hint:'For example 10. Changing it later only affects new bookings.'},
+      {key:'pct',label:'Their usual share (%)',type:'number',required:true,hint:'For example 10. Next you can choose exactly what they earn on (rooms, single packages, groups of packages, courses) with a % for each.'},
       {key:'customer_id',label:'Their app account',type:'select',options:[['','Not linked']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),hint:'Linked, they see their link and what they have earned in their app.'},
       {key:'email',label:'Email',type:'email'},{key:'phone',label:'Phone'},
       {key:'note',label:'Notes',type:'textarea',hint:'For example how you pay them.'},
       {key:'active',label:'Active (untick to stop new bookings counting)',type:'checkbox'}],
     saveLabel:a.id?null:'Add',doneMsg:a.id?'Saved.':'Affiliate added. Copy their link from the list.',
     onSave:function(v){ if(!(Number(v.pct)>=0&&Number(v.pct)<=50)) return 'The share must be between 0 and 50%.';
-      return sb.rpc('affiliate_save',{p:{id:a.id||null,name:v.name,code:v.code,pct:v.pct,email:v.email,phone:v.phone,customer_id:v.customer_id||null,note:v.note,active:!!v.active}}).then(must).then(function(){ AFF=null; affLoad(); }); }});
+      return sb.rpc('affiliate_save',{p:{id:a.id||null,name:v.name,code:v.code,pct:v.pct,email:v.email,phone:v.phone,customer_id:v.customer_id||null,note:v.note,active:!!v.active}}).then(must).then(function(id){ AFF=null; affLoad(); if(!a.id&&id) setTimeout(function(){ affRules({id:id,name:v.name,pct:v.pct,rules:null}); },300); }); }});
 }
 function affPay(a){
   openForm({title:'Pay '+a.name,note:'Earned '+thb(a.earned)+', paid so far '+thb(a.paid||0)+'. It shows in Accounts as money out.',values:{amount:affOwed(a)||null,method:'transfer',on:ymd(new Date()),note:''},
@@ -2506,7 +2556,8 @@ function affDlg(a){
   var mgr=me&&me.role==='manager';
   function close(){ $dlg.close(); }
   var box=h('div',{class:'billbox'},h('h2',null,a.name),
-    h('p',{class:'sub'},Number(a.pct)+'% of the room or package price. '+[a.email,a.phone].filter(Boolean).join(', ')),
+    h('p',{class:'sub'},(a.rules?'Earns on: '+affRulesLine(a)+'. ':Number(a.pct)+'% of everything: rooms, packages and courses. ')+[a.email,a.phone].filter(Boolean).join(', ')),
+    mgr?h('div',{class:'row'},btn('What they earn on',function(){ close(); affRules(a); },'small')):null,
     h('div',{class:'panel pad'},h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Their link'),affLink(a))),
       h('div',{class:'row wrap',style:'margin-top:10px'},btn('Make a link to any page',function(){ close(); affLinks(a); },'primary small'),btn('Copy link',function(){ copyText(affLink(a),'Link copied.'); },'small'))),
     h('h3',{class:'billh'},'Bookings'),
