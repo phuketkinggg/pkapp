@@ -152,7 +152,8 @@ async function account() {
 
 type Media = { url: string; type: "image" | "video"; cover?: string };
 type Res = { id?: string; url?: string; error?: string; container?: string };
-type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null; tag_place?: boolean; collaborators?: string[] };
+type TTopts = { direct?: boolean; privacy?: string; comment?: boolean; duet?: boolean; stitch?: boolean; brand_organic?: boolean; brand_content?: boolean };
+type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null; tag_place?: boolean; collaborators?: string[]; tiktok?: TTopts };
 
 // the cover the gym chose: uploaded as the video's thumbnail (best effort, the video is already up)
 async function fbCover(videoId: string, cover: string) {
@@ -352,18 +353,32 @@ async function* pieces(body: ReadableStream<Uint8Array>, sizes: number[]) {
     yield buf.slice(0, n); buf = buf.slice(n);
   }
 }
+// who is posting and what TikTok allows them (TikTok asks for this before every direct post)
+async function ttCreator(tok: string) {
+  const r = await fetch(TT + "/post/publish/creator_info/query/", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json; charset=UTF-8" } });
+  const j = await r.json().catch(() => ({}));
+  if (!j?.data?.privacy_level_options) throw new Error("TikTok said: " + (j?.error?.message || j?.error?.code || r.status) + (j?.error?.code === "scope_not_authorized" ? ". Connect TikTok again to allow direct posting." : ""));
+  return j.data as { creator_username: string; creator_nickname: string; creator_avatar_url: string; privacy_level_options: string[]; comment_disabled: boolean; duet_disabled: boolean; stitch_disabled: boolean; max_video_post_duration_sec: number };
+}
 async function toTikTok(p: Post): Promise<Res> {
   const m = p.media ?? [];
   if (m[0]?.type !== "video") return { error: "TikTok needs a video." };
-  const tok = await ttAccess();
+  const tok = await ttAccess(), o = p.tiktok ?? {}, direct = !!o.direct;
+  let who = "";
+  if (direct) {
+    const c = await ttCreator(tok); who = c.creator_username;
+    if (!o.privacy || !c.privacy_level_options.includes(o.privacy)) return { error: "TikTok does not allow that audience for this account right now" + (c.privacy_level_options.length === 1 && c.privacy_level_options[0] === "SELF_ONLY" ? " (until TikTok approves the app, only Only me works)" : "") + ". Change Who can see it." };
+  }
   const vid = await fetch(m[0].url);
   const size = Number(vid.headers.get("content-length") || 0);
   if (!vid.ok || !vid.body || !size) return { error: "Could not read the video from storage." };
   // TikTok's pieces: 5 to 64 MB each, the last one takes the rest; a small video goes in one piece
   const CH = 10 * 1024 * 1024, chunk = size <= CH ? size : CH, count = Math.max(1, Math.floor(size / chunk));
   const sizes = Array.from({ length: count }, (_, i) => i < count - 1 ? chunk : size - chunk * (count - 1));
-  const init = await fetch(TT + "/post/publish/inbox/video/init/", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json; charset=UTF-8" },
-    body: JSON.stringify({ source_info: { source: "FILE_UPLOAD", video_size: size, chunk_size: chunk, total_chunk_count: count } }) });
+  const source_info = { source: "FILE_UPLOAD", video_size: size, chunk_size: chunk, total_chunk_count: count };
+  const init = await fetch(TT + (direct ? "/post/publish/video/init/" : "/post/publish/inbox/video/init/"), { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json; charset=UTF-8" },
+    body: JSON.stringify(direct ? { source_info, post_info: { title: (p.caption ?? "").slice(0, 2200), privacy_level: o.privacy, disable_comment: o.comment === false, disable_duet: o.duet === false, disable_stitch: o.stitch === false,
+      brand_organic_toggle: !!o.brand_organic, brand_content_toggle: !!o.brand_content } } : { source_info }) });
   const ij = await init.json().catch(() => ({}));
   const upUrl = ij?.data?.upload_url, pid = ij?.data?.publish_id;
   if (!upUrl || !pid) return { error: "TikTok said: " + (ij?.error?.message || ij?.error?.code || init.status) };
@@ -373,7 +388,18 @@ async function toTikTok(p: Post): Promise<Res> {
     if (!up.ok && up.status !== 206) return { error: "TikTok upload did not finish (" + up.status + ")." };
     at += part.length;
   }
-  return { id: pid, url: "https://www.tiktok.com/" };
+  if (!direct) return { id: pid, url: "https://www.tiktok.com/" };
+  // a direct post: wait a little for TikTok to publish it, for the link
+  const prof = who ? `https://www.tiktok.com/@${who}` : "https://www.tiktok.com/";
+  for (let i = 0; i < 8; i++) {
+    await sleep(5000);
+    const s = await fetch(TT + "/post/publish/status/fetch/", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json; charset=UTF-8" }, body: JSON.stringify({ publish_id: pid }) });
+    const sj = await s.json().catch(() => ({}));
+    const st = sj?.data?.status, ids = sj?.data?.publicaly_available_post_id ?? sj?.data?.publicly_available_post_id;
+    if (st === "FAILED") return { error: "TikTok could not post it: " + (sj?.data?.fail_reason ?? "unknown reason") + "." };
+    if (st === "PUBLISH_COMPLETE") return { id: String(ids?.[0] ?? pid), url: ids?.[0] && who ? `${prof}/video/${ids[0]}` : prof };
+  }
+  return { id: pid, url: prof }; // still processing at TikTok: it finishes on its own
 }
 async function ttCallback(u: URL) {
   const raw = u.searchParams.get("state") ?? "", cut = raw.indexOf("~");
@@ -478,8 +504,13 @@ Deno.serve(async (req) => {
       const user = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("authorization") ?? "" } }, auth: { persistSession: false } });
       const { data: st, error } = await user.rpc("tt_state_new");
       if (error || !st) return json({ error: error?.message ?? "Could not start." });
-      const q = new URLSearchParams({ client_key: TKEY(), redirect_uri: TT_BACK, response_type: "code", scope: "user.info.basic,video.upload", state: String(st) + (backUrl(b.back) ? "~" + b64e(backUrl(b.back)) : "") });
+      const q = new URLSearchParams({ client_key: TKEY(), redirect_uri: TT_BACK, response_type: "code", scope: "user.info.basic,video.upload,video.publish", state: String(st) + (backUrl(b.back) ? "~" + b64e(backUrl(b.back)) : "") });
       return json({ url: "https://www.tiktok.com/v2/auth/authorize/?" + q });
+    }
+    if (b.mode === "tt_creator") {
+      try { const c = await ttCreator(await ttAccess()); return json({ username: c.creator_username, nickname: c.creator_nickname, avatar: c.creator_avatar_url, privacy: c.privacy_level_options,
+        comment_disabled: c.comment_disabled, duet_disabled: c.duet_disabled, stitch_disabled: c.stitch_disabled, max_sec: c.max_video_post_duration_sec }); }
+      catch (e) { return json({ error: (e as Error).message }); }
     }
     if (b.mode === "check") {
       const yt = ((await admin.rpc("yt_get")).data ?? {}) as { refresh?: string; channel?: string };

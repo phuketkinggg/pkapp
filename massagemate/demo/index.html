@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=25"></script>
+<script src="changelog.js?v=26"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -4646,7 +4646,7 @@ function socTimeEdit(){ openForm({title:'Posting time',note:'New posts are set t
   fields:[{key:'t',label:'Time',type:'time',required:true}],
   onSave:function(v){ if(!/^\d\d:\d\d$/.test(v.t||'')) return 'Choose a time.'; return sb.from('app_settings').update({value:v.t,updated_at:new Date().toISOString()}).eq('key','social_time').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; SOCTIME=v.t; schedule(); }); }}); }
 function socDefaultTime(){ var t=socTime(), d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.toISOString().slice(11,16)>=t){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T'+t; }
-var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts',tiktok:'TikTok draft'};
+var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts',tiktok:'TikTok'};
 function ttOn(){ return featOn('tiktok'); }
 function ttConnect(){ socCall({mode:'tt_connect',back:location.origin+location.pathname}).then(function(d){ if(d&&d.url){ toast('Opening TikTok. Sign in with your business TikTok account.'); location.href=d.url; } })
   .catch(function(e){ toast(errText(e)); }); }
@@ -4775,7 +4775,7 @@ function socEdit(p0){
     document.body.appendChild(inp); inp.click(); }
   var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[],ttOn()?['tiktok']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
   /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
-  var capWrap=null, tagBox=null;
+  var capWrap=null, tagBox=null, ttBox=null;
   var kind=p.kind||((media[0]&&media[0].type==='video')?'reel':'post'), trial=p.trial_strategy==='SS_PERFORMANCE'?'SS_PERFORMANCE':'MANUAL', fbWas=null;
   var kindBox=h('div',{class:'seg',role:'group','aria-label':'Post type'}), trialBox=h('div',{class:'field'}), kindNote=h('small',null,'');
   function drawKind(){
@@ -4791,7 +4791,7 @@ function socEdit(p0){
     if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
     else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
     /* YouTube Shorts: reels and trial reels only (a video) */
-    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(coverBox) drawCover(); if(storyBox) drawStory(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
+    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(ttBox) drawTT(); if(coverBox) drawCover(); if(storyBox) drawStory(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
     if(yt){ var vidOk=kind==='reel'||kind==='trial'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels and trial reels.'; }
     if(tt){ var vOk=kind==='reel'||kind==='trial'; if(!vOk) tt.checked=false; tt.disabled=locked||!vOk; var tl=tt.parentNode; if(tl) tl.title=vOk?'':'TikTok is for reels (a video).'; }
   }
@@ -4877,13 +4877,42 @@ function socEdit(p0){
   tagBox=featOn('social_tags')?h('div',{class:'field'},placeName?h('label',{class:'check',for:'soc-place'},tagPlace,h('span',null,'Tag our location on Instagram: '+placeName)):null,
     h('label',{for:'soc-collab'},'Collab with (Instagram usernames, up to 3)'),collab,
     h('small',null,'They get an invite in Instagram. Once they accept, the post shows on their profile and to their followers too. Not for trial reels.')):null;
-  function vals(approve){ return {id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
+  /* TikTok: to the drafts (add a sound in TikTok), or straight to the profile with TikTok's own choices: who can see it, comments, Duet, Stitch, business or paid */
+  var tto=Object.assign({direct:false,privacy:'',comment:true,duet:true,stitch:true,brand_organic:false,brand_content:false},p.tiktok||{});
+  ttBox=h('div',{class:'field'});
+  var ttCb=pls.filter(function(x){ return x.value==='tiktok'; })[0]; if(ttCb) ttCb.addEventListener('change',function(){ drawTT(); });
+  var TTP={PUBLIC_TO_EVERYONE:'Everyone',MUTUAL_FOLLOW_FRIENDS:'Friends',FOLLOWER_OF_CREATOR:'Followers',SELF_ONLY:'Only me'};
+  function drawTT(){
+    ttBox.hidden=!ttCb||!ttCb.checked||kind==='story'; if(ttBox.hidden){ ttBox.replaceChildren(); return; }
+    var mode=h('fieldset',{class:'field checks'},h('legend',null,'TikTok'),[[false,'Send to my TikTok drafts: I add a sound in TikTok and post it'],[true,'Post straight to TikTok']].map(function(o){
+      var r=h('input',{type:'radio',name:'soc-ttm',id:'soc-ttm-'+o[0]}); r.checked=!!tto.direct===o[0]; r.disabled=locked; r.addEventListener('change',function(){ if(r.checked){ tto.direct=o[0]; drawTT(); } });
+      return h('label',{class:'check',for:r.id},r,h('span',null,o[1])); }));
+    if(!tto.direct){ ttBox.replaceChildren(mode,h('small',null,'TikTok drafts have no caption. Copy it from here when you post in TikTok.')); return; }
+    var c=SOC.ttc;
+    if(!c){ ttBox.replaceChildren(mode,h('p',{class:'sub'},'Checking your TikTok account.')); if(!SOC.ttcBusy){ SOC.ttcBusy=true; socCall({mode:'tt_creator'}).then(function(d){ SOC.ttc=d; },function(e){ SOC.ttc={error:errText(e)}; }).then(function(){ SOC.ttcBusy=false; drawTT(); }); } return; }
+    if(c.error){ ttBox.replaceChildren(mode,h('p',{class:'ferr'},c.error)); return; }
+    var sel=h('select',{id:'soc-ttp',disabled:locked?'':null},[h('option',{value:''},'Choose')].concat((c.privacy||[]).map(function(k){ return h('option',{value:k},TTP[k]||k); })));
+    sel.value=(c.privacy||[]).indexOf(tto.privacy)>=0?tto.privacy:''; sel.addEventListener('change',function(){ tto.privacy=sel.value; });
+    function tick(key,label,off){ var x=h('input',{type:'checkbox',id:'soc-tt-'+key}); x.checked=!off&&tto[key]!==false; x.disabled=locked||!!off; x.addEventListener('change',function(){ tto[key]=x.checked; if(key.indexOf('brand')===0) drawTT(); });
+      return h('label',{class:'check',for:x.id},x,h('span',null,label+(off?' (turned off in your TikTok settings)':''))); }
+    ttBox.replaceChildren(mode,
+      h('p',{class:'sub'},'Posting to @'+c.username+(c.nickname?' ('+c.nickname+')':'')+'. TikTok takes videos up to '+Math.round((c.max_sec||60)/60*10)/10+' minutes.'),
+      h('div',{class:'field'},h('label',{for:'soc-ttp'},'Who can see it on TikTok'),sel,(c.privacy||[]).length===1&&c.privacy[0]==='SELF_ONLY'?h('small',null,'Until TikTok approves the app, posts can only be Only me.'):null),
+      tick('comment','Allow comments',c.comment_disabled),tick('duet','Allow Duet',c.duet_disabled),tick('stitch','Allow Stitch',c.stitch_disabled),
+      h('p',{class:'sub',style:'margin:10px 0 4px'},'Does this video promote something?'),
+      tick('brand_organic','Yes, my own business (shows as Promotional content)'),tick('brand_content','Yes, a paid partnership with another brand (shows as Paid partnership)'),
+      h('small',null,'By posting, you agree to TikTok\u2019s ',h('a',{href:'https://www.tiktok.com/legal/page/global/music-usage-confirmation/en',target:'_blank',rel:'noopener'},'Music Usage Confirmation'),
+        tto.brand_content?[' and ',h('a',{href:'https://www.tiktok.com/legal/page/global/bc-policy/en',target:'_blank',rel:'noopener'},'Branded Content Policy')]:null,'. The caption goes with the post.'));
+  }
+  function vals(approve){ return {tiktok:tto,id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
       post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null,
       tag_place:tagPlace.checked,collaborators:String(collab.value||'').split(/[\s,]+/).map(function(x){ return x.replace(/^@+/,'').trim(); }).filter(Boolean)}; }
   function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true;
     if(approve&&kind==='story'&&media.length!==1){ bad('A story is one photo or one video. Add one.'); return; }
     if(approve&&kind!=='post'&&kind!=='story'&&!(media[0]&&media[0].type==='video')){ bad('A '+(kind==='trial'?'trial reel':'Reel')+' needs one video. Add a video, or choose Post.'); return; }
     if(kind==='post'&&media[0]&&media[0].type==='video') kind='reel';
+    if(approve&&ttCb&&ttCb.checked&&tto.direct&&!tto.privacy){ bad('Choose who can see it on TikTok.'); return; }
+    if(approve&&ttCb&&ttCb.checked&&tto.direct&&tto.brand_content&&tto.privacy==='SELF_ONLY'){ bad('A paid partnership can not be Only me on TikTok.'); return; }
     b.disabled=true;
     sb.rpc('social_save',{p:vals(approve)}).then(must).then(function(r){
       var soon=approve&&Date.parse(r.post_at)<=Date.now()+60e3;
@@ -4907,7 +4936,7 @@ function socEdit(p0){
     coverBox, storyBox,
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
-    tagBox,
+    tagBox, ttBox,
     (capWrap=h('div',null,h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
       locked?null:h('div',{class:'row'},aiB), opts,
       h('div',{class:'field'},h('label',{for:'soc-cap'},'Caption'),cap,count),
