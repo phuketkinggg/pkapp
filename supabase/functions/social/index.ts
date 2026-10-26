@@ -415,7 +415,7 @@ async function ttCallback(u: URL) {
   let name = "";
   try { const r = await fetch(TT + "/user/info/?fields=display_name", { headers: { Authorization: `Bearer ${j.access_token}` } }); const uj = await r.json(); name = uj?.data?.user?.display_name ?? ""; } catch { /* the name is a nice-to-have */ }
   await admin.rpc("tt_set", { p: { refresh: j.refresh_token, open_id: j.open_id ?? "", name, at: new Date().toISOString() } });
-  return done(name ? `TikTok connected: ${name}. Videos go to your TikTok drafts.` : "TikTok connected. Videos go to your TikTok drafts.", true);
+  return done(name ? `TikTok connected: ${name}.` : "TikTok connected.", true);
 }
 
 async function stats(n: number) {
