@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=37"></script>
+<script src="changelog.js?v=38"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -3141,23 +3141,53 @@ function crsBuyUrl(c){ return SITE_URL+'/course?c='+encodeURIComponent(c.slug); 
 function fileList(files){ if(!files||!files.length) return null;
   return h('div',{class:'lfiles'},h('b',null,'Learning materials'),files.map(function(f){ return h('a',{class:'lfile',href:f.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(f.url)?'PDF':/\.(jpe?g|png|webp)(\?|$)/i.test(f.url)?'IMG':'FILE'),f.name||'File'); })); }
 
+/* ---------- videos uploaded into the app (private bucket learn): played with a link that lasts an hour, only for people allowed to watch ---------- */
+var LSIGN={};
+function lsUrl(p){ var c=LSIGN[p]; if(c&&c.u&&c.exp>Date.now()) return c.u; if(!c||c.exp<=Date.now()){ LSIGN[p]={u:null,exp:Date.now()+15000};
+    sb.storage.from('learn').createSignedUrl(p,3600).then(function(r){ if(r&&r.data&&r.data.signedUrl){ LSIGN[p]={u:r.data.signedUrl,exp:Date.now()+3300e3}; schedule(); } else LSIGN[p]={u:null,exp:Date.now()+60000,err:true}; },function(){}); }
+  return null; }
+function learnVideo(x){ if(x&&x.video_path){ var u=lsUrl(x.video_path); return u?h('video',{class:'cvid lvideo',src:u,controls:true,preload:'metadata',playsinline:true,controlslist:'nodownload'}):h('div',{class:'cvid cwait'},LSIGN[x.video_path]&&LSIGN[x.video_path].err?'This video could not load.':'Loading the video'); }
+  return x?ytFrame(x.video):null; }
+function learnUp(file,onProg){ var ext=(String(file.name).match(/\.([a-z0-9]{2,4})$/i)||[0,'mp4'])[1].toLowerCase(), path=new Date().toISOString().slice(0,7)+'/'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)+'.'+ext;
+  var type=file.type||(ext==='mov'?'video/quicktime':'video/mp4');
+  return sb.auth.getSession().then(function(r){ var tok=r&&r.data&&r.data.session&&r.data.session.access_token;
+    return new Promise(function(ok,no){ var x=new XMLHttpRequest(); x.open('POST',SB_URL+'/storage/v1/object/learn/'+path);
+      x.setRequestHeader('Authorization','Bearer '+(tok||SB_KEY)); x.setRequestHeader('apikey',SB_KEY); x.setRequestHeader('x-upsert','false'); x.setRequestHeader('Content-Type',type); x.setRequestHeader('cache-control','max-age=86400');
+      x.upload.onprogress=function(e){ if(e.lengthComputable) onProg(e.loaded/e.total); };
+      x.onload=function(){ if(x.status>=200&&x.status<300){ onProg(1); ok(path); } else no({plain:true,message:x.status===413?'This video is too big. Keep it under 250 MB (1080p is plenty).':'The upload did not work. Try again.'}); };
+      x.onerror=function(){ no({plain:true,message:'Upload stopped. Check the internet and try again.'}); };
+      x.send(file); }); }); }
+/* in a form: an Upload a video button under the YouTube link. st.path holds the uploaded video */
+function learnUpField(anchorId,st){ var anchor=document.getElementById(anchorId); if(!anchor) return function(){};
+  var info=h('small',{class:'sub'}), bar=h('progress',{max:'100',value:'0',hidden:true,style:'width:160px'}), rm=btn('Remove',function(){ st.path=null; draw(); },'small'), busy=false;
+  var up=btn('Upload a video',function(){ var inp=h('input',{type:'file',accept:'video/mp4,video/quicktime,video/webm,video/*',hidden:true,onchange:function(){ var f=inp.files&&inp.files[0]; inp.remove(); if(!f) return;
+      if(f.size>250*1024*1024){ toast('This video is '+Math.round(f.size/1048576)+' MB. Keep it under 250 MB: 1080p is plenty.'); return; }
+      busy=true; draw(); bar.hidden=false; bar.value=0;
+      learnUp(f,function(x){ bar.value=Math.round(x*100); info.textContent='Uploading '+Math.round(x*100)+'%'; }).then(function(pth){ st.path=pth; busy=false; bar.hidden=true; draw(); toast('Video uploaded. Tap Save.'); },
+        function(e){ busy=false; bar.hidden=true; draw(); toast(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); },'small');
+  function draw(){ up.disabled=busy; up.textContent=st.path?'Upload a different video':'Upload a video'; rm.hidden=!st.path||busy;
+    if(!busy) info.textContent=st.path?'Uploaded video: it plays in place of the YouTube link. Private to the people who can watch this.':'Or upload a video from your phone or computer (up to 250 MB). Uploaded videos stay private.'; }
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('div',{class:'row',style:'align-items:center'},up,rm,bar),info),anchor.parentNode.nextSibling);
+  draw(); return draw; }
+
 /* ---------- technique library (Education): single videos with notes, in categories ---------- */
 var TEC={list:null,busy:false,view:null,q:'',cat:''};
 var TECVIS=[['public','Everyone: the website and the app'],['app','Anyone with the app'],['members','Members with an active package'],['hidden','Only inside courses']];
 function tecLoad(){ TEC.busy=true; return sb.rpc('technique_list',PV?{p_customer:PV.cid}:{}).then(must).then(function(d){ TEC.list=d||[]; TEC.busy=false; schedule(); return d; }).catch(function(e){ TEC.busy=false; TEC.err=errText(e); TEC.list=TEC.list||null; schedule(); }); }
 function tecVis(v){ var x=TECVIS.filter(function(t){ return t[0]===v; })[0]; return x?x[1]:v; }
-function tecEdit(t){ t=t||{visibility:'app'}; var cover=t.cover||null;
+function tecEdit(t){ t=t||{visibility:'app'}; var cover=t.cover||null, vst={path:t.video_path||null};
   var cats=[]; (TEC.list||[]).forEach(function(x){ if(x.category&&cats.indexOf(x.category)<0) cats.push(x.category); }); cats.sort();
   openForm({title:t.id?'Edit video':'Add a video',values:{title:t.title||'',category:t.category||'',video_url:t.video||'',body:t.body||'',visibility:t.visibility||'app',sort:t.sort||0},
     fields:[{key:'title',label:'Name',required:true,hint:'For example: The teep, front kick.'},
       {key:'category',label:'Category',hint:cats.length?'Same name groups them together. Now: '+cats.join(', ')+'.':'For example Strikes, Kicks, Knees and elbows, Clinch, Defence, Conditioning.'},
-      {key:'video_url',label:'YouTube link',required:true,hint:'For a public video, upload it to YouTube as Public or Unlisted. For app and members videos use Unlisted.'},
+      {key:'video_url',label:'YouTube link',hint:'Paste a YouTube link, or upload the video below. Public videos do best on YouTube (free, and people find them there). For members videos, uploading keeps them private.'},
       {key:'visibility',label:'Who can watch it',type:'select',options:TECVIS},
       {key:'body',label:'Coaching points',type:'textarea',rows:8,hint:'Key points and common mistakes. A blank line starts a new paragraph, - makes a list, **word** is bold.'},
       {key:'sort',label:'Order in its category',type:'number'}],
-    onSave:function(v){ if(!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...';
-      return sb.rpc('technique_save',{p:{id:t.id||null,slug:t.slug||null,title:v.title,category:v.category,video_url:v.video_url,cover_url:cover,body:v.body,visibility:v.visibility,sort:v.sort}}).then(must).then(function(){ return tecLoad(); }); },
+    onSave:function(v){ if(v.video_url&&!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...'; if(!v.video_url&&!vst.path) return 'Add a YouTube link or upload a video.';
+      return sb.rpc('technique_save',{p:{id:t.id||null,slug:t.slug||null,title:v.title,category:v.category,video_url:v.video_url||null,video_path:vst.path,cover_url:cover,body:v.body,visibility:v.visibility,sort:v.sort}}).then(must).then(function(){ return tecLoad(); }); },
     onDelete:t.id?function(){ return sb.rpc('technique_remove',{p_id:t.id}).then(must).then(function(){ return tecLoad(); }); }:null});
+  learnUpField('f-video_url',vst);
   var anchor=document.getElementById('f-body'); if(!anchor) return;
   var pic=h('img',{alt:'',style:'width:160px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(cover?'':';display:none'),src:cover||''});
   var rm=btn('Remove',function(){ cover=null; pic.style.display='none'; rm.hidden=true; },'small'); rm.hidden=!cover;
@@ -3170,6 +3200,7 @@ function tecAdmin(){
   if(!TEC.list.length) return h('div',{class:'panel empty'},'No videos yet. Tap Add a video. Public videos also show on your website, on the Education page, each with its own page that Google can find.');
   return table([{label:'Video',cell:function(t){ return linkBtn(t.title,function(){ tecEdit(t); }); }},
       {label:'Category',cell:function(t){ return t.category||''; }},
+      {label:'Video',cell:function(t){ return t.video_path?'Uploaded':t.video?'YouTube':'None'; }},
       {label:'Who can watch',cell:function(t){ return chip(tecVis(t.visibility),t.visibility==='public'?'ok':t.visibility==='hidden'?'':'warn'); }},
       {label:'',cell:function(t){ return t.visibility==='public'?h('a',{class:'btn small',href:SITE_URL+'/technique?t='+encodeURIComponent(t.slug),target:'_blank',rel:'noopener'},'Website'):null; }}],
     TEC.list,'');
@@ -3191,7 +3222,7 @@ function tecView(){ var t=TEC.view;
   var back=btn('Back',function(){ TEC.view=null; schedule(); window.scrollTo(0,0); },'small pvok');
   return [h('div',{class:'row'},back),h('div',{class:'crseye'},t.category||'Technique'),pageHead(t.title,''),
     t.locked?h('div',{class:'panel pad crslock'},h('b',null,'For members'),h('p',{class:'sub'},'This video is for members with an active package.'),h('div',{class:'row'},btn('See packages',function(){ TEC.view=null; ui.tab='c_buy'; schedule(); },'small primary'))):
-    h('div',{class:'panel pad lesson'},ytFrame(t.video),t.body?lessonText(t.body):null)];
+    h('div',{class:'panel pad lesson'},learnVideo(t),t.body?lessonText(t.body):null)];
 }
 
 /* ---------- Coaching tab for customers without coaching: offers, courses, and a way to ask ---------- */
@@ -3279,8 +3310,8 @@ function crsCourseView(asMgr){
   var back=btn(CRS.lesson?'Back to the course':'Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small pvok');
   if(cur){ var i=L.indexOf(cur), nxt=L[i+1];
     return [h('div',{class:'row'},back),pageHead(cur.title,c.title+', lesson '+(i+1)+' of '+L.length+(cur.minutes?', '+cur.minutes+' min':'')),
-      cur.opens?h('div',{class:'panel pad crslock'},h('b',null,'This lesson opens '+lessonOpens(cur.opens)),h('p',{class:'sub'},'Lessons open one by one as you go through the course. Come back then.')):cur.open?h('div',{class:'panel pad lesson'},ytFrame(cur.video),cur.body?lessonText(cur.body):null,fileList(cur.files),
-        !cur.video&&!cur.body&&!(cur.files||[]).length?h('p',{class:'sub'},'Nothing in this lesson yet.'):null):crsLocked(c),
+      cur.opens?h('div',{class:'panel pad crslock'},h('b',null,'This lesson opens '+lessonOpens(cur.opens)),h('p',{class:'sub'},'Lessons open one by one as you go through the course. Come back then.')):cur.open?h('div',{class:'panel pad lesson'},learnVideo(cur),cur.body?lessonText(cur.body):null,fileList(cur.files),
+        !cur.video&&!cur.video_path&&!cur.body&&!(cur.files||[]).length?h('p',{class:'sub'},'Nothing in this lesson yet.'):null):crsLocked(c),
       cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ crsLessonDone(c,cur,!cur.done).then(function(){ if(cur.done){ CRS.lesson=null; schedule(); window.scrollTo(0,0); toast('Done. It moved to your done list.'); } }); },cur.done?'small':'primary'),
         nxt&&!(me.role==='customer'&&c.open)?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
   }
@@ -3423,20 +3454,21 @@ function crsOfferEdit(c){
     .catch(function(e){ toast(errText(e)); }); }
 function crsMove(c,l,d){ sb.rpc('course_lesson_move',{p_lesson:l.id,p_dir:d}).then(must).then(function(){ return crsEdit(c.id); }).catch(function(e){ toast(errText(e)); }); }
 function editLesson(c,l){ l=l||{}; if(featOn('techniques')&&!TEC.list&&!TEC.busy){ tecLoad().then(function(){ editLesson(c,l.id?l:null); }); return; }
-  var files=(l.files||[]).slice();
+  var files=(l.files||[]).slice(), vst={path:l.video_path||null}, vdraw=function(){};
   openForm({title:l.id?'Edit lesson':'New lesson',values:{title:l.title||'',video_url:l.video||'',minutes:l.minutes,free:!!l.free,body:l.body||'',open_day:l.open_day||null,open_on:l.open_on||''},
     fields:[featOn('techniques')&&(TEC.list||[]).length?{key:'tec',label:'Use a video from the technique library',type:'select',options:[['','No, add it below']].concat(TEC.list.filter(function(t){ return t.video; }).map(function(t){ return [t.id,(t.category?t.category+': ':'')+t.title]; })),
-        onChange:function(v,set,get){ var t=TEC.list.filter(function(x){ return x.id===v; })[0]; if(!t) return; set('video_url',t.video||''); if(!get('title')) set('title',t.title); if(!get('body')&&t.body) set('body',t.body); }}:null,
+        onChange:function(v,set,get){ var t=TEC.list.filter(function(x){ return x.id===v; })[0]; if(!t) return; set('video_url',t.video||''); vst.path=t.video_path||null; vdraw(); if(!get('title')) set('title',t.title); if(!get('body')&&t.body) set('body',t.body); }}:null,
       {key:'title',label:'Lesson name',required:true},
-      {key:'video_url',label:'YouTube link',hint:'Upload to YouTube as Unlisted, then paste the share link here. Leave empty for a lesson without video.'},
+      {key:'video_url',label:'YouTube link',hint:'Upload to YouTube as Unlisted and paste the share link here, or upload the video below. Leave both empty for a lesson without video.'},
       {key:'minutes',label:'Length (minutes)',type:'number'},
       {key:'free',label:'Free preview (anyone can watch it on the website)',type:'checkbox'},
       {key:'open_day',label:'Opens on day',type:'number',hint:'Leave empty to open straight away. Day 1 is the day they start the course, day 3 is two days later, and so on. Good for a course they follow day by day.'},
       {key:'open_on',label:'Or opens on a date',type:'date',hint:'For everyone, from this date (Phuket time). If both are set, the later one counts. Free previews are always open.'},
       {key:'body',label:'Notes for the lesson',type:'textarea',rows:10,hint:'Key points, drills, homework. A blank line starts a new paragraph, ## makes a heading, - makes a list, **word** is bold.'}],
     onSave:function(v){ if(v.video_url&&!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...'; if(v.open_day!=null&&!(v.open_day>=1&&v.open_day<=730)) return 'Opens on day must be between 1 and 730.';
-      return sb.rpc('course_lesson_save',{p:{id:l.id||null,course_id:c.id,title:v.title,video_url:v.video_url||null,minutes:v.minutes,free:v.free,body:v.body,files:files,open_day:v.open_day==null?null:Math.round(v.open_day),open_on:v.open_on||null}}).then(must).then(function(){ return crsEdit(c.id); }); },
+      return sb.rpc('course_lesson_save',{p:{id:l.id||null,course_id:c.id,title:v.title,video_url:v.video_url||null,video_path:vst.path,minutes:v.minutes,free:v.free,body:v.body,files:files,open_day:v.open_day==null?null:Math.round(v.open_day),open_on:v.open_on||null}}).then(must).then(function(){ return crsEdit(c.id); }); },
     onDelete:l.id?function(){ return sb.rpc('course_lesson_remove',{p_lesson:l.id}).then(must).then(function(){ return crsEdit(c.id); }); }:null});
+  vdraw=learnUpField('f-video_url',vst);
   var anchor=document.getElementById('f-body'); if(!anchor) return;
   var list=h('div',{class:'lfiles edit'}), addB=btn('Add files',function(){ addFiles(); },'small'), busy=0;
   function draw(){ list.replaceChildren.apply(list,files.map(function(f,i){ return h('div',{class:'lfile'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(f.url)?'PDF':'FILE'),h('a',{href:f.url,target:'_blank',rel:'noopener'},f.name),

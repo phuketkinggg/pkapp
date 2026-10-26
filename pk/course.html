@@ -10,6 +10,7 @@
 <link rel="icon" type="image/png" href="../icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
 <link rel="stylesheet" href="site.css?v=22">
+<style>.cvidf{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}</style>
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -59,6 +60,9 @@ function priceLine(c){ return !c.price?'Free':PK.thb(c.price)+(c.members_free?' 
 
 var APP='https://app.phuketking.com/#c_learn', slug=new URLSearchParams(location.search).get('c')||'';
 function $(id){ return document.getElementById(id); }
+function signVid(p){ return fetch('https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/sign/learn/'+p,{method:'POST',headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i',Authorization:'Bearer sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i','Content-Type':'application/json'},body:JSON.stringify({expiresIn:7200})}).then(function(r){ if(!r.ok) throw new Error('sign'); return r.json(); }).then(function(d){ return 'https://jijnshwduhgegacfvpkh.supabase.co/storage/v1'+d.signedURL; }); }
+function upVid(el,p){ signVid(p).then(function(u){ var v=document.createElement('video'); v.className='cvidf'; v.src=u; v.controls=true; v.preload='metadata'; v.setAttribute('playsinline',''); v.setAttribute('controlslist','nodownload'); el.replaceWith(v); }).catch(function(){ el.textContent='The video could not load.'; }); }
+
 if(!/^[a-z0-9-]{1,80}$/.test(slug)){ location.replace('education.html'); return; }
 PK.rest('rpc/course_public?p_slug='+encodeURIComponent(slug)).then(function(list){ var c=list&&list[0];
   if(!c){ $('ctitle').textContent='Course not found'; $('csum').innerHTML='<a href="education.html">See all courses</a>'; return; }
@@ -78,7 +82,7 @@ PK.rest('rpc/course_public?p_slug='+encodeURIComponent(slug)).then(function(list
     var meta=[l.has_video?'Video':null,l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · ');
     d.innerHTML='<summary><span class="cn">'+(i+1)+'</span><span class="ct"><b>'+PK.esc(l.title)+'</b><small>'+PK.esc(meta)+'</small></span>'+(l.free?(c.price?'<span class="ctag free">Free preview</span>':''):'<span class="ctag">🔒 Locked</span>')+'</summary>';
     var body=PK.el('div','cbody');
-    if(l.free){ var id=ytId(l.video); if(id) body.innerHTML='<div class="cvid"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" title="'+PK.esc(l.title)+'" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>';
+    if(l.free){ var id=ytId(l.video); if(l.video_path){ body.innerHTML='<div class="cvid" style="display:flex;align-items:center;justify-content:center;color:#fff;background:#000">Loading the video</div>'; upVid(body.firstChild,l.video_path); } else if(id) body.innerHTML='<div class="cvid"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" title="'+PK.esc(l.title)+'" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>';
       if(l.body) body.insertAdjacentHTML('beforeend','<div class="prose">'+PK.md(l.body)+'</div>');
       if(l.files&&l.files.length) body.insertAdjacentHTML('beforeend','<div class="cfiles"><b>Learning materials</b>'+l.files.map(function(f){ return /^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\//.test(f.url)?'<a href="'+PK.esc(f.url)+'" target="_blank" rel="noopener">'+PK.esc(f.name||'File')+'</a>':''; }).join('')+'</div>'); }
     else body.innerHTML='<p class="sub">This lesson unlocks when you buy the course'+(c.members_free?', or free in the app with an active Phuket King package':'')+'.</p>';

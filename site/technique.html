@@ -9,6 +9,7 @@
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
 <link rel="stylesheet" href="site.css?v=22">
+<style>.cvidf{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}</style>
 <meta property="og:title" content="Muay Thai Technique">
 <meta property="og:description" content="A Muay Thai technique video with coaching points from the Phuket King coaches in Phuket, Thailand.">
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp">
@@ -61,6 +62,9 @@
 'use strict';
 function ytId(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
 function $(id){ return document.getElementById(id); }
+function signVid(p){ return fetch('https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/sign/learn/'+p,{method:'POST',headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i',Authorization:'Bearer sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i','Content-Type':'application/json'},body:JSON.stringify({expiresIn:7200})}).then(function(r){ if(!r.ok) throw new Error('sign'); return r.json(); }).then(function(d){ return 'https://jijnshwduhgegacfvpkh.supabase.co/storage/v1'+d.signedURL; }); }
+function upVid(el,p){ signVid(p).then(function(u){ var v=document.createElement('video'); v.className='cvidf'; v.src=u; v.controls=true; v.preload='metadata'; v.setAttribute('playsinline',''); v.setAttribute('controlslist','nodownload'); el.replaceWith(v); }).catch(function(){ el.textContent='The video could not load.'; }); }
+
 var box=$('technique'), slug=new URLSearchParams(location.search).get('t')||box.getAttribute('data-slug')||'';
 if(!/^[a-z0-9-]{1,80}$/.test(slug)){ location.replace('education.html'); return; }
 PK.rest('rpc/technique_public').then(function(list){ list=list||[]; var t=list.filter(function(x){ return x.slug===slug; })[0];
@@ -70,7 +74,8 @@ PK.rest('rpc/technique_public').then(function(list){ list=list||[]; var t=list.f
   var desc=String(t.body||'').replace(/[#*\[\]()]/g,'').replace(/\s+/g,' ').trim().slice(0,155)||('How to do '+t.title+' in Muay Thai, from the Phuket King coaches.');
   PK.seo({path:'technique/'+slug,title:t.title,description:desc,image:img,ld:{'@context':'https://schema.org','@type':'VideoObject',name:t.title,description:desc,thumbnailUrl:img?[img]:undefined,uploadDate:String(t.updated||'').slice(0,10)||undefined,embedUrl:id?'https://www.youtube-nocookie.com/embed/'+id:undefined,publisher:{'@type':'Organization',name:'Phuket King Muay Thai',url:'https://www.phuketking.com/'}}});
   $('tcat').textContent=t.category||'Technique'; $('ttitle').textContent=t.title;
-  box.innerHTML=(id?'<div class="cvid"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" title="'+PK.esc(t.title)+'" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>':'')+(t.body?'<div class="prose">'+PK.md(t.body)+'</div>':'');
+  box.innerHTML=(t.video_path?'<div class="cvid" id="upv" style="display:flex;align-items:center;justify-content:center;color:#fff;background:#000">Loading the video</div>':'')+(!t.video_path&&id?'<div class="cvid"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" title="'+PK.esc(t.title)+'" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div>':'')+(t.body?'<div class="prose">'+PK.md(t.body)+'</div>':'');
+  if(t.video_path) upVid($('upv'),t.video_path);
   var more=list.filter(function(x){ return x.slug!==slug&&(x.category||'')===(t.category||''); }).slice(0,6);
   if(more.length){ $('tmore').innerHTML='<h2 style="margin-top:28px">More '+PK.esc((t.category||'techniques').toLowerCase())+'</h2><span class="rule"></span><ul>'+more.map(function(x){ return '<li><a href="technique.html?t='+encodeURIComponent(x.slug)+'">'+PK.esc(x.title)+'</a></li>'; }).join('')+'</ul>'; }
 }).catch(function(){ if(!box.getAttribute('data-slug')) $('ttitle').textContent='Video could not load'; });
