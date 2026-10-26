@@ -16,7 +16,7 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html", "page.html", "privacy.html", "404.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html", "page.html", "privacy.html", "terms.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
@@ -31,7 +31,7 @@ def fix_book(html):
     return html
 
 NAMES = {"about.html": "About", "prices.html": "Prices", "dtv.html": "DTV Visa", "shop.html": "Shop", "blog.html": "Blog", "wellness.html": "Wellness and recovery",
-         "courses.html": "Online courses", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy"}
+         "courses.html": "Online courses", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service"}
 DYNAMIC = ("post.html", "page.html", "course.html", "404.html")
 DEFAULT_IMG = "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp"
 
