@@ -1,0 +1,1458 @@
+{
+" can now coach ": [
+" สามารถโค้ชได้แล้ว: ",
+" ယခု နည်းပြပေးနိုင်ပြီ: "
+],
+" tutorial link": [
+" ลิงก์สอน",
+" သင်ခန်းစာ လင့်ခ်"
+],
+", arrived": [
+" มาถึงแล้ว",
+"၊ ရောက်ပြီ"
+],
+", in ": [
+" อีก ",
+"၊ နောက် "
+],
+", so there is nothing to send.": [
+" จึงไม่มีอะไรต้องส่ง",
+"၊ ထို့ကြောင့် ပို့စရာ မရှိပါ။"
+],
+", target ": [
+" เป้าหมาย ",
+"၊ ပန်းတိုင် "
+],
+", today": [
+" วันนี้",
+"၊ ယနေ့"
+],
+", tomorrow": [
+" พรุ่งนี้",
+"၊ မနက်ဖြန်"
+],
+"2 years plus": [
+"2 ปีขึ้นไป",
+"၂ နှစ်နှင့်အထက်"
+],
+"8 or 30 sec": [
+"8 หรือ 30 วินาที",
+"8 သို့မဟုတ် 30 စက္ကန့်"
+],
+"90 sec": [
+"90 วินาที",
+"90 စက္ကန့်"
+],
+"A YouTube link (Unlisted is fine), or upload a video below.": [
+"ลิงก์ YouTube (แบบไม่เป็นสาธารณะก็ได้) หรืออัปโหลดวิดีโอด้านล่าง",
+"YouTube လင့်ခ် (Unlisted ဖြစ်လည်း ရသည်) သို့မဟုတ် အောက်တွင် ဗီဒီယိုတင်ပါ။"
+],
+"A number of times a week, any days": [
+"จำนวนครั้งต่อสัปดาห์ วันไหนก็ได้",
+"တစ်ပတ်လျှင် အကြိမ်အရေအတွက်၊ မည်သည့်ရက်မဆို"
+],
+"A simple daily plan for the next two weeks, so you arrive ready\nCoaches who already know you and your goals when you walk in": [
+"แผนรายวันง่ายๆ สำหรับสองสัปดาห์ข้างหน้า เพื่อให้คุณมาถึงอย่างพร้อม\nโค้ชที่รู้จักคุณและเป้าหมายของคุณตั้งแต่ก้าวแรกที่เข้ามา",
+"ရောက်လာချိန်တွင် အသင့်ဖြစ်နေစေရန် လာမည့် နှစ်ပတ်အတွက် ရိုးရှင်းသော နေ့စဉ်အစီအစဉ်\nသင်ဝင်လာချိန်တွင် သင့်နှင့် သင့်ပန်းတိုင်ကို သိပြီးသား နည်းပြများ"
+],
+"A win would be": [
+"ความสำเร็จคือ",
+"အောင်မြင်မှုဆိုသည်မှာ"
+],
+"About them": [
+"เกี่ยวกับพวกเขา",
+"သူတို့အကြောင်း"
+],
+"Add a habit": [
+"เพิ่มนิสัย",
+"အလေ့အထ ထည့်ရန်"
+],
+"Add a program to ": [
+"เพิ่มโปรแกรมให้ ",
+"အစီအစဉ် ထည့်ပေးရန်: "
+],
+"Add a weight": [
+"เพิ่มน้ำหนัก",
+"ကိုယ်အလေးချိန် ထည့်ရန်"
+],
+"Add from a template": [
+"เพิ่มจากเทมเพลต",
+"ပုံစံခွက်မှ ထည့်ရန်"
+],
+"Added to their app.": [
+"เพิ่มในแอปของพวกเขาแล้ว",
+"သူတို့၏ app သို့ ထည့်ပြီးပါပြီ။"
+],
+"Added. You can adjust their copy without changing the template.": [
+"เพิ่มแล้ว คุณปรับสำเนาของพวกเขาได้โดยไม่เปลี่ยนเทมเพลต",
+"ထည့်ပြီးပါပြီ။ ပုံစံခွက်ကို မပြောင်းဘဲ သူတို့၏ မိတ္တူကို ပြင်နိုင်သည်။"
+],
+"Advanced": [
+"ขั้นสูง",
+"အဆင့်မြင့်"
+],
+"Also wants": [
+"ต้องการเพิ่มเติม",
+"ထပ်လိုချင်သည်"
+],
+"America/Anchorage": [
+"America/Anchorage",
+"America/Anchorage"
+],
+"America/Chicago": [
+"America/Chicago",
+"America/Chicago"
+],
+"America/Denver": [
+"America/Denver",
+"America/Denver"
+],
+"America/Detroit": [
+"America/Detroit",
+"America/Detroit"
+],
+"America/Edmonton": [
+"America/Edmonton",
+"America/Edmonton"
+],
+"America/Los_Angeles": [
+"America/Los_Angeles",
+"America/Los_Angeles"
+],
+"America/New_York": [
+"America/New_York",
+"America/New_York"
+],
+"America/Phoenix": [
+"America/Phoenix",
+"America/Phoenix"
+],
+"America/Toronto": [
+"America/Toronto",
+"America/Toronto"
+],
+"America/Vancouver": [
+"America/Vancouver",
+"America/Vancouver"
+],
+"Answered": [
+"ตอบแล้ว",
+"ဖြေပြီး"
+],
+"Apr": [
+"เม.ย.",
+"ဧ"
+],
+"Armenia": [
+"อาร์เมเนีย",
+"အာမေးနီးယား"
+],
+"Asia/Almaty": [
+"Asia/Almaty",
+"Asia/Almaty"
+],
+"Asia/Bahrain": [
+"Asia/Bahrain",
+"Asia/Bahrain"
+],
+"Asia/Baku": [
+"Asia/Baku",
+"Asia/Baku"
+],
+"Asia/Calcutta": [
+"Asia/Calcutta",
+"Asia/Calcutta"
+],
+"Asia/Colombo": [
+"Asia/Colombo",
+"Asia/Colombo"
+],
+"Asia/Dhaka": [
+"Asia/Dhaka",
+"Asia/Dhaka"
+],
+"Asia/Dubai": [
+"Asia/Dubai",
+"Asia/Dubai"
+],
+"Asia/Ho_Chi_Minh": [
+"Asia/Ho_Chi_Minh",
+"Asia/Ho_Chi_Minh"
+],
+"Asia/Hong_Kong": [
+"Asia/Hong_Kong",
+"Asia/Hong_Kong"
+],
+"Asia/Jakarta": [
+"Asia/Jakarta",
+"Asia/Jakarta"
+],
+"Asia/Jerusalem": [
+"Asia/Jerusalem",
+"Asia/Jerusalem"
+],
+"Asia/Karachi": [
+"Asia/Karachi",
+"Asia/Karachi"
+],
+"Asia/Kathmandu": [
+"Asia/Kathmandu",
+"Asia/Kathmandu"
+],
+"Asia/Kolkata": [
+"Asia/Kolkata",
+"Asia/Kolkata"
+],
+"Asia/Kuala_Lumpur": [
+"Asia/Kuala_Lumpur",
+"Asia/Kuala_Lumpur"
+],
+"Asia/Kuwait": [
+"Asia/Kuwait",
+"Asia/Kuwait"
+],
+"Asia/Makassar": [
+"Asia/Makassar",
+"Asia/Makassar"
+],
+"Asia/Manila": [
+"Asia/Manila",
+"Asia/Manila"
+],
+"Asia/Muscat": [
+"Asia/Muscat",
+"Asia/Muscat"
+],
+"Asia/Phnom_Penh": [
+"Asia/Phnom_Penh",
+"Asia/Phnom_Penh"
+],
+"Asia/Qatar": [
+"Asia/Qatar",
+"Asia/Qatar"
+],
+"Asia/Riyadh": [
+"Asia/Riyadh",
+"Asia/Riyadh"
+],
+"Asia/Saigon": [
+"Asia/Saigon",
+"Asia/Saigon"
+],
+"Asia/Seoul": [
+"Asia/Seoul",
+"Asia/Seoul"
+],
+"Asia/Shanghai": [
+"Asia/Shanghai",
+"Asia/Shanghai"
+],
+"Asia/Singapore": [
+"Asia/Singapore",
+"Asia/Singapore"
+],
+"Asia/Taipei": [
+"Asia/Taipei",
+"Asia/Taipei"
+],
+"Asia/Tashkent": [
+"Asia/Tashkent",
+"Asia/Tashkent"
+],
+"Asia/Tbilisi": [
+"Asia/Tbilisi",
+"Asia/Tbilisi"
+],
+"Asia/Tehran": [
+"Asia/Tehran",
+"Asia/Tehran"
+],
+"Asia/Tel_Aviv": [
+"Asia/Tel_Aviv",
+"Asia/Tel_Aviv"
+],
+"Asia/Tokyo": [
+"Asia/Tokyo",
+"Asia/Tokyo"
+],
+"Asia/Vientiane": [
+"Asia/Vientiane",
+"Asia/Vientiane"
+],
+"Asia/Yangon": [
+"Asia/Yangon",
+"Asia/Yangon"
+],
+"Asia/Yerevan": [
+"Asia/Yerevan",
+"Asia/Yerevan"
+],
+"Atlantic/Reykjavik": [
+"Atlantic/Reykjavik",
+"Atlantic/Reykjavik"
+],
+"Aug": [
+"ส.ค.",
+"ဩ"
+],
+"Austria": [
+"ออสเตรีย",
+"သြစတြီးယား"
+],
+"Automatic emails are off": [
+"อีเมลอัตโนมัติปิดอยู่",
+"အလိုအလျောက် အီးမေးလ် ပိတ်ထားသည်"
+],
+"Automatic emails are on": [
+"อีเมลอัตโนมัติเปิดอยู่",
+"အလိုအလျောက် အီးမေးလ် ဖွင့်ထားသည်"
+],
+"Azerbaijan": [
+"อาเซอร์ไบจาน",
+"အဇာဘိုင်ဂျန်"
+],
+"Back to clients": [
+"กลับไปที่ลูกค้า",
+"ဖောက်သည်များသို့ ပြန်သွားရန်"
+],
+"Bahrain": [
+"บาห์เรน",
+"ဘာရိန်း"
+],
+"Bangladesh": [
+"บังกลาเทศ",
+"ဘင်္ဂလားဒေ့ရှ်"
+],
+"Beginner": [
+"มือใหม่",
+"အစပြုသူ"
+],
+"Belarus": [
+"เบลารุส",
+"ဘီလာရုစ်"
+],
+"Belgium": [
+"เบลเยียม",
+"ဘယ်လ်ဂျီယမ်"
+],
+"Big heading": [
+"หัวข้อใหญ่",
+"ခေါင်းစဉ်ကြီး"
+],
+"Big photo at the top": [
+"รูปใหญ่ด้านบน",
+"အပေါ်ရှိ ဓာတ်ပုံကြီး"
+],
+"Blood pressure": [
+"ความดันโลหิต",
+"သွေးပေါင်"
+],
+"Blood test": [
+"ตรวจเลือด",
+"သွေးစစ်ချက်"
+],
+"Blood test file": [
+"ไฟล์ผลตรวจเลือด",
+"သွေးစစ်ဖိုင်"
+],
+"Blood tests": [
+"ผลตรวจเลือด",
+"သွေးစစ်ချက်များ"
+],
+"Boxing": [
+"มวยสากล",
+"လက်ဝှေ့"
+],
+"Bulgaria": [
+"บัลแกเรีย",
+"ဘူလ်ဂေးရီးယား"
+],
+"By this date": [
+"ภายในวันที่",
+"ဤရက်မတိုင်မီ"
+],
+"Call to action": [
+"ปุ่มชวนให้ทำ",
+"လုပ်ဆောင်ရန် ဖိတ်ခေါ်ချက်"
+],
+"Cambodia": [
+"กัมพูชา",
+"ကမ္ဘောဒီးယား"
+],
+"Canada": [
+"แคนาดา",
+"ကနေဒါ"
+],
+"Cards": [
+"การ์ด",
+"ကတ်များ"
+],
+"China": [
+"จีน",
+"တရုတ်"
+],
+"Clear the goal": [
+"ล้างเป้าหมาย",
+"ပန်းတိုင် ဖျက်ရန်"
+],
+"Coach video added": [
+"เพิ่มวิดีโอโค้ชแล้ว",
+"နည်းပြဗီဒီယို ထည့်ပြီး"
+],
+"Coach video: you introducing the coaches": [
+"วิดีโอโค้ช: คุณแนะนำโค้ช",
+"နည်းပြဗီဒီယို: သင် နည်းပြများကို မိတ်ဆက်ခြင်း"
+],
+"Coaches who can see this client": [
+"โค้ชที่ดูลูกค้ารายนี้ได้",
+"ဤဖောက်သည်ကို ကြည့်နိုင်သော နည်းပြများ"
+],
+"Coaches: ": [
+"โค้ช: ",
+"နည်းပြများ: "
+],
+"Coaching. Private to this client, their coaches and the managers.": [
+"การโค้ช เป็นส่วนตัวสำหรับลูกค้ารายนี้ โค้ชของพวกเขา และผู้จัดการ",
+"နည်းပြခြင်း။ ဤဖောက်သည်၊ ၎င်း၏နည်းပြများနှင့် မန်နေဂျာများသာ ကြည့်နိုင်သည်။"
+],
+"Complete beginner": [
+"มือใหม่สุดๆ",
+"လုံးဝ အစပြုသူ"
+],
+"Confidence": [
+"ความมั่นใจ",
+"ယုံကြည်မှု"
+],
+"Copy form link": [
+"คัดลอกลิงก์แบบฟอร์ม",
+"ဖောင်လင့်ခ် ကူးရန်"
+],
+"Copy this link": [
+"คัดลอกลิงก์นี้",
+"ဤလင့်ခ်ကို ကူးရန်"
+],
+"Croatia": [
+"โครเอเชีย",
+"ခရိုအေးရှား"
+],
+"CrossFit or HIIT": [
+"CrossFit หรือ HIIT",
+"CrossFit သို့မဟုတ် HIIT"
+],
+"Czechia": [
+"เช็กเกีย",
+"ချက်"
+],
+"Dec": [
+"ธ.ค.",
+"ဒီ"
+],
+"Demo video": [
+"วิดีโอสาธิต",
+"သရုပ်ပြဗီဒီယို"
+],
+"Denmark": [
+"เดนมาร์ก",
+"ဒိန်းမတ်"
+],
+"Each link must start with https://": [
+"แต่ละลิงก์ต้องขึ้นต้นด้วย https://",
+"လင့်ခ်တိုင်း https:// ဖြင့် စရမည်"
+],
+"Early access": [
+"เข้าใช้ก่อน",
+"စောစီးစွာ သုံးခွင့်"
+],
+"Edit exercise": [
+"แก้ไขท่าออกกำลังกาย",
+"လေ့ကျင့်ခန်း ပြင်ရန်"
+],
+"Edit habit": [
+"แก้ไขนิสัย",
+"အလေ့အထ ပြင်ရန်"
+],
+"Edit the email": [
+"แก้ไขอีเมล",
+"အီးမေးလ် ပြင်ရန်"
+],
+"Email failed": [
+"ส่งอีเมลไม่สำเร็จ",
+"အီးမေးလ် ပို့၍မရပါ"
+],
+"Email me the coach brief": [
+"ส่งสรุปสำหรับโค้ชทางอีเมลให้ฉัน",
+"နည်းပြအကျဉ်းချုပ်ကို ကျွန်ုပ်ထံ အီးမေးလ်ပို့ပါ"
+],
+"Email sent": [
+"ส่งอีเมลแล้ว",
+"အီးမေးလ် ပို့ပြီး"
+],
+"Estonia": [
+"เอสโตเนีย",
+"အက်စ်တိုးနီးယား"
+],
+"Europe/Amsterdam": [
+"Europe/Amsterdam",
+"Europe/Amsterdam"
+],
+"Europe/Athens": [
+"Europe/Athens",
+"Europe/Athens"
+],
+"Europe/Belgrade": [
+"Europe/Belgrade",
+"Europe/Belgrade"
+],
+"Europe/Berlin": [
+"Europe/Berlin",
+"Europe/Berlin"
+],
+"Europe/Bratislava": [
+"Europe/Bratislava",
+"Europe/Bratislava"
+],
+"Europe/Brussels": [
+"Europe/Brussels",
+"Europe/Brussels"
+],
+"Europe/Bucharest": [
+"Europe/Bucharest",
+"Europe/Bucharest"
+],
+"Europe/Budapest": [
+"Europe/Budapest",
+"Europe/Budapest"
+],
+"Europe/Copenhagen": [
+"Europe/Copenhagen",
+"Europe/Copenhagen"
+],
+"Europe/Dublin": [
+"Europe/Dublin",
+"Europe/Dublin"
+],
+"Europe/Helsinki": [
+"Europe/Helsinki",
+"Europe/Helsinki"
+],
+"Europe/Istanbul": [
+"Europe/Istanbul",
+"Europe/Istanbul"
+],
+"Europe/Kiev": [
+"Europe/Kiev",
+"Europe/Kiev"
+],
+"Europe/Kyiv": [
+"Europe/Kyiv",
+"Europe/Kyiv"
+],
+"Europe/Lisbon": [
+"Europe/Lisbon",
+"Europe/Lisbon"
+],
+"Europe/Ljubljana": [
+"Europe/Ljubljana",
+"Europe/Ljubljana"
+],
+"Europe/London": [
+"Europe/London",
+"Europe/London"
+],
+"Europe/Luxembourg": [
+"Europe/Luxembourg",
+"Europe/Luxembourg"
+],
+"Europe/Madrid": [
+"Europe/Madrid",
+"Europe/Madrid"
+],
+"Europe/Malta": [
+"Europe/Malta",
+"Europe/Malta"
+],
+"Europe/Minsk": [
+"Europe/Minsk",
+"Europe/Minsk"
+],
+"Europe/Moscow": [
+"Europe/Moscow",
+"Europe/Moscow"
+],
+"Europe/Oslo": [
+"Europe/Oslo",
+"Europe/Oslo"
+],
+"Europe/Paris": [
+"Europe/Paris",
+"Europe/Paris"
+],
+"Europe/Prague": [
+"Europe/Prague",
+"Europe/Prague"
+],
+"Europe/Riga": [
+"Europe/Riga",
+"Europe/Riga"
+],
+"Europe/Rome": [
+"Europe/Rome",
+"Europe/Rome"
+],
+"Europe/Sofia": [
+"Europe/Sofia",
+"Europe/Sofia"
+],
+"Europe/Stockholm": [
+"Europe/Stockholm",
+"Europe/Stockholm"
+],
+"Europe/Tallinn": [
+"Europe/Tallinn",
+"Europe/Tallinn"
+],
+"Europe/Vienna": [
+"Europe/Vienna",
+"Europe/Vienna"
+],
+"Europe/Vilnius": [
+"Europe/Vilnius",
+"Europe/Vilnius"
+],
+"Europe/Warsaw": [
+"Europe/Warsaw",
+"Europe/Warsaw"
+],
+"Europe/Zagreb": [
+"Europe/Zagreb",
+"Europe/Zagreb"
+],
+"Europe/Zurich": [
+"Europe/Zurich",
+"Europe/Zurich"
+],
+"Fasting glucose": [
+"น้ำตาลในเลือดขณะอดอาหาร",
+"အစာရှောင်သွေးချိုဓာတ်"
+],
+"Fears or worries": [
+"ความกลัวหรือความกังวล",
+"ကြောက်ရွံ့မှု သို့မဟုတ် စိုးရိမ်မှု"
+],
+"Feb": [
+"ก.พ.",
+"ဖေ"
+],
+"Ferritin": [
+"เฟอร์ริติน",
+"ဖယ်ရီတင်"
+],
+"Fight prep": [
+"เตรียมขึ้นชก",
+"ပွဲထိုးရန်ပြင်ဆင်ခြင်း"
+],
+"Finished or stopped": [
+"เสร็จแล้วหรือหยุดแล้ว",
+"ပြီးဆုံး သို့မဟုတ် ရပ်ထားပြီး"
+],
+"Finland": [
+"ฟินแลนด์",
+"ဖင်လန်"
+],
+"For a fight: the weigh-in day.": [
+"สำหรับการชก: วันชั่งน้ำหนัก",
+"ပွဲထိုးရန်အတွက်: ချိန်တွယ်မည့်ရက်။"
+],
+"For example: Fight at Bangla Stadium, 61 kg.": [
+"เช่น: ชกที่สนามมวยบางลา 61 กก.",
+"ဥပမာ: Bangla Stadium တွင် ပွဲထိုးမည်၊ 61 kg။"
+],
+"For example: official weigh-in, after sauna.": [
+"เช่น: ชั่งน้ำหนักทางการ, หลังซาวน่า",
+"ဥပမာ: တရားဝင် ချိန်တွယ်ခြင်း၊ ဆောင်းနာပြီးနောက်။"
+],
+"For how many weeks": [
+"กี่สัปดาห์",
+"ပတ်ရေ မည်မျှ"
+],
+"Form done": [
+"กรอกแบบฟอร์มแล้ว",
+"ဖောင်ဖြည့်ပြီး"
+],
+"Form link copied. Paste it in WhatsApp or LINE.": [
+"คัดลอกลิงก์แบบฟอร์มแล้ว วางใน WhatsApp หรือ LINE ได้เลย",
+"ဖောင်လင့်ခ် ကူးပြီးပါပြီ။ WhatsApp သို့မဟုတ် LINE တွင် ကူးထည့်ပါ။"
+],
+"France": [
+"ฝรั่งเศส",
+"ပြင်သစ်"
+],
+"Georgia": [
+"จอร์เจีย",
+"ဂျော်ဂျီယာ"
+],
+"Germany": [
+"เยอรมนี",
+"ဂျာမနီ"
+],
+"Get fit": [
+"ฟิตร่างกาย",
+"ကြံ့ခိုင်အောင်လုပ်ရန်"
+],
+"Get ready email and plan": [
+"อีเมลเตรียมตัวและแผน",
+"အသင့်ပြင်ရန် အီးမေးလ်နှင့် အစီအစဉ်"
+],
+"Give": [
+"ให้",
+"ပေးရန်"
+],
+"Give to a client": [
+"ให้ลูกค้า",
+"ဖောက်သည်ထံ ပေးရန်"
+],
+"Give “": [
+"ให้ “",
+"“"
+],
+"Goal weight in kg": [
+"น้ำหนักเป้าหมาย (กก.)",
+"ပန်းတိုင် အလေးချိန် (kg)"
+],
+"Greece": [
+"กรีซ",
+"ဂရိ"
+],
+"Gym and weights": [
+"ยิมและเวท",
+"ဂျင်နှင့် အလေးမ"
+],
+"Has fought": [
+"เคยขึ้นชก",
+"ပွဲထိုးဖူးသည်"
+],
+"Has instructions": [
+"มีคำแนะนำ",
+"ညွှန်ကြားချက် ပါသည်"
+],
+"HbA1c": [
+"HbA1c",
+"HbA1c"
+],
+"Health numbers": [
+"ค่าสุขภาพ",
+"ကျန်းမာရေး ကိန်းဂဏန်းများ"
+],
+"Hide answers": [
+"ซ่อนคำตอบ",
+"အဖြေများ ဖျောက်ရန်"
+],
+"Hong Kong": [
+"ฮ่องกง",
+"ဟောင်ကောင်"
+],
+"How to do it and why": [
+"วิธีทำและเหตุผล",
+"လုပ်နည်းနှင့် အကြောင်းရင်း"
+],
+"Hungary": [
+"ฮังการี",
+"ဟန်ဂေရီ"
+],
+"Iceland": [
+"ไอซ์แลนด์",
+"အိုက်စလန်"
+],
+"India": [
+"อินเดีย",
+"အိန္ဒိယ"
+],
+"Indonesia": [
+"อินโดนีเซีย",
+"အင်ဒိုနီးရှား"
+],
+"Injury": [
+"อาการบาดเจ็บ",
+"ဒဏ်ရာ"
+],
+"Intensity": [
+"ความหนัก",
+"ပြင်းအား"
+],
+"Intermediate": [
+"ระดับกลาง",
+"အလယ်အလတ်"
+],
+"Iran": [
+"อิหร่าน",
+"အီရန်"
+],
+"Ireland": [
+"ไอร์แลนด์",
+"အိုင်ယာလန်"
+],
+"Israel": [
+"อิสราเอล",
+"အစ္စရေး"
+],
+"It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.": [
+"ใช้เวลาประมาณ 5 นาทีบนมือถือ ไม่ต้องใช้แอปหรือรหัสผ่าน เพิ่มรูปเพื่อให้โค้ชจำคุณได้เมื่อคุณมาถึง",
+"ဖုန်းဖြင့် ၅ မိနစ်ခန့်သာ ကြာပြီး app သို့မဟုတ် စကားဝှက် မလိုပါ။ သင်ရောက်လာချိန်တွင် နည်းပြများ မှတ်မိစေရန် ဓာတ်ပုံထည့်ပါ။"
+],
+"Italy": [
+"อิตาลี",
+"အီတလီ"
+],
+"Jan": [
+"ม.ค.",
+"ဇန်"
+],
+"Japan": [
+"ญี่ปุ่น",
+"ဂျပန်"
+],
+"Jul": [
+"ก.ค.",
+"ဇူ"
+],
+"Jun": [
+"มิ.ย.",
+"ဇွန်"
+],
+"Kazakhstan": [
+"คาซัคสถาน",
+"ကာဇက်စတန်"
+],
+"Kickboxing": [
+"คิกบ็อกซิ่ง",
+"ကစ်ဘောက်ဆင်"
+],
+"Kuwait": [
+"คูเวต",
+"ကူဝိတ်"
+],
+"Laos": [
+"ลาว",
+"လာအို"
+],
+"Last changed ": [
+"เปลี่ยนล่าสุด ",
+"နောက်ဆုံးပြင်ဆင်ချိန် "
+],
+"Latvia": [
+"ลัตเวีย",
+"လတ်ဗီးယား"
+],
+"Learn Muay Thai": [
+"เรียนมวยไทย",
+"မွေ့ထိုင်း သင်ယူခြင်း"
+],
+"Leave empty to keep it going until you stop it.": [
+"เว้นว่างไว้เพื่อให้ทำต่อไปจนกว่าคุณจะหยุด",
+"သင်မရပ်မချင်း ဆက်လုပ်စေရန် အလွတ်ထားပါ။"
+],
+"Lithuania": [
+"ลิทัวเนีย",
+"လစ်သူယေးနီးယား"
+],
+"Lose weight": [
+"ลดน้ำหนัก",
+"ကိုယ်အလေးချိန်လျှော့ရန်"
+],
+"Luxembourg": [
+"ลักเซมเบิร์ก",
+"လူဇင်ဘတ်"
+],
+"Malaysia": [
+"มาเลเซีย",
+"မလေးရှား"
+],
+"Malta": [
+"มอลตา",
+"မော်လ်တာ"
+],
+"Mar": [
+"มี.ค.",
+"မတ်"
+],
+"May": [
+"พ.ค.",
+"မေ"
+],
+"Meet your coaches": [
+"พบกับโค้ชของคุณ",
+"သင့်နည်းပြများနှင့် တွေ့ဆုံပါ"
+],
+"Mental wellbeing": [
+"สุขภาพจิต",
+"စိတ်ကျန်းမာရေး"
+],
+"Muay Thai experience": [
+"ประสบการณ์มวยไทย",
+"မွေ့ထိုင်း အတွေ့အကြုံ"
+],
+"Myanmar": [
+"เมียนมา",
+"မြန်မာ"
+],
+"Nepal": [
+"เนปาล",
+"နီပေါ"
+],
+"Netherlands": [
+"เนเธอร์แลนด์",
+"နယ်သာလန်"
+],
+"New habit for ": [
+"นิสัยใหม่สำหรับ ",
+"အလေ့အထအသစ်: "
+],
+"New program": [
+"โปรแกรมใหม่",
+"အစီအစဉ်အသစ်"
+],
+"New room bookings and website packages get the email up to 14 days before arrival. Early app access guests get it as soon as they book.": [
+"การจองห้องใหม่และแพ็กเกจจากเว็บไซต์จะได้รับอีเมลไม่เกิน 14 วันก่อนมาถึง แขกที่เข้าแอปก่อนจะได้รับทันทีที่จอง",
+"အခန်းဘွတ်ကင်အသစ်များနှင့် ဝက်ဘ်ဆိုက် package များသည် ရောက်ရှိမည့်ရက်မတိုင်မီ ၁၄ ရက်အတွင်း အီးမေးလ် ရရှိမည်။ App ကို စောစီးစွာ သုံးခွင့်ရသော ဧည့်သည်များမှာ ဘွတ်ကင်လုပ်သည်နှင့် ရရှိမည်။"
+],
+"No coach video yet": [
+"ยังไม่มีวิดีโอโค้ช",
+"နည်းပြဗီဒီယို မရှိသေးပါ"
+],
+"No email on file": [
+"ไม่มีอีเมลในระบบ",
+"အီးမေးလ် မှတ်တမ်းမရှိပါ"
+],
+"No food photos yet. The client adds them in their app, under Coaching.": [
+"ยังไม่มีรูปอาหาร ลูกค้าเพิ่มได้ในแอปของตน ในส่วนการโค้ช",
+"အစားအစာ ဓာတ်ပုံ မရှိသေးပါ။ ဖောက်သည်သည် ၎င်း၏ app ရှိ နည်းပြခြင်း အောက်တွင် ထည့်နိုင်သည်။"
+],
+"No goal yet. For a fighter’s cut, set the fight weight and the weigh-in date.": [
+"ยังไม่มีเป้าหมาย สำหรับการลดน้ำหนักก่อนชก ให้ตั้งน้ำหนักขึ้นชกและวันชั่งน้ำหนัก",
+"ပန်းတိုင် မရှိသေးပါ။ ပွဲထိုးသမားအတွက် ကိုယ်အလေးချိန်လျှော့ရာတွင် ပွဲထိုးအလေးချိန်နှင့် ချိန်တွယ်မည့်ရက်ကို သတ်မှတ်ပါ။"
+],
+"No habits yet.": [
+"ยังไม่มีนิสัย",
+"အလေ့အထ မရှိသေးပါ။"
+],
+"No program yet.": [
+"ยังไม่มีโปรแกรม",
+"အစီအစဉ် မရှိသေးပါ။"
+],
+"No templates yet. Make one in Program templates, or tap New program.": [
+"ยังไม่มีเทมเพลต สร้างได้ใน เทมเพลตโปรแกรม หรือแตะ โปรแกรมใหม่",
+"ပုံစံခွက် မရှိသေးပါ။ အစီအစဉ် ပုံစံခွက်များ တွင် ဖန်တီးပါ သို့မဟုတ် အစီအစဉ်အသစ် ကို နှိပ်ပါ။"
+],
+"No templates yet. Tap New template.": [
+"ยังไม่มีเทมเพลต แตะ เทมเพลตใหม่",
+"ပုံစံခွက် မရှိသေးပါ။ ပုံစံခွက်အသစ် ကို နှိပ်ပါ။"
+],
+"No videos yet. The client can film an exercise from their program and send it here.": [
+"ยังไม่มีวิดีโอ ลูกค้าสามารถถ่ายท่าออกกำลังกายจากโปรแกรมแล้วส่งมาที่นี่",
+"ဗီဒီယို မရှိသေးပါ။ ဖောက်သည်သည် ၎င်း၏ အစီအစဉ်မှ လေ့ကျင့်ခန်းကို ရိုက်ကူးပြီး ဤနေရာသို့ ပို့နိုင်သည်။"
+],
+"Nobody arriving in the next 30 days yet. Room bookings show here, and anyone you send the email to.": [
+"ยังไม่มีใครมาถึงใน 30 วันข้างหน้า การจองห้องจะแสดงที่นี่ รวมถึงทุกคนที่คุณส่งอีเมลให้",
+"လာမည့် ရက် ၃၀ အတွင်း ရောက်လာမည့်သူ မရှိသေးပါ။ အခန်းဘွတ်ကင်များနှင့် သင်အီးမေးလ်ပို့ထားသူများ ဤနေရာတွင် ပြမည်။"
+],
+"Nobody gets the email unless you send it from the list below. Anyone already in the app gets the About you form there.": [
+"จะไม่มีใครได้รับอีเมลจนกว่าคุณจะส่งจากรายการด้านล่าง ใครที่อยู่ในแอปแล้วจะได้รับแบบฟอร์มเกี่ยวกับคุณในแอป",
+"အောက်ပါစာရင်းမှ သင်မပို့မချင်း မည်သူမျှ အီးမေးလ် မရပါ။ App ထဲတွင် ရှိနှင့်ပြီးသူများသည် သင့်အကြောင်း ဖောင်ကို ထိုနေရာတွင် ရရှိမည်။"
+],
+"Nobody is arriving ": [
+"ไม่มีใครมาถึง ",
+"ရောက်လာမည့်သူ မရှိပါ "
+],
+"None uploaded.": [
+"ยังไม่ได้อัปโหลด",
+"မတင်ရသေးပါ။"
+],
+"Norway": [
+"นอร์เวย์",
+"နော်ဝေ"
+],
+"Not sent yet": [
+"ยังไม่ได้ส่ง",
+"မပို့ရသေးပါ"
+],
+"Not sure": [
+"ไม่แน่ใจ",
+"မသေချာပါ"
+],
+"Note on this meal": [
+"หมายเหตุสำหรับมื้อนี้",
+"ဤအစားအစာအတွက် မှတ်ချက်"
+],
+"Nov": [
+"พ.ย.",
+"နို"
+],
+"Now: step ": [
+"ตอนนี้: ขั้นที่ ",
+"ယခု: အဆင့် "
+],
+"Now: the base sets and reps": [
+"ตอนนี้: เซตและครั้งพื้นฐาน",
+"ယခု: အခြေခံ set နှင့် rep များ"
+],
+"Numbered steps": [
+"ขั้นตอนแบบมีหมายเลข",
+"နံပါတ်တပ် အဆင့်များ"
+],
+"Oct": [
+"ต.ค.",
+"အောက်"
+],
+"Oman": [
+"โอมาน",
+"အိုမန်"
+],
+"One per line: name | https://link. YouTube links play in the app. Or use Upload a file below.": [
+"บรรทัดละหนึ่ง: ชื่อ | https://ลิงก์ ลิงก์ YouTube จะเล่นในแอป หรือใช้ อัปโหลดไฟล์ ด้านล่าง",
+"တစ်ကြောင်းလျှင် တစ်ခု: အမည် | https://link။ YouTube လင့်ခ်များ app တွင် ဖွင့်မည်။ သို့မဟုတ် အောက်ရှိ ဖိုင်တင်ရန် ကို သုံးပါ။"
+],
+"Opened the app": [
+"เปิดแอปแล้ว",
+"App ဖွင့်ပြီး"
+],
+"Opening text": [
+"ข้อความเปิด",
+"အဖွင့်စာသား"
+],
+"Pacific/Honolulu": [
+"Pacific/Honolulu",
+"Pacific/Honolulu"
+],
+"Pakistan": [
+"ปากีสถาน",
+"ပါကစ္စတန်"
+],
+"Pangea App (habits, programs, health, plan)": [
+"Pangea App (นิสัย โปรแกรม สุขภาพ แผน)",
+"Pangea App (အလေ့အထ၊ အစီအစဉ်၊ ကျန်းမာရေး၊ အစီအမံ)"
+],
+"Pangea Coach (with a coach)": [
+"Pangea Coach (มีโค้ช)",
+"Pangea Coach (နည်းပြနှင့်အတူ)"
+],
+"Pangea Complete (coach, bloods, yearly service)": [
+"Pangea Complete (โค้ช ตรวจเลือด บริการรายปี)",
+"Pangea Complete (နည်းပြ၊ သွေးစစ်၊ နှစ်စဉ်ဝန်ဆောင်မှု)"
+],
+"Pangea app level": [
+"ระดับแอป Pangea",
+"Pangea app အဆင့်"
+],
+"Pangea level saved.": [
+"บันทึกระดับ Pangea แล้ว",
+"Pangea အဆင့် သိမ်းပြီးပါပြီ။"
+],
+"Philippines": [
+"ฟิลิปปินส์",
+"ဖိလစ်ပိုင်"
+],
+"Photo and text side by side": [
+"รูปและข้อความคู่กัน",
+"ဓာတ်ပုံနှင့် စာသား ဘေးချင်းယှဉ်"
+],
+"Photo gallery": [
+"แกลเลอรีรูปภาพ",
+"ဓာတ်ပုံပြခန်း"
+],
+"Plan": [
+"แผน",
+"အစီအစဉ်"
+],
+"Poland": [
+"โปแลนด์",
+"ပိုလန်"
+],
+"Portugal": [
+"โปรตุเกส",
+"ပေါ်တူဂီ"
+],
+"Privates: ": [
+"คลาสส่วนตัว: ",
+"သီးသန့်သင်တန်း: "
+],
+"Progressions, one per line, for example: 4 x 8 at 70%": [
+"ขั้นการพัฒนา บรรทัดละหนึ่ง เช่น: 4 x 8 ที่ 70%",
+"တိုးတက်မှုအဆင့်များ၊ တစ်ကြောင်းလျှင် တစ်ခု၊ ဥပမာ: 4 x 8 at 70%"
+],
+"Qatar": [
+"กาตาร์",
+"ကာတာ"
+],
+"Questions and answers": [
+"คำถามและคำตอบ",
+"မေးခွန်းနှင့် အဖြေများ"
+],
+"Quote from a customer": [
+"คำพูดจากลูกค้า",
+"ဖောက်သည်၏ ပြောစကား"
+],
+"RPE 7, 70%": [
+"RPE 7, 70%",
+"RPE 7, 70%"
+],
+"Reset": [
+"รีเซ็ตตัวเอง",
+"ပြန်လည်အားဖြည့်ခြင်း"
+],
+"Reset and recharge": [
+"รีเซ็ตและชาร์จพลัง",
+"ပြန်လည်အနားယူ အားဖြည့်ခြင်း"
+],
+"Rest": [
+"พัก",
+"အနားယူချိန်"
+],
+"Resting heart rate": [
+"อัตราการเต้นหัวใจขณะพัก",
+"အနားယူချိန် နှလုံးခုန်နှုန်း"
+],
+"Romania": [
+"โรมาเนีย",
+"ရိုမေးနီးယား"
+],
+"Room: ": [
+"ห้อง: ",
+"အခန်း: "
+],
+"Running": [
+"วิ่ง",
+"အပြေး"
+],
+"Russia": [
+"รัสเซีย",
+"ရုရှား"
+],
+"Saudi Arabia": [
+"ซาอุดีอาระเบีย",
+"ဆော်ဒီအာရေးဗီးယား"
+],
+"Save the email": [
+"บันทึกอีเมล",
+"အီးမေးလ်ကို သိမ်းရန်"
+],
+"Saved. It shows in their app now.": [
+"บันทึกแล้ว แสดงในแอปของพวกเขาแล้ว",
+"သိမ်းပြီးပါပြီ။ ယခု သူတို့၏ app တွင် ပြနေပြီ။"
+],
+"Second heading": [
+"หัวข้อที่สอง",
+"ဒုတိယခေါင်းစဉ်"
+],
+"Section": [
+"ช่วง",
+"အပိုင်း"
+],
+"Section, for example Warm up, Main, Finisher": [
+"ช่วง เช่น วอร์มอัพ หลัก ปิดท้าย",
+"အပိုင်း၊ ဥပမာ Warm up၊ Main၊ Finisher"
+],
+"See answers": [
+"ดูคำตอบ",
+"အဖြေများ ကြည့်ရန်"
+],
+"Send feedback": [
+"ส่งความเห็น",
+"အကြံပြုချက် ပို့ရန်"
+],
+"Send me a test email": [
+"ส่งอีเมลทดสอบให้ฉัน",
+"စမ်းသပ်အီးမေးလ် ကျွန်ုပ်ထံ ပို့ပါ"
+],
+"Send the email": [
+"ส่งอีเมล",
+"အီးမေးလ် ပို့ရန်"
+],
+"Send the email automatically to new room bookings and website package buyers, up to 14 days before they arrive (straight away for early app access)": [
+"ส่งอีเมลอัตโนมัติถึงผู้จองห้องใหม่และผู้ซื้อแพ็กเกจจากเว็บไซต์ ไม่เกิน 14 วันก่อนมาถึง (ส่งทันทีสำหรับผู้เข้าแอปก่อน)",
+"အခန်းဘွတ်ကင်အသစ်များနှင့် ဝက်ဘ်ဆိုက် package ဝယ်သူများထံ ရောက်ရှိမည့်ရက်မတိုင်မီ ၁၄ ရက်အတွင်း အီးမေးလ်ကို အလိုအလျောက်ပို့ပါ (App ကို စောစီးစွာ သုံးခွင့်ရသူများအတွက် ချက်ချင်း)"
+],
+"Sent ": [
+"ส่งเมื่อ ",
+"ပို့ချိန် "
+],
+"Sent to ": [
+"ส่งถึง ",
+"ပို့ပြီး: "
+],
+"Sent. The client sees it under the exercise.": [
+"ส่งแล้ว ลูกค้าจะเห็นใต้ท่าออกกำลังกาย",
+"ပို့ပြီးပါပြီ။ ဖောက်သည်သည် လေ့ကျင့်ခန်းအောက်တွင် မြင်ရမည်။"
+],
+"Sep": [
+"ก.ย.",
+"စက်"
+],
+"Serbia": [
+"เซอร์เบีย",
+"ဆားဘီးယား"
+],
+"Serious fight training": [
+"ฝึกชกจริงจัง",
+"ပွဲထိုးရန် အလေးအနက်လေ့ကျင့်ခြင်း"
+],
+"Sessions a day": [
+"จำนวนเซสชันต่อวัน",
+"တစ်ရက်လျှင် အကြိမ်ရေ"
+],
+"Set the goal": [
+"ตั้งเป้าหมาย",
+"ပန်းတိုင် သတ်မှတ်ရန်"
+],
+"Set up": [
+"ตั้งค่า",
+"စတင်သတ်မှတ်ရန်"
+],
+"Short and clear, for example: Drink 3 litres of water, 10 minutes stretching after training.": [
+"สั้นและชัดเจน เช่น: ดื่มน้ำ 3 ลิตร, ยืดเหยียด 10 นาทีหลังซ้อม",
+"တိုတိုနှင့် ရှင်းရှင်း၊ ဥပမာ: ရေ ၃ လီတာ သောက်ရန်၊ လေ့ကျင့်ပြီးနောက် ၁၀ မိနစ် ဆန့်ရန်။"
+],
+"Sign off": [
+"คำลงท้าย",
+"နိဂုံးစာ"
+],
+"Singapore": [
+"สิงคโปร์",
+"စင်ကာပူ"
+],
+"Sleep": [
+"การนอน",
+"အိပ်စက်ခြင်း"
+],
+"Slovakia": [
+"สโลวาเกีย",
+"ဆလိုဗက်ကီးယား"
+],
+"Slovenia": [
+"สโลวีเนีย",
+"ဆလိုဗေးနီးယား"
+],
+"Small text under the button": [
+"ข้อความเล็กใต้ปุ่ม",
+"ခလုတ်အောက်ရှိ စာသားအသေး"
+],
+"South Korea": [
+"เกาหลีใต้",
+"တောင်ကိုရီးယား"
+],
+"Spain": [
+"สเปน",
+"စပိန်"
+],
+"Sri Lanka": [
+"ศรีลังกา",
+"သီရိလင်္ကာ"
+],
+"Stack the next habit": [
+"ต่อนิสัยถัดไป",
+"နောက်အလေ့အထ ဆက်ထည့်ရန်"
+],
+"Start again": [
+"เริ่มใหม่",
+"ပြန်စရန်"
+],
+"Started, not finished yet.": [
+"เริ่มแล้ว แต่ยังไม่เสร็จ",
+"စတင်ထားပြီး မပြီးသေးပါ။"
+],
+"Stop": [
+"หยุด",
+"ရပ်ရန်"
+],
+"Sweden": [
+"สวีเดน",
+"ဆွီဒင်"
+],
+"Switzerland": [
+"สวิตเซอร์แลนด์",
+"ဆွစ်ဇာလန်"
+],
+"Taiwan": [
+"ไต้หวัน",
+"ထိုင်ဝမ်"
+],
+"Tap again to remove": [
+"แตะอีกครั้งเพื่อลบ",
+"ဖယ်ရှားရန် ထပ်နှိပ်ပါ"
+],
+"Team sports": [
+"กีฬาประเภททีม",
+"အသင်းလိုက်အားကစား"
+],
+"Tell us about you": [
+"บอกเราเกี่ยวกับตัวคุณ",
+"သင့်အကြောင်း ပြောပြပါ"
+],
+"Template": [
+"เทมเพลต",
+"ပုံစံခွက်"
+],
+"Testosterone": [
+"เทสโทสเตอโรน",
+"တက်စတိုစတီရုန်း"
+],
+"Text": [
+"ข้อความ",
+"စာသား"
+],
+"Thailand": [
+"ไทย",
+"ထိုင်း"
+],
+"The Get ready email": [
+"อีเมลเตรียมตัว",
+"အသင့်ပြင်ရန် အီးမေးလ်"
+],
+"The client ticks each habit in their app. Green is done, red is missed. Stack habits: keep the old ones going and add the next with a later start date.": [
+"ลูกค้าติ๊กแต่ละนิสัยในแอป สีเขียวคือทำแล้ว สีแดงคือพลาด การต่อนิสัย: ทำนิสัยเดิมต่อไปและเพิ่มนิสัยถัดไปโดยให้วันเริ่มช้ากว่า",
+"ဖောက်သည်သည် app တွင် အလေ့အထတစ်ခုချင်းကို အမှန်ခြစ်သည်။ အစိမ်းသည် ပြီးပြီ၊ အနီသည် လွတ်သွားသည်။ အလေ့အထ ဆက်ထည့်ခြင်း: အဟောင်းများကို ဆက်လုပ်ပြီး နောက်တစ်ခုကို နောက်ကျသော စတင်ရက်ဖြင့် ထည့်ပါ။"
+],
+"The client uses the Pangea app (this app address with /pangea at the end) with the same sign in. Coach and Complete show their coaches in the app so they can message them.": [
+"ลูกค้าใช้แอป Pangea (ที่อยู่แอปนี้ต่อท้ายด้วย /pangea) โดยเข้าสู่ระบบแบบเดียวกัน ระดับ Coach และ Complete จะแสดงโค้ชในแอปเพื่อให้ส่งข้อความหาได้",
+"ဖောက်သည်သည် Pangea app (ဤ app လိပ်စာ၏ နောက်တွင် /pangea ထည့်ထားသည်) ကို တူညီသော အကောင့်ဝင်ခြင်းဖြင့် သုံးသည်။ Coach နှင့် Complete တွင် app ထဲ၌ နည်းပြများကို ပြထားသဖြင့် မက်ဆေ့ပို့နိုင်သည်။"
+],
+"Their level": [
+"ระดับของพวกเขา",
+"သူတို့၏ အဆင့်"
+],
+"Then you get": [
+"แล้วคุณจะได้รับ",
+"ထို့နောက် သင်ရရှိမည်"
+],
+"They have not filled in the About you form yet. It shows in their app.": [
+"พวกเขายังไม่ได้กรอกแบบฟอร์มเกี่ยวกับคุณ แบบฟอร์มจะแสดงในแอปของพวกเขา",
+"သူတို့ သင့်အကြောင်း ဖောင်ကို မဖြည့်ရသေးပါ။ ၎င်းကို သူတို့၏ app တွင် ပြထားသည်။"
+],
+"Total cholesterol": [
+"คอเลสเตอรอลรวม",
+"စုစုပေါင်း ကိုလက်စထရော"
+],
+"Triglycerides": [
+"ไตรกลีเซอไรด์",
+"ထရိုင်ဂလစ်ဆရိုက်"
+],
+"Turkey": [
+"ตุรกี",
+"တူရကီ"
+],
+"Tutorial videos or documents": [
+"วิดีโอสอนหรือเอกสาร",
+"သင်ခန်းစာ ဗီဒီယို သို့မဟုတ် စာရွက်စာတမ်း"
+],
+"Type a name": [
+"พิมพ์ชื่อ",
+"အမည် ရိုက်ပါ"
+],
+"Ukraine": [
+"ยูเครน",
+"ယူကရိန်း"
+],
+"United Kingdom": [
+"สหราชอาณาจักร",
+"ယူနိုက်တက်ကင်းဒမ်း"
+],
+"Update feedback": [
+"อัปเดตความเห็น",
+"အကြံပြုချက် ပြင်ရန်"
+],
+"Upload a file": [
+"อัปโหลดไฟล์",
+"ဖိုင်တင်ရန်"
+],
+"Uzbekistan": [
+"อุซเบกิสถาน",
+"ဥဇဘက်ကစ္စတန်"
+],
+"Vietnam": [
+"เวียดนาม",
+"ဗီယက်နမ်"
+],
+"Vitamin D": [
+"วิตามินดี",
+"ဗီတာမင် D"
+],
+"Waiting for you": [
+"รอคุณอยู่",
+"သင့်ကို စောင့်နေသည်"
+],
+"Website package": [
+"แพ็กเกจจากเว็บไซต์",
+"ဝက်ဘ်ဆိုက် package"
+],
+"Weight goal": [
+"เป้าหมายน้ำหนัก",
+"ကိုယ်အလေးချိန် ပန်းတိုင်"
+],
+"Weight loss": [
+"ลดน้ำหนัก",
+"ကိုယ်အလေးချိန်လျှော့ခြင်း"
+],
+"What they get (one per line). The coach video line is added by itself when you add the video.": [
+"สิ่งที่พวกเขาได้รับ (บรรทัดละหนึ่งข้อ) บรรทัดวิดีโอโค้ชจะถูกเพิ่มเองเมื่อคุณเพิ่มวิดีโอ",
+"သူတို့ရရှိမည့်အရာ (တစ်ကြောင်းလျှင် တစ်ခု)။ ဗီဒီယိုထည့်လိုက်လျှင် နည်းပြဗီဒီယို စာကြောင်းကို အလိုအလျောက် ထည့်ပေးမည်။"
+],
+"What they tell us (one per line, shown with ticks)": [
+"สิ่งที่พวกเขาบอกเรา (บรรทัดละหนึ่งข้อ แสดงพร้อมเครื่องหมายถูก)",
+"သူတို့ ကျွန်ုပ်တို့ကို ပြောပြသည့်အရာ (တစ်ကြောင်းလျှင် တစ်ခု၊ အမှန်ခြစ်ဖြင့်ပြမည်)"
+],
+"What to fix and how": [
+"สิ่งที่ต้องแก้และวิธีแก้",
+"ပြင်ရမည့်အရာနှင့် ပြင်နည်း"
+],
+"Which days": [
+"วันไหนบ้าง",
+"မည်သည့်ရက်များ"
+],
+"Why you are coming: fight training, weight loss, fitness or something else\nYour Muay Thai experience and fitness level\nAny injuries, allergies or worries we should know about": [
+"เหตุผลที่คุณมา: ฝึกชก ลดน้ำหนัก ฟิตร่างกาย หรืออื่นๆ\nประสบการณ์มวยไทยและระดับความฟิตของคุณ\nอาการบาดเจ็บ อาการแพ้ หรือความกังวลที่เราควรรู้",
+"သင်လာရသည့်အကြောင်း: ပွဲထိုးလေ့ကျင့်ရန်၊ ကိုယ်အလေးချိန်လျှော့ရန်၊ ကြံ့ခိုင်ရန် သို့မဟုတ် အခြား\nသင်၏ မွေ့ထိုင်း အတွေ့အကြုံနှင့် ကြံ့ခိုင်မှုအဆင့်\nကျွန်ုပ်တို့သိသင့်သည့် ဒဏ်ရာ၊ ဓာတ်မတည့်မှု သို့မဟုတ် စိုးရိမ်မှုများ"
+],
+"Work hard, Fight easy.\nTeam Phuket King": [
+"ซ้อมหนัก ชกง่าย\nทีม Phuket King",
+"ပြင်းပြင်းလေ့ကျင့်၊ လွယ်လွယ်ထိုး။\nPhuket King အဖွဲ့"
+],
+"Workout 1": [
+"เวิร์กเอาต์ 1",
+"လေ့ကျင့်ခန်း 1"
+],
+"Wrestling": [
+"มวยปล้ำ",
+"နပန်း"
+],
+"Yearly plan": [
+"แผนรายปี",
+"နှစ်စဉ်အစီအစဉ်"
+],
+"Yoga or pilates": [
+"โยคะหรือพิลาทิส",
+"ယောဂ သို့မဟုတ် ပီလာတီ"
+],
+"YouTube video": [
+"วิดีโอ YouTube",
+"YouTube ဗီဒီယို"
+],
+"Your feedback": [
+"ความเห็นของคุณ",
+"သင့်အကြံပြုချက်"
+],
+"Your note": [
+"หมายเหตุของคุณ",
+"သင့်မှတ်ချက်"
+],
+"kv pakv": [
+"kv pakv",
+"kv pakv"
+],
+"pitem psec": [
+"pitem psec",
+"pitem psec"
+],
+"” to a client": [
+"” แก่ลูกค้า",
+"” ကို ဖောက်သည်ထံ ပေးရန်"
+]
+}

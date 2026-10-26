@@ -15,8 +15,11 @@ The apps are built for durability and utility: wherever a business could want it
 4. Database changes go in `supabase/sql/<name>.sql` and are applied to all three databases:
    live `jijnshwduhgegacfvpkh`, Muay Friend demo `yojllgjjekitbktzblcc`, Massage Mate demo `phjekupadmjwzrocahiv`.
    Patches that edit an existing function must check that they applied, and skip cleanly where a demo has an older version.
-5. Bump the cache name in `sw.js`, then run `python3 tools/build_massagemate.py`, `python3 tools/build_demo.py` and `python3 tools/build_site.py`.
-6. The demo builds check their own JavaScript (`tools/check_js.py`) and stop if a word swap broke the code. Check `index.html` the same way
+5. New or changed text people read: the app is in English, Thai and Myanmar. Run `python3 tools/build_i18n.py --missing`,
+   add Thai and Myanmar for those texts to `i18n/strings.json` (English -> [Thai, Myanmar]), then `python3 tools/build_i18n.py`.
+   Text people write themselves (chat, notes, lessons) is never translated: give its element the class `notr`.
+6. Bump the cache name in `sw.js`, then run `python3 tools/build_massagemate.py`, `python3 tools/build_demo.py` and `python3 tools/build_site.py`.
+7. The demo builds check their own JavaScript (`tools/check_js.py`) and stop if a word swap broke the code. Check `index.html` the same way
    (`python3 tools/check_js.py index.html`) and test the database functions before telling Tom it is done.
 
 ## Never hardcode one business

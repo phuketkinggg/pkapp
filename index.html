@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob: https://jijnshwduhgegacfvpkh.supabase.co; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co https://i.ytimg.com; connect-src 'self' https://jijnshwduhgegacfvpkh.supabase.co wss://jijnshwduhgegacfvpkh.supabase.co; media-src 'self' blob: https://jijnshwduhgegacfvpkh.supabase.co; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Phuket King</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -631,6 +631,8 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .teccard img,.teccard .crsnoimg{width:100%;aspect-ratio:16/9;object-fit:cover}.teccard b,.teccard .chip{margin:0 10px}.teccard.locked img{filter:grayscale(1) brightness(.7)}
 .cofcard{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;border-left:4px solid var(--gold)}.cofcard img{width:100%;aspect-ratio:16/7;object-fit:cover}.cofcard .in{display:flex;flex-direction:column;gap:6px;padding:14px 16px}.cofcard .crsgo{margin-left:auto;font-weight:700}
 .cmnone b{font-size:18px}
+.navlang{margin:10px 8px 4px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:14px;max-width:140px}
+.lang-th #view{line-height:1.6}.lang-th h1,.lang-my h1{text-transform:none;letter-spacing:0}
 .crseye{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .crshead{margin:6px 0 14px}.crshead h1{margin:2px 0 10px;font-size:26px;line-height:1.15}
 .crsbar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin-bottom:6px}.crsbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
@@ -813,6 +815,8 @@ var FEATURES=[
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
   {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.'},
+  {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
+  {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package',d:'One online course can be offered as a tick box when someone buys a package, on the website and at the desk, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
@@ -846,6 +850,71 @@ var FEATURES=[
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
 function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
+/* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
+var LANGED={q:'',th:null,my:null,fix:null};
+function langLoadAll(){ ['th','my'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
+    var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+(window.I18N_V||1); sc.onload=function(){ LANGED[l]=(window['I18N_'+l]||{}).d||{}; schedule(); }; document.head.appendChild(sc); });
+  if(!LANGED.fix){ LANGED.fix={}; sb.rpc('i18n_fixes').then(function(r){ LANGED.fix=(r&&r.data)||{}; schedule(); },function(){}); } }
+function langSave(fix){ return sb.from('app_settings').update({value:JSON.stringify(fix),updated_at:new Date().toISOString()}).eq('key','i18n_fix').select('key').then(must).then(function(d){ if(!d||!d.length) throw new Error('Only a manager can change this.'); LANGED.fix=fix; I18N.fix=fix; trBuild(); }); }
+function langEdit(k){ var f=LANGED.fix[k]||{};
+  openForm({title:'Fix a translation',note:k,values:{th:f.th||(LANGED.th||{})[k]||'',my:f.my||(LANGED.my||{})[k]||''},
+    fields:[featOn('lang_th')?{key:'th',label:'Thai',type:'textarea',rows:3}:null,featOn('lang_my')?{key:'my',label:'Myanmar (Burmese)',type:'textarea',rows:3}:null].filter(Boolean),
+    saveLabel:'Save',doneMsg:'Saved. Everyone sees it next time the app opens.',
+    onSave:function(v){ var fix=JSON.parse(JSON.stringify(LANGED.fix||{})); fix[k]={th:v.th||'',my:v.my||''}; return langSave(fix); },
+    onDelete:LANGED.fix[k]?function(){ var fix=JSON.parse(JSON.stringify(LANGED.fix)); delete fix[k]; return langSave(fix); }:null});
+  document.querySelectorAll('dialog textarea').forEach(function(t){ t.classList.add('notr'); }); }
+function langSection(){ langLoadAll();
+  var q=LANGED.q.trim().toLowerCase(), keys=Object.keys(LANGED.th&&Object.keys(LANGED.th).length?LANGED.th:LANGED.my||{});
+  var fixed=Object.keys(LANGED.fix||{}), list=q?keys.filter(function(k){ return k.toLowerCase().indexOf(q)>=0||String((LANGED.th||{})[k]||'').indexOf(LANGED.q.trim())>=0||String((LANGED.my||{})[k]||'').indexOf(LANGED.q.trim())>=0; }).slice(0,30):fixed.slice(0,30);
+  return section('Languages',null,h('div',{class:'notr',translate:'no'},
+    h('p',{class:'sub'},'Staff and customers pick English'+(featOn('lang_th')?', Thai':'')+(featOn('lang_my')?', Myanmar':'')+' at the bottom of the menu. Phones set to Thai start in Thai. Turn languages on or off in Features. If a word reads wrong, search it here (in English, or in the language) and fix it.'),
+    h('input',{id:'lang-q',type:'search',placeholder:'Search a word or sentence',value:LANGED.q,oninput:function(e){ LANGED.q=e.target.value; schedule(); }}),
+    list.length?h('div',{class:'panel'},list.map(function(k){ var f=LANGED.fix[k]||{};
+      return h('button',{type:'button',class:'lrow',onclick:function(){ langEdit(k); }},h('span',{class:'lt'},h('b',null,k),
+        featOn('lang_th')?h('small',{class:'sub'},'ไทย: '+(f.th||(LANGED.th||{})[k]||'')):null,featOn('lang_my')?h('small',{class:'sub'},'မြန်မာ: '+(f.my||(LANGED.my||{})[k]||'')):null),f.th||f.my?chip('Fixed','ok'):null); })):
+      h('p',{class:'sub'},q?'Nothing found.':'No fixes yet.')));
+}
+/* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
+   (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
+var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
+function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
+  return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
+function LOC(){ return I18N.l==='th'?'th-TH-u-ca-gregory':I18N.l==='my'?'my-MM-u-nu-latn':'en-GB'; }
+function trWord(t){ if(I18N.l==='en'||!I18N.d||!t) return t; var core=t.trim(); if(!core||!/[A-Za-z]/.test(core)) return t;
+  var hit=I18N.c[t]; if(hit!==undefined) return hit;
+  var f=I18N.fix[core], v=f&&f[I18N.l]||I18N.d[core], out;
+  if(v) out=t.slice(0,t.indexOf(core.charAt(0)))+v+t.slice(t.lastIndexOf(core.charAt(core.length-1))+1);
+  else out=I18N.rx?t.replace(I18N.rx,function(m){ var g=I18N.fix[m]; return g&&g[I18N.l]||I18N.d[m]||m; }):t;
+  I18N.c[t]=out; return out; }
+function trSelf(e){ var tg=e.tagName; return tg==='SCRIPT'||tg==='STYLE'||tg==='TEXTAREA'||e.isContentEditable||e.getAttribute('translate')==='no'||(e.classList&&(e.classList.contains('notr')||e.classList.contains('msgbody')||e.classList.contains('ltext'))); }
+function trSkip(el){ for(var e=el;e&&e.nodeType===1;e=e.parentElement){ if(trSelf(e)) return true; } return false; }
+var TRA=['placeholder','aria-label','title'];
+function trAttrs(n){ TRA.forEach(function(a){ var v=n.getAttribute(a); if(v){ var t=trWord(v); if(t!==v) n.setAttribute(a,t); } }); if(n.tagName==='INPUT'&&(n.type==='button'||n.type==='submit')&&n.value) n.value=trWord(n.value); }
+function trText(n){ if(I18N.seen.get(n)===n.nodeValue) return; var v=trWord(n.nodeValue); if(v!==n.nodeValue) n.nodeValue=v; I18N.seen.set(n,n.nodeValue); }
+function trNode(root){ if(I18N.l==='en'||!I18N.d||!root) return;
+  if(root.nodeType===3){ if(!trSkip(root.parentElement)) trText(root); return; }
+  if(root.nodeType!==1||trSkip(root)) return;
+  trAttrs(root);
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,{acceptNode:function(n){ return n.nodeType===1&&trSelf(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT; }}), n;
+  while((n=w.nextNode())){ if(n.nodeType===1) trAttrs(n); else trText(n); } }
+function trBuild(){ var keys=Object.keys(I18N.d).concat(Object.keys(I18N.fix)).filter(function(k){ return k.length>=12||/^[,.:;(]|[,:(]$/.test(k)||I18N.part[k]; });
+  keys.sort(function(a,b){ return b.length-a.length; });
+  var alt=keys.map(function(k){ return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }).join('|');
+  try{ I18N.rx=keys.length?new RegExp('(?<![A-Za-z0-9])(?:'+alt+')(?![A-Za-z0-9])','g'):null; }catch(e){ try{ I18N.rx=new RegExp('(?:'+alt+')(?![A-Za-z0-9])','g'); }catch(e2){ I18N.rx=null; } } I18N.c={}; }
+function setUiLang(l,quiet){ pref('pk_ui_lang',l==='en'?null:l); pref('pk_ui_lang_set','1');
+  /* the staff screens that already had their own language follow */
+  pref('pk_lang_coach',l==='th'?'th':null); pref('pk_lang',l==='my'?'my':null); pref('pk_lang_mt',l==='en'?null:l);
+  if(quiet) return uiApply(); location.reload(); }
+function uiApply(){ var l=uiLang(); I18N.l=l; document.documentElement.lang=l; document.body.classList.toggle('lang-my',l==='my'); document.body.classList.toggle('lang-th',l==='th');
+  if(l==='en') return Promise.resolve();
+  return new Promise(function(ok){ if(window['I18N_'+l]) return ok(); var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+(window.I18N_V||1); sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); })
+    .then(function(){ var src=window['I18N_'+l]; if(!src) { I18N.l='en'; return; } I18N.d=src.d; I18N.part=src.p||{}; trBuild();
+      if(!I18N.obs){ I18N.obs=new MutationObserver(function(ms){ if(I18N.l==='en') return; ms.forEach(function(m){ if(m.type==='characterData') trNode(m.target); else m.addedNodes.forEach(trNode); }); });
+        I18N.obs.observe(document.body,{childList:true,subtree:true,characterData:true}); }
+      trNode(document.body); i18nFixLoad(); }); }
+function i18nFixLoad(){ if(!window.sb||!sb.rpc) return; sb.rpc('i18n_fixes').then(function(r){ if(r&&!r.error&&r.data&&typeof r.data==='object'){ I18N.fix=r.data; trBuild(); I18N.seen=new WeakMap(); trNode(document.body); } },function(){}); }
+function langPick(){ var ls=[['en','English']].concat(featOn('lang_th')?[['th','ไทย']]:[]).concat(featOn('lang_my')?[['my','မြန်မာ']]:[]); if(ls.length<2) return null;
+  return h('select',{class:'navlang notr','aria-label':'Language',translate:'no',onchange:function(e){ setUiLang(e.target.value); }},ls.map(function(x){ return h('option',{value:x[0],selected:I18N.l===x[0]},x[1]); })); }
 function tabOn(t){ var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
 /* the online course offered with packages (Courses, Offer with packages) */
 var OFFER=null;
@@ -878,7 +947,7 @@ function byId(col,id){ for(var i=0;i<S[col].length;i++) if(S[col][i].id===id) re
 function nameOf(col,id,fallback){ var d=byId(col,id); return d&&d.name?d.name:(fallback||'Removed'); }
 function sortBy(list){ var keys=Array.prototype.slice.call(arguments,1); return list.slice().sort(function(a,b){ for(var i=0;i<keys.length;i++){ var x=String(a[keys[i]]==null?'':a[keys[i]]).toLowerCase(), y=String(b[keys[i]]==null?'':b[keys[i]]).toLowerCase(); if(x<y) return -1; if(x>y) return 1; } return 0; }); }
 function thb(n){ return n==null||n===''?'':Number(n).toLocaleString('en-US')+' THB'; }
-function fmtDate(s){ if(!s) return ''; return parseYmd(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtDate(s){ if(!s) return ''; return parseYmd(s).toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric'}); }
 function timeNow(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 /* messages from the database are already written for people; technical ones get a plain version */
 function errText(e){ var m=String((e&&e.message)||'');
@@ -1527,8 +1596,8 @@ setInterval(function(){ if(me&&allReady&&me.role!=='coach'&&me.role!=='housekeep
 function claimsSection(){
   if(!me||!CLAIMS&&!ui.claimsAsked){ if(me){ ui.claimsAsked=true; loadClaims(); } return null; }
   if(!CLAIMS||!CLAIMS.length) return null;
-  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' '+fmtDate(c.at.slice(0,10)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
-    note:c.kind==='stay'?(c.expired?'Website stay. The 12 hour hold ran out and the room was given back. If the money is in, Money is in books it again when the room is still free.':'Website stay, paid by Thai QR. Check the bank app first. The room is held until '+new Date(c.held_until).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'. Not received gives the room back.'):'They say they paid by PromptPay. Check the bank app first.',
+  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})+' '+fmtDate(c.at.slice(0,10)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
+    note:c.kind==='stay'?(c.expired?'Website stay. The 12 hour hold ran out and the room was given back. If the money is in, Money is in books it again when the room is still free.':'Website stay, paid by Thai QR. Check the bank app first. The room is held until '+new Date(c.held_until).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'. Not received gives the room back.'):'They say they paid by PromptPay. Check the bank app first.',
     act:[btn('Money is in',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:true}).then(must).then(function(){ return Promise.all([loadClaims(),reload('purchases'),reload('privates'),reload('stays')]); }),'Confirmed. It is marked paid.'); },'primary small'),
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
@@ -1795,7 +1864,7 @@ function loadRates(){ return sb.rpc('room_rates_get').then(must).then(function(d
 function needRates(){ if(!RATES&&!ui.ratesAsked){ ui.ratesAsked=true; loadRates().catch(function(){ ui.ratesAsked=false; }); } return RATES; }
 function saveRates(r){ return sb.rpc('room_rates_save',{p:r}).then(must).then(function(){ RATES=r; schedule(); }); }
 function rateId(){ return Math.random().toString(36).slice(2,9); }
-function mdText(md){ if(!md) return ''; var d=parseYmd('2026-'+md); return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+function mdText(md){ if(!md) return ''; var d=parseYmd('2026-'+md); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short'}); }
 function inRange(md,r){ var a=r.from,b=r.to; if(!a||!b) return false; return a<=b?(md>=a&&md<=b):(md>=a||md<=b); }
 function seasonOf(day){ if(!RATES) return null; var md=day.slice(5), hit=null;
   RATES.seasons.forEach(function(se){ if(se.id!==RATES.base&&(se.ranges||[]).some(function(r){ return inRange(md,r); })) hit=se; });
@@ -2293,7 +2362,7 @@ function syncNow(){
 }
 function syncLine(){
   var when=MPSYNC&&MPSYNC.at?new Date(MPSYNC.at):null, mins=when?Math.round((Date.now()-when)/60000):null;
-  var txt=when?'Website, Booking.com and Airbnb bookings come in from MotoPress every 15 minutes. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'.':'Bookings from MotoPress come in every 15 minutes.';
+  var txt=when?'Website, Booking.com and Airbnb bookings come in from MotoPress every 15 minutes. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'.':'Bookings from MotoPress come in every 15 minutes.';
   var errs=MPSYNC&&MPSYNC.errors&&MPSYNC.errors.length?MPSYNC.errors:null;
   return h('div',{class:'row'},h('span',{class:'sub'},txt),btn(ui.syncing?'Syncing.':'Sync now',syncNow,'small'),
     errs?h('details',null,h('summary',{class:'sub'},errs.length+' booking'+(errs.length===1?'':'s')+' could not come in'),h('ul',{class:'plain'},errs.map(function(e){ return h('li',null,e); }))):null);
@@ -2339,7 +2408,7 @@ function welcomeEmail(st,first){
       }).catch(function(e){ busy=false; sendBtn.disabled=false; sendBtn.textContent='Send'; var m=(e&&e.message)||'The email did not go. Try again.'; if(/not authorized to send emails from|domain is not verified|verify a domain/i.test(m)) m='The email did not go. The email service has not approved phuketking.com yet. In Resend, open Domains and check phuketking.com shows Verified, and that the API key is allowed to send from it. Then try again.'; bad(m); });
     },'primary');
     shopDlg(h('div',{class:'billbox'},h('h2',null,first?'Send the welcome email?':'Welcome email'),
-      h('p',{class:'sub'},'Welcome, room, dates, receipt, useful info and extras they can add. '+(d.sent_at?'Already sent '+new Date(d.sent_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. ':'')+'Change the wording in Settings, Welcome email.'),
+      h('p',{class:'sub'},'Welcome, room, dates, receipt, useful info and extras they can add. '+(d.sent_at?'Already sent '+new Date(d.sent_at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. ':'')+'Change the wording in Settings, Welcome email.'),
       field('we-to','Send to',to),
       d.subject?h('p',{class:'sub'},'Subject: '+d.subject):null,
       frame,err,
@@ -2392,7 +2461,7 @@ function vCalendar(){
   function idx(d){ return Math.round((parseYmd(d)-parseYmd(start))/86400000); }
   var heads=dates.map(function(d){ var dt=parseYmd(d), wd=dt.getDay();
     return h('div',{class:'ch'+(wd===0||wd===6?' we':'')+(d===today?' today':'')+(dt.getDate()===1?' mon':''),title:fmtDate(d)},
-      dt.toLocaleDateString('en-GB',{weekday:'narrow'}),h('b',null,dt.getDate()),dt.getDate()===1||d===start?dt.toLocaleDateString('en-GB',{month:'short'}):' '); });
+      dt.toLocaleDateString(LOC(),{weekday:'narrow'}),h('b',null,dt.getDate()),dt.getDate()===1||d===start?dt.toLocaleDateString(LOC(),{month:'short'}):' '); });
   var rows=[];
   rooms.forEach(function(r){
     var cells=dates.map(function(d,i){ var wd=parseYmd(d).getDay();
@@ -2769,7 +2838,7 @@ function vHK(){
   var rooms=HK.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
   var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length, my=hkLang()==='my';
   var day=parseYmd(HK.today).toLocaleDateString(my?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'});
-  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setHkLang(my?'en':'my'); })),h('div',{class:'row'},btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),myJobs(),
+  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setUiLang(my?'en':'my'); })),h('div',{class:'row'},btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),myJobs(),
     cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
 }
 /* ---------- room supplies and the resort store: staff note what they used, managers keep the counts ---------- */
@@ -2839,7 +2908,7 @@ function stockSections(day){
       items,'No stock items yet.')),
     section('Supplies used, '+fmtDate(from)+' to '+fmtDate(day),btn('Record supplies',function(){ suppliesDlg(null); },'small'),h('div',null,
       h('p',{class:'sub'},uk.length?'From the store: '+uk.map(function(k){ return used[k]+' '+k; }).join(', ')+'.':'Nothing taken from the store in these days.',ek.length?' Extras given to rooms: '+ek.map(function(k){ return extras[k]+' '+k; }).join(', ')+'.':''),
-      table([{label:'When',cell:function(m){ return new Date(m.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
+      table([{label:'When',cell:function(m){ return new Date(m.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
         {label:'Room',cell:function(m){ return m.room||''; }},
         {label:'What',cell:function(m){ return (m.kind==='used'?(-m.qty):m.kind==='count'?(m.qty>=0?'+':'')+m.qty:m.qty)+' '+(m.item||'')+(m.kind==='extra'?' (extra)':m.kind==='delivery'?' (delivery)':m.kind==='count'?' (count fix)':''); }},
         {label:'By',cell:function(m){ return (m.by||'')+(m.note?', '+m.note:''); }}],moves.slice(0,80),'Nothing recorded in these days.')))];
@@ -2885,7 +2954,7 @@ function chatRefresh(){
 setInterval(function(){ if(chatOn()&&!CHAT.open&&(ui.tab==='chat'||Date.now()-(CHAT.at||0)>30000)){ CHAT.at=Date.now(); chatRefresh(); } },10000);
 function chatTime(at){
   var d=new Date(at), now=new Date();
-  return d.toDateString()===now.toDateString()?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  return d.toDateString()===now.toDateString()?d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString(LOC(),{day:'numeric',month:'short'})+' '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'});
 }
 function chatItem(c){
   return h('button',{type:'button',class:'chatitem'+(c.unread>0&&c.in_chat?' unread':''),onclick:function(){ openChat(c); }},
@@ -3380,7 +3449,7 @@ function crsSteps(c,back){
     done.length?section('Done ('+done.length+')',showDone?linkBtn('Hide',function(){ COACHM.open[k+'done']=false; schedule(); }):linkBtn('Show',function(){ COACHM.open[k+'done']=true; schedule(); }),
       showDone?h('div',{class:'hlist'},done.map(function(x){ return row(x,num[x.key],false); })):null):null];
 }
-function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
+function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
 function crsLocked(c){
   return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
@@ -3495,8 +3564,8 @@ var FOODK=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner'],['sna
 function cRand(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
 function cAdd(s,n){ var d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
 function cWd(s){ return (parseYmd(s).getDay()+6)%7+1; }
-function cShort(s){ return s?parseYmd(String(s).slice(0,10)).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):''; }
-function cWhen(ts){ return new Date(ts).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function cShort(s){ return s?parseYmd(String(s).slice(0,10)).toLocaleDateString(LOC(),{day:'numeric',month:'short'}):''; }
+function cWhen(ts){ return new Date(ts).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
 function cDayOf(ts){ return new Date(Date.parse(ts)+7*3600e3).toISOString().slice(0,10); }
 function cKg(n){ return (Math.round(Number(n)*10)/10).toFixed(1)+' kg'; }
 /* private photos and videos: short-lived signed links, fetched in batches */
@@ -3595,7 +3664,7 @@ function cmToday(d){
     h('div',{class:'row'},cmHas(d,'food')?btn('Add a food photo',function(){ COACHM.tab='food'; schedule(); cmFoodPick(); },'primary'):null,!cmHas(d,'weight')?null:btn('Log my weight',function(){ COACHM.tab='weight'; schedule(); setTimeout(function(){ var e=document.getElementById('cm-kg'); if(e) e.focus(); },60); }))];
 }
 /* food diary */
-function cmGuessKind(){ var hr=Number(new Date().toLocaleString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',hour12:false})); return hr<11?'breakfast':hr<15?'lunch':hr<17?'snack':'dinner'; }
+function cmGuessKind(){ var hr=Number(new Date().toLocaleString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',hour12:false})); return hr<11?'breakfast':hr<15?'lunch':hr<17?'snack':'dinner'; }
 function cmFoodPick(){
   var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(f) cmFoodForm(f); }});
   document.body.appendChild(inp); inp.click(); }
@@ -4708,7 +4777,7 @@ function accOverview(lines,all,d){
   if(Number(d.room_sales)&&(ACC.biz==='all'||ACC.biz===BIZ_STAY)) notes.push('Rooms sold for nights in this period: '+accThb(d.room_sales)+'. Room money shows here when it is paid. For Booking.com, Agoda or Airbnb, add each payout with Add money in, as "Booking site payout".');
   return [h('div',{class:'acccards'},cards),accDepts(lines),accChecks(),
     mk.length>1?section('Last 12 months',null,h('div',{class:'panel pad'},pChart([{label:'Money in',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].i)}; })},{label:'Money out',pts:mk.map(function(m){ return {d:m+'-01',v:Math.round(months[m].o)}; })}],'THB'),
-      table([{label:'Month',cell:function(m){ return parseYmd(m+'-01').toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }},{label:'In',num:true,cell:function(m){ return accThb(months[m].i); }},{label:'Out',num:true,cell:function(m){ return accThb(months[m].o); }},
+      table([{label:'Month',cell:function(m){ return parseYmd(m+'-01').toLocaleDateString(LOC(),{month:'short',year:'numeric'}); }},{label:'In',num:true,cell:function(m){ return accThb(months[m].i); }},{label:'Out',num:true,cell:function(m){ return accThb(months[m].o); }},
         {label:'Profit',num:true,cell:function(m){ var p=months[m].i-months[m].o; return h('span',{class:p>=0?'accin':'accout'},accThb(p)); }}],mk.slice().reverse(),''))):null,
     section('Money by payment method',null,table([{label:'Method',cell:function(x){ return x.k; }},{label:'In',num:true,cell:function(x){ return accThb(x.i); }},{label:'Out',num:true,cell:function(x){ return accThb(x.o); }},{label:'Difference',num:true,cell:function(x){ return accThb(x.i-x.o); }}],methods,'Nothing in this period.')),
     h('p',{class:'sub narrow'},'Check these against the cash box and the bank statement. Scan (PromptPay) and Transfer both land in the bank account.'),
@@ -4997,7 +5066,7 @@ function accRcCard(x){
       .catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');
   return h('div',{class:'panel pad accrc'+(ACC.rcFocus===x.id?' focus':'')},
     h('a',{class:'accrcimgw',href:x._url||null,target:'_blank',rel:'noopener'},x._url?h('img',{src:x._url,alt:'Receipt photo'}):img),
-    h('div',{class:'accrcf'},h('small',{class:'sub'},'Added by '+(x.by||'staff')+(x.at?' on '+new Date(x.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+', receipt date '+fmtDate(x.day)+(x.status==='checked'?', checked':'')),
+    h('div',{class:'accrcf'},h('small',{class:'sub'},'Added by '+(x.by||'staff')+(x.at?' on '+new Date(x.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+', receipt date '+fmtDate(x.day)+(x.status==='checked'?', checked':'')),
       h('div',{class:'accrcg'},h('div',{class:'field'},h('label',{for:id+'supplier'},'Shop or supplier'),inp('supplier')),h('div',{class:'field'},h('label',{for:id+'day'},'Date'),inp('day',{type:'date'})),
         h('div',{class:'field'},h('label',{for:id+'amount'},'Amount THB'),inp('amount',{type:'number'})),h('div',{class:'field'},h('label',{for:id+'method'},'Paid by'),sel('method',[['transfer','Transfer'],['scan','Scan (PromptPay)'],['cash','Cash'],['card','Card']])),
         h('div',{class:'field'},h('label',{for:id+'category'},'Category'),sel('category',[['','Choose']].concat(ACC_OUT.map(function(c){ return [c,c]; })))),
@@ -5024,7 +5093,7 @@ function socLoad(){ SOC.busy=true; return sb.rpc('social_list').then(must).then(
   .catch(function(e){ SOC.busy=false; SOC.err=errText(e); schedule(); });
 }
 function socCheck(){ socCall({mode:'check'}).then(function(c){ SOC.cfg=c; schedule(); }).catch(function(e){ SOC.cfg={err:errText(e)}; schedule(); }); }
-function bkkWhen(x){ return x?new Date(x).toLocaleString('en-GB',{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
+function bkkWhen(x){ return x?new Date(x).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
 function bkkInput(x){ return new Date((x?Date.parse(x):Date.now())+7*3600e3).toISOString().slice(0,16); }
 /* the usual posting time for new posts (Social media, Posting time), Bangkok time */
 var SOCTIME=null;
@@ -5935,7 +6004,7 @@ function receiptNode(o){
   var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
   return h('div',{id:'receipt',class:'receipt'},
     h('div',{class:'rc-head'},h('b',null,(/cafe/i.test(o.loc||'')?DEPT_CAFE:BIZ_MAIN.replace(/ gym$/i,'')).toUpperCase()),h('span',null,(o.loc||'Muay Thai and Pangea Cafe')+', Kathu, Phuket')),
-    h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
+    h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString(LOC(),{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
     h('table',null,h('tbody',null,(o.items||[]).map(function(l){ return h('tr',null,h('td',null,l.qty+' x '+l.name+(l.note?' ('+l.note+')':'')),h('td',{class:'num'},l.price!=null?thb(l.price*l.qty):'')); }))),
     h('div',{class:'rc-tot'},
       o.discount?h('div',null,h('span',null,'Subtotal'),h('span',null,thb(o.subtotal))):null,
@@ -6120,7 +6189,7 @@ function stockDlg(p,loc,kind){
 function stockHistory(p){
   sb.rpc('shop_stock_history',{p_product:p.id}).then(must).then(function(rows){
     var why={sale:'Sold',refund:'Refund',delivery:'Delivery',count:'Count',waste:'Waste'};
-    shopDlg(h('div',{class:'billbox'},h('h2',null,p.name),table([{label:'When',cell:function(r){ return new Date(r.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
+    shopDlg(h('div',{class:'billbox'},h('h2',null,p.name),table([{label:'When',cell:function(r){ return new Date(r.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
       {label:'Where',cell:function(r){ return r.location; }},{label:'What',cell:function(r){ return (why[r.reason]||r.reason)+(r.order?' #'+r.order:'')+(r.note?', '+r.note:''); }},
       {label:'Change',num:true,cell:function(r){ return (r.change>0?'+':'')+r.change; }},{label:'Left',num:true,cell:function(r){ return String(r.after); }},{label:'By',cell:function(r){ return r.by||''; }}],rows,'No stock changes yet.'),
       h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); },'primary'))));
@@ -6179,7 +6248,7 @@ function vReport(){
         h('div',null,h('b',null,thb(inPk)||'0 THB'),' packages'),h('div',null,h('b',null,thb(inPv)||'0 THB'),' privates'),h('div',null,h('b',null,thb(inRm)||'0 THB'),' room bills')),
       h('p',{class:'sub'},(toRooms?thb(toRooms)+' of shop sales went on room bills and is counted when the bill is paid. ':'')+'Customers owe '+(thb(r.money.owed)||'0 THB')+' in total.'+(rl?' Package money shows under a shop when it was taken during a shift there.':'')),
       table([{label:'How',cell:function(x){ return payName(x[0]); }},{label:'Total',num:true,cell:function(x){ return thb(x[1]); }}],Object.keys(allM).sort(function(a,b){ return allM[b]-allM[a]; }).map(function(k){ return [k,allM[k]]; }),'No money in.'))),
-    !r||byDay.length<2?null:section(long?'By month':'By day',null,table([{label:long?'Month':'Day',cell:function(x){ return long?parseYmd(x.k+'-01').toLocaleDateString('en-GB',{month:'long',year:'numeric'}):fmtDate(x.k); }},
+    !r||byDay.length<2?null:section(long?'By month':'By day',null,table([{label:long?'Month':'Day',cell:function(x){ return long?parseYmd(x.k+'-01').toLocaleDateString(LOC(),{month:'long',year:'numeric'}):fmtDate(x.k); }},
       {label:'Shop',num:true,cell:function(x){ return thb(x.shop)||''; }},{label:'Packages',num:true,cell:function(x){ return thb(x.pk)||''; }},{label:'Privates',num:true,cell:function(x){ return thb(x.pv)||''; }},
       {label:'Rooms',num:true,cell:function(x){ return thb(x.rm)||''; }},{label:'Total',num:true,cell:function(x){ return h('b',null,thb(x.shop+x.pk+x.pv+x.rm)||'0 THB'); }}],byDay,'')),
     !r||!P.length?null:section('Packages, privates and room bills paid',null,table([{label:'Day',cell:function(x){ return fmtDate(x.day); }},{label:'Who',cell:function(x){ return x.customer||''; }},
@@ -6248,7 +6317,7 @@ function vShop(){
   var waiting=(SALES&&SALES.waiting||[]).filter(function(o){ return !o.location_id||o.location_id===loc; });
   var head=h('div',{class:'row wrap'},
     L.length>1?btn(locName(loc)+' (change)',function(){ ui.shopLoc=null; try{ localStorage.removeItem('pk_shop_loc'); }catch(e){} schedule(); },'small'):null,
-    shift?chip('Shift: '+(shift.by||'')+' since '+new Date(shift.opened_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+', started with '+(thb(shift.opening_cash)||'0 THB'),'ok'):chip('No shift open','warn'),
+    shift?chip('Shift: '+(shift.by||'')+' since '+new Date(shift.opened_at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})+', started with '+(thb(shift.opening_cash)||'0 THB'),'ok'):chip('No shift open','warn'),
     btn(shift?'Close shift':'Open shift',shiftDlg,shift?'small':'primary small'),
     lows.length?btn(lows.length+' low on stock',function(){ ui.shopView='stock'; ui.stockLoc=loc; schedule(); },'small warnbtn'):null,
     isBoss()&&!lows.length?btn('Stock',function(){ ui.shopView='stock'; ui.stockLoc=loc; schedule(); },'small'):null,
@@ -6282,9 +6351,9 @@ function vShop(){
   var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
   return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
     head,
-    pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),
+    pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),
       act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
-    waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
+    waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
       act:[shift?PAYS.filter(function(m){ return m[0]!=='room'&&m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
     h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
@@ -6292,7 +6361,7 @@ function vShop(){
         gymTill(loc)?btn('Training packages',function(){ ui.shopCat='__pk'; ui.shopQ=''; schedule(); },pkMode?'primary small':'small'):null):null,grid),cartBox),
     section('Sales today',null,cards(today.slice(0,40).map(function(o){
       var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip(o.billed?'On their bill':'Not paid','warn'):chip(payName(o.method)+(o.fee?', card fee '+thb(o.fee):''),'ok');
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
         act:[btn('Receipt',function(){ receiptDlg({id:o.id,loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
           o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null,
@@ -6615,7 +6684,7 @@ function vCFood(){
   return [pageHead('Food','Order from the Pangea cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
     (!kn.open||kn.busy)&&kn.text?h('div',{class:'kbanner '+(kn.open?'warn':'bad')},kn.text):null,
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
     cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
@@ -6661,7 +6730,7 @@ var CAMP=null;
 function campSection(){ if(CAMP===null){ CAMP=false; sb.rpc('email_campaigns').then(must).then(function(l){ CAMP=(l||[]).filter(function(c){ return !/test/.test(c.campaign); }); schedule(); }).catch(function(){ CAMP=[]; }); }
   if(!CAMP||!CAMP.length) return null;
   return section('Outreach emails',null,h('div',null,table([{label:'Campaign',cell:function(c){ return c.campaign; }},{label:'Sent',num:true,cell:function(c){ return String(c.sent); }},{label:'Waiting',num:true,cell:function(c){ return String(c.queued); }},
-      {label:'Next',cell:function(c){ return c.next?new Date(c.next).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'-'; }},
+      {label:'Next',cell:function(c){ return c.next?new Date(c.next).toLocaleString(LOC(),{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'-'; }},
       {label:'Not sent',num:true,cell:function(c){ return String((c.failed||0)+(c.stopped||0)); }},
       {label:'',cell:function(c){ return h('span',{class:'row'},c.queued?btn('Take one off',function(){ openForm({title:'Take an address off',note:'For someone who replied stop or not interested. Their email will not be sent.',fields:[{key:'email',label:'Email',type:'email',required:true}],
           onSave:function(v){ return sb.rpc('email_campaign_drop',{p_campaign:c.campaign,p_email:v.email}).then(must).then(function(n){ CAMP=null; if(!n) throw {plain:true,message:'That address is not waiting in this campaign.'}; }); }}); },'small'):null,
@@ -6863,7 +6932,7 @@ function rcRemoved(from,to){
     {label:'Date',cell:function(x){ return fmtDate(x.day); }},
     {label:'What',cell:function(x){ return h('span',null,x.supplier||x.purpose||x.department,h('div',{class:'sub'},x.amount!=null?thb(Number(x.amount)):'No amount')); }},
     {label:'Added by',cell:function(x){ return x.by||''; }},
-    {label:'Removed by',cell:function(x){ return h('span',null,(x.removed_by||'')+(x.removed_at?', '+new Date(x.removed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''),x.removed_why?h('div',{class:'sub'},x.removed_why):null); }},
+    {label:'Removed by',cell:function(x){ return h('span',null,(x.removed_by||'')+(x.removed_at?', '+new Date(x.removed_at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''),x.removed_why?h('div',{class:'sub'},x.removed_why):null); }},
     {label:'',cell:function(x){ return h('div',{class:'row'},btn('Photo',function(){ rcPhoto(x); },'small'),btn('Put back',function(){ run(sb.rpc('receipt_restore',{p_id:x.id}).then(must).then(function(){ RCPT=null; RCRM=null; ACC.rc=null; ACC.data=null; WORK=null; }),'Receipt put back.'); },'small')); }}],RCRM.list,''));
 }
 function rcDownload(){
@@ -6892,7 +6961,7 @@ function vReceipts(){
       {label:'What',cell:function(x){ return (x.supplier||'')+(x.note?' ('+x.note+')':''); }},
       {label:'Amount',num:true,cell:function(x){ return x.amount==null?chip('No amount','warn'):thb(Number(x.amount)); }},
       {label:'Paid by',cell:function(x){ return ({transfer:'Transfer',scan:'Scan',cash:'Cash',card:'Card'})[x.method]||x.method; }},
-      {label:'Added by',cell:function(x){ return h('span',null,x.by||'',x.at?h('div',{class:'sub'},new Date(x.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):null); }},
+      {label:'Added by',cell:function(x){ return h('span',null,x.by||'',x.at?h('div',{class:'sub'},new Date(x.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):null); }},
       {label:'',cell:function(x){ return h('div',{class:'row'},x.status==='checked'?chip('Checked','ok'):btn('Checked',function(){ run(sb.rpc('receipt_save',{p:{id:x.id,amount:x.amount,status:'checked',supplier:x.supplier,note:x.note}}).then(must).then(loadReceipts),'Marked checked.'); },'small'),
         btn('Photo',function(){ rcPhoto(x); },'small'),btn('Edit',function(){ rcEdit(x); },'small'),rcBoss()?btn('Remove',function(){ rcRemove(x); },'small'):null); }}],list,'No receipts this month. Anyone on the team can add one with the Receipt button at the top.')),
     rcRemoved(RCPT.month+'-01',addDays(addDays(RCPT.month+'-01',32).slice(0,7)+'-01',-1)),
@@ -6952,7 +7021,7 @@ function actionsBox(limit){
     open.length?h('div',{class:'panel todolist'},list.map(function(x){
       return h('div',{class:'todo'},h('button',{type:'button',class:'tick','aria-label':'Tick off: '+x.text,onclick:function(){ actDone(x); }}),
         h('div',{class:'todotxt'},h('div',null,actWhere(x)?h('b',null,actWhere(x)+': '):null,x.text),
-          h('div',{class:'sub'},'Reported by '+(x.by||'staff')+', '+new Date(x.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. '+(x.assigned?'Given to '+x.assigned+'.':'Not given to anyone yet.')+(x.kind!=='task'?' From housekeeping.':'')),
+          h('div',{class:'sub'},'Reported by '+(x.by||'staff')+', '+new Date(x.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. '+(x.assigned?'Given to '+x.assigned+'.':'Not given to anyone yet.')+(x.kind!=='task'?' From housekeeping.':'')),
         h('div',{class:'row wrap',style:'margin-top:6px'},x.urgent?chip('Urgent','bad'):null,actAgeChip(x),mgr?btn(x.assigned?'Change':'Give to',function(){ actAssign(x); },'small'):null,
           mgr?btn('Remove',function(){ if(ui.actRm!==x.id){ ui.actRm=x.id; toast('Tap Remove again to take it off the list without doing it.'); return; } ui.actRm=null; run(sb.rpc('action_remove',{p_id:x.id}).then(must).then(loadActions),'Removed.'); },'small'):null))); }))
       :h('div',{class:'panel empty'},'Nothing pending. Anything staff report lands here until someone ticks it off.'));
@@ -6961,7 +7030,7 @@ function vJobs(){
   if(!ACT){ if(!ui.actBusy) loadActions(); return [pageHead(AX('title'),''),h('div',{class:'panel empty'},'...')]; }
   var l=mtLang(), next=l==='en'?'th':l==='th'?'my':'en';
   var others=(ACT.open||[]).filter(function(x){ return actTeam(x).indexOf(ACT.me)<0; });
-  return [pageHead(AX('title'),new Date().toLocaleDateString(l==='th'?'th-TH':l==='my'?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'}),btn(AX('lang'),function(){ setMtLang(next); },'small')),
+  return [pageHead(AX('title'),new Date().toLocaleDateString(l==='th'?'th-TH':l==='my'?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'}),btn(AX('lang'),function(){ setUiLang(next); },'small')),
     myJobs(),
     h('div',{class:'row'},btn(SU('titleAny'),function(){ suppliesDlg(null); },'small'),btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),
     section(AX('other')+(others.length?' ('+others.length+')':''),btn('↻',function(){ loadActions(); },'small'),
@@ -6975,7 +7044,7 @@ function vActions(){
     done.length?section('Done in the last 2 weeks',null,h('div',{class:'panel todolist'},done.map(function(x){
       var took=x.fixed_at?Math.max(0,Math.round((new Date(x.fixed_at)-new Date(x.at))/36e5)):null;
       return h('div',{class:'todo done'},h('span',{class:'tick on'}),h('div',{class:'todotxt'},h('div',null,actWhere(x)?h('b',null,actWhere(x)+': '):null,x.text),
-        h('div',{class:'sub'},'Done by '+(x.done_by||'')+', '+new Date(x.fixed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(took!=null?', '+(took<24?took+' hours':Math.round(took/24)+' days')+' after it was reported':'')+(x.done_note?'. '+x.done_note:''))),
+        h('div',{class:'sub'},'Done by '+(x.done_by||'')+', '+new Date(x.fixed_at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(took!=null?', '+(took<24?took+' hours':Math.round(took/24)+' days')+' after it was reported':'')+(x.done_note?'. '+x.done_note:''))),
         btn('Not done',function(){ run(sb.rpc('action_reopen',{p_id:x.id}).then(must).then(loadActions),'Back on the list.'); },'small')); }))):null];
 }
 /* dashboard: the to-do list (problems from housekeeping plus jobs added by the team) and the housekeeping log */
@@ -6985,7 +7054,7 @@ setInterval(function(){ if(me&&allReady&&ui.tab==='today'&&DASH&&document.visibi
 function dashTodo(){ return [myJobs(),actionsBox(5)]; }
 function dashHk(){
   if(!DASH) return null;
-  var tm=function(a){ return new Date(a).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); };
+  var tm=function(a){ return new Date(a).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}); };
   var today=ymd(new Date()), day=DASH.day, rooms=DASH.rooms||[];
   var notClean=rooms.filter(function(r){ return r.occupied&&!r.cleaned.length; }).length;
   var pick=h('div',{class:'row'},[['Today',today],['Yesterday',addDays(today,-1)]].map(function(o){ return btn(o[0],function(){ ui.dashDay=o[1]===today?null:o[1]; DASH=null; loadDash(); schedule(); },(day===o[1])?'primary small':'small'); }));
@@ -7027,7 +7096,7 @@ function invChart(rows,zones){
       svg+=last?'<path data-tip="'+zoneName(z)+', '+m+': '+thb(Math.round(v))+'" fill="var(--z-'+z+')" d="M'+x+' '+(y+hh+0)+'V'+(y+4)+'q0 -4 4 -4h'+(bw-8)+'q4 0 4 4V'+(y+hh)+'z" transform="translate(0,0)"/>'
         :'<rect data-tip="'+zoneName(z)+', '+m+': '+thb(Math.round(v))+'" fill="var(--z-'+z+')" x="'+x+'" y="'+y+'" width="'+bw+'" height="'+hh+'"/>';
       y0=y; });
-    var lbl=new Date(m+'-01T00:00:00').toLocaleDateString('en-GB',{month:'short'});
+    var lbl=new Date(m+'-01T00:00:00').toLocaleDateString(LOC(),{month:'short'});
     svg+='<text class="ax" x="'+(x+bw/2)+'" y="'+(H-8)+'" text-anchor="middle">'+lbl+'</text>'; });
   svg+='</svg>';
   var box=h('div',null); box.innerHTML=svg;
@@ -7112,7 +7181,7 @@ function vHousekeeping(){
   var day=ui.hkDay||ymd(new Date()), today=ymd(new Date());
   if(!HKR||HKR.day!==day){ if(ui.hkrFor!==day){ ui.hkrFor=day; loadHkr(); } return [pageHead('Housekeeping',''),h('div',{class:'panel empty'},ui.hkrErr||'Loading.')]; }
   if(!DASH&&!ui.dashBusy) loadDash();
-  var tm=function(a){ return new Date(a).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); };
+  var tm=function(a){ return new Date(a).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}); };
   var rooms=HKR.rooms||[], occ=rooms.filter(function(r){ return r.occupied; });
   var cleaned=occ.filter(function(r){ return r.cleaned.length; }).length, mb=occ.filter(function(r){ return r.minibar.length; }).length;
   var dayChecks=rooms.reduce(function(a,r){ return a.concat(r.minibar.filter(function(m){ return m.total; }).map(function(m){ return {room:r.name,m:m}; })); },[]);
@@ -7267,7 +7336,7 @@ function vToday(){
     housekeeping:function(){ return [dashHk()]; }
   };
   return [
-    pageHead('Today',new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'&&can('settings')?btn('Arrange',todayArrange,'small'):null,gymOn?btn('Desk mode',startDeskMode):null)),
+    pageHead('Today',new Date().toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'&&can('settings')?btn('Arrange',todayArrange,'small'):null,gymOn?btn('Desk mode',startDeskMode):null)),
     h('div',{class:'stats'},gymOn?h('span',null,h('b',null,entries.length),'checked in'):null,gymOn?h('span',null,h('b',null,pToday.length),'privates today'):null,h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null)
   ].concat(todayWidgets(PART));
 }
@@ -7755,7 +7824,7 @@ function icalLine(){
   var any=S.rooms.some(function(r){ return Array.isArray(r.ical_feeds)&&r.ical_feeds.length; });
   if(!any) return null;
   var when=ICAL.at?new Date(ICAL.at):null, mins=when?Math.round((Date.now()-when)/60000):null, errs=ICAL.errors||[];
-  return h('div',{class:'row'},h('span',{class:'sub'},'Booking site calendars are read every 15 minutes'+(when?'. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):'')+'.'),
+  return h('div',{class:'row'},h('span',{class:'sub'},'Booking site calendars are read every 15 minutes'+(when?'. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):'')+'.'),
     btn(ui.icalBusy?'Checking.':'Check calendars now',syncCalendars,'small'),
     errs.length?h('details',null,h('summary',{class:'sub',style:'color:var(--bad)'},errs.length+' to check'),h('ul',{class:'plain'},errs.map(function(e){ return h('li',null,e); }))):null);
 }
@@ -7782,7 +7851,7 @@ function backupSection(){
   if(BK===null&&!ui.bkAsked){ ui.bkAsked=true; sb.rpc('backup_status').then(function(res){ BK=!res.error&&Array.isArray(res.data)?res.data:[]; schedule(); }); }
   var last=BK&&BK.length?BK[0]:null;
   return section('Backups',btn(ui.backingUp?'Preparing.':'Download backup',downloadBackup,'primary small'),h('div',{class:'panel pad'},
-    h('p',{class:'sub',style:'margin:0'},'Every night at 3am the app saves a full copy of all its data, and keeps the last 14 nights. '+(last?'Last copy: '+new Date(last.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+', '+last.rows+' records. ':'')+
+    h('p',{class:'sub',style:'margin:0'},'Every night at 3am the app saves a full copy of all its data, and keeps the last 14 nights. '+(last?'Last copy: '+new Date(last.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+', '+last.rows+' records. ':'')+
       'Those copies sit in the same place as the app, so also tap Download backup once a week and save the file to Google Drive. That copy is yours, wherever the app is.')));
 }
 // AI use this month (captions, web pages, receipts). The monthly allowance is set by Muay Friend; when it is used up the AI buttons say so until the 1st.
@@ -7865,7 +7934,7 @@ function cleanupSection(){
   if(CLN.done) return section('Clean up: done',btn('Scan again',cleanupScan,'small'),h('div',{class:'panel'},CLN.done.map(function(x){ return h('div',{class:'clrow'},h('div',{class:'clbody'},h('b',null,x.title),h('div',{class:'sub'},x.msg)),chip(x.ok?'Done':'Not done',x.ok?'ok':'warn')); })));
   var items=CLN.items, groups=[]; items.forEach(function(x){ if(groups.indexOf(x.group)<0) groups.push(x.group); });
   var n=Object.keys(CLN.pick).filter(function(k){ return CLN.pick[k]; }).length;
-  if(!items.length) return section('Clean up',btn('Scan again',cleanupScan,'small'),h('div',{class:'panel pad'},h('p',null,h('b',null,'All clean.'),' Nothing to fix right now.'),CLN.last?h('p',{class:'sub'},'Last clean up '+new Date(CLN.last.at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(CLN.last.by?' by '+CLN.last.by:'')+'.'):null));
+  if(!items.length) return section('Clean up',btn('Scan again',cleanupScan,'small'),h('div',{class:'panel pad'},h('p',null,h('b',null,'All clean.'),' Nothing to fix right now.'),CLN.last?h('p',{class:'sub'},'Last clean up '+new Date(CLN.last.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(CLN.last.by?' by '+CLN.last.by:'')+'.'):null));
   return section('Clean up report',h('div',{class:'row'},btn('Tick all',function(){ items.forEach(function(x){ if(x.kind!=='note') CLN.pick[x.key]=true; }); schedule(); },'small'),btn('Untick all',function(){ CLN.pick={}; schedule(); },'small'),btn('Scan again',cleanupScan,'small')),
     h('div',null,head,h('p',{class:'sub'},items.length+' found. Ticked ones are safe to fix. Unticked ones need you to check first.'),
       groups.map(function(g){ var l=items.filter(function(x){ return x.group===g; });
@@ -7924,6 +7993,7 @@ function vSettings(){
     navSection(),
     h('div',{id:'whatsnew'},whatsNewSection()),
     featuresSection(),
+    me.role==='manager'&&(featOn('lang_th')||featOn('lang_my'))?langSection():null,
     backupSection(),
     posterSection(),
     me.role==='manager'?ppSettings():null,
@@ -8003,6 +8073,7 @@ function renderNav(){
     if(x.g){ grp=x.g; var isOpen=open.indexOf(x.g)>=0||curG===x.g; shut[x.g]=!isOpen;
       return h('button',{type:'button',class:'navgrp','aria-expanded':isOpen?'true':'false',onclick:function(){ var o=navOpen(), i=o.indexOf(x.g); if(i>=0) o.splice(i,1); else o.push(x.g); pref('pk_navopen',JSON.stringify(o)); renderNav(); }},h('span',null,x.g),h('span',{class:'navcar','aria-hidden':'true'},isOpen?'\u25BE':'\u25B8')); }
     var t=x.t, hid=grp&&shut[grp]; return h('button',{type:'button',class:(t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):'')+(grp?' navin':'')+(hid?' shut':''),'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
+  var lp=langPick(); if(lp) $nav.appendChild(lp);
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
 }
 var raf=0;
@@ -8094,7 +8165,7 @@ function fromRow(col,r){
   if(col==='classes') o.day=String(o.day);
   return o;
 }
-function bkkTime(ts){ return new Date(ts).toLocaleTimeString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false}); }
+function bkkTime(ts){ return new Date(ts).toLocaleTimeString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false}); }
 function reload(col){
   if(col==='checkin_days'){
     return sb.from('checkins').select('*').gte('day',addDays(ymd(new Date()),-60)).order('checked_in_at').then(function(res){
@@ -8325,7 +8396,7 @@ function vMine(){
   var todayItems=classes.map(function(c){ return {t:c.time||'',when:ctime(c),title:c.title,note:C('group')}; })
     .concat(todayP.map(function(p){ return {t:p.time||'',when:pSpan(p),title:C('privWith')(p.customer),right:p.arrived_at?chip((coLang()==='th'?'ลูกค้ามาแล้ว ':'Customer here ')+bkkTime(p.arrived_at),'ok'):null,note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
-  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setCoLang(th?'en':'th'); })),myJobs(),
+  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setUiLang(th?'en':'th'); })),myJobs(),
     h('div',{class:'stats'},
       h('span',null,h('b',null,doneM.length),C('doneMonth')),
       h('span',null,h('b',null,thb(sum(doneM))||'0 THB'),C('earned')),
@@ -9241,7 +9312,7 @@ function kPrivate(c){
   var today=ymd(new Date()), group=c.price_group||'standard';
   var allCh=coaches(); if(!allCh.length){ ui.kerr='Privates can not be booked here yet. See the front desk.'; schedule(); return; }
   var direct=sortBy(S.sources,'name').filter(function(x){ return /^direct$/i.test(x.name); })[0], price=direct?srcPrice(direct,group):null;
-  var days=[]; for(var i=0;i<14;i++){ var d=addDays(today,i); days.push([d,i===0?'Today':i===1?'Tomorrow':parseYmd(d).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})]); }
+  var days=[]; for(var i=0;i<14;i++){ var d=addDays(today,i); days.push([d,i===0?'Today':i===1?'Tomorrow':parseYmd(d).toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'short'})]); }
   function timesFor(d){ var out=[], now=new Date(Date.now()+7*3600e3), start=d===today?now.getUTCHours()*60+now.getUTCMinutes()+10:6*60; start=Math.ceil(start/30)*30;
     for(var m=Math.max(start,6*60);m<=20*60;m+=30) out.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); return out; }
   function coachesFor(d){ return allCh.filter(function(x){ return !S.holidays.some(function(hd){ return hd.staff_id===x.id&&hd.status==='approved'&&hd.from<=d&&d<=hd.to; }); }); }
@@ -9307,7 +9378,7 @@ function kPromptPay(c,amt,label){
 function vKiosk(){
   var day=ymd(new Date());
   var head=h('div',{class:'khead'},h('div',null,h('div',{class:'kbrand'},'PHUKET KING'),h('h1',null,ui.kdone?'Welcome':ui.kc?'Hi '+String((byId('customers',ui.kc)||{}).name||'').split(' ')[0]:'Check in'),
-    h('p',{class:'sub'},new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'}))),
+    h('p',{class:'sub'},new Date().toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'}))),
     ui.kc&&!ui.kdone?h('button',{type:'button',class:'btn',onclick:kReset},'Not you? Back'):null);
   var foot=h('div',{class:'kfoot'},h('span',null,'Not listed? See the front desk.'),h('button',{type:'button',class:'link',onclick:exitKiosk},'Staff'));
   var dOwe=ui.kdone&&ui.kdone.cid&&ui.kdone.kind!=='buy'?owesNow(ui.kdone.cid):0;
@@ -9413,7 +9484,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; NAVL=undefined; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; NAVL=undefined; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.toggle('lang-my',I18N.l==='my'); document.documentElement.lang=I18N.l; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
@@ -9625,6 +9696,7 @@ if(!window.supabase||!window.supabase.createClient){
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
   })();
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  uiApply().catch(function(){});
   loadTheme().catch(function(){});
   loadFeatures().catch(function(){});
   loadOffer();

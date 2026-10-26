@@ -126,6 +126,10 @@ def main():
     open(os.path.join(OUT, 'receipt.html'), 'w', encoding='utf-8').write(rc)
     # what's new, the same for every app
     open(os.path.join(OUT, 'changelog.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'changelog.js'), encoding='utf-8').read()))
+    for lang in ('th', 'my'):  # app languages, with the same name swaps
+        src = os.path.join(ROOT, 'i18n-%s.js' % lang)
+        if os.path.exists(src):
+            open(os.path.join(OUT, 'i18n-%s.js' % lang), 'w', encoding='utf-8').write(swap(open(src, encoding='utf-8').read()))
     icons()
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import check_js
