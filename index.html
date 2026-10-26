@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=38"></script>
+<script src="changelog.js?v=39"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -853,7 +853,7 @@ function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if
 /* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
 var LANGED={q:'',th:null,my:null,fix:null};
 function langLoadAll(){ ['th','my'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
-    var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+(window.I18N_V||1); sc.onload=function(){ LANGED[l]=(window['I18N_'+l]||{}).d||{}; schedule(); }; document.head.appendChild(sc); });
+    var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+I18N_V; sc.onload=function(){ LANGED[l]=(window['I18N_'+l]||{}).d||{}; schedule(); }; document.head.appendChild(sc); });
   if(!LANGED.fix){ LANGED.fix={}; sb.rpc('i18n_fixes').then(function(r){ LANGED.fix=(r&&r.data)||{}; schedule(); },function(){}); } }
 function langSave(fix){ return sb.from('app_settings').update({value:JSON.stringify(fix),updated_at:new Date().toISOString()}).eq('key','i18n_fix').select('key').then(must).then(function(d){ if(!d||!d.length) throw new Error('Only a manager can change this.'); LANGED.fix=fix; I18N.fix=fix; trBuild(); }); }
 function langEdit(k){ var f=LANGED.fix[k]||{};
@@ -876,6 +876,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
+var I18N_V=1; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -884,7 +885,7 @@ function trWord(t){ if(I18N.l==='en'||!I18N.d||!t) return t; var core=t.trim(); 
   var hit=I18N.c[t]; if(hit!==undefined) return hit;
   var f=I18N.fix[core], v=f&&f[I18N.l]||I18N.d[core], out;
   if(v) out=t.slice(0,t.indexOf(core.charAt(0)))+v+t.slice(t.lastIndexOf(core.charAt(core.length-1))+1);
-  else out=I18N.rx?t.replace(I18N.rx,function(m){ var g=I18N.fix[m]; return g&&g[I18N.l]||I18N.d[m]||m; }):t;
+  else out=I18N.rx&&(/[,.:;(]/.test(t)||t.match(/[A-Za-z']+/g).some(function(w){ return I18N.fw[w]; }))?t.replace(I18N.rx,function(m){ var g=I18N.fix[m]; return g&&g[I18N.l]||I18N.d[m]||m; }):t;
   I18N.c[t]=out; return out; }
 function trSelf(e){ var tg=e.tagName; return tg==='SCRIPT'||tg==='STYLE'||tg==='TEXTAREA'||e.isContentEditable||e.getAttribute('translate')==='no'||(e.classList&&(e.classList.contains('notr')||e.classList.contains('msgbody')||e.classList.contains('ltext'))); }
 function trSkip(el){ for(var e=el;e&&e.nodeType===1;e=e.parentElement){ if(trSelf(e)) return true; } return false; }
@@ -898,16 +899,17 @@ function trNode(root){ if(I18N.l==='en'||!I18N.d||!root) return;
   var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,{acceptNode:function(n){ return n.nodeType===1&&trSelf(n)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT; }}), n;
   while((n=w.nextNode())){ if(n.nodeType===1) trAttrs(n); else trText(n); } }
 function trBuild(){ var keys=Object.keys(I18N.d).concat(Object.keys(I18N.fix)).filter(function(k){ return k.length>=12||/^[,.:;(]|[,:(]$/.test(k)||I18N.part[k]; });
-  keys.sort(function(a,b){ return b.length-a.length; });
-  var alt=keys.map(function(k){ return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }).join('|');
-  try{ I18N.rx=keys.length?new RegExp('(?<![A-Za-z0-9])(?:'+alt+')(?![A-Za-z0-9])','g'):null; }catch(e){ try{ I18N.rx=new RegExp('(?:'+alt+')(?![A-Za-z0-9])','g'); }catch(e2){ I18N.rx=null; } } I18N.c={}; }
+  keys.sort(function(a,b){ return b.length-a.length; }); I18N.fw={}; keys.forEach(function(k){ var m=k.match(/[A-Za-z']+/); if(m) I18N.fw[m[0]]=1; });
+  function esc(k){ return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  var alt=keys.map(function(k){ return (/^[A-Za-z0-9]/.test(k)?'(?<![A-Za-z0-9])':'')+esc(k)+(/[A-Za-z0-9]$/.test(k)?'(?![A-Za-z0-9])':''); }).join('|');
+  try{ I18N.rx=keys.length?new RegExp(alt,'g'):null; }catch(e){ try{ I18N.rx=new RegExp(keys.map(esc).join('|'),'g'); }catch(e2){ I18N.rx=null; } } I18N.c={}; }
 function setUiLang(l,quiet){ pref('pk_ui_lang',l==='en'?null:l); pref('pk_ui_lang_set','1');
   /* the staff screens that already had their own language follow */
   pref('pk_lang_coach',l==='th'?'th':null); pref('pk_lang',l==='my'?'my':null); pref('pk_lang_mt',l==='en'?null:l);
   if(quiet) return uiApply(); location.reload(); }
 function uiApply(){ var l=uiLang(); I18N.l=l; document.documentElement.lang=l; document.body.classList.toggle('lang-my',l==='my'); document.body.classList.toggle('lang-th',l==='th');
   if(l==='en') return Promise.resolve();
-  return new Promise(function(ok){ if(window['I18N_'+l]) return ok(); var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+(window.I18N_V||1); sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); })
+  return new Promise(function(ok){ if(window['I18N_'+l]) return ok(); var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+I18N_V; sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); })
     .then(function(){ var src=window['I18N_'+l]; if(!src) { I18N.l='en'; return; } I18N.d=src.d; I18N.part=src.p||{}; trBuild();
       if(!I18N.obs){ I18N.obs=new MutationObserver(function(ms){ if(I18N.l==='en') return; ms.forEach(function(m){ if(m.type==='characterData') trNode(m.target); else m.addedNodes.forEach(trNode); }); });
         I18N.obs.observe(document.body,{childList:true,subtree:true,characterData:true}); }

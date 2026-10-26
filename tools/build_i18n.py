@@ -10,6 +10,8 @@ import json, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'i18n', 'strings.json')
 
+CLASSY = set('panel pad row btn small primary chip sub lrow ctab ctabs danger wrap narrow static scroll dialog pvok notr warn ok bad out up down'.split())
+
 def app_texts():
     src = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
     body = src[src.index('<script'):]
@@ -22,6 +24,7 @@ def app_texts():
         t = s.strip()
         if len(t) < 2 or not re.search(r'[A-Za-z]', t) or code.match(t) or re.search(r'[฀-๿က-႟]', t): continue
         if not (' ' in t or re.match(r'^[A-Z][a-z]', t)) or re.match(r'^[a-z]+(-[a-z]+)+$', t): continue
+        if re.match(r'^[a-z0-9 _-]+$', t) and set(t.split()) & CLASSY: continue  # css class names
         out.append(s)
     return out
 
