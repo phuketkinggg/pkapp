@@ -1,5 +1,5 @@
 {
- "at": "2026-10-25T16:31:31Z",
+ "at": "2026-10-26T07:30:20Z",
  "classes": [
   {
    "day": 0,
@@ -211,7 +211,7 @@
   }
  ],
  "found": {
-  "pages": 10,
+  "pages": 11,
   "posts": 14
  },
  "packages": [
@@ -557,6 +557,13 @@
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp",
    "slug": "ed-visa-muay-thai",
    "title": "3 Month ED Muay Thai Visa in Phuket"
+  },
+  {
+   "description": "Payment and cancellation policy for agencies and group bookings at Phuket King Muay Thai and Pangea Resort: 50% non-refundable deposit, balance 2 days before.",
+   "html": "<section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Agencies and group bookings</div><h2>Payment and cancellation policy</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p>This policy applies to bookings made by agencies, tour operators, hotels and anyone booking for a group or an event with Phuket King Muay Thai and Pangea Resort. For example group training, private sessions for a group, room blocks, camps and events.</p><ul><li><strong>50% deposit to reserve.</strong> Your dates are reserved once we receive a deposit of 50% of the total. The deposit is non-refundable.</li><li><strong>Balance 2 days before.</strong> The remaining 50% must be paid no later than 2 days before the booked date. For stays, that is 2 days before the arrival date.</li><li><strong>Balance not received?</strong> If the balance has not been paid 2 days before the date, we may release the booking. The deposit is not refunded.</li><li><strong>Cancelling.</strong> If you cancel, the deposit is kept.</li></ul><p>Want to change dates or numbers? Message us as early as possible and we will do our best to help, depending on availability.</p></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Paying</div><h2>How to pay</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><ul><li><strong>Bank transfer or PromptPay</strong> in Thai baht. We send the details with your booking.</li><li><strong>Card</strong>, with the card fee shown before you pay.</li></ul><p>We send a receipt for the deposit and for the balance. Questions about a booking? Email hello@phuketking.com or message us on WhatsApp.</p></div></div></section>",
+   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp",
+   "slug": "group-booking-policy",
+   "title": "Group and agency bookings: payment and cancellation policy"
   },
   {
    "description": "Kids Muay Thai classes in Kathu, Phuket. Fun, no pressure training that builds confidence, fitness and discipline. Monthly from 1,800 THB.",
