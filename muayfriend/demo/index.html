@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=26"></script>
+<script src="changelog.js?v=27"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -2405,20 +2405,20 @@ function vCalendar(){
   return [h('div',{class:'calbar'},h('b',null,fmtDate(start)+' to '+fmtDate(addDays(end,-1))),nav),
     h('div',{class:'panel calwrap'},h('div',{class:'cal',style:'--days:'+days},h('div',{class:'corner'},'Room'),heads,rows)),legend];
 }
-/* ---------- affiliates: people who send guests get a share of the room price ---------- */
+/* ---------- affiliates: people who send guests get a share of the room price, and of packages and courses bought on the website ---------- */
 var AFF=null;
 function affLoad(){ if(ui.affBusy) return; ui.affBusy=true; sb.rpc('affiliates_list').then(must).then(function(d){ ui.affBusy=false; ui.affErr=null; AFF=Array.isArray(d)?d:[]; schedule(); },function(e){ ui.affBusy=false; ui.affErr=errText(e); schedule(); }); }
 function affLink(a){ return SITE_URL+'/?ref='+a.code; }
 function affBookLink(a){ return SITE_URL+'/book?ref='+a.code; }
 function affOwed(a){ return Math.max(0,Number(a.earned||0)-Number(a.paid||0)); }
-function affCount(a){ return (a.stays||[]).filter(function(x){ return x.state!=='cancelled'; }).length; }
+function affCount(a){ return (a.stays||[]).concat(a.sales||[]).filter(function(x){ return x.state!=='cancelled'; }).length; }
 var AFFST={coming:['Coming',''],earned:['Earned','ok'],cancelled:['Cancelled','warn']};
 function vAff(){
   var mgr=me&&me.role==='manager';
   if(!AFF){ affLoad(); return [h('div',{class:'panel empty'},ui.affErr||'Loading.')]; }
   var owed=AFF.reduce(function(t,a){ return t+affOwed(a); },0);
   return [section('Referrals',mgr?btn('Add an affiliate',function(){ editAff(); },'primary small'):null,h('div',null,
-    h('p',{class:'sub'},'Give anyone who sends you guests their own link. When a guest books a room online through it (any time in the next 60 days), the stay is tagged to them and they earn their share of the room price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
+    h('p',{class:'sub'},'Give anyone who sends you guests their own link. When someone books a room or buys a package or course on the website through it (any time in the next 60 days), it is tagged to them and they earn their share of the room price or the package price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
     owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
     table([
       {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),a.active?null:h('div',{class:'sub'},'Switched off')); }},
@@ -2436,7 +2436,7 @@ function editAff(a){
   openForm({title:a.id?'Affiliate: '+a.name:'Add an affiliate',values:{name:a.name||'',code:a.code||'',pct:a.pct,email:a.email||'',phone:a.phone||'',customer_id:a.customer_id||'',note:a.note||'',active:a.active!==false},
     fields:[{key:'name',label:'Name',required:true,hint:'A person, a hotel, a travel agent, a fighter, a blogger.'},
       {key:'code',label:'Link code',hint:'Small letters, numbers and dashes. Leave empty to make one from the name. Their link: '+SITE_URL.replace(/^https:\/\//,'')+'/?ref=code'},
-      {key:'pct',label:'Their share of the room price (%)',type:'number',required:true,hint:'For example 10. Changing it later only affects new bookings.'},
+      {key:'pct',label:'Their share of the room or package price (%)',type:'number',required:true,hint:'For example 10. Changing it later only affects new bookings.'},
       {key:'customer_id',label:'Their app account',type:'select',options:[['','Not linked']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),hint:'Linked, they see their link and what they have earned in their app.'},
       {key:'email',label:'Email',type:'email'},{key:'phone',label:'Phone'},
       {key:'note',label:'Notes',type:'textarea',hint:'For example how you pay them.'},
@@ -2456,12 +2456,14 @@ function affDlg(a){
   var mgr=me&&me.role==='manager';
   function close(){ $dlg.close(); }
   var box=h('div',{class:'billbox'},h('h2',null,a.name),
-    h('p',{class:'sub'},Number(a.pct)+'% of the room price. '+[a.email,a.phone].filter(Boolean).join(', ')),
+    h('p',{class:'sub'},Number(a.pct)+'% of the room or package price. '+[a.email,a.phone].filter(Boolean).join(', ')),
     h('div',{class:'panel pad'},h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Their link'),affLink(a)),h('div',null,h('small',null,'Straight to booking'),affBookLink(a))),
       h('div',{class:'row wrap',style:'margin-top:10px'},btn('Copy link',function(){ copyText(affLink(a),'Link copied.'); },'small'),btn('Copy booking link',function(){ copyText(affBookLink(a),'Link copied.'); },'small'))),
     h('h3',{class:'billh'},'Bookings'),
     (a.stays||[]).length?h('div',{class:'panel scroll'},h('table',null,h('tbody',null,(a.stays||[]).map(function(x){ var st=AFFST[x.state]||[x.state,''];
       return h('tr',null,h('td',null,fmtDate(x.from)+' to '+fmtDate(x.to)),h('td',null,(x.guest||'Guest')+(x.room?', '+x.room:'')),h('td',{class:'num'},x.price!=null?thb(x.price):''),h('td',{class:'num'},thb(x.commission)||'0 THB'),h('td',null,chip(st[0],st[1]))); })))):h('div',{class:'panel empty'},'No bookings yet.'),
+    (a.sales||[]).length?[h('h3',{class:'billh'},'Packages and courses'),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,(a.sales||[]).map(function(x){ var st=AFFST[x.state]||[x.state,''];
+      return h('tr',null,h('td',null,fmtDate(x.on)),h('td',null,(x.guest||'Guest')+', '+(x.what||'')),h('td',{class:'num'},x.price!=null?thb(x.price):''),h('td',{class:'num'},thb(x.commission)||'0 THB'),h('td',null,chip(st[0]==='Coming'?'Not paid yet':st[0],st[1]))); }))))]:null,
     (a.payouts||[]).length?[h('h3',{class:'billh'},'Paid'),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,a.payouts.map(function(p){
       return h('tr',null,h('td',null,fmtDate(p.on)),h('td',null,payName(p.method)+(p.note?', '+p.note:'')),h('td',{class:'num'},thb(p.amount)),
         h('td',null,mgr?h('button',{type:'button',class:'link',onclick:function(){ if(!confirm('Undo this payment of '+thb(p.amount)+'?')) return; sb.rpc('affiliate_payout_undo',{p_id:p.id}).then(must).then(function(){ close(); AFF=null; affLoad(); toast('Payment undone.'); },function(e){ toast(errText(e)); }); }},'Undo'):null)); }))))]:null,
@@ -2476,12 +2478,12 @@ var AFFME=null;
 function affMeCard(){
   var a=AFFME; if(!a) return null; var link=affLink(a), owed=affOwed(a);
   return section('Refer a friend, earn '+Number(a.pct)+'%',null,h('div',{class:'panel pad'},
-    h('p',{class:'sub'},'Share your link. When someone books a room at Camp Rooms through it, you earn '+Number(a.pct)+'% of their room price once they arrive.'),
+    h('p',{class:'sub'},'Share your link. When someone books a room or buys a training package or course through it, you earn '+Number(a.pct)+'% of the price: for a room once they arrive, for a package once it is paid.'),
     h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Your link'),link)),
     h('div',{class:'row wrap',style:'margin:10px 0'},btn('Copy link',function(){ copyText(link,'Link copied.'); },'primary small'),
       navigator.share?btn('Share',function(){ navigator.share({title:'Camp Rooms and Muay Fight Gym Muay Thai',url:link}).catch(function(){}); },'small'):null),
     h('div',{class:'row wrap'},chip('Earned '+(thb(a.earned)||'0 THB'),'ok'),Number(a.coming)?chip('Coming '+thb(a.coming)):null,chip('Paid '+(thb(a.paid)||'0 THB')),owed?chip('To come to you '+thb(owed),'warn'):null),
-    (a.stays||[]).length?h('div',{class:'sub',style:'margin-top:10px'},(a.stays||[]).filter(function(x){ return x.state!=='cancelled'; }).slice(0,8).map(function(x){ return h('div',null,x.guest+', '+fmtDate(x.from)+': '+(thb(x.commission)||'0 THB')+(x.state==='coming'?' (when they arrive)':'')); })):null));
+    (a.stays||[]).length||(a.sales||[]).length?h('div',{class:'sub',style:'margin-top:10px'},(a.sales||[]).filter(function(x){ return x.state!=='cancelled'; }).slice(0,8).map(function(x){ return h('div',null,x.guest+', '+(x.what||'')+': '+(thb(x.commission)||'0 THB')+(x.state==='coming'?' (once paid)':'')); }),(a.stays||[]).filter(function(x){ return x.state!=='cancelled'; }).slice(0,8).map(function(x){ return h('div',null,x.guest+', '+fmtDate(x.from)+': '+(thb(x.commission)||'0 THB')+(x.state==='coming'?' (when they arrive)':'')); })):null));
 }
 function vStays(){
   if(MPSYNC===null&&!ui.mpAsked){ ui.mpAsked=true; loadMpSync().catch(function(){}); }

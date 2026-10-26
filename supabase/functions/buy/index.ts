@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
         ...(b.recovery && typeof b.recovery === "object" ? { recovery: { package_id: String(b.recovery.package_id ?? "").slice(0, 40), qty: Math.round(Number(b.recovery.qty) || 1) } } : {}) } });
       if (error) return json({ error: error.message });
       const o = data as { id: string; amount: number; what: string; email: string };
+      // a referral link (?ref=code, kept 60 days by the website): the package earns the affiliate their share once paid
+      if (b.ref && /^[a-z0-9-]{2,30}$/i.test(String(b.ref))) await admin.rpc("affiliate_tag_order", { p_order: o.id, p_code: String(b.ref) });
       if (pp) {
         const { data: acc } = await admin.rpc("web_pkg_promptpay");
         if (!acc?.payload) return json({ error: "PromptPay is not set up yet. Choose card, or WhatsApp us." });
