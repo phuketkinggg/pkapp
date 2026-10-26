@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=33"></script>
+<script src="changelog.js?v=34"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -3469,12 +3469,16 @@ function cmFormPick(p,it){
 
 /* ---------- action groups: a labelled series of steps (videos, documents, notes, habits, food diary, weight, programs)
    that unlock by week, by day, or on a date, counted from each person's start date ---------- */
-var GKIND=[['video','Video'],['doc','Document'],['note','Note'],['email','Email'],['habit','Habit'],['food','Food diary'],['weight','Weight check'],['program','Workout program']];
+var GKIND=[['video','Video'],['doc','Document'],['note','Note'],['email','Email'],['habit','Habit'],['food','Food diary'],['weight','Weight check'],['program','Workout program'],['lesson','Course lesson']];
 function gKind(k){ var x=GKIND.filter(function(g){ return g[0]===k; })[0]; return x?x[1]:k; }
 function gWhen(it){ var n=Number(it.at_n)||1; return it.at_mode==='date'?(it.at_date?fmtDate(it.at_date):'Pick a date'):it.at_mode==='day'?'Day '+n:'Week '+n; }
 function gKey(it){ var n=Number(it.at_n)||1; return it.at_mode==='date'?'2'+(it.at_date||''):'1'+String(it.at_mode==='day'?n-1:(n-1)*7).padStart(5,'0'); }
 function gWeekOf(g,t){ return Math.floor((parseYmd(t)-parseYmd(g.start_on))/(7*864e5))+1; }
-function gStepBody(it){ return [it.text?lessonText(it.text):null, it.url?(ytId(it.url)||/\.(mp4|mov|webm)(\?|$)/i.test(it.url)?cVideo(it.url):h('a',{class:'lfile',href:it.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(it.url)?'PDF':'LINK'),it.kind==='doc'?'Open the document':'Open the link')):null]; }
+/* a step that opens a course lesson: the group sets the day, the course keeps the video */
+function gLessonBtn(it){ return it.kind==='lesson'&&it.course_id&&it.lesson_id?h('div',{class:'row',style:'margin-top:8px'},btn('Open the lesson',function(){ ui.tab=me&&me.role==='customer'?'c_learn':'courses'; CRS.view=null; crsOpen(it.course_id,it.lesson_id); schedule(); window.scrollTo(0,0); },'primary small')):null; }
+var CRSL={};
+function crsLessonsFor(id){ if(!id) return []; if(CRSL[id]) return CRSL[id]; CRSL[id]=[]; sb.rpc('course_view',{p_course:id}).then(must).then(function(d){ CRSL[id]=d.lessons||[]; schedule(); },function(){}); return CRSL[id]; }
+function gStepBody(it){ if(it.kind==='lesson') return [it.text?lessonText(it.text):null,gLessonBtn(it)]; return [it.text?lessonText(it.text):null, it.url?(ytId(it.url)||/\.(mp4|mov|webm)(\?|$)/i.test(it.url)?cVideo(it.url):h('a',{class:'lfile',href:it.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(it.url)?'PDF':'LINK'),it.kind==='doc'?'Open the document':'Open the link')):null]; }
 
 /* member: steps on the Today screen */
 function cmGroups(d){ var t=d.today;
@@ -3542,6 +3546,13 @@ function coGroupEditor(){
         hb.freq==='days'?days:null); }
     if(it.kind==='program') extra=h('div',{class:'field'},h('label',{for:'gt-'+it.id},'Program template'),sel(it,'template_id','gt-'+it.id,[['','Pick a template']].concat((COACH.tpl||[]).map(function(p){ return [p.id,p.name]; }))),
       h('small',null,'The client gets their own copy, shown from this step’s date.'));
+    if(it.kind==='lesson'){ if(!CRS.list&&!CRS.busy) crsLoad();
+      var ls=crsLessonsFor(it.course_id);
+      extra=h('div',{class:'gextra'},h('div',{class:'field'},h('label',{for:'gc-'+it.id},'Course'),
+          h('select',{id:'gc-'+it.id,onchange:function(e){ it.course_id=e.target.value; it.lesson_id=''; schedule(); }},[h('option',{value:''},'Pick a course')].concat((CRS.list||[]).map(function(c){ return h('option',{value:c.id,selected:it.course_id===c.id?'':null},c.title+(c.status==='published'?'':' (draft)')); })))),
+        it.course_id?h('div',{class:'field'},h('label',{for:'gl-'+it.id},'Lesson'),
+          h('select',{id:'gl-'+it.id,onchange:function(e){ it.lesson_id=e.target.value; var l=ls.filter(function(x){ return x.id===it.lesson_id; })[0]; if(l&&!it.title) it.title=l.title; schedule(); }},[h('option',{value:''},ls.length?'Pick a lesson':'Loading the lessons')].concat(ls.map(function(l,i){ return h('option',{value:l.id,selected:it.lesson_id===l.id?'':null},(i+1)+'. '+l.title); })))):null,
+        h('small',{class:'sub'},'They get a button that opens this lesson on its day. Leave the lesson’s own Opens on day empty, so this step sets the pace.')); }
     var urlLabel=it.kind==='video'?'Video link (YouTube) or upload':it.kind==='doc'?'Document link or upload':it.kind==='email'?'Button link (optional, empty opens their app)':'Link (optional)';
     if(it.kind==='email') extra=h('div',{class:'gextra'},h('div',{class:'field'},h('label',{for:'gb-'+it.id},'Button text'),inp(it,'button','gb-'+it.id,{placeholder:it.url?'Open':'Open my app'})),
       h('small',{class:'sub'},'Sent by email at 9:00 on its day. Write {first} for their first name. Blank line for a new paragraph, - for a list, **bold**, [text](https://link).'),
@@ -3552,7 +3563,7 @@ function coGroupEditor(){
     return h('div',{class:'panel pad gedit'},whenBox,
       h('div',{class:'field'},h('label',{for:'gti-'+it.id},it.kind==='habit'?'Habit':it.kind==='email'?'Subject':'Title'),inp(it,'title','gti-'+it.id,{placeholder:it.kind==='habit'?'For example: 10 minutes stretching':it.kind==='food'?'For example: Start your food diary':it.kind==='weight'?'For example: Weekly weigh-in':'Title'})),
       h('div',{class:'field'},h('label',{for:'gtx-'+it.id},it.kind==='habit'?'How to do it':'Message'),inp(it,'text','gtx-'+it.id,{area:true,rows:it.kind==='email'?8:3,placeholder:it.kind==='email'?'Hi {first},\n\nWrite your email here.':null})),
-      it.kind!=='program'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'))):null,
+      it.kind!=='program'&&it.kind!=='lesson'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'))):null,
       extra); });
   var save=btn('Save',function(){ save.disabled=true; var items=g.items.slice().sort(function(a,b){ return gKey(a)<gKey(b)?-1:gKey(a)>gKey(b)?1:0; });
     sb.rpc('group_save',{p:{id:g.id||null,name:g.name,notes:g.notes,items:items}}).then(must).then(function(id){ if(g._course&&id) crsLinkGroup(g._course,id); COACH.gedit=null; COACH.gopen=id; coGrpLoad().then(function(l){ var gg=l.filter(function(x){ return x.id===id; })[0]; if(gg&&(gg.members||[]).length) coGroupSyncAsk(gg); else toast('Saved.'); }); })
