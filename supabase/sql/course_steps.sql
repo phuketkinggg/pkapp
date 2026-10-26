@@ -12,3 +12,15 @@ begin
   if s not like '%course_id%' then raise notice 'group_data is a different version here: skipped.'; return; end if;
   execute s;
 end $$;
+
+-- and the course name, so the Coaching screen can point to the course
+do $$ declare s text;
+begin
+  s := pg_get_functiondef('private.group_data(uuid,boolean)'::regprocedure);
+  if s like '%course_title%' then return; end if;
+  s := replace(s, $a$'later',coalesce($a$,
+    $a$'course_title',(select c.title from public.courses c where g.id = any(c.group_ids) and c.status = 'published' order by c.created_at limit 1),
+      'later',coalesce($a$);
+  if s not like '%course_title%' then raise notice 'group_data is a different version here: skipped.'; return; end if;
+  execute s;
+end $$;
