@@ -146,3 +146,12 @@ begin
         'notes', p.notes,$a$);
   if s like '%also_customers%' then execute s; else raise notice 'coach_home is a different version here: skipped.'; end if;
 end $$;
+
+-- a save from the app that leaves the extra people out (sends null) keeps the list empty, never fails
+create or replace function private.privates_people_default() returns trigger language plpgsql set search_path to '' as $$
+begin
+  if new.also_customers is null then new.also_customers := case when tg_op = 'UPDATE' then coalesce(old.also_customers, '{}') else '{}' end; end if;
+  return new;
+end $$;
+drop trigger if exists privates_aa_people on public.privates;
+create trigger privates_aa_people before insert or update on public.privates for each row execute function private.privates_people_default();
