@@ -71,6 +71,26 @@ def main():
                 errors.append("page %s: %s" % (page["slug"], e))
 
         try:
+            tec = [t for t in get(REST + "rpc/technique_public") if SLUG_OK.match(t.get("slug") or "")]
+        except Exception as e:
+            tec = []
+            errors.append("techniques: %s" % e)
+        snap["techniques"] = []
+        for t in tec:
+            try:
+                pg.goto(base + "technique.html?t=" + t["slug"] + "&notrack=1", wait_until="domcontentloaded")
+                pg.wait_for_function("() => { const m = document.getElementById('technique'); return m && m.children.length }", timeout=25000)
+                html = pg.eval_on_selector("#technique", "e => e.innerHTML")
+                vid = __import__("re").search(r"embed/([A-Za-z0-9_-]{6,20})", html)
+                body = " ".join(__import__("re").sub(r"[#*\[\]()]", " ", t.get("body") or "").split())[:155]
+                snap["techniques"].append({"slug": t["slug"], "title": t["title"], "category": t.get("category") or "", "updated": t.get("updated") or "",
+                                           "description": body or ("How to do %s in Muay Thai, from the Phuket King coaches." % t["title"]),
+                                           "image": t.get("cover") or ("https://i.ytimg.com/vi/%s/hqdefault.jpg" % vid.group(1) if vid else ""),
+                                           "embed": ("https://www.youtube-nocookie.com/embed/" + vid.group(1)) if vid else "", "html": html})
+            except Exception as e:
+                errors.append("technique %s: %s" % (t["slug"], e))
+
+        try:
             pg.goto(base + "prices.html?notrack=1", wait_until="domcontentloaded")
             pg.wait_for_selector("#groups .group", timeout=25000)
             snap["prices"] = {"html": pg.eval_on_selector("#groups", "e => e.innerHTML")}

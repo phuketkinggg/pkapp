@@ -16,7 +16,7 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "courses.html", "course.html", "page.html", "privacy.html", "terms.html", "404.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "education.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
@@ -31,8 +31,8 @@ def fix_book(html):
     return html
 
 NAMES = {"about.html": "About", "prices.html": "Prices", "dtv.html": "DTV Visa", "shop.html": "Shop", "blog.html": "Blog", "wellness.html": "Wellness and recovery",
-         "courses.html": "Online courses", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service"}
-DYNAMIC = ("post.html", "page.html", "course.html", "404.html")
+         "education.html": "Education", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service"}
+DYNAMIC = ("post.html", "page.html", "course.html", "technique.html", "404.html")
 DEFAULT_IMG = "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp"
 
 def seo(html, page):
@@ -140,7 +140,7 @@ def build_static(out):
     if not os.path.exists(SNAP):
         return [], None
     snap = json.load(open(SNAP, encoding="utf-8"))
-    taken = {p[:-5] for p in os.listdir(out) if p.endswith(".html")} | {"blog", "post", "page", "prices", "book", "pk", "img", "icons"}
+    taken = {p[:-5] for p in os.listdir(out) if p.endswith(".html")} | {"blog", "post", "page", "prices", "book", "pk", "img", "icons", "technique", "education", "courses"}
     made = []
     post_tpl = open(os.path.join(out, "post.html"), encoding="utf-8").read()
     page_tpl = open(os.path.join(out, "page.html"), encoding="utf-8").read()
@@ -169,6 +169,22 @@ def build_static(out):
         html = static_page(page_tpl, '<main id="page">', '</main>', p, url, [web, crumbs(p["title"], url), faq_ld(p["html"])])
         open(os.path.join(out, p["slug"] + ".html"), "w", encoding="utf-8").write(html)
         taken.add(p["slug"]); made.append(("/" + p["slug"], "0.7"))
+    # technique videos: their own page each, www.phuketking.com/technique/<slug>
+    tec = snap.get("techniques", [])
+    if tec and os.path.exists(os.path.join(out, "technique.html")):
+        tpl = open(os.path.join(out, "technique.html"), encoding="utf-8").read()
+        os.makedirs(os.path.join(out, "technique"), exist_ok=True)
+        for t in tec:
+            url = DOMAIN + "/technique/" + t["slug"]
+            vid = {"@context": "https://schema.org", "@type": "VideoObject", "name": t["title"], "description": t.get("description") or t["title"],
+                   "thumbnailUrl": [t["image"]] if t.get("image") else None, "uploadDate": (t.get("updated") or "")[:10] or None,
+                   "embedUrl": t.get("embed") or None, "publisher": {"@type": "Organization", "name": "Phuket King Muay Thai", "url": DOMAIN + "/"}}
+            vid = {k: v for k, v in vid.items() if v is not None}
+            item = dict(t, title=t["title"] + " (Muay Thai technique)")
+            html = static_page(tpl, '<div id="technique">', '</div>\n  <div class="tnext">', item, url, [vid, crumbs(t["title"], url, ("Education", DOMAIN + "/education"))])
+            html = html.replace('<h1 id="ttitle">Loading</h1>', '<h1 id="ttitle">%s</h1>' % esc_attr(t["title"]), 1)
+            open(os.path.join(out, "technique", t["slug"] + ".html"), "w", encoding="utf-8").write(html)
+            made.append(("/technique/" + t["slug"], "0.6"))
     # the price list inside prices.html, plus the prices as data
     pr = os.path.join(out, "prices.html")
     h = open(pr, encoding="utf-8").read()
@@ -256,7 +272,7 @@ def llms_txt(out, snap, made):
     pages = [p for p in snap.get("pages", []) if ("/" + p["slug"], "0.7") in made]
     if pages:
         L += ["## Pages", ""] + ["- [%s](%s/%s)%s" % (p["title"], DOMAIN, p["slug"], (": " + p["description"]) if p.get("description") else "") for p in pages] + [""]
-    L += ["## More", "", "- [About](%s/about)" % DOMAIN, "- [Wellness and recovery](%s/wellness)" % DOMAIN, "- [Online courses](%s/courses)" % DOMAIN, "- [Shop](%s/shop)" % DOMAIN, "- [Blog](%s/blog)" % DOMAIN]
+    L += ["## More", "", "- [About](%s/about)" % DOMAIN, "- [Wellness and recovery](%s/wellness)" % DOMAIN, "- [Education: free Muay Thai technique videos and online courses](%s/education)" % DOMAIN, "- [Shop](%s/shop)" % DOMAIN, "- [Blog](%s/blog)" % DOMAIN]
     open(os.path.join(out, "llms.txt"), "w", encoding="utf-8").write("\n".join(x for x in L if x is not None).replace("\n\n\n", "\n\n") + "\n")
 
 def main():
@@ -298,7 +314,7 @@ def main():
         "/home /  301", "/home/ / 301", "/index.php / 301", "/feed /blog 301", "/feed/* /blog 301", "/comments/feed /blog 301",
         "/category/* /blog 301", "/tag/* /blog 301", "/author/* /blog 301", "/page/* /blog 301",
         "/wellness /wellness 200", "/recovery /wellness 301", "/recovery/ /wellness 301", "/spa /wellness 301", "/spa/ /wellness 301",
-        "/courses/ /courses 301", "/visa /dtv 301", "/visa/ /dtv 301",
+        "/courses /education 301", "/courses/ /education 301", "/education/ /education 301", "/visa /dtv 301", "/visa/ /dtv 301",
         # old service pages and WordPress system addresses seen in Website numbers
         "/services/* /prices 301", "/services /prices 301", "/wp-json/* / 301", "/wp-content/* / 301", "/wp-admin/* / 301", "/wp-login.php / 301",
         "/muay-thai /prices 301", "/muay-thai/ /prices 301", "/private-lessons /prices 301", "/private-lessons/ /prices 301",
@@ -330,7 +346,7 @@ def main():
     # main pages here; blog posts, courses and pages made in the app are in the live sitemap (listed in robots.txt)
     import datetime
     today = datetime.date.today().isoformat()
-    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/courses", "0.6"), ("/shop", "0.6"), ("/blog", "0.6")]
+    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/education", "0.7"), ("/shop", "0.6"), ("/blog", "0.6")]
     # blog posts and app pages too (copied from the live sitemap into tools/sitemap_extra.txt), so Google sees them on the main sitemap
     urls += [m for m in made if m[0] not in {u for u, _ in urls}]
     ex = os.path.join(ROOT, "tools", "sitemap_extra.txt")

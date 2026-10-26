@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=36"></script>
+<script src="changelog.js?v=37"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -627,6 +627,10 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .pitem>.pmini{align-self:flex-end}.pvid input{flex:1;min-width:0}
 
 .gstep{display:flex;flex-direction:column;gap:8px}.gstep.done{opacity:.75}.gsteph{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;flex:1}
+.tecgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.teccard{display:flex;flex-direction:column;gap:6px;text-align:left;padding:0 0 10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);color:inherit;font:inherit;cursor:pointer}
+.teccard img,.teccard .crsnoimg{width:100%;aspect-ratio:16/9;object-fit:cover}.teccard b,.teccard .chip{margin:0 10px}.teccard.locked img{filter:grayscale(1) brightness(.7)}
+.cofcard{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;border-left:4px solid var(--gold)}.cofcard img{width:100%;aspect-ratio:16/7;object-fit:cover}.cofcard .in{display:flex;flex-direction:column;gap:6px;padding:14px 16px}.cofcard .crsgo{margin-left:auto;font-weight:700}
+.cmnone b{font-size:18px}
 .crseye{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .crshead{margin:6px 0 14px}.crshead h1{margin:2px 0 10px;font-size:26px;line-height:1.15}
 .crsbar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin-bottom:6px}.crsbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
@@ -791,7 +795,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['courses','Education'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 /* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
    def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
@@ -808,6 +812,7 @@ var FEATURES=[
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
+  {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.'},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package',d:'One online course can be offered as a tick box when someone buys a package, on the website and at the desk, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
@@ -841,7 +846,7 @@ var FEATURES=[
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
 function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
-function tabOn(t){ if(t==='c_coach'&&featOn('coach_choose')&&typeof CU!=='undefined'&&CU&&Array.isArray(CU.coaching)&&!CU.coaching.length) return false; var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
+function tabOn(t){ var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
 /* the online course offered with packages (Courses, Offer with packages) */
 var OFFER=null;
 function loadOffer(){ try{ sb.rpc('course_offer').then(function(r){ OFFER=r&&!r.error&&r.data&&r.data.id?r.data:null; }); }catch(e){} }
@@ -3136,13 +3141,132 @@ function crsBuyUrl(c){ return SITE_URL+'/course?c='+encodeURIComponent(c.slug); 
 function fileList(files){ if(!files||!files.length) return null;
   return h('div',{class:'lfiles'},h('b',null,'Learning materials'),files.map(function(f){ return h('a',{class:'lfile',href:f.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(f.url)?'PDF':/\.(jpe?g|png|webp)(\?|$)/i.test(f.url)?'IMG':'FILE'),f.name||'File'); })); }
 
+/* ---------- technique library (Education): single videos with notes, in categories ---------- */
+var TEC={list:null,busy:false,view:null,q:'',cat:''};
+var TECVIS=[['public','Everyone: the website and the app'],['app','Anyone with the app'],['members','Members with an active package'],['hidden','Only inside courses']];
+function tecLoad(){ TEC.busy=true; return sb.rpc('technique_list',PV?{p_customer:PV.cid}:{}).then(must).then(function(d){ TEC.list=d||[]; TEC.busy=false; schedule(); return d; }).catch(function(e){ TEC.busy=false; TEC.err=errText(e); TEC.list=TEC.list||null; schedule(); }); }
+function tecVis(v){ var x=TECVIS.filter(function(t){ return t[0]===v; })[0]; return x?x[1]:v; }
+function tecEdit(t){ t=t||{visibility:'app'}; var cover=t.cover||null;
+  var cats=[]; (TEC.list||[]).forEach(function(x){ if(x.category&&cats.indexOf(x.category)<0) cats.push(x.category); }); cats.sort();
+  openForm({title:t.id?'Edit video':'Add a video',values:{title:t.title||'',category:t.category||'',video_url:t.video||'',body:t.body||'',visibility:t.visibility||'app',sort:t.sort||0},
+    fields:[{key:'title',label:'Name',required:true,hint:'For example: The teep, front kick.'},
+      {key:'category',label:'Category',hint:cats.length?'Same name groups them together. Now: '+cats.join(', ')+'.':'For example Strikes, Kicks, Knees and elbows, Clinch, Defence, Conditioning.'},
+      {key:'video_url',label:'YouTube link',required:true,hint:'For a public video, upload it to YouTube as Public or Unlisted. For app and members videos use Unlisted.'},
+      {key:'visibility',label:'Who can watch it',type:'select',options:TECVIS},
+      {key:'body',label:'Coaching points',type:'textarea',rows:8,hint:'Key points and common mistakes. A blank line starts a new paragraph, - makes a list, **word** is bold.'},
+      {key:'sort',label:'Order in its category',type:'number'}],
+    onSave:function(v){ if(!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...';
+      return sb.rpc('technique_save',{p:{id:t.id||null,slug:t.slug||null,title:v.title,category:v.category,video_url:v.video_url,cover_url:cover,body:v.body,visibility:v.visibility,sort:v.sort}}).then(must).then(function(){ return tecLoad(); }); },
+    onDelete:t.id?function(){ return sb.rpc('technique_remove',{p_id:t.id}).then(must).then(function(){ return tecLoad(); }); }:null});
+  var anchor=document.getElementById('f-body'); if(!anchor) return;
+  var pic=h('img',{alt:'',style:'width:160px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(cover?'':';display:none'),src:cover||''});
+  var rm=btn('Remove',function(){ cover=null; pic.style.display='none'; rm.hidden=true; },'small'); rm.hidden=!cover;
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Cover photo (optional)'),h('div',{class:'row',style:'align-items:center'},pic,
+    btn(cover?'Change photo':'Add photo',function(){ var b=this; blogPhoto(function(u){ cover=u; pic.src=u; pic.style.display=''; rm.hidden=false; b.textContent='Change photo'; }); },'small'),rm),h('small',{class:'hint'},'Empty: the YouTube picture is used.')),anchor.parentNode);
+}
+function tecThumb(t){ var id=ytId(t.video); return t.cover||(id?'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg':null); }
+function tecAdmin(){
+  if(!TEC.list){ if(!TEC.busy) tecLoad(); return h('div',{class:'panel empty'},TEC.err||'Loading.'); }
+  if(!TEC.list.length) return h('div',{class:'panel empty'},'No videos yet. Tap Add a video. Public videos also show on your website, on the Education page, each with its own page that Google can find.');
+  return table([{label:'Video',cell:function(t){ return linkBtn(t.title,function(){ tecEdit(t); }); }},
+      {label:'Category',cell:function(t){ return t.category||''; }},
+      {label:'Who can watch',cell:function(t){ return chip(tecVis(t.visibility),t.visibility==='public'?'ok':t.visibility==='hidden'?'':'warn'); }},
+      {label:'',cell:function(t){ return t.visibility==='public'?h('a',{class:'btn small',href:SITE_URL+'/technique?t='+encodeURIComponent(t.slug),target:'_blank',rel:'noopener'},'Website'):null; }}],
+    TEC.list,'');
+}
+function tecMember(){
+  if(!TEC.list){ if(!TEC.busy) tecLoad(); return h('div',{class:'panel empty'},TEC.err||'Loading.'); }
+  if(!TEC.list.length) return h('div',{class:'panel empty'},'Technique videos are coming soon.');
+  var q=TEC.q.trim().toLowerCase(), cats=[]; TEC.list.forEach(function(t){ var c=t.category||'Other'; if(cats.indexOf(c)<0) cats.push(c); });
+  var list=TEC.list.filter(function(t){ return (!TEC.cat||(t.category||'Other')===TEC.cat)&&(!q||(t.title+' '+(t.category||'')).toLowerCase().indexOf(q)>=0); });
+  var groups={}; list.forEach(function(t){ var c=t.category||'Other'; (groups[c]=groups[c]||[]).push(t); });
+  return [h('div',{class:'panel pad'},h('input',{id:'tec-q',type:'search',class:'pvok',placeholder:'Search techniques','aria-label':'Search techniques',value:TEC.q,oninput:function(e){ TEC.q=e.target.value; schedule(); }})),
+    cats.length>1?h('div',{class:'ctabs small'},[''].concat(cats).map(function(c){ return h('button',{type:'button',class:'ctab pvok'+(TEC.cat===c?' on':''),onclick:function(){ TEC.cat=c; schedule(); }},c||'All'); })):null,
+    cats.filter(function(c){ return groups[c]; }).map(function(c){ return section(c,null,h('div',{class:'tecgrid'},groups[c].map(function(t){ var img=tecThumb(t);
+      return h('button',{type:'button',class:'teccard pvok'+(t.locked?' locked':''),onclick:function(){ TEC.view=t; schedule(); window.scrollTo(0,0); }},
+        img?h('img',{src:img,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),h('b',null,t.title),t.locked?chip('With a package','warn'):null); }))); }),
+    !list.length?h('div',{class:'panel empty'},'Nothing found.'):null];
+}
+function tecView(){ var t=TEC.view;
+  var back=btn('Back',function(){ TEC.view=null; schedule(); window.scrollTo(0,0); },'small pvok');
+  return [h('div',{class:'row'},back),h('div',{class:'crseye'},t.category||'Technique'),pageHead(t.title,''),
+    t.locked?h('div',{class:'panel pad crslock'},h('b',null,'For members'),h('p',{class:'sub'},'This video is for members with an active package.'),h('div',{class:'row'},btn('See packages',function(){ TEC.view=null; ui.tab='c_buy'; schedule(); },'small primary'))):
+    h('div',{class:'panel pad lesson'},ytFrame(t.video),t.body?lessonText(t.body):null)];
+}
+
+/* ---------- Coaching tab for customers without coaching: offers, courses, and a way to ask ---------- */
+var COF={list:null,busy:false};
+function cofLoad(){ COF.busy=true; return sb.rpc('coach_offers').then(must).then(function(d){ COF.list=Array.isArray(d)?d:[]; COF.busy=false; schedule(); }).catch(function(){ COF.busy=false; COF.list=[]; schedule(); }); }
+function cofSave(list){ var txt=JSON.stringify(list);
+  return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','coach_offers').select('key').then(must).then(function(d){ if(!d||!d.length) throw new Error('Could not save. Only a manager can change offers.'); COF.list=list; schedule(); }); }
+var COFACT=[['chat','Chat with reception'],['course','Open a course'],['packages','See packages'],['link','Open a web link']];
+function cofEdit(o){ var isNew=!o; o=o||{id:Math.random().toString(36).slice(2,10),action:'chat'}; var image=o.image||null;
+  var courses=(CRS.list||[]).filter(function(c){ return c.status==='published'; });
+  openForm({title:isNew?'Add an offer':'Edit offer',values:{title:o.title||'',text:o.text||'',details:o.details||'',price:o.price||'',action:o.action||'chat',course_id:o.course_id||'',url:o.url||'',button:o.button||''},
+    fields:[{key:'title',label:'Title',required:true,hint:'For example: 8 week weight loss course.'},
+      {key:'text',label:'Short line on the card',hint:'For example: Lose 5 kg with a coach, meal plan and weekly check ins.'},
+      {key:'price',label:'Price or offer (optional)',hint:'Shown as written, for example 4,900 THB or 20% off this month.'},
+      {key:'details',label:'Details (shown when they tap the card)',type:'textarea',rows:7,hint:'What is included, how long, who it is for. A blank line starts a new paragraph, - makes a list.'},
+      {key:'action',label:'The button',type:'select',options:COFACT},
+      {key:'course_id',label:'Course',type:'select',options:[['','Choose']].concat(courses.map(function(c){ return [c.id,c.title]; })),hint:'Only for Open a course.'},
+      {key:'url',label:'Web link',hint:'Only for Open a web link. Starts with https://'},
+      {key:'button',label:'Button text (optional)',hint:'Empty: the button name above.'}],
+    onSave:function(v){ if(v.action==='course'&&!v.course_id) return 'Choose the course.'; if(v.action==='link'&&!/^https:\/\//.test(v.url)) return 'The web link must start with https://';
+      var n={id:o.id,title:v.title,text:v.text,price:v.price,details:v.details,action:v.action,course_id:v.course_id||null,url:v.url||null,button:v.button||'',image:image};
+      var l=(COF.list||[]).slice(), i=l.map(function(x){ return x.id; }).indexOf(o.id); if(i>=0) l[i]=n; else l.push(n); return cofSave(l); },
+    onDelete:isNew?null:function(){ return cofSave((COF.list||[]).filter(function(x){ return x.id!==o.id; })); }});
+  var anchor=document.getElementById('f-details'); if(!anchor) return;
+  var pic=h('img',{alt:'',style:'width:160px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(image?'':';display:none'),src:image||''});
+  var rm=btn('Remove',function(){ image=null; pic.style.display='none'; rm.hidden=true; },'small'); rm.hidden=!image;
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Photo (optional)'),h('div',{class:'row',style:'align-items:center'},pic,
+    btn(image?'Change photo':'Add photo',function(){ var b=this; blogPhoto(function(u){ image=u; pic.src=u; pic.style.display=''; rm.hidden=false; b.textContent='Change photo'; }); },'small'),rm)),anchor.parentNode);
+}
+function cofMove(o,d){ var l=(COF.list||[]).slice(), i=l.indexOf(o), j=i+d; if(j<0||j>=l.length) return; l[i]=l[j]; l[j]=o; cofSave(l).catch(function(e){ toast(errText(e)); }); }
+function cofAdmin(){
+  if(!COF.list){ if(!COF.busy) cofLoad(); return h('div',{class:'panel empty'},'Loading.'); }
+  if(!CRS.list&&!CRS.busy) crsLoad();
+  return [COF.list.length?h('div',{class:'panel'},COF.list.map(function(o,i){ return h('div',{class:'lrow'},h('span',{class:'lt'},linkBtn(o.title,function(){ cofEdit(o); }),h('small',{class:'sub'},[o.price,(COFACT.filter(function(a){ return a[0]===o.action; })[0]||['',''])[1]].filter(Boolean).join(' · '))),
+      h('span',{class:'row',style:'flex-wrap:nowrap'},i>0?btn('↑',function(){ cofMove(o,-1); },'small'):null,i<COF.list.length-1?btn('↓',function(){ cofMove(o,1); },'small'):null)); })):h('div',{class:'panel empty'},'No offers yet. Customers without coaching still see your courses and a button to chat with reception.'),
+    h('p',{class:'sub narrow'},'Customers without coaching see: a short note that no coaching is added yet, these offers, the courses they can buy, and a button to chat with reception. Turn coaching on for a customer on their page, Coaching options.')];
+}
+function cofGo(o){
+  if(o.action==='course'&&o.course_id){ ui.tab='c_learn'; CRS.sec='courses'; CRS.view=null; crsOpen(o.course_id); schedule(); return; }
+  if(o.action==='packages'){ ui.tab='c_buy'; schedule(); window.scrollTo(0,0); return; }
+  if(o.action==='link'&&/^https:\/\//.test(o.url||'')){ window.open(o.url,'_blank','noopener'); return; }
+  cmAsk(o.title);
+}
+function cmAsk(about){ if(PV) return; ui.tab='chat'; schedule(); chatStart({p_desk:true},BIZ_MAIN+' front desk'); if(about) toast('Say you are interested in: '+about); }
+function cofDetails(o){
+  openForm({title:o.title,note:[o.price,o.text].filter(Boolean).join('. '),values:{},fields:[{key:'info',label:'',type:'info'}],saveLabel:o.button||(COFACT.filter(function(a){ return a[0]===o.action; })[0]||['','Chat with reception'])[1],doneMsg:'One moment.',
+    onSave:function(){ setTimeout(function(){ cofGo(o); },50); return Promise.resolve(); }});
+  var el=document.getElementById('f-info'); if(el){ el.replaceChildren(o.image?h('img',{src:o.image,alt:'',style:'width:100%;border-radius:10px;margin-bottom:8px'}):h('span'),o.details?lessonText(o.details):h('span')); }
+}
+function cmNone(){
+  if(!COF.list&&!COF.busy) cofLoad();
+  if(featOn('courses')&&!CRS.list&&!CRS.busy) crsLoad();
+  var offers=COF.list||[], buy=(CRS.list||[]).filter(function(c){ return !c.open; });
+  var ask=btn('Chat with reception',function(){ cmAsk(''); },'primary');
+  return [pageHead('Coaching',''),
+    h('div',{class:'panel pad cmnone'},h('b',null,'No coaching added yet'),h('p',{class:'sub'},'With coaching you get a coach who follows you: weekly steps, workouts, food and weight, all in this tab.'),h('div',{class:'row'},ask)),
+    offers.length?section('Offers',null,h('div',{class:'hlist'},offers.map(function(o){
+      return h('button',{type:'button',class:'panel cofcard pvok',onclick:function(){ cofDetails(o); }},o.image?h('img',{src:o.image,alt:'',loading:'lazy'}):null,
+        h('span',{class:'in'},h('b',null,o.title),o.text?h('span',{class:'sub'},o.text):null,h('span',{class:'row'},o.price?chip(o.price,'ok'):null,h('span',{class:'crsgo'},'Tap for details ›')))); }))):null,
+    buy.length?section('Courses',null,h('div',{class:'crsgrid'},buy.map(function(c){
+      return h('button',{type:'button',class:'crscard pvok',onclick:function(){ ui.tab='c_learn'; CRS.sec='courses'; crsOpen(c.id); }},
+        c.cover?h('img',{src:c.cover,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),
+        h('div',{class:'in'},h('span',{class:'crseye'},'Course'),h('b',null,c.title),c.summary?h('span',{class:'sub'},c.summary):null,h('div',{class:'row'},chip(crsPrice(c))))); }))):null,
+    h('div',{class:'panel pad'},h('b',null,'Want coaching?'),h('p',{class:'sub'},'Chat with reception and we will match you with a coach.'),btn('Chat with reception',function(){ cmAsk('coaching'); },'primary'))];
+}
+
 /* member: Learn tab */
 function vLearn(){
   var mgr=me&&me.role==='manager';
   if(CRS.view) return crsCourseView(false);
-  if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Learn',''),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
+  if(TEC.view) return tecView();
+  if(CRS.sec==='tech'&&featOn('techniques')) return [pageHead('Learn','Technique videos from the coaches. Watch one before class, then practise it on the bags.'),eduTabs(),tecMember()];
+  if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Learn',''),eduTabs(),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
   var list=CRS.list.filter(function(c){ return mgr||true; });
-  return [pageHead('Learn','Video lessons and guides from the Phuket King coaches. Watch anywhere, then practise in class.'),
+  return [pageHead('Learn','Video lessons and guides from the '+BIZ_MAIN+' coaches. Watch anywhere, then practise in class.'),eduTabs(),
     list.length?h('div',{class:'crsgrid'},list.map(function(c){
       return h('button',{type:'button',class:'crscard pvok',onclick:function(){ crsOpen(c.id); }},
         c.cover?h('img',{src:c.cover,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),
@@ -3236,10 +3360,13 @@ function crsLocked(c){
 }
 
 /* manager: course builder */
+function eduTabs(){ if(!featOn('techniques')) return null;
+  return h('div',{class:'ctabs'},[['courses','Courses'],['tech','Technique library']].map(function(t){ return h('button',{type:'button',class:'ctab pvok'+((CRS.sec||'courses')===t[0]?' on':''),onclick:function(){ CRS.sec=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); })); }
 function vCourses(){
   if(CRS.edit) return crsEditView();
-  if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Courses',''),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
-  return [pageHead('Courses','Online courses: YouTube videos (unlisted) and learning materials. Members watch them in the app, in the Learn tab. The website shows each course with its free lessons.',btn('New course',function(){ editCourse(); },'primary')),
+  if(CRS.sec==='tech'&&featOn('techniques')) return [pageHead('Education','Technique library: single videos with notes. Choose who sees each one: everyone on the website, anyone with the app, members with a package, or only inside courses.',btn('Add a video',function(){ tecEdit(); },'primary')),eduTabs(),tecAdmin()];
+  if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Education',''),eduTabs(),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
+  return [pageHead('Education','Online courses: YouTube videos (unlisted) and learning materials. Members watch them in the app, in the Learn tab. The website shows each course with its free lessons.',btn('New course',function(){ editCourse(); },'primary')),eduTabs(),
     table([{label:'Course',cell:function(c){ return linkBtn(c.title,function(){ crsEdit(c.id); }); }},
       {label:'Lessons',num:true,cell:function(c){ return String(c.count); }},
       {label:'Price',cell:function(c){ return crsPrice(c); }},
@@ -3295,10 +3422,12 @@ function crsOfferEdit(c){
       onSave:function(v){ return sb.rpc('course_offer_set',{p_course:c.id,p:{on:!!v.on,price:v.price,text:v.text,new_only:!!v.new_only,with:v.with}}).then(must).then(function(){ loadOffer(); setTimeout(function(){ crsEdit(c.id); },400); }); }}); })
     .catch(function(e){ toast(errText(e)); }); }
 function crsMove(c,l,d){ sb.rpc('course_lesson_move',{p_lesson:l.id,p_dir:d}).then(must).then(function(){ return crsEdit(c.id); }).catch(function(e){ toast(errText(e)); }); }
-function editLesson(c,l){ l=l||{};
+function editLesson(c,l){ l=l||{}; if(featOn('techniques')&&!TEC.list&&!TEC.busy){ tecLoad().then(function(){ editLesson(c,l.id?l:null); }); return; }
   var files=(l.files||[]).slice();
   openForm({title:l.id?'Edit lesson':'New lesson',values:{title:l.title||'',video_url:l.video||'',minutes:l.minutes,free:!!l.free,body:l.body||'',open_day:l.open_day||null,open_on:l.open_on||''},
-    fields:[{key:'title',label:'Lesson name',required:true},
+    fields:[featOn('techniques')&&(TEC.list||[]).length?{key:'tec',label:'Use a video from the technique library',type:'select',options:[['','No, add it below']].concat(TEC.list.filter(function(t){ return t.video; }).map(function(t){ return [t.id,(t.category?t.category+': ':'')+t.title]; })),
+        onChange:function(v,set,get){ var t=TEC.list.filter(function(x){ return x.id===v; })[0]; if(!t) return; set('video_url',t.video||''); if(!get('title')) set('title',t.title); if(!get('body')&&t.body) set('body',t.body); }}:null,
+      {key:'title',label:'Lesson name',required:true},
       {key:'video_url',label:'YouTube link',hint:'Upload to YouTube as Unlisted, then paste the share link here. Leave empty for a lesson without video.'},
       {key:'minutes',label:'Length (minutes)',type:'number'},
       {key:'free',label:'Free preview (anyone can watch it on the website)',type:'checkbox'},
@@ -3399,7 +3528,7 @@ function vCoachMe(){
   var d=COACHM.data; if(d&&!COACHM.busy&&Date.now()-(COACHM.at||0)>60000) cmLoad(); /* fresh steps and videos when they come back */
   if(!d){ if(!COACHM.busy) cmLoad(); return [pageHead('Coaching',''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
   var tabs=[['today','Today'],['work','Workouts'],['food','Food'],['weight','Weight']].filter(function(t){ return t[0]==='today'?cmHas(d,'steps')||cmHas(d,'workouts'):cmHas(d,t[0]==='work'?'workouts':t[0]); });
-  if(!tabs.length) return [pageHead('Coaching',''),h('div',{class:'panel empty'},'Coaching is not part of your plan. Ask at the desk if you would like a coach.')];
+  if(!tabs.length) return cmNone();
   if(!tabs.some(function(t){ return t[0]===COACHM.tab; })) COACHM.tab=tabs[0][0];
   var sub=tabs.length<2?null:h('div',{class:'ctabs',role:'tablist'},tabs.map(function(t){ return h('button',{type:'button',role:'tab','aria-selected':COACHM.tab===t[0]?'true':'false',class:'ctab pvok'+(COACHM.tab===t[0]?' on':''),onclick:function(){ COACHM.tab=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); }));
   var who=d.coaches.length?'Your coach'+(d.coaches.length>1?'es':'')+': '+d.coaches.map(function(c){ return c.name; }).join(', ')+'. ':'';
@@ -3849,7 +3978,8 @@ function vCoaching(){
   if(COACH.prog) return coProgEditor();
   if(COACH.gedit) return coGroupEditor();
   if(COACH.view==='client'&&COACH.cid) return coClient();
-  var top=h('div',{class:'ctabs'},[['clients','Clients'],['arriving','Arriving soon'],['groups','Action groups'],['templates','Program templates'],['exercises','Exercises']].map(function(t){ return h('button',{type:'button',class:'ctab'+(COACH.view===t[0]?' on':''),onclick:function(){ COACH.view=t[0]; schedule(); }},t[1]); }));
+  var top=h('div',{class:'ctabs'},[['clients','Clients'],['arriving','Arriving soon'],['groups','Action groups'],['templates','Program templates'],['exercises','Exercises']].concat(featOn('coach_choose')&&me&&me.role==='manager'?[['offers','Offers']]:[]).map(function(t){ return h('button',{type:'button',class:'ctab'+(COACH.view===t[0]?' on':''),onclick:function(){ COACH.view=t[0]; schedule(); }},t[1]); }));
+  if(COACH.view==='offers') return [pageHead('Coaching','Offers: what customers without coaching see when they open the Coaching tab in their app. For example a weight loss course, a fight camp or a promotion.',btn('Add an offer',function(){ cofEdit(); },'primary')),top,cofAdmin()];
   if(COACH.view==='arriving') return [pageHead('Coaching','Guests arriving soon. They get an email up to 14 days before, open the app in one tap and tell you their level, goals, weight and injuries.'),top,paSettings(),paList()];
   if(COACH.view==='groups') return COACH.gopen?coGroups():[pageHead('Coaching','Action groups: a series of steps that unlock week by week from each person\u2019s start date. For example Fight camp or Weight loss.',btn('New action group',function(){ coEditGroup({name:'',notes:'',items:[coNewStep()]}); },'primary')),top,coGroups()];
   if(COACH.view==='templates') return [pageHead('Coaching','Program templates: build once, add to any client. Each client gets their own copy to adjust.',btn('New template',function(){ coEditProg({name:'',notes:'',routines:[coNewRoutine()]},'templates'); },'primary')),top,coTemplates()];
@@ -8698,7 +8828,7 @@ function viewAsCustomer(c){
   }).catch(function(e){ toast(errText(e)); });
 }
 var PVBACK=null;
-function pvReset(){ COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
+function pvReset(){ TEC.list=null; TEC.view=null; TEC.busy=false; CRS.sec=null; COF.list=null; COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
 function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab=PV.tab==='custview'?'custview':'customers'; ui.customerId=PV.cid; CU=null; PV=null; PVBACK=null; pvReset(); document.body.classList.remove('cuview'); schedule(); }
 
 /* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */

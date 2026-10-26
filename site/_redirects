@@ -40,7 +40,9 @@
 /recovery/ /wellness 301
 /spa /wellness 301
 /spa/ /wellness 301
-/courses/ /courses 301
+/courses /education 301
+/courses/ /education 301
+/education/ /education 301
 /visa /dtv 301
 /visa/ /dtv 301
 /services/* /prices 301
