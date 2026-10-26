@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=32"></script>
+<script src="changelog.js?v=33"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -3146,7 +3146,7 @@ function crsCourseView(asMgr){
   var back=btn('Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small');
   if(cur){ var i=L.indexOf(cur), nxt=L[i+1];
     return [h('div',{class:'row'},back),pageHead(cur.title,c.title+', lesson '+(i+1)+' of '+L.length+(cur.minutes?', '+cur.minutes+' min':'')),
-      cur.open?h('div',{class:'panel pad lesson'},ytFrame(cur.video),cur.body?lessonText(cur.body):null,fileList(cur.files),
+      cur.opens?h('div',{class:'panel pad crslock'},h('b',null,'This lesson opens '+lessonOpens(cur.opens)),h('p',{class:'sub'},'Lessons open one by one as you go through the course. Come back then.')):cur.open?h('div',{class:'panel pad lesson'},ytFrame(cur.video),cur.body?lessonText(cur.body):null,fileList(cur.files),
         !cur.video&&!cur.body&&!(cur.files||[]).length?h('p',{class:'sub'},'Nothing in this lesson yet.'):null):crsLocked(c),
       cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ sb.rpc('course_done',{p_lesson:cur.id,p_done:!cur.done}).then(must).then(function(){ cur.done=!cur.done; schedule(); }).catch(function(e){ toast(errText(e)); }); },cur.done?'small':'primary'),
         nxt?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
@@ -3160,8 +3160,10 @@ function crsCourseView(asMgr){
     section('Lessons',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
       return h('button',{type:'button',class:'lrow'+(l.open?'':' locked'),onclick:function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }},
         h('span',{class:'lnum'},l.done?'✓':String(i+1)),h('span',{class:'lt'},h('b',null,l.title),h('small',{class:'sub'},[l.has_video?'Video':null,l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · '))),
-        l.open?(l.free&&!c.open?chip('Free preview','ok'):null):chip('Locked','warn')); })):h('div',{class:'panel empty'},'No lessons yet.'))];
+        l.opens?chip('Opens '+lessonOpens(l.opens)):l.open?(l.free&&!c.open?chip('Free preview','ok'):null):chip('Locked','warn')); })):h('div',{class:'panel empty'},'No lessons yet.'))];
 }
+function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
+function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
 function crsLocked(c){
   return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
     h('p',{class:'sub'},c.members_free&&c.price?'It is included free with any active Phuket King package. Or buy the course on its own for '+thb(c.price)+'.':c.members_free?'It is included free with any active Phuket King package.':'Buy the course for '+thb(c.price)+' to unlock every lesson.'),
@@ -3214,7 +3216,7 @@ function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
     section('Lessons ('+L.length+')',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
       return h('div',{class:'lrow'},h('span',{class:'lnum'},String(i+1)),h('span',{class:'lt'},linkBtn(l.title,function(){ editLesson(c,l); }),
           h('small',{class:'sub'},[l.has_video?'Video':'No video',l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · '))),
-        h('span',{class:'row',style:'flex-wrap:nowrap'},l.free?chip('Free preview','ok'):null,
+        h('span',{class:'row',style:'flex-wrap:nowrap'},l.free?chip('Free preview','ok'):lessonWhen(l)?chip(lessonWhen(l)):null,
           i>0?btn('↑',function(){ crsMove(c,l,-1); },'small'):null,i<L.length-1?btn('↓',function(){ crsMove(c,l,1); },'small'):null)); })):h('div',{class:'panel empty'},'No lessons yet. Tap Add lesson.')),
     h('p',{class:'sub narrow'},'Free preview lessons can be watched by anyone on the website. The rest unlock when someone buys the course'+(c.members_free?', or for anyone with an active package':'')+'.')];
 }
@@ -3232,14 +3234,16 @@ function crsOfferEdit(c){
 function crsMove(c,l,d){ sb.rpc('course_lesson_move',{p_lesson:l.id,p_dir:d}).then(must).then(function(){ return crsEdit(c.id); }).catch(function(e){ toast(errText(e)); }); }
 function editLesson(c,l){ l=l||{};
   var files=(l.files||[]).slice();
-  openForm({title:l.id?'Edit lesson':'New lesson',values:{title:l.title||'',video_url:l.video||'',minutes:l.minutes,free:!!l.free,body:l.body||''},
+  openForm({title:l.id?'Edit lesson':'New lesson',values:{title:l.title||'',video_url:l.video||'',minutes:l.minutes,free:!!l.free,body:l.body||'',open_day:l.open_day||null,open_on:l.open_on||''},
     fields:[{key:'title',label:'Lesson name',required:true},
       {key:'video_url',label:'YouTube link',hint:'Upload to YouTube as Unlisted, then paste the share link here. Leave empty for a lesson without video.'},
       {key:'minutes',label:'Length (minutes)',type:'number'},
       {key:'free',label:'Free preview (anyone can watch it on the website)',type:'checkbox'},
+      {key:'open_day',label:'Opens on day',type:'number',hint:'Leave empty to open straight away. Day 1 is the day they start the course, day 3 is two days later, and so on. Good for a course they follow day by day.'},
+      {key:'open_on',label:'Or opens on a date',type:'date',hint:'For everyone, from this date (Phuket time). If both are set, the later one counts. Free previews are always open.'},
       {key:'body',label:'Notes for the lesson',type:'textarea',rows:10,hint:'Key points, drills, homework. A blank line starts a new paragraph, ## makes a heading, - makes a list, **word** is bold.'}],
-    onSave:function(v){ if(v.video_url&&!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...';
-      return sb.rpc('course_lesson_save',{p:{id:l.id||null,course_id:c.id,title:v.title,video_url:v.video_url||null,minutes:v.minutes,free:v.free,body:v.body,files:files}}).then(must).then(function(){ return crsEdit(c.id); }); },
+    onSave:function(v){ if(v.video_url&&!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...'; if(v.open_day!=null&&!(v.open_day>=1&&v.open_day<=730)) return 'Opens on day must be between 1 and 730.';
+      return sb.rpc('course_lesson_save',{p:{id:l.id||null,course_id:c.id,title:v.title,video_url:v.video_url||null,minutes:v.minutes,free:v.free,body:v.body,files:files,open_day:v.open_day==null?null:Math.round(v.open_day),open_on:v.open_on||null}}).then(must).then(function(){ return crsEdit(c.id); }); },
     onDelete:l.id?function(){ return sb.rpc('course_lesson_remove',{p_lesson:l.id}).then(must).then(function(){ return crsEdit(c.id); }); }:null});
   var anchor=document.getElementById('f-body'); if(!anchor) return;
   var list=h('div',{class:'lfiles edit'}), addB=btn('Add files',function(){ addFiles(); },'small'), busy=0;
