@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=35"></script>
+<script src="changelog.js?v=36"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -563,8 +563,8 @@ body.lang-my .btn{min-height:44px}
 .rxbig{max-width:100%;max-height:70vh;display:block;margin:8px auto;border-radius:8px}
 .billh{font-size:15px;margin:14px 0 6px}
 .billsum{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0 4px;font-size:16px}
-body.cuview #view button:not(.pvexit),body.cuview #view input,body.cuview #view select,body.cuview #view textarea,body.cuview #view a{pointer-events:none}
-body.cuview #view button:not(.pvexit){opacity:.75}
+body.cuview #view button:not(.pvexit):not(.pvok):not(.link),body.cuview #view input:not(.pvok),body.cuview #view select,body.cuview #view textarea,body.cuview #view a{pointer-events:none}
+body.cuview #view button:not(.pvexit):not(.pvok):not(.link){opacity:.75}
 .featrow,.clrow{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.featrow:first-of-type{border-top:0}
 .featgrp{margin-bottom:10px}.featsw{flex:none;min-width:64px}.clrow{padding:12px 16px}.clrow:first-child{border-top:0}.cldate{flex:none;width:86px;font-size:13px;color:var(--muted)}.clbody{flex:1}
 .grpbox h3{margin-top:14px}.grpchips{gap:6px;margin:8px 0}.grpchip button{border:0;background:none;font-size:16px;line-height:1;cursor:pointer;color:inherit;padding:0 0 0 6px}.grpres{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chatonly{padding:10px 14px;margin:0}
@@ -791,7 +791,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['courses','Courses'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 /* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
    def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
@@ -812,6 +812,8 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
+  {k:'custview',g:'Customers',n:'Customer view',d:'Managers pick any customer and see their app exactly as they see it: home, packages, courses and coaching. View only.',tabs:['custview']},
+  {k:'coach_choose',g:'Training',n:'Coaching chosen per customer',d:'Coaching is only for the customers you turn it on for, and you choose which parts each gets: steps and habits, workouts, food diary, weight. Set it on the customer, Coaching options. Off: everyone has all of it.'},
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
   {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
@@ -839,7 +841,7 @@ var FEATURES=[
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
 function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
-function tabOn(t){ var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
+function tabOn(t){ if(t==='c_coach'&&featOn('coach_choose')&&typeof CU!=='undefined'&&CU&&Array.isArray(CU.coaching)&&!CU.coaching.length) return false; var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
 /* the online course offered with packages (Courses, Offer with packages) */
 var OFFER=null;
 function loadOffer(){ try{ sb.rpc('course_offer').then(function(r){ OFFER=r&&!r.error&&r.data&&r.data.id?r.data:null; }); }catch(e){} }
@@ -3127,8 +3129,8 @@ function lessonText(t){ var box=h('div',{class:'ltext'});
     else if(lines.every(function(l){ return /^\d+[.)] /.test(l); })) box.appendChild(h('ol',null,lines.map(function(l){ return inl(l.replace(/^\d+[.)] /,''),h('li')); })));
     else { var pp=h('p'); lines.forEach(function(l,i){ if(i) pp.appendChild(h('br')); inl(l,pp); }); box.appendChild(pp); } });
   return box; }
-function crsLoad(){ CRS.busy=true; return sb.rpc('course_list_mine').then(must).then(function(d){ CRS.list=d; CRS.busy=false; schedule(); }).catch(function(e){ CRS.busy=false; CRS.err=errText(e); schedule(); }); }
-function crsOpen(id,lessonId){ return Promise.all([sb.rpc('course_view',{p_course:id}).then(must),sb.rpc('course_groups',{p_course:id}).then(must).catch(function(){ return []; })]).then(function(r){ var d=r[0]; d.groups=r[1]||[]; if(d.open&&d.groups.length&&me&&me.role==='customer'&&!PV) sb.rpc('course_join',{p_course:id}).then(function(){ COACHM.data=null; },function(){}); CRS.view=d; CRS.lesson=lessonId||null; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
+function crsLoad(){ CRS.busy=true; return (PV?sb.rpc('course_list_as',{p_customer:PV.cid}):sb.rpc('course_list_mine')).then(must).then(function(d){ CRS.list=d; CRS.busy=false; schedule(); }).catch(function(e){ CRS.busy=false; CRS.err=errText(e); schedule(); }); }
+function crsOpen(id,lessonId){ return Promise.all([(PV?sb.rpc('course_view_as',{p_course:id,p_customer:PV.cid}):sb.rpc('course_view',{p_course:id})).then(must),sb.rpc('course_groups',{p_course:id}).then(must).catch(function(){ return []; })]).then(function(r){ var d=r[0]; d.groups=r[1]||[]; if(d.open&&d.groups.length&&me&&me.role==='customer'&&!PV) sb.rpc('course_join',{p_course:id}).then(function(){ COACHM.data=null; },function(){}); CRS.view=d; CRS.lesson=lessonId||null; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
 function crsPrice(c){ return !c.price?'Free':thb(c.price)+(c.members_free?', or free with a membership':''); }
 function crsBuyUrl(c){ return SITE_URL+'/course?c='+encodeURIComponent(c.slug); }
 function fileList(files){ if(!files||!files.length) return null;
@@ -3142,7 +3144,7 @@ function vLearn(){
   var list=CRS.list.filter(function(c){ return mgr||true; });
   return [pageHead('Learn','Video lessons and guides from the Phuket King coaches. Watch anywhere, then practise in class.'),
     list.length?h('div',{class:'crsgrid'},list.map(function(c){
-      return h('button',{type:'button',class:'crscard',onclick:function(){ crsOpen(c.id); }},
+      return h('button',{type:'button',class:'crscard pvok',onclick:function(){ crsOpen(c.id); }},
         c.cover?h('img',{src:c.cover,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),
         h('div',{class:'in'},h('span',{class:'crseye'},'Course'),h('b',null,c.title),c.summary?h('span',{class:'sub'},c.summary):null,
           h('div',{class:'row'},chip(c.count+' lesson'+(c.count===1?'':'s')),c.open?(c.done?chip(c.done+' of '+c.count+' done','ok'):chip('Open','ok')):chip('Locked','warn'))));
@@ -3150,7 +3152,7 @@ function vLearn(){
 }
 function crsCourseView(asMgr){
   var c=CRS.view, L=c.lessons||[], cur=CRS.lesson?L.filter(function(l){ return l.id===CRS.lesson; })[0]:null;
-  var back=btn(CRS.lesson?'Back to the course':'Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small');
+  var back=btn(CRS.lesson?'Back to the course':'Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small pvok');
   if(cur){ var i=L.indexOf(cur), nxt=L[i+1];
     return [h('div',{class:'row'},back),pageHead(cur.title,c.title+', lesson '+(i+1)+' of '+L.length+(cur.minutes?', '+cur.minutes+' min':'')),
       cur.opens?h('div',{class:'panel pad crslock'},h('b',null,'This lesson opens '+lessonOpens(cur.opens)),h('p',{class:'sub'},'Lessons open one by one as you go through the course. Come back then.')):cur.open?h('div',{class:'panel pad lesson'},ytFrame(cur.video),cur.body?lessonText(cur.body):null,fileList(cur.files),
@@ -3158,7 +3160,7 @@ function crsCourseView(asMgr){
       cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ crsLessonDone(c,cur,!cur.done).then(function(){ if(cur.done){ CRS.lesson=null; schedule(); window.scrollTo(0,0); toast('Done. It moved to your done list.'); } }); },cur.done?'small':'primary'),
         nxt&&!(me.role==='customer'&&c.open)?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
   }
-  if(c.open&&me&&me.role==='customer'&&!asMgr) return crsSteps(c,back);
+  if(c.open&&(PV||me&&me.role==='customer')&&!asMgr) return crsSteps(c,back);
   var done=L.filter(function(l){ return l.done; }).length;
   return [h('div',{class:'row'},back),h('div',{class:'crseye'},'Course'),pageHead(c.title,c.summary||''),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
@@ -3166,7 +3168,7 @@ function crsCourseView(asMgr){
     (c.groups||[]).length?h('div',{class:'panel pad'},h('b',null,'Coaching included: '+c.groups.map(function(g){ return g.name; }).join(', ')),h('p',{class:'sub'},c.open?'Your weekly steps are in the Coaching tab.':'Unlocks with the course: weekly steps in your Coaching tab.'),c.open&&me.role==='customer'?btn('Open Coaching',function(){ CRS.view=null; ui.tab='c_coach'; COACHM.tab='today'; schedule(); },'small'):null):null,
     c.open?(me.role==='customer'&&L.length?h('p',{class:'sub'},done+' of '+L.length+' lessons done.'):null):crsLocked(c),
     section('Lessons',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){
-      return h('button',{type:'button',class:'lrow'+(l.open?'':' locked'),onclick:function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }},
+      return h('button',{type:'button',class:'lrow pvok'+(l.open?'':' locked'),onclick:function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }},
         h('span',{class:'lnum'},l.done?'✓':String(i+1)),h('span',{class:'lt'},h('b',null,l.title),h('small',{class:'sub'},[l.has_video?'Video':null,l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · '))),
         l.opens?chip('Opens '+lessonOpens(l.opens)):l.open?(l.free&&!c.open?chip('Free preview','ok'):null):chip('Locked','warn')); })):h('div',{class:'panel empty'},'No lessons yet.'))];
 }
@@ -3190,7 +3192,7 @@ function crsSteps(c,back){
       var les=it.kind==='lesson'?lessonOf(it.lesson_id):null; if(les) used[les.id]=1;
       var gdone=(g.done||[]).indexOf(it.id)>=0;
       steps.push({key:'g'+g.member_id+it.id,title:it.title||(les&&les.title)||gKind(it.kind),kind:gKind(it.kind),state:gdone||(les&&les.done)?'done':'todo',
-        body:function(){ return [it.text?lessonText(it.text):null,les?btn('Open the lesson',function(){ CRS.lesson=les.id; schedule(); window.scrollTo(0,0); },'primary small'):it.kind==='lesson'?null:gStepBody(it)[1]]; },
+        body:function(){ return [it.text?lessonText(it.text):null,les?btn('Open the lesson',function(){ CRS.lesson=les.id; schedule(); window.scrollTo(0,0); },'primary small pvok'):it.kind==='lesson'?null:gStepBody(it)[1]]; },
         tick:function(on){ var p=sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); });
           return (les&&les.done!==on?Promise.all([p,sb.rpc('course_done',{p_lesson:les.id,p_done:on}).then(must).then(function(){ les.done=on; })]):p).then(function(){ schedule(); }).catch(function(e){ toast(errText(e)); }); }});
     });
@@ -3199,7 +3201,7 @@ function crsSteps(c,back){
   L.forEach(function(l){ if(used[l.id]) return;
     steps.push({key:'l'+l.id,title:l.title,kind:[l.has_video?'Video lesson':'Lesson',l.minutes?l.minutes+' min':null].filter(Boolean).join(', '),
       state:l.opens?'later':!l.open?'later':l.done?'done':'todo',when:l.opens?lessonOpens(l.opens):'',
-      body:function(){ return [btn(l.has_video?'Watch the lesson':'Open the lesson',function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); },'primary small')]; },
+      body:function(){ return [btn(l.has_video?'Watch the lesson':'Open the lesson',function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); },'primary small pvok')]; },
       tick:function(on){ return crsLessonDone(c,l,on); }});
   });
   var todo=steps.filter(function(x){ return x.state==='todo'; }), later=steps.filter(function(x){ return x.state==='later'; }), done=steps.filter(function(x){ return x.state==='done'; });
@@ -3208,7 +3210,7 @@ function crsSteps(c,back){
     return h('div',{class:'panel pad gstep crsstep '+x.state+(first?' next':'')},
       h('div',{class:'hrow'},
         h('span',{class:'lnum'},isDone?'✓':String(i)),
-        h('button',{type:'button',class:'gsteph',disabled:isLater?'':null,onclick:isLater?null:function(){ COACHM.open[x.key]=!o; schedule(); }},
+        h('button',{type:'button',class:'gsteph pvok',disabled:isLater?'':null,onclick:isLater?null:function(){ COACHM.open[x.key]=!o; schedule(); }},
           h('small',{class:'sub'},first?'Next up, '+x.kind.toLowerCase():isLater?(x.when?'Opens '+x.when:'Opens later'):x.kind),h('b',null,x.title)),
         isLater?null:h('button',{type:'button',class:'gtick'+(isDone?' on':''),'aria-pressed':isDone?'true':'false','aria-label':isDone?'Done, tap to undo':'Mark done',onclick:function(e){ e.currentTarget.disabled=true; x.tick(!isDone).then(function(){ if(!isDone) toast('Done. Moved to your done list.'); }); }},isDone?'✓':'')),
       o&&!isLater?h('div',{class:'gstepb'},x.body()):null); }
@@ -3390,15 +3392,16 @@ function exLine(it){ var a=[], s=it.sets, r=it.reps;
 function exNow(it){ var st=Number(it.step)||0, pr=it.progressions||[]; return st>0&&pr[st-1]?pr[st-1]:null; }
 
 /* ================= member: Coaching tab ================= */
-function cmLoad(){ COACHM.busy=true; COACHM.at=Date.now(); return sb.rpc('my_coaching').then(must).then(function(d){ COACHM.busy=false; COACHM.data=d; COACHM.err=null; schedule(); })
+function cmLoad(){ COACHM.busy=true; COACHM.at=Date.now(); return (PV?sb.rpc('coaching_as',{p_customer:PV.cid}):sb.rpc('my_coaching')).then(must).then(function(d){ COACHM.busy=false; COACHM.data=d; COACHM.err=null; schedule(); })
   .catch(function(e){ COACHM.busy=false; COACHM.err=errText(e); schedule(); }); }
 document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'&&typeof COACHM!=='undefined'&&COACHM.data){ COACHM.at=0; schedule(); } });
 function vCoachMe(){
-  if(PV) return [pageHead('Coaching',''),h('div',{class:'panel empty'},'Coaching is private. Open it in the back office, in the Coaching tab.')];
   var d=COACHM.data; if(d&&!COACHM.busy&&Date.now()-(COACHM.at||0)>60000) cmLoad(); /* fresh steps and videos when they come back */
   if(!d){ if(!COACHM.busy) cmLoad(); return [pageHead('Coaching',''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
-  var tabs=[['today','Today'],['work','Workouts'],['food','Food'],['weight','Weight']];
-  var sub=h('div',{class:'ctabs',role:'tablist'},tabs.map(function(t){ return h('button',{type:'button',role:'tab','aria-selected':COACHM.tab===t[0]?'true':'false',class:'ctab'+(COACHM.tab===t[0]?' on':''),onclick:function(){ COACHM.tab=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); }));
+  var tabs=[['today','Today'],['work','Workouts'],['food','Food'],['weight','Weight']].filter(function(t){ return t[0]==='today'?cmHas(d,'steps')||cmHas(d,'workouts'):cmHas(d,t[0]==='work'?'workouts':t[0]); });
+  if(!tabs.length) return [pageHead('Coaching',''),h('div',{class:'panel empty'},'Coaching is not part of your plan. Ask at the desk if you would like a coach.')];
+  if(!tabs.some(function(t){ return t[0]===COACHM.tab; })) COACHM.tab=tabs[0][0];
+  var sub=tabs.length<2?null:h('div',{class:'ctabs',role:'tablist'},tabs.map(function(t){ return h('button',{type:'button',role:'tab','aria-selected':COACHM.tab===t[0]?'true':'false',class:'ctab pvok'+(COACHM.tab===t[0]?' on':''),onclick:function(){ COACHM.tab=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); }));
   var who=d.coaches.length?'Your coach'+(d.coaches.length>1?'es':'')+': '+d.coaches.map(function(c){ return c.name; }).join(', ')+'. ':'';
   var head=pageHead('Coaching',who+'Private: only you, your coach and the managers can see this.');
   var body=COACHM.tab==='work'?cmWork(d):COACHM.tab==='food'?cmFood(d):COACHM.tab==='weight'?cmWeight(d):cmToday(d);
@@ -3415,18 +3418,20 @@ function cmHabitCard(x,t){
     x.details||(x.links||[]).length?h('div',null,linkBtn(open?'Hide how to':'How to do it',function(){ COACHM.open[x.id]=!open; schedule(); }),
       open?h('div',{class:'hmore'},x.details?lessonText(x.details):null,cLinks(x.links)):null):null);
 }
+/* which parts of coaching this customer has (an older server sends none: all of it) */
+function cmHas(d,p){ return !d||!Array.isArray(d.parts)||!featOn('coach_choose')||d.parts.indexOf(p)>=0; }
 function cmToday(d){
   var t=d.today, hs=d.habits.filter(function(x){ return hActive(x,t); }), soon=d.habits.filter(function(x){ return x.start_on>t&&!x.stopped_on; });
   var dueN=hs.filter(function(x){ return hDue(x,t)&&x.freq!=='week'; }), doneN=dueN.filter(function(x){ return hDone(x,t); }).length;
   var wd=cWd(t), todays=[]; d.programs.forEach(function(p){ (p.routines||[]).forEach(function(r){ if(Number(r.day)===wd) todays.push({p:p,r:r}); }); });
   return [
-    cmGroups(d),
-    hs.length?section('Habits'+(dueN.length?', '+doneN+' of '+dueN.length+' done today':''),null,h('div',{class:'hlist'},hs.map(function(x){ return cmHabitCard(x,t); }))):
+    cmGroups(d).filter(function(x){ return cmHas(d,'steps')||(x.className||'').indexOf('crslink')>=0; }),
+    !cmHas(d,'steps')?null:hs.length?section('Habits'+(dueN.length?', '+doneN+' of '+dueN.length+' done today':''),null,h('div',{class:'hlist'},hs.map(function(x){ return cmHabitCard(x,t); }))):
       h('div',{class:'panel empty'},d.coaches.length?'No habits yet. Your coach adds them here.':'When a coach works with you, your habits and programs show here. You can already keep your food diary and weight.'),
-    h('p',{class:'sub'},'Tap a day letter to tick the last few days too.'),
-    soon.length?section('Coming next',null,h('div',{class:'panel'},soon.map(function(x){ return h('div',{class:'lrow static'},h('b',null,x.name),h('small',{class:'sub'},'Starts '+fmtDate(x.start_on)+', '+hFreq(x))); }))):null,
-    todays.length?section('Today’s workout',null,h('div',{class:'panel'},todays.map(function(o){ return h('button',{type:'button',class:'lrow',onclick:function(){ COACHM.tab='work'; COACHM.prog=o.p.id; COACHM.routine=o.r.id; schedule(); window.scrollTo(0,0); }},h('b',null,o.r.name||WDL[wd-1]),h('small',{class:'sub'},o.p.name)); }))):null,
-    h('div',{class:'row'},btn('Add a food photo',function(){ COACHM.tab='food'; schedule(); cmFoodPick(); },'primary'),btn('Log my weight',function(){ COACHM.tab='weight'; schedule(); setTimeout(function(){ var e=document.getElementById('cm-kg'); if(e) e.focus(); },60); }))];
+    cmHas(d,'steps')&&hs.length?h('p',{class:'sub'},'Tap a day letter to tick the last few days too.'):null,
+    cmHas(d,'steps')&&soon.length?section('Coming next',null,h('div',{class:'panel'},soon.map(function(x){ return h('div',{class:'lrow static'},h('b',null,x.name),h('small',{class:'sub'},'Starts '+fmtDate(x.start_on)+', '+hFreq(x))); }))):null,
+    cmHas(d,'workouts')&&todays.length?section('Today’s workout',null,h('div',{class:'panel'},todays.map(function(o){ return h('button',{type:'button',class:'lrow',onclick:function(){ COACHM.tab='work'; COACHM.prog=o.p.id; COACHM.routine=o.r.id; schedule(); window.scrollTo(0,0); }},h('b',null,o.r.name||WDL[wd-1]),h('small',{class:'sub'},o.p.name)); }))):null,
+    h('div',{class:'row'},cmHas(d,'food')?btn('Add a food photo',function(){ COACHM.tab='food'; schedule(); cmFoodPick(); },'primary'):null,!cmHas(d,'weight')?null:btn('Log my weight',function(){ COACHM.tab='weight'; schedule(); setTimeout(function(){ var e=document.getElementById('cm-kg'); if(e) e.focus(); },60); }))];
 }
 /* food diary */
 function cmGuessKind(){ var hr=Number(new Date().toLocaleString('en-GB',{timeZone:'Asia/Bangkok',hour:'2-digit',hour12:false})); return hr<11?'breakfast':hr<15?'lunch':hr<17?'snack':'dinner'; }
@@ -3545,7 +3550,7 @@ function gStepBody(it){ if(it.kind==='lesson') return [it.text?lessonText(it.tex
 function cmGroups(d){ var t=d.today;
   return (d.groups||[]).map(function(g){
     if(g.course_id){ var todo=(g.items||[]).filter(function(it){ return it.kind!=='email'&&(g.done||[]).indexOf(it.id)<0; }).length;
-      return h('button',{type:'button',class:'panel pad crslink',onclick:function(){ ui.tab='c_learn'; CRS.view=null; CRS.lesson=null; crsOpen(g.course_id); schedule(); }},
+      return h('button',{type:'button',class:'panel pad crslink pvok',onclick:function(){ ui.tab='c_learn'; CRS.view=null; CRS.lesson=null; crsOpen(g.course_id); schedule(); }},
         h('span',{class:'crseye'},'Course'),h('b',null,g.course_title||g.name),h('small',{class:'sub'},todo?todo+' step'+(todo>1?'s':'')+' to do':'All caught up'),h('span',{class:'crsgo'},'Open ›')); }
     var wk=gWeekOf(g,t), items=(g.items||[]).filter(function(it){ return it.kind!=='email'; }), cur=items.filter(function(it){ return it.on>cAdd(t,-7); }), old=items.filter(function(it){ return it.on<=cAdd(t,-7); }).reverse();
     var showOld=COACHM.open['g'+g.member_id];
@@ -3810,6 +3815,35 @@ function coOpen(cid){ COACH.cid=cid; COACH.view='client'; return sb.rpc('coach_c
 function coReload(){ return COACH.cid?coOpen(COACH.cid):coLoad(); }
 function coTpl(){ return sb.rpc('program_templates').then(must).then(function(l){ COACH.tpl=l; schedule(); return l; }); }
 function coEx(){ return sb.rpc('exercise_list').then(must).then(function(l){ COACH.ex=l; schedule(); return l; }); }
+/* coaching chosen per customer: none, or any of its parts. Empty choice = the business default */
+var CPARTS=[['steps','Steps and habits'],['workouts','Workouts and programmes'],['food','Food diary and meal advice'],['weight','Weight']];
+function coachPartsText(l){ return l&&l.length?CPARTS.filter(function(p){ return l.indexOf(p[0])>=0; }).map(function(p){ return p[1].toLowerCase(); }).join(', '):'no coaching'; }
+function coachParts(c){
+  sb.from('app_settings').select('value').eq('key','coaching_default').then(function(r){
+    var def=String(((r&&r.data)||[])[0]&&r.data[0].value||'').split(',').filter(Boolean), own=Array.isArray(c.coaching);
+    openForm({title:'Coaching for '+c.name,note:'Choose what '+String(c.name).split(' ')[0]+' gets in the Coaching tab of their app. With nothing ticked the tab is hidden for them.',
+      values:{mode:own?'own':'default',parts:own?c.coaching:def},
+      fields:[{key:'mode',label:'Use',type:'select',options:[['own','The parts ticked below'],['default','The usual for every customer ('+coachPartsText(def)+')']]},
+        {key:'parts',label:'Coaching parts',type:'checks',options:CPARTS},
+        me.role==='manager'?{key:'setdef',label:'Also make the ticked parts the usual for every customer without their own choice',type:'checkbox'}:null].filter(Boolean),
+      saveLabel:'Save',doneMsg:'Saved. Their app shows it next time it opens.',
+      onSave:function(v){ var same=(v.parts||[]).slice().sort().join()===def.slice().sort().join(), parts=v.mode==='own'||(!same&&!v.setdef)?v.parts:null; /* ticking other parts means their own choice */
+        return sb.rpc('coaching_parts_set',{p_customer:c.id,p_parts:parts}).then(must).then(function(){ c.coaching=parts;
+          if(v.setdef) return sb.rpc('coaching_default_set',{p_parts:v.parts}).then(must); }); }});
+  });
+}
+/* owner: pick any customer and see their app as they see it */
+var CVQ='';
+function custPick(){ ui.tab='custview'; if(PV) exitCustomerView(); ui.tab='custview'; schedule(); window.scrollTo(0,0); setTimeout(function(){ var e=document.getElementById('cv-q'); if(e) e.focus(); },60); }
+function vCustView(){
+  var q=CVQ.trim().toLowerCase(), all=(S.customers||[]).filter(function(c){ return !c.is_agency; });
+  var list=(q?all.filter(function(c){ return [c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }):all.filter(function(c){ return c.seen_at; }).sort(function(a,b){ return String(b.seen_at).localeCompare(String(a.seen_at)); })).slice(0,40);
+  var box=h('input',{id:'cv-q',type:'search',placeholder:'Search name, email or phone','aria-label':'Search customers',value:CVQ,oninput:function(e){ CVQ=e.target.value; schedule(); }});
+  return [pageHead('Customer view','Pick a customer to see their app exactly as they see it. View only: nothing can be changed or sent.'),
+    h('div',{class:'panel pad'},box),
+    section(q?'Customers':'Used the app lately',null,list.length?h('div',{class:'panel'},list.map(function(c){
+      return h('button',{type:'button',class:'lrow',onclick:function(){ viewAsCustomer(c); }},h('span',{class:'lt'},h('b',null,c.name),h('small',{class:'sub'},[c.email,c.user_id?'has the app':'no app login yet',featOn('coach_choose')?'coaching: '+(Array.isArray(c.coaching)?coachPartsText(c.coaching):'usual'):null].filter(Boolean).join(' · '))),h('span',{class:'sub'},'View ›')); })):h('div',{class:'panel empty'},q?'No customer found.':'Search for a customer above.'))];
+}
 function openCoaching(cid){ ui.tab='coaching'; COACH.prog=null; coOpen(cid); schedule(); }
 function vCoaching(){
   if(COACH.prog) return coProgEditor();
@@ -7191,7 +7225,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       custBills(c),
       me&&me.role==='manager'?emailOneSection(c):null,
       me&&(me.role==='manager'||me.role==='coach')?intakePanel(c.id,true):null,
@@ -7763,7 +7797,7 @@ function vSettings(){
       h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
       h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
 }
-var VIEWS={affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 /* Messages: a floating button on phones, and the first item in the menu on computers, with the unread count */
 var $fab=null;
@@ -7819,7 +7853,7 @@ function render(){
   var act=document.activeElement, keep=act&&act.id&&$view.contains(act)?{id:act.id,s:act.selectionStart,e:act.selectionEnd}:null;
   var nodes=[]; (function flat(l){ l.forEach(function(n){ if(Array.isArray(n)) flat(n); else if(n) nodes.push(n); }); })(VIEWS[ui.tab]());
   var cln=clNotice(); if(cln) nodes.unshift(cln);
-  if(PV) nodes.unshift(h('div',{class:'pvbar',role:'status'},h('span',null,h('b',null,PV.name+'\u2019s app'),' as they see it. View only, nothing here can be changed.'),h('button',{type:'button',class:'btn small primary pvexit',onclick:exitCustomerView},'Back to back office')));
+  if(PV) nodes.unshift(h('div',{class:'pvbar',role:'status'},h('span',null,h('b',null,PV.name+'\u2019s app'),' as they see it. View only, nothing here can be changed.'),h('button',{type:'button',class:'btn small primary pvexit',onclick:exitCustomerView},'Back to back office'),featOn('custview')&&me&&me.role==='manager'?btn('Another customer',function(){ custPick(); },'small pvexit'):null));
   $view.replaceChildren.apply($view,nodes);
   if(keep){ var el=document.getElementById(keep.id); if(el){ el.focus(); try{ el.setSelectionRange(keep.s,keep.e); }catch(e){} } }
 }
@@ -8658,11 +8692,14 @@ function viewAsCustomer(c){
   toast('Opening '+c.name+'’s app.');
   Promise.all([sb.rpc('customer_home_as',{p_customer:c.id}),sb.rpc('customer_stay_as',{p_customer:c.id}),sb.rpc('fights_public')]).then(function(r){
     var home=must(r[0]); if(!home||!home.me){ toast(c.name+' has not set up the app yet.'); return; }
-    PV={tabs:TABS,tab:ui.tab,cid:c.id,name:c.name}; CU=home; CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[];
+    if(!PV) PVBACK={tabs:TABS,tab:ui.tab};
+    PV={tabs:PVBACK.tabs,tab:PVBACK.tab,cid:c.id,name:c.name}; CU=home; pvReset(); CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[];
     TABS=CTABS; ui.tab='c_home'; document.body.classList.add('cuview'); window.scrollTo(0,0); schedule();
   }).catch(function(e){ toast(errText(e)); });
 }
-function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab='customers'; ui.customerId=PV.cid; CU=null; PV=null; document.body.classList.remove('cuview'); schedule(); }
+var PVBACK=null;
+function pvReset(){ COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
+function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab=PV.tab==='custview'?'custview':'customers'; ui.customerId=PV.cid; CU=null; PV=null; PVBACK=null; pvReset(); document.body.classList.remove('cuview'); schedule(); }
 
 /* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */
 var kTimer=0, kRefresh=0;
