@@ -91,7 +91,7 @@
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="#training">Book training</a></div>
 
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=19"></script>
+<script src="site.js?v=20"></script>
 <script src="qrcode.js?v=1"></script>
 <script src="privpick.js?v=4"></script>
 <script src="chat.js?v=2" defer></script>
@@ -235,7 +235,7 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   T('buy_pay',cur.name+(REC?' + recovery':'')+(ADD?' + course':'')); if(PVon&&PV&&PV.value().coach) T('buy_private',PV.value().coach_name);
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
-  call({mode:'order',ref:window.PKREF?PKREF():null,pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,recovery:REC?{package_id:REC.package_id,qty:REC.qty}:null,course_addon:ADD&&OFR?OFR.id:null,back:location.origin+location.pathname})
+  call({mode:'order',ref:window.PKREF?PKREF():null,ref_at:window.PKREFAT?PKREFAT():null,pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,recovery:REC?{package_id:REC.package_id,qty:REC.qty}:null,course_addon:ADD&&OFR?OFR.id:null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ btn.disabled=false; payLabel(); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
 });

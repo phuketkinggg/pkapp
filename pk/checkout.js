@@ -41,7 +41,7 @@ $('cbuyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email. You sign in to the app with it to watch the course.'; err.hidden=false; $('cb-email').focus(); return; }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('cb-phone').value.trim()})); }catch(x){}
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
-  call({mode:'order',ref:window.PKREF?PKREF():null,pay:pay,course_id:cur.id,name:name,email:email,phone:$('cb-phone').value.trim(),back:location.href.split('#')[0].replace(/[?&](paid|ref)=[^&]*/g,'')})
+  call({mode:'order',ref:window.PKREF?PKREF():null,ref_at:window.PKREFAT?PKREFAT():null,pay:pay,course_id:cur.id,name:name,email:email,phone:$('cb-phone').value.trim(),back:location.href.split('#')[0].replace(/[?&](paid|ref)=[^&]*/g,'')})
     .then(function(d){ if(d.pp) showPP(d,email); else location.href=d.url; })
     .catch(function(x){ btn.disabled=false; btn.textContent='Pay '+PK.thb(cur.price); err.textContent=x.message; err.hidden=false; });
 });

@@ -420,7 +420,7 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
   T('stay_pay',payWith());
   b.disabled=true; b.textContent=payWith()==='pp'?'Making your QR':'Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,currency:cur(),pay:payWith(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
+  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+(pick.how||' by card'); err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
@@ -459,7 +459,7 @@ call({mode:'info'}).then(function(d){ INFO=d;
 })();
 </script>
 <script src="qrcode.js?v=1"></script>
-<script src="site.js?v=19"></script>
+<script src="site.js?v=20"></script>
 <script src="chat.js?v=2" defer></script>
 <script src="reviews.js?v=1" defer></script>
 <script>

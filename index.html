@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=31"></script>
+<script src="changelog.js?v=32"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -2414,7 +2414,7 @@ var AFF=null;
 function affLoad(){ if(ui.affBusy) return; ui.affBusy=true; sb.rpc('affiliates_list').then(must).then(function(d){ ui.affBusy=false; ui.affErr=null; AFF=Array.isArray(d)?d:[]; schedule(); },function(e){ ui.affBusy=false; ui.affErr=errText(e); schedule(); }); }
 function affLink(a){ return SITE_URL+'/?ref='+a.code; }
 function affBookLink(a){ return SITE_URL+'/book?ref='+a.code; }
-/* any page with the affiliate's code: the website keeps the code 60 days, whatever page they land on */
+/* any page with the affiliate's code: the website remembers the click, whatever page they land on (Links count for N days) */
 function affUrl(path,code){ var u=String(path||'/'); if(!/^https?:/i.test(u)) u=SITE_URL+(u.charAt(0)==='/'?'':'/')+u;
   u=u.replace(/([?&])ref=[^&#]*&?/,'$1').replace(/[?&]$/,''); var hash=''; var i=u.indexOf('#'); if(i>=0){ hash=u.slice(i); u=u.slice(0,i); }
   return u+(u.indexOf('?')>=0?'&':'?')+'ref='+encodeURIComponent(code)+hash; }
@@ -2427,6 +2427,15 @@ function affPages(){
   o.push(['/about','About us'],['/blog','Blog']);
   return o; }
 /* what an affiliate earns on: everything at one %, or their own list (rooms, packages one by one or by group, courses, anything added later) */
+var AFFDAYS=null;
+/* how long a link counts after someone clicks it: for everyone, or for one affiliate */
+function affDaysDlg(a){
+  var cur=a?(a.own_days!=null?a.own_days:''):((AFF||[]).filter(function(x){ return x.own_days==null; }).map(function(x){ return x.days; })[0]||AFFDAYS||60);
+  openForm({title:a?'How long '+a.name+'’s link counts':'How long affiliate links count',note:a?'Leave empty to use the same number of days as everyone else.':'After someone clicks an affiliate link, bookings and sales in this many days count for the affiliate. A click on a newer link replaces the older one.',
+    values:{days:cur},fields:[{key:'days',label:'Days',type:'number',required:!a,hint:'Between 1 and 730. For example 30, 60 or 90.'}],saveLabel:'Save',doneMsg:'Saved. It counts for new bookings and sales.',
+    onSave:function(v){ var d=v.days===''||v.days==null?null:Math.round(Number(v.days)); if(d!=null&&!(d>=1&&d<=730)) return 'Choose between 1 and 730 days.';
+      return sb.rpc('affiliate_days_set',{p_days:d,p_id:a?a.id:null}).then(must).then(function(){ if(!a) AFFDAYS=d; AFF=null; affLoad(); }); }});
+}
 function affRulesLine(a){ var r=a.rules||{}, p=[], np=Object.keys(r.packages||{}).length, nc=Object.keys(r.courses||{}).length;
   if(r.stays!=null) p.push('rooms '+r.stays+'%'); if(np) p.push(np+' package'+(np===1?'':'s')); if(nc) p.push(nc+' course'+(nc===1?'':'s')); if(r.other!=null) p.push('anything else '+r.other+'%');
   return p.length?p.join(', '):'nothing yet'; }
@@ -2500,7 +2509,7 @@ function affLinks(a){
   var quick=h('div',{class:'panel scroll'},h('table',null,h('tbody',null,affPages().map(function(x){ var u=affUrl(x[0],a.code);
     return h('tr',null,h('td',null,x[1]),h('td',{class:'sub',style:'overflow-wrap:anywhere'},u.replace(/^https:\/\//,'')),h('td',null,btn('Copy',function(){ copyText(u,'Link copied.'); },'small'))); }))));
   box.replaceChildren(h('h2',null,'Links for '+a.name),
-    h('p',{class:'sub'},'Every link carries their code ('+a.code+'). Whatever page someone lands on, the website remembers the code for 60 days, and rooms, packages and courses booked or bought in that time count for '+a.name+'.'),
+    h('p',{class:'sub'},'Every link carries their code ('+a.code+'). Whatever page someone lands on, the website remembers the click, and what they book or buy in the next '+(a.days||60)+' days counts for '+a.name+' (only what they earn on).'),
     h('div',{class:'field'},h('label',{for:'aff-page'},'Page, package or course'),pick),
     h('div',{class:'field'},h('label',{for:'aff-paste'},'Or paste any page of your website'),paste,h('small',null,'For example a blog post. The code is added for you.')),
     out,
@@ -2516,8 +2525,9 @@ function vAff(){
   var mgr=me&&me.role==='manager';
   if(!AFF){ affLoad(); return [h('div',{class:'panel empty'},ui.affErr||'Loading.')]; }
   var owed=AFF.reduce(function(t,a){ return t+affOwed(a); },0);
-  return [section('Referrals',mgr?btn('Add an affiliate',function(){ editAff(); },'primary small'):null,h('div',null,
-    h('p',{class:'sub'},'Give anyone who sends you guests their own link. When someone books a room or buys a package or course on the website through it (any time in the next 60 days), it is tagged to them and they earn their share of the room price or the package price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
+  var days=(AFF.filter(function(a){ return a.own_days==null; })[0]||{}).days||AFFDAYS||60;
+  return [section('Referrals',mgr?h('div',{class:'row'},btn('Links count for '+(days||60)+' days',affDaysDlg,'small'),btn('Add an affiliate',function(){ editAff(); },'primary small')):null,h('div',null,
+    h('p',{class:'sub'},'Give anyone who sends you guests their own link. When someone books a room or buys a package or course on the website through it (within the days you set), it is tagged to them and they earn their share of the room price or the package price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
     owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
     table([
       {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),a.active?null:h('div',{class:'sub'},'Switched off')); }},
@@ -2556,7 +2566,8 @@ function affDlg(a){
   function close(){ $dlg.close(); }
   var box=h('div',{class:'billbox'},h('h2',null,a.name),
     h('p',{class:'sub'},(a.rules?'Earns on: '+affRulesLine(a)+'. ':Number(a.pct)+'% of everything: rooms, packages and courses. ')+[a.email,a.phone].filter(Boolean).join(', ')),
-    mgr?h('div',{class:'row'},btn('What they earn on',function(){ close(); affRules(a); },'small')):null,
+    h('p',{class:'sub'},'Their link counts for '+(a.days||60)+' days after a click'+(a.own_days!=null?' (their own setting)':'')+'.'),
+    mgr?h('div',{class:'row wrap'},btn('What they earn on',function(){ close(); affRules(a); },'small'),btn('How long their link counts',function(){ close(); affDaysDlg(a); },'small')):null,
     h('div',{class:'panel pad'},h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Their link'),affLink(a))),
       h('div',{class:'row wrap',style:'margin-top:10px'},btn('Make a link to any page',function(){ close(); affLinks(a); },'primary small'),btn('Copy link',function(){ copyText(affLink(a),'Link copied.'); },'small'))),
     h('h3',{class:'billh'},'Bookings'),

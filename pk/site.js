@@ -3,9 +3,14 @@
 'use strict';
 var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/site';
 var WA='66615155947';
-/* referral links: ?ref=<code> is remembered for 60 days, and the booking page sends it with the booking */
-(function(){ try{ var m=location.search.match(/[?&]ref=([A-Za-z0-9-]{2,30})(?:&|$)/); if(m) localStorage.setItem('pk_ref',JSON.stringify({c:m[1].toLowerCase(),t:Date.now()})); }catch(e){} })();
-window.PKREF=function(){ try{ var x=JSON.parse(localStorage.getItem('pk_ref')||'null'); if(x&&x.c&&Date.now()-x.t<60*864e5) return x.c; }catch(e){} return null; };
+/* referral links: ?ref=<code> is remembered with the time of the click, and the booking and buying pages send both.
+   The server decides if it still counts (Affiliates, how many days a link counts). A few seconds later the code is taken
+   out of the address bar, so a copied or shared address does not carry someone else's code. */
+(function(){ try{ var m=location.search.match(/[?&]ref=([A-Za-z0-9-]{2,30})(?:&|$)/); if(!m) return;
+  localStorage.setItem('pk_ref',JSON.stringify({c:m[1].toLowerCase(),t:Date.now()}));
+  setTimeout(function(){ try{ var u=new URL(location.href); u.searchParams.delete('ref'); history.replaceState(history.state,'',u.pathname+(u.search||'')+u.hash); }catch(e){} },4000); }catch(e){} })();
+window.PKREF=function(){ try{ var x=JSON.parse(localStorage.getItem('pk_ref')||'null'); if(x&&x.c&&Date.now()-x.t<730*864e5) return x.c; }catch(e){} return null; };
+window.PKREFAT=function(){ try{ var x=JSON.parse(localStorage.getItem('pk_ref')||'null'); if(x&&x.t) return new Date(x.t).toISOString(); }catch(e){} return null; };
 window.PK={
   /* on the live website, blog posts and app pages have their own short address (www.phuketking.com/slug) */
   live:/^(www\.|new\.)?phuketking\.com$|\.pages\.dev$/.test(location.hostname),

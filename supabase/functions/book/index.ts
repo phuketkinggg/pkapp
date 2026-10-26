@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
         p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote].filter(Boolean).join("\n") });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
-      if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref) });
+      if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref), p_at: isNaN(Date.parse(String(body.ref_at ?? ""))) ? null : new Date(String(body.ref_at)).toISOString() });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
         if (pp) return json({ pp: acc, stay_id: stayId, total, what: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}` });
