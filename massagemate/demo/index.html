@@ -3247,7 +3247,7 @@ var TEC={list:null,busy:false,view:null,q:'',cat:''};
 var TECVIS=[['public','Everyone: the website and the app'],['app','Anyone with the app'],['members','Members with an active package'],['hidden','Only inside courses']];
 function tecLoad(){ TEC.busy=true; return sb.rpc('technique_list',PV?{p_customer:PV.cid}:{}).then(must).then(function(d){ TEC.list=d||[]; TEC.busy=false; schedule(); return d; }).catch(function(e){ TEC.busy=false; TEC.err=errText(e); TEC.list=TEC.list||null; schedule(); }); }
 function tecVis(v){ var x=TECVIS.filter(function(t){ return t[0]===v; })[0]; return x?x[1]:v; }
-function tecEdit(t){ t=t||{visibility:'app'}; var cover=t.cover||null, vst={path:t.video_path||null};
+function tecEdit(t){ t=t||{visibility:'public'}; var cover=t.cover||null, vst={path:t.video_path||null};
   var cats=[]; (TEC.list||[]).forEach(function(x){ if(x.category&&cats.indexOf(x.category)<0) cats.push(x.category); }); cats.sort();
   openForm({title:t.id?'Edit video':'Add a video',values:{title:t.title||'',category:t.category||'',video_url:t.video||'',body:t.body||'',visibility:t.visibility||'app',sort:t.sort||0},
     fields:[{key:'title',label:'Name',required:true,hint:'For example: The teep, front kick.'},
