@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=34"></script>
+<script src="changelog.js?v=35"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -628,6 +628,13 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .pitem>.pmini{align-self:flex-end}.pvid input{flex:1;min-width:0}
 
 .gstep{display:flex;flex-direction:column;gap:8px}.gstep.done{opacity:.75}.gsteph{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;flex:1}
+.crseye{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.crshead{margin:6px 0 14px}.crshead h1{margin:2px 0 10px;font-size:26px;line-height:1.15}
+.crsbar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin-bottom:6px}.crsbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.crsstep .hrow{display:flex;width:100%;align-items:center;gap:12px;justify-content:flex-start}.crsstep .gsteph{flex:1 1 auto;min-width:0;width:auto}.crsstep .gsteph small:first-letter{text-transform:uppercase}.crshead+.link,.crshead+.panel{margin-bottom:14px;display:block}.crsstep.todo{border-left:4px solid var(--ok)}.crsstep.next{box-shadow:0 0 0 2px var(--ok)}
+.crsstep.later{opacity:.55}.crsstep.later .gsteph{cursor:default}.crsstep.done{opacity:.6}.crsstep.done .lnum{background:var(--ok);color:var(--surface)}.crsstep.done b{text-decoration:line-through}
+.crslink{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;border-left:4px solid var(--gold);position:relative;margin-bottom:12px}
+.crslink .crsgo{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-weight:700}
 .gtick{width:40px;height:40px;border-radius:20px;border:2px solid var(--ok);background:none;color:#fff;font-size:20px;font-weight:700;cursor:pointer;flex:none}.gtick.on{background:var(--ok)}
 .gstepb{display:flex;flex-direction:column;gap:10px;align-items:flex-start}.gstepb>*{max-width:100%}.gwhen{min-width:74px;font-weight:700;color:var(--muted);font-size:14px}
 .gedit{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.gwhenrow{align-items:center}.gwhenrow input[type=number]{width:80px}.gwhenrow .pmini{margin-left:auto}.gextra{display:flex;flex-direction:column;gap:8px}.gextra .row{align-items:center}.gextra input[type=number]{width:90px}
@@ -3138,22 +3145,23 @@ function vLearn(){
     list.length?h('div',{class:'crsgrid'},list.map(function(c){
       return h('button',{type:'button',class:'crscard',onclick:function(){ crsOpen(c.id); }},
         c.cover?h('img',{src:c.cover,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),
-        h('div',{class:'in'},h('b',null,c.title),c.summary?h('span',{class:'sub'},c.summary):null,
+        h('div',{class:'in'},h('span',{class:'crseye'},'Course'),h('b',null,c.title),c.summary?h('span',{class:'sub'},c.summary):null,
           h('div',{class:'row'},chip(c.count+' lesson'+(c.count===1?'':'s')),c.open?(c.done?chip(c.done+' of '+c.count+' done','ok'):chip('Open','ok')):chip('Locked','warn'))));
     })):h('div',{class:'panel empty'},'No courses yet. Check back soon.')];
 }
 function crsCourseView(asMgr){
   var c=CRS.view, L=c.lessons||[], cur=CRS.lesson?L.filter(function(l){ return l.id===CRS.lesson; })[0]:null;
-  var back=btn('Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small');
+  var back=btn(CRS.lesson?'Back to the course':'Back',function(){ if(CRS.lesson){ CRS.lesson=null; } else { CRS.view=null; crsLoad(); } schedule(); window.scrollTo(0,0); },'small');
   if(cur){ var i=L.indexOf(cur), nxt=L[i+1];
     return [h('div',{class:'row'},back),pageHead(cur.title,c.title+', lesson '+(i+1)+' of '+L.length+(cur.minutes?', '+cur.minutes+' min':'')),
       cur.opens?h('div',{class:'panel pad crslock'},h('b',null,'This lesson opens '+lessonOpens(cur.opens)),h('p',{class:'sub'},'Lessons open one by one as you go through the course. Come back then.')):cur.open?h('div',{class:'panel pad lesson'},ytFrame(cur.video),cur.body?lessonText(cur.body):null,fileList(cur.files),
         !cur.video&&!cur.body&&!(cur.files||[]).length?h('p',{class:'sub'},'Nothing in this lesson yet.'):null):crsLocked(c),
-      cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ sb.rpc('course_done',{p_lesson:cur.id,p_done:!cur.done}).then(must).then(function(){ cur.done=!cur.done; schedule(); }).catch(function(e){ toast(errText(e)); }); },cur.done?'small':'primary'),
-        nxt?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
+      cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ crsLessonDone(c,cur,!cur.done).then(function(){ if(cur.done){ CRS.lesson=null; schedule(); window.scrollTo(0,0); toast('Done. It moved to your done list.'); } }); },cur.done?'small':'primary'),
+        nxt&&!(me.role==='customer'&&c.open)?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
   }
+  if(c.open&&me&&me.role==='customer'&&!asMgr) return crsSteps(c,back);
   var done=L.filter(function(l){ return l.done; }).length;
-  return [h('div',{class:'row'},back),pageHead(c.title,c.summary||''),
+  return [h('div',{class:'row'},back),h('div',{class:'crseye'},'Course'),pageHead(c.title,c.summary||''),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
     c.about?h('div',{class:'panel pad'},lessonText(c.about)):null,
     (c.groups||[]).length?h('div',{class:'panel pad'},h('b',null,'Coaching included: '+c.groups.map(function(g){ return g.name; }).join(', ')),h('p',{class:'sub'},c.open?'Your weekly steps are in the Coaching tab.':'Unlocks with the course: weekly steps in your Coaching tab.'),c.open&&me.role==='customer'?btn('Open Coaching',function(){ CRS.view=null; ui.tab='c_coach'; COACHM.tab='today'; schedule(); },'small'):null):null,
@@ -3162,6 +3170,59 @@ function crsCourseView(asMgr){
       return h('button',{type:'button',class:'lrow'+(l.open?'':' locked'),onclick:function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }},
         h('span',{class:'lnum'},l.done?'✓':String(i+1)),h('span',{class:'lt'},h('b',null,l.title),h('small',{class:'sub'},[l.has_video?'Video':null,l.n_files?l.n_files+' file'+(l.n_files===1?'':'s'):null,l.minutes?l.minutes+' min':null].filter(Boolean).join(' · '))),
         l.opens?chip('Opens '+lessonOpens(l.opens)):l.open?(l.free&&!c.open?chip('Free preview','ok'):null):chip('Locked','warn')); })):h('div',{class:'panel empty'},'No lessons yet.'))];
+}
+/* member: the course on its own, apart from Coaching. Every step in order: to do (highlighted), coming up (with the day it opens), done (greyed, folded away).
+   Steps are the course's weekly steps (Courses, Groups in this course) when it has them, plus any lessons they do not already point to, else the lessons. */
+function crsGroupsFor(c){ var d=COACHM.data, ids=(c.groups||[]).map(function(g){ return g.id; });
+  return d?(d.groups||[]).filter(function(g){ return g.course_id===c.id||ids.indexOf(g.group_id)>=0; }):[]; }
+function crsLessonDone(c,l,on){
+  var calls=[sb.rpc('course_done',{p_lesson:l.id,p_done:on}).then(must)];
+  crsGroupsFor(c).forEach(function(g){ (g.items||[]).forEach(function(it){ if(it.kind==='lesson'&&it.lesson_id===l.id&&((g.done||[]).indexOf(it.id)>=0)!==on){
+    calls.push(sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); })); } }); });
+  return Promise.all(calls).then(function(){ l.done=on; schedule(); }).catch(function(e){ toast(errText(e)); });
+}
+function crsSteps(c,back){
+  var L=c.lessons||[], d=COACHM.data;
+  if((c.groups||[]).length&&!d){ if(!COACHM.busy) cmLoad(); return [h('div',{class:'row'},back),h('div',{class:'crseye'},'Course'),pageHead(c.title,''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
+  var gs=crsGroupsFor(c), today=d&&d.today||new Date(Date.now()+7*36e5).toISOString().slice(0,10), steps=[], used={};
+  function lessonOf(id){ return L.filter(function(l){ return l.id===id; })[0]; }
+  gs.forEach(function(g){
+    (g.items||[]).filter(function(it){ return it.kind!=='email'; }).forEach(function(it){
+      var les=it.kind==='lesson'?lessonOf(it.lesson_id):null; if(les) used[les.id]=1;
+      var gdone=(g.done||[]).indexOf(it.id)>=0;
+      steps.push({key:'g'+g.member_id+it.id,title:it.title||(les&&les.title)||gKind(it.kind),kind:gKind(it.kind),state:gdone||(les&&les.done)?'done':'todo',
+        body:function(){ return [it.text?lessonText(it.text):null,les?btn('Open the lesson',function(){ CRS.lesson=les.id; schedule(); window.scrollTo(0,0); },'primary small'):it.kind==='lesson'?null:gStepBody(it)[1]]; },
+        tick:function(on){ var p=sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); });
+          return (les&&les.done!==on?Promise.all([p,sb.rpc('course_done',{p_lesson:les.id,p_done:on}).then(must).then(function(){ les.done=on; })]):p).then(function(){ schedule(); }).catch(function(e){ toast(errText(e)); }); }});
+    });
+    (g.later||[]).forEach(function(it){ steps.push({key:'g'+g.member_id+it.id,title:it.title||gKind(it.kind),kind:gKind(it.kind),state:'later',when:it.on===cAdd(today,1)?'tomorrow':fmtDate(it.on)}); });
+  });
+  L.forEach(function(l){ if(used[l.id]) return;
+    steps.push({key:'l'+l.id,title:l.title,kind:[l.has_video?'Video lesson':'Lesson',l.minutes?l.minutes+' min':null].filter(Boolean).join(', '),
+      state:l.opens?'later':!l.open?'later':l.done?'done':'todo',when:l.opens?lessonOpens(l.opens):'',
+      body:function(){ return [btn(l.has_video?'Watch the lesson':'Open the lesson',function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); },'primary small')]; },
+      tick:function(on){ return crsLessonDone(c,l,on); }});
+  });
+  var todo=steps.filter(function(x){ return x.state==='todo'; }), later=steps.filter(function(x){ return x.state==='later'; }), done=steps.filter(function(x){ return x.state==='done'; });
+  var n=steps.length, pct=n?Math.round(done.length*100/n):0, k='crs'+c.id, showDone=COACHM.open[k+'done'], showAbout=COACHM.open[k+'about'];
+  function row(x,i,first){ var o=COACHM.open[x.key]!==undefined?COACHM.open[x.key]:first, isDone=x.state==='done', isLater=x.state==='later';
+    return h('div',{class:'panel pad gstep crsstep '+x.state+(first?' next':'')},
+      h('div',{class:'hrow'},
+        h('span',{class:'lnum'},isDone?'✓':String(i)),
+        h('button',{type:'button',class:'gsteph',disabled:isLater?'':null,onclick:isLater?null:function(){ COACHM.open[x.key]=!o; schedule(); }},
+          h('small',{class:'sub'},first?'Next up, '+x.kind.toLowerCase():isLater?(x.when?'Opens '+x.when:'Opens later'):x.kind),h('b',null,x.title)),
+        isLater?null:h('button',{type:'button',class:'gtick'+(isDone?' on':''),'aria-pressed':isDone?'true':'false','aria-label':isDone?'Done, tap to undo':'Mark done',onclick:function(e){ e.currentTarget.disabled=true; x.tick(!isDone).then(function(){ if(!isDone) toast('Done. Moved to your done list.'); }); }},isDone?'✓':'')),
+      o&&!isLater?h('div',{class:'gstepb'},x.body()):null); }
+  var num={}; steps.forEach(function(x,i){ num[x.key]=i+1; });
+  return [h('div',{class:'row'},back),
+    h('div',{class:'crshead'},h('div',{class:'crseye'},'Course'),h('h1',null,c.title),
+      h('div',{class:'crsbar',role:'progressbar','aria-valuenow':String(pct),'aria-valuemin':'0','aria-valuemax':'100'},h('i',{style:'width:'+pct+'%'})),
+      h('p',{class:'sub'},n?done.length+' of '+n+' steps done'+(todo.length?', '+todo.length+' to do now':later.length?'. The next step opens '+later[0].when+'.':'. Course complete, well done.'):'No steps yet.')),
+    c.about||c.cover?(done.length&&!showAbout?linkBtn('About this course',function(){ COACHM.open[k+'about']=true; schedule(); }):h('div',{class:'panel pad'},c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,c.about?lessonText(c.about):null)):null,
+    section('To do'+(todo.length?' ('+todo.length+')':''),null,todo.length?h('div',{class:'hlist'},todo.map(function(x,i){ return row(x,num[x.key],i===0); })):h('div',{class:'panel empty'},later.length?'All caught up. New steps open soon.':'All done.')),
+    later.length?section('Coming up',null,h('div',{class:'hlist'},later.map(function(x){ return row(x,num[x.key],false); }))):null,
+    done.length?section('Done ('+done.length+')',showDone?linkBtn('Hide',function(){ COACHM.open[k+'done']=false; schedule(); }):linkBtn('Show',function(){ COACHM.open[k+'done']=true; schedule(); }),
+      showDone?h('div',{class:'hlist'},done.map(function(x){ return row(x,num[x.key],false); })):null):null];
 }
 function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
@@ -3484,6 +3545,9 @@ function gStepBody(it){ if(it.kind==='lesson') return [it.text?lessonText(it.tex
 /* member: steps on the Today screen */
 function cmGroups(d){ var t=d.today;
   return (d.groups||[]).map(function(g){
+    if(g.course_id){ var todo=(g.items||[]).filter(function(it){ return it.kind!=='email'&&(g.done||[]).indexOf(it.id)<0; }).length;
+      return h('button',{type:'button',class:'panel pad crslink',onclick:function(){ ui.tab='c_learn'; CRS.view=null; CRS.lesson=null; crsOpen(g.course_id); schedule(); }},
+        h('span',{class:'crseye'},'Course'),h('b',null,g.course_title||g.name),h('small',{class:'sub'},todo?todo+' step'+(todo>1?'s':'')+' to do':'All caught up'),h('span',{class:'crsgo'},'Open ›')); }
     var wk=gWeekOf(g,t), items=(g.items||[]).filter(function(it){ return it.kind!=='email'; }), cur=items.filter(function(it){ return it.on>cAdd(t,-7); }), old=items.filter(function(it){ return it.on<=cAdd(t,-7); }).reverse();
     var showOld=COACHM.open['g'+g.member_id];
     function card(it){ var done=(g.done||[]).indexOf(it.id)>=0, open=COACHM.open['s'+g.member_id+it.id]!==undefined?COACHM.open['s'+g.member_id+it.id]:!done&&it.on>cAdd(t,-7);
