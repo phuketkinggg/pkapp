@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=27"></script>
+<script src="changelog.js?v=28"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -53,6 +53,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 #nav{display:flex;flex-direction:column;gap:2px}
 #nav button{appearance:none;border:0;background:transparent;color:var(--ink);font:500 15px var(--body);text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:44px;white-space:nowrap}
 #nav button:hover{background:var(--surface)}
+#nav .navgrp{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;opacity:.6;padding:14px 12px 4px}#nav .navgrp:first-child{padding-top:4px}
+.navedit{display:flex;flex-direction:column;gap:4px;max-height:55vh;overflow:auto}.navrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}.navrow.grp{background:var(--surface)}.navrow.grp input{font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex:1;min-width:0}
 #nav button[aria-current="page"]{background:var(--surface);font-weight:600;box-shadow:inset 3px 0 0 var(--gold)}
 .who{margin:auto 8px 0;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .who b{color:var(--ink)}
@@ -475,6 +477,7 @@ ul.plain{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
   .side{width:auto;border-right:0;border-bottom:1px solid var(--line);padding:12px 16px;gap:10px}
   .brand{flex-direction:row;align-items:baseline;gap:10px;padding:0}
   #nav{flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:2px}
+  #nav .navgrp{display:none}
   #nav button[aria-current="page"]{box-shadow:inset 0 -3px 0 var(--gold)}
   .who{margin:0;flex-direction:row;align-items:center;flex-wrap:wrap}
   main{padding-block:16px;padding-inline:16px}
@@ -7487,9 +7490,45 @@ function cleanupSection(){
             h('div',{class:'clbody'},h('b',null,x.title),h('div',{class:'sub'},x.detail))); })); }),
       h('div',{class:'row',style:'margin-top:12px'},btn('Apply '+n+' selected',cleanupApply,'primary'),h('span',{class:'sub'},'Merges and deletes cannot be undone. Everything is checked again before it changes, and each clean up is logged.'))));
 }
+/* Settings, Menu: drag nothing, just tap the arrows. Group titles split the menu into sections */
+function navSection(){
+  if(!me||me.role!=='manager') return null;
+  return section('Menu',btn('Arrange the menu',navEdit,'small'),h('p',{class:'sub'},NAVL?'Your own order'+(NAVL.items.some(function(x){ return x.g; })?', with group titles':'')+'.':'The standard order. Put the menu in any order, sort it A to Z, and add group titles such as Front desk, Training or Money.'));
+}
+function navEdit(){
+  var tabs=TABS.filter(function(t){ return tabOn(t[0])&&t[0]!=='chat'; });
+  var list=navOrder(tabs).map(function(x){ return x.g?{g:x.g}:{k:x.t[0],n:x.t[1]}; });
+  var box=h('div',{class:'navedit'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function mv(i,d){ var j=i+d; if(j<0||j>=list.length) return; var x=list[i]; list[i]=list[j]; list[j]=x; draw(); var b=box.querySelectorAll('.navrow')[j]; if(b){ var f=b.querySelector(d<0?'.up':'.down')||b.querySelector('.up,.down'); if(f&&!f.disabled) f.focus(); } }
+  function draw(){
+    box.replaceChildren.apply(box,list.map(function(x,i){
+      var lab=x.g!=null?h('input',{type:'text',value:x.g,'aria-label':'Group title',placeholder:'Group title',maxlength:'30',oninput:function(e){ x.g=e.target.value; }}):h('span',null,x.n);
+      return h('div',{class:'navrow'+(x.g!=null?' grp':'')},lab,
+        h('div',{class:'row'},h('button',{type:'button',class:'btn small up','aria-label':'Move up',disabled:i===0?'':null,onclick:function(){ mv(i,-1); }},'\u2191'),
+          h('button',{type:'button',class:'btn small down','aria-label':'Move down',disabled:i===list.length-1?'':null,onclick:function(){ mv(i,1); }},'\u2193'),
+          x.g!=null?h('button',{type:'button',class:'btn small','aria-label':'Remove this title',onclick:function(){ list.splice(i,1); draw(); }},'Remove'):null)); }));
+  }
+  function addGroup(){ list.unshift({g:''}); draw(); var f=box.querySelector('input'); if(f) f.focus(); }
+  /* A to Z inside each group (titles stay where they are) */
+  function az(){ var out=[], run=[]; function flush(){ run.sort(function(a,b){ return a.n.localeCompare(b.n); }); out=out.concat(run); run=[]; }
+    list.forEach(function(x){ if(x.g!=null){ flush(); out.push(x); } else run.push(x); }); flush(); list=out; draw(); }
+  function store(v){ var txt=v?JSON.stringify(v):'{}';
+    return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','nav_layout').select('key').then(must).then(function(d){
+      if(d&&d.length) return; return sb.from('app_settings').insert({key:'nav_layout',value:txt}).select('key').then(must); }).then(function(){ NAVL=v&&v.items.length?v:null; schedule(); }); }
+  function save(){ var items=list.map(function(x){ return x.g!=null?{g:String(x.g).trim().slice(0,30)}:{k:x.k}; }).filter(function(x){ return x.k||x.g; });
+    store({items:items}).then(function(){ $dlg.close(); toast('Menu saved. Everyone in the team sees this order.'); },function(e){ err.textContent=errText(e); err.hidden=false; }); }
+  function reset(){ store(null).then(function(){ $dlg.close(); toast('Back to the standard order.'); },function(e){ err.textContent=errText(e); err.hidden=false; }); }
+  draw();
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Arrange the menu'),
+    h('p',{class:'sub'},'Use the arrows to move things up or down. Add group titles to split the menu into sections. Everyone in the team sees the same order, and new parts of the app appear at the bottom.'),
+    h('div',{class:'row wrap',style:'margin:8px 0'},btn('Add a group title',addGroup,'small'),btn('Sort A to Z',az,'small'),btn('Back to the standard order',reset,'small')),
+    box,err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',save,'primary')))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
 function vSettings(){
   return [pageHead('Settings'),
     cleanupSection(),
+    navSection(),
     h('div',{id:'whatsnew'},whatsNewSection()),
     featuresSection(),
     backupSection(),
@@ -7543,10 +7582,23 @@ function msgFab(){
   var n=$fab.querySelector('.msgfabn'); n.textContent=CHAT.unread>0?(CHAT.unread>99?'99+':String(CHAT.unread)):''; n.hidden=!(CHAT.unread>0);
   $fab.setAttribute('aria-label',CHAT.unread>0?'Messages, '+CHAT.unread+' unread':'Messages');
 }
+/* the menu on the left: a manager can put it in any order, sort it A to Z, and add group titles (Settings, Menu). Kept in app_settings nav_layout */
+var NAVL;
+function loadNavL(){ return sb.from('app_settings').select('value').eq('key','nav_layout').maybeSingle().then(function(r){ var v=null; try{ v=r.data&&r.data.value?JSON.parse(r.data.value):null; }catch(e){} NAVL=v&&Array.isArray(v.items)&&v.items.length?v:null; schedule(); },function(){ NAVL=null; }); }
+/* tabs in the saved order with group titles; tabs the layout does not know (new ones) go at the end; a title with nothing under it is left out */
+function navOrder(tabs){
+  if(!NAVL) return tabs.map(function(t){ return {t:t}; });
+  var by={}, used={}, out=[]; tabs.forEach(function(t){ by[t[0]]=t; });
+  NAVL.items.forEach(function(x){ if(x.g) out.push({g:String(x.g)}); else if(x.k&&by[x.k]&&!used[x.k]){ used[x.k]=1; out.push({t:by[x.k]}); } });
+  tabs.forEach(function(t){ if(!used[t[0]]) out.push({t:t}); });
+  return out.filter(function(x,i){ if(!x.g) return true; var n=out[i+1]; return n&&!n.g; });
+}
 function renderNav(){
+  if(NAVL===undefined&&me&&me.role!=='customer'&&TABS.length>3){ NAVL=null; loadNavL(); }
   var tabs=(TABS.length&&chatOn()?[['chat',M('tab')]].concat(TABS):TABS).filter(function(t){ return tabOn(t[0]); });
   msgFab();
-  $nav.replaceChildren.apply($nav,tabs.map(function(t){ return h('button',{type:'button',class:t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):null,'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
+  var chatT=tabs.filter(function(t){ return t[0]==='chat'; }), rest=navOrder(tabs.filter(function(t){ return t[0]!=='chat'; }));
+  $nav.replaceChildren.apply($nav,chatT.map(function(t){ return {t:t}; }).concat(rest).map(function(x){ if(x.g) return h('div',{class:'navgrp',role:'presentation'},x.g); var t=x.t; return h('button',{type:'button',class:t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):null,'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
 }
 var raf=0;
@@ -8920,7 +8972,7 @@ function staffTabs(row){
 var currentEmail='', authUser=null;
 function switchView(v){
   pref('pk_view',v==='member'?'member':null);
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; NAVL=undefined; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; ui.fightsErr=null; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; allReady=false; TABS=[]; currentUser=null; ui.tab=v==='member'?'c_home':'today';
   enter(authUser);
 }
 
@@ -8954,7 +9006,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
-  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
+  closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; NAVL=undefined; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.remove('lang-my'); document.documentElement.lang='en'; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
