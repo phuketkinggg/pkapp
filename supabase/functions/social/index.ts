@@ -9,6 +9,7 @@
 // POST {mode:'yt_connect'} manager: the Google sign in link to connect a YouTube channel; Google comes back here (GET ?code&state)
 // Secrets: ANTHROPIC_API_KEY (AI captions), META_PAGE_TOKEN (a never-expiring Facebook page token),
 //          GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET (YouTube; the redirect address is this function's own URL)
+//          TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET (TikTok drafts; the redirect address is this function's URL + /tiktok)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
@@ -323,6 +324,74 @@ async function ytCallback(u: URL) {
   return done(channel ? `YouTube connected. Shorts will post to the channel "${channel}".` : "YouTube connected. Shorts will post to your channel.", true);
 }
 
+// ---------- TikTok (to the TikTok inbox as a draft: the owner adds a sound and the caption in TikTok, then posts) ----------
+const TKEY = () => (Deno.env.get("TIKTOK_CLIENT_KEY") ?? "").trim();
+const TSECRET = () => (Deno.env.get("TIKTOK_CLIENT_SECRET") ?? "").trim();
+const TT_BACK = SELF + "/tiktok";
+const TT = "https://open.tiktokapis.com/v2";
+async function ttToken(params: Record<string, string>) {
+  const r = await fetch(TT + "/oauth/token/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache" },
+    body: new URLSearchParams({ client_key: TKEY(), client_secret: TSECRET(), ...params }) });
+  return await r.json().catch(() => ({})) as { access_token?: string; refresh_token?: string; open_id?: string; error?: string; error_description?: string };
+}
+async function ttAccess(): Promise<string> {
+  const { data } = await admin.rpc("tt_get");
+  const t = (data ?? {}) as { refresh?: string; name?: string };
+  if (!t.refresh) throw new Error("TikTok is not connected. Tap Connect TikTok in Social media.");
+  const j = await ttToken({ grant_type: "refresh_token", refresh_token: t.refresh });
+  if (!j.access_token) throw new Error("TikTok did not accept the link (" + (j.error_description || j.error || "no token") + "). Connect TikTok again.");
+  // TikTok can give a new refresh token: keep the newest
+  if (j.refresh_token && j.refresh_token !== t.refresh) await admin.rpc("tt_set", { p: { ...t, refresh: j.refresh_token, at: new Date().toISOString() } });
+  return j.access_token;
+}
+// read the video from storage a piece at a time, so a big video never sits in memory whole
+async function* pieces(body: ReadableStream<Uint8Array>, sizes: number[]) {
+  const rd = body.getReader(); let buf = new Uint8Array(0);
+  for (const n of sizes) {
+    while (buf.length < n) { const { value, done } = await rd.read(); if (done) break; const b = new Uint8Array(buf.length + value.length); b.set(buf); b.set(value, buf.length); buf = b; }
+    yield buf.slice(0, n); buf = buf.slice(n);
+  }
+}
+async function toTikTok(p: Post): Promise<Res> {
+  const m = p.media ?? [];
+  if (m[0]?.type !== "video") return { error: "TikTok needs a video." };
+  const tok = await ttAccess();
+  const vid = await fetch(m[0].url);
+  const size = Number(vid.headers.get("content-length") || 0);
+  if (!vid.ok || !vid.body || !size) return { error: "Could not read the video from storage." };
+  // TikTok's pieces: 5 to 64 MB each, the last one takes the rest; a small video goes in one piece
+  const CH = 10 * 1024 * 1024, chunk = size <= CH ? size : CH, count = Math.max(1, Math.floor(size / chunk));
+  const sizes = Array.from({ length: count }, (_, i) => i < count - 1 ? chunk : size - chunk * (count - 1));
+  const init = await fetch(TT + "/post/publish/inbox/video/init/", { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json; charset=UTF-8" },
+    body: JSON.stringify({ source_info: { source: "FILE_UPLOAD", video_size: size, chunk_size: chunk, total_chunk_count: count } }) });
+  const ij = await init.json().catch(() => ({}));
+  const upUrl = ij?.data?.upload_url, pid = ij?.data?.publish_id;
+  if (!upUrl || !pid) return { error: "TikTok said: " + (ij?.error?.message || ij?.error?.code || init.status) };
+  let at = 0;
+  for await (const part of pieces(vid.body, sizes)) {
+    const up = await fetch(upUrl, { method: "PUT", headers: { "Content-Type": vid.headers.get("content-type") ?? "video/mp4", "Content-Length": String(part.length), "Content-Range": `bytes ${at}-${at + part.length - 1}/${size}` }, body: part });
+    if (!up.ok && up.status !== 206) return { error: "TikTok upload did not finish (" + up.status + ")." };
+    at += part.length;
+  }
+  return { id: pid, url: "https://www.tiktok.com/" };
+}
+async function ttCallback(u: URL) {
+  const raw = u.searchParams.get("state") ?? "", cut = raw.indexOf("~");
+  const state = cut >= 0 ? raw.slice(0, cut) : raw, back = cut >= 0 ? backUrl(b64d(raw.slice(cut + 1))) : "";
+  const done = (msg: string, ok: boolean) => back
+    ? new Response(null, { status: 302, headers: { Location: back + "#tt=" + (ok ? "ok" : "err") + "&m=" + encodeURIComponent(msg) } })
+    : new Response((ok ? "TikTok connected. " : "TikTok not connected. ") + msg + " You can close this tab.", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  if (u.searchParams.get("error")) return done("TikTok said: " + (u.searchParams.get("error_description") || u.searchParams.get("error")), false);
+  const { data: ok } = await admin.rpc("tt_state_ok", { p_s: state });
+  if (ok !== true) return done("The link was too old or was used already. Tap Connect TikTok again.", false);
+  const j = await ttToken({ code: u.searchParams.get("code") ?? "", grant_type: "authorization_code", redirect_uri: TT_BACK });
+  if (!j.access_token || !j.refresh_token) return done("TikTok did not give access (" + (j.error_description || j.error || "no token") + "). Try again and allow every permission asked.", false);
+  let name = "";
+  try { const r = await fetch(TT + "/user/info/?fields=display_name", { headers: { Authorization: `Bearer ${j.access_token}` } }); const uj = await r.json(); name = uj?.data?.user?.display_name ?? ""; } catch { /* the name is a nice-to-have */ }
+  await admin.rpc("tt_set", { p: { refresh: j.refresh_token, open_id: j.open_id ?? "", name, at: new Date().toISOString() } });
+  return done(name ? `TikTok connected: ${name}. Videos go to your TikTok drafts.` : "TikTok connected. Videos go to your TikTok drafts.", true);
+}
+
 async function stats(n: number) {
   if (!PAGE_TOKEN()) return { error: "Facebook and Instagram are not connected yet." };
   const a = await account();
@@ -355,8 +424,8 @@ async function run() {
     const results: Record<string, Res> = { ...(p.results ?? {}) };
     for (const pl of p.platforms) {
       if (results[pl]?.id) continue;
-      if (!a && pl !== "youtube") { results[pl] = { error: aErr }; continue; }
-      try { results[pl] = pl === "facebook" ? await toFacebook(p, a!) : pl === "youtube" ? await toYouTube(p) : await toInstagram(p, a!, results[pl]); }
+      if (!a && pl !== "youtube" && pl !== "tiktok") { results[pl] = { error: aErr }; continue; }
+      try { results[pl] = pl === "facebook" ? await toFacebook(p, a!) : pl === "youtube" ? await toYouTube(p) : pl === "tiktok" ? await toTikTok(p) : await toInstagram(p, a!, results[pl]); }
       catch (e) { results[pl] = { ...(results[pl]?.container ? { container: results[pl].container } : {}), error: (e as Error).message }; }
     }
     const vals = p.platforms.map((pl) => results[pl] ?? {});
@@ -371,7 +440,7 @@ async function run() {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method === "GET") { const u = new URL(req.url); if (u.searchParams.has("state")) return await ytCallback(u); }
+  if (req.method === "GET") { const u = new URL(req.url); if (u.pathname.endsWith("/tiktok")) return await ttCallback(u); if (u.searchParams.has("state")) return await ytCallback(u); }
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   const b = await req.json().catch(() => ({}));
   try {
@@ -404,9 +473,19 @@ Deno.serve(async (req) => {
         scope: "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly" });
       return json({ url: "https://accounts.google.com/o/oauth2/v2/auth?" + q });
     }
+    if (b.mode === "tt_connect") {
+      if (!TKEY() || !TSECRET()) return json({ error: "TikTok is not set up yet: TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET are missing in Supabase, Edge Functions, Secrets." });
+      const user = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("authorization") ?? "" } }, auth: { persistSession: false } });
+      const { data: st, error } = await user.rpc("tt_state_new");
+      if (error || !st) return json({ error: error?.message ?? "Could not start." });
+      const q = new URLSearchParams({ client_key: TKEY(), redirect_uri: TT_BACK, response_type: "code", scope: "user.info.basic,video.upload", state: String(st) + (backUrl(b.back) ? "~" + b64e(backUrl(b.back)) : "") });
+      return json({ url: "https://www.tiktok.com/v2/auth/authorize/?" + q });
+    }
     if (b.mode === "check") {
       const yt = ((await admin.rpc("yt_get")).data ?? {}) as { refresh?: string; channel?: string };
       const out: Record<string, unknown> = { ai: !!AI_KEY(), meta: false, youtube_ready: !!(GID() && GSECRET()), youtube: yt.refresh ? (yt.channel || "connected") : null };
+      const tt = ((await admin.rpc("tt_get")).data ?? {}) as { refresh?: string; name?: string };
+      out.tiktok_ready = !!(TKEY() && TSECRET()); out.tiktok = tt.refresh ? (tt.name || "connected") : null;
       if (PAGE_TOKEN()) {
         try { const a = await account(); out.meta = true; out.page = a.name; out.instagram = a.ig_name; out.place = a.place_name; }
         catch (e) { out.meta_error = (e as Error).message; }

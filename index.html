@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=24"></script>
+<script src="changelog.js?v=25"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -808,6 +808,7 @@ var FEATURES=[
   {k:'reel_covers',g:'Marketing',n:'Reel covers',d:'Choose the cover of a reel: pick a frame, upload a picture, or let the AI suggest covers with a short headline drawn in your colours.'},
   {k:'social_tags',g:'Marketing',n:'Location and collab tags',d:'Instagram posts from the app are tagged at your business location, and you can add up to 3 collaborators (a coach, a guest, a partner) so the post shows on their profile too.'},
   {k:'social_stories',g:'Marketing',n:'Stories',d:'Send Instagram and Facebook stories from Social media: one photo or one video that shows for 24 hours, at the time you choose.'},
+  {k:'tiktok',g:'Marketing',n:'TikTok',d:'Reels can also go to your TikTok account as a draft. Open TikTok, add a sound and the caption, and post.'},
   {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
@@ -4644,7 +4645,11 @@ function socTimeEdit(){ openForm({title:'Posting time',note:'New posts are set t
   fields:[{key:'t',label:'Time',type:'time',required:true}],
   onSave:function(v){ if(!/^\d\d:\d\d$/.test(v.t||'')) return 'Choose a time.'; return sb.from('app_settings').update({value:v.t,updated_at:new Date().toISOString()}).eq('key','social_time').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; SOCTIME=v.t; schedule(); }); }}); }
 function socDefaultTime(){ var t=socTime(), d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.toISOString().slice(11,16)>=t){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T'+t; }
-var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts'};
+var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts',tiktok:'TikTok draft'};
+function ttOn(){ return featOn('tiktok'); }
+function ttConnect(){ socCall({mode:'tt_connect',back:location.origin+location.pathname}).then(function(d){ if(d&&d.url){ toast('Opening TikTok. Sign in with your business TikTok account.'); location.href=d.url; } })
+  .catch(function(e){ toast(errText(e)); }); }
+function ttDisconnect(){ if(!confirm('Disconnect TikTok? Videos stop going to TikTok until you connect again.')) return; run(sb.rpc('tt_disconnect').then(must).then(socCheck),'TikTok disconnected.'); }
 function ytOn(){ return featOn('youtube_shorts'); }
 function ytConnect(){ socCall({mode:'yt_connect',back:location.origin+location.pathname}).then(function(d){ if(d&&d.url){ toast('Opening Google. Sign in with the account that owns your YouTube channel.'); location.href=d.url; } })
   .catch(function(e){ toast(errText(e)); }); }
@@ -4657,14 +4662,15 @@ function vSocial(){
   var c=SOC.cfg, conn=!c?'Checking the connection.':c.err?c.err:[
     c.meta?'Facebook page: '+c.page+'. Instagram: '+(c.instagram?'@'+c.instagram:'not linked to the page')+'.':(c.meta_error?'Facebook did not accept the page token: '+c.meta_error:'Facebook and Instagram are not connected yet.'),
     c.ai?'':' The AI writer is not set up yet.',
-    ytOn()?(c.youtube?' YouTube: '+c.youtube+'.':' YouTube is not connected.'):''].join('');
+    ytOn()?(c.youtube?' YouTube: '+c.youtube+'.':' YouTube is not connected.'):'',
+    ttOn()?(c.tiktok?' TikTok: '+c.tiktok+' (videos go to your TikTok drafts).':' TikTok is not connected.'):''].join('');
   function rows(list,empty){ return table([{label:'',cell:function(p){ return h('span',{class:'socmini'},socThumb((p.media||[])[0])); }},
       {label:'Post',cell:function(p){ return linkBtn(socFirst(p),function(){ socEdit(p); }); }},
       {label:'Where',cell:function(p){ return h('span',null,(p.platforms||[]).map(function(x){ return SOC_PL[x]||x; }).join(', '),p.kind==='reel'||p.kind==='trial'||p.kind==='story'?h('div',{class:'sub'},p.kind==='trial'?'Trial reel':p.kind==='story'?'Story':'Reel'):null); }},
       {label:'',cell:function(p){ return socStatus(p); }}],list,empty); }
   var L=SOC.list, up=L.filter(function(p){ return p.status==='scheduled'||p.status==='posting'; }).sort(function(a,b){ return Date.parse(a.post_at)-Date.parse(b.post_at); });
   if(SOCTIME===null){ SOCTIME=''; loadSocTime().then(schedule); }
-  return [pageHead('Social media',conn,h('div',{class:'row'},btn('Posting time, '+socTime(),socTimeEdit,'small'),ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
+  return [pageHead('Social media',conn,h('div',{class:'row'},btn('Posting time, '+socTime(),socTimeEdit,'small'),ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,ttOn()&&c&&!c.err?(c.tiktok?btn('Disconnect TikTok',ttDisconnect,'small'):btn('Connect TikTok',ttConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
     section('Coming up',null,rows(up,'Nothing approved yet. Approved posts go out on their own at the time you set.')),
     section('Drafts',null,rows(L.filter(function(p){ return p.status==='draft'; }),'No drafts.')),
     section('Posted',null,rows(L.filter(function(p){ return p.status==='posted'||p.status==='failed'; }).slice(0,40),'Nothing posted from the app yet.')),
@@ -4766,7 +4772,7 @@ function socEdit(p0){
           : socFitPhoto(f,kind==='story').then(function(b){ return socUp(b,'jpg','image/jpeg',prog); }).then(function(u){ media.push({url:u,type:'image'}); });
         return job.catch(function(e){ bad(errText(e)); }).then(function(){ busy--; pend=pend.filter(function(x){ return x!==q; }); try{ URL.revokeObjectURL(q.local); }catch(e){} drawMedia(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
-  var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
+  var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[],ttOn()?['tiktok']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
   /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
   var capWrap=null, tagBox=null;
   var kind=p.kind||((media[0]&&media[0].type==='video')?'reel':'post'), trial=p.trial_strategy==='SS_PERFORMANCE'?'SS_PERFORMANCE':'MANUAL', fbWas=null;
@@ -4780,12 +4786,13 @@ function socEdit(p0){
         var r=h('input',{type:'radio',name:'soc-trial',value:o[0],id:'soc-tr-'+o[0]}); r.checked=trial===o[0]; r.disabled=locked; r.addEventListener('change',function(){ if(r.checked) trial=o[0]; });
         return h('label',{class:'check',for:r.id},r,h('span',null,o[1])); })),
       h('small',null,'Trial reels need a public professional Instagram account, and Instagram turns the feature on account by account.'));
-    var fb=pls[0], ig=pls[1], yt=pls[2];
+    var fb=pls[0], ig=pls[1], yt=pls.filter(function(x){ return x.value==='youtube'; })[0], tt=pls.filter(function(x){ return x.value==='tiktok'; })[0];
     if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
     else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
     /* YouTube Shorts: reels and trial reels only (a video) */
     if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(coverBox) drawCover(); if(storyBox) drawStory(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
     if(yt){ var vidOk=kind==='reel'||kind==='trial'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels and trial reels.'; }
+    if(tt){ var vOk=kind==='reel'||kind==='trial'; if(!vOk) tt.checked=false; tt.disabled=locked||!vOk; var tl=tt.parentNode; if(tl) tl.title=vOk?'':'TikTok is for reels (a video).'; }
   }
   function setKind(k){ kind=k; drawKind(); }
   drawKind();
@@ -9110,8 +9117,8 @@ function enter(user){
 
 var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
 /* back from connecting YouTube: open Social media and say how it went */
-(function(){ var m=start.match(/^yt=(ok|err)&m=(.*)$/); if(!m) return; var msg=''; try{ msg=decodeURIComponent(m[2]); }catch(e){} ui.tab='social'; try{ history.replaceState(null,'',location.pathname+'#social'); }catch(e){}
-  setTimeout(function(){ toast(msg||(m[1]==='ok'?'YouTube connected.':'YouTube did not connect.')); },800); })();
+(function(){ var m=start.match(/^(yt|tt)=(ok|err)&m=(.*)$/); if(!m) return; var msg='', nm=m[1]==='tt'?'TikTok':'YouTube'; try{ msg=decodeURIComponent(m[3]); }catch(e){} ui.tab='social'; try{ history.replaceState(null,'',location.pathname+'#social'); }catch(e){}
+  setTimeout(function(){ toast(msg||(m[2]==='ok'?nm+' connected.':nm+' did not connect.')); },800); })();
 (function(){ var m=start.match(/^chat=([0-9a-f-]{36})$/); if(m){ ui.tab='chat'; ui.openChatId=m[1]; try{ history.replaceState(null,'',location.pathname+'#chat'); }catch(e){} } })();
 if(!window.supabase||!window.supabase.createClient){
   noDb('The app could not load fully. Check your connection and reload the page.');
