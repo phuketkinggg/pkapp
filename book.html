@@ -117,7 +117,7 @@ dialog.lb::backdrop{background:rgba(0,0,0,.9)}
 .lb .x{top:10px;right:12px}.lb .pv{left:10px;bottom:12px}.lb .nx{right:10px;bottom:12px}
 @media (prefers-reduced-motion:reduce){.gallery img{transition:none}}
 footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);font-size:14px}
-.agree{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45}.agree input{width:20px;height:20px;flex:none;margin-top:1px}
+.agree{font-size:13px;margin-top:8px}
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Resort","name":"Pangea Resort","url":"https://www.phuketking.com/book","image":"https://www.phuketking.com/img/resort-aerial.jpg","description":"Eleven air conditioned lakeside bungalows next to Phuket King Muay Thai in Kathu, Phuket, with Pangea Cafe and a recovery area on site.","telephone":"+66615155947","email":"hello@phuketking.com","priceRange":"\u0e3f\u0e3f","numberOfRooms":11,"address":{"@type":"PostalAddress","addressLocality":"Kathu","addressRegion":"Phuket","postalCode":"83120","addressCountry":"TH"},"amenityFeature":[{"@type":"LocationFeatureSpecification","name":"Air conditioning","value":true},{"@type":"LocationFeatureSpecification","name":"Lake view","value":true},{"@type":"LocationFeatureSpecification","name":"Cafe on site","value":true},{"@type":"LocationFeatureSpecification","name":"Muay Thai gym on site","value":true},{"@type":"LocationFeatureSpecification","name":"Sauna","value":true},{"@type":"LocationFeatureSpecification","name":"Ice bath","value":true}],"containedInPlace":{"@type":"SportsActivityLocation","name":"Phuket King Muay Thai","url":"https://www.phuketking.com/"}}</script>
 </head>
@@ -179,9 +179,9 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
         <label class="pw"><input type="radio" name="pw" value="card"><span><b>Card</b><small>Visa, Mastercard and more, on the secure Stripe page.</small></span></label>
       </fieldset>
       <p class="sub wide" id="paynote">You pay the whole stay now. Your room is held for 30 minutes while you pay.</p>
-      <label class="wide agree"><input type="checkbox" id="g-agree"> <span>I agree to the <a href="pk/page.html?p=stay-cancellation-policy" target="_blank" rel="noopener">payment and cancellation policy</a>. Where possible we give credit for a future stay instead of a refund.</span></label>
       <p class="err wide" id="gerr" role="alert" hidden></p>
       <div class="wide"><button class="btn primary" type="submit" id="pay">Pay by card</button></div>
+      <p class="sub wide agree">By paying you agree to our <a href="pk/page.html?p=stay-cancellation-policy" target="_blank" rel="noopener">payment and cancellation policy</a>.</p>
     </form>
   </section>
 
@@ -412,7 +412,6 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   var name=$('g-name').value.trim(), email=$('g-email').value.trim();
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
-  if(!$('g-agree').checked){ err.textContent='Tick that you agree to the payment and cancellation policy.'; err.hidden=false; $('g-agree').focus(); return; }
   T('stay_pay',payWith());
   b.disabled=true; b.textContent=payWith()==='pp'?'Making your QR':'Opening the card payment';
   call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
