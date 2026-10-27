@@ -25,3 +25,11 @@ begin
   if s not like '%mb_cost(m) as cost%' or s not like '%created_by, cost_thb)%' or s not like '%it.cost * it.qty%' then raise notice 'hk_minibar is a different version here: skipped.'; return; end if;
   execute s;
 end $$;
+
+-- or pick the same item in the shop, when the names differ (Chang in the mini bar, Chang beer 320ml in the shop)
+alter table public.minibar_items add column if not exists shop_product_id uuid references public.shop_products(id) on delete set null;
+create or replace function private.mb_cost(m public.minibar_items) returns integer language sql stable security definer set search_path to '' as $$
+  select coalesce(m.cost_thb,
+    (select p.cost_thb from public.shop_products p where p.id = m.shop_product_id),
+    (select p.cost_thb from public.shop_products p where lower(btrim(p.name)) = lower(btrim(m.name)) and p.cost_thb is not null order by p.cost_thb limit 1))
+$$;
