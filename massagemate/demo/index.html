@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=41"></script>
+<script src="changelog.js?v=42"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -879,7 +879,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=3; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=4; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7790,13 +7790,33 @@ function posterSection(){
         h('div',{class:'ganote'},'Sign in once inside the app. Next time, open the app and tap Scan to check in.',h('span',{class:'th'},'ลงชื่อเข้าใช้ในแอปหนึ่งครั้ง ครั้งต่อไปเปิดแอปแล้วแตะ สแกนเพื่อเช็คอิน')))),
     h('p',{class:'sub noprint'},'Put this at the front desk. Customers scan it, sign in once, and tap their class. The check in shows on Today like any other. Someone with a photo of the code could check in from outside, so if you see that, make a new code and reprint.'));
 }
+/* mini bar: the price the guest pays and what it costs you, so the profit shows. Empty cost = the cost of the same item in the shop */
+var MBC=null;
+function mbCosts(){ if(MBC===null){ MBC={}; sb.rpc('minibar_costs').then(function(r){ MBC=(r&&r.data)||{}; schedule(); },function(){}); } return MBC; }
 function editMinibar(m){ m=m||{};
-  openForm({title:m.id?'Edit mini bar item':'New mini bar item',values:m,fields:[
+  if(typeof SHOP!=='undefined'&&(!SHOP||!SHOP.products)&&!ui.shopBusy&&typeof loadShop==='function'){ loadShop().then(function(){ editMinibar(m.id?m:null); },function(){ editMinibar(m.id?m:null); }); return; }
+  var prods=(typeof SHOP!=='undefined'&&SHOP&&SHOP.products||[]).slice().sort(function(a,b){ return String(a.name).localeCompare(b.name); });
+  openForm({title:m.id?'Edit mini bar item':'New mini bar item',values:Object.assign({},m,{shop_product_id:m.shop_product_id||''}),fields:[
     {key:'name',label:'Item',required:true,hint:'For example: Coke, Chang beer, water.'},
     {key:'price_thb',label:'Price the guest pays (THB)',type:'number',required:true},
+    {key:'cost_thb',label:'What it costs you (THB, optional)',type:'number',hint:'What you pay for one. Leave empty if it is the same as in the shop.'},
+    prods.length?{key:'shop_product_id',label:'Same item in the shop (optional)',type:'select',options:[['','Not in the shop, or the same name']].concat(prods.map(function(p){ return [p.id,p.name+(p.cost!=null?', costs '+thb(p.cost):', no cost set')]; })),hint:'With no cost above, the shop cost of this item is used. Without either, an item with the same name in the shop is used.'}:null,
     {key:'sort',label:'Order in the list',type:'number',def:S.minibar.length+1},
-    {key:'active',label:'In the mini bar',type:'checkbox',def:true}],
-    onSave:function(v){ return save('minibar',m.id,Object.assign({},m,v)); }});
+    {key:'active',label:'In the mini bar',type:'checkbox',def:true}].filter(Boolean),
+    onSave:function(v){ if(v.cost_thb!=null&&v.cost_thb<0) return 'The cost can not be below 0.'; v.shop_product_id=v.shop_product_id||null; return save('minibar',m.id,Object.assign({},m,v)).then(function(r){ MBC=null; return r; }); }});
+}
+function mbCostOf(m){ var c=mbCosts()[m.id]; return m.cost_thb!=null?m.cost_thb:c&&c.cost!=null?c.cost:null; }
+function mbSection(){ var mon=ymd(new Date()).slice(0,7), ch=(S.charges||[]).filter(function(c){ return c.kind==='minibar'&&!c.voided&&String(c.day||c.created_at||'').slice(0,7)===mon; });
+  var sales=ch.reduce(function(a,c){ return a+(c.amount_thb||0); },0), known=ch.filter(function(c){ return c.cost_thb!=null; }), cost=known.reduce(function(a,c){ return a+c.cost_thb; },0), ksales=known.reduce(function(a,c){ return a+(c.amount_thb||0); },0);
+  return section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),h('div',null,
+    ch.length?h('div',{class:'panel pad'},h('b',null,'This month: sold '+thb(sales)+(known.length?', cost '+thb(cost)+', profit '+thb(ksales-cost):'')),known.length<ch.length?h('p',{class:'sub'},(ch.length-known.length)+' sale'+(ch.length-known.length===1?'':'s')+' had no cost yet, so they are left out of the profit.'):null):null,
+    table([
+      {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
+      {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
+      {label:'Cost',num:true,cell:function(m){ var c=mbCostOf(m), f=m.cost_thb==null&&c!=null; return c==null?h('span',{class:'sub'},'Not set'):h('span',null,thb(c),f?h('small',{class:'sub'},' (shop)'):null); }},
+      {label:'Profit',num:true,cell:function(m){ var c=mbCostOf(m); if(c==null||!m.price_thb) return ''; var p=m.price_thb-c; return h('span',{class:p<0?'bad':''},thb(p)+' ('+Math.round(p*100/m.price_thb)+'%)'); }},
+      {label:'In the mini bar',cell:function(m){ return m.active===false?chip('No'):chip('Yes','ok'); }}],
+      S.minibar.slice().sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(b.name); }),'No items yet. Add what you stock, with the price the guest pays and what it costs you.')));
 }
 var OTAS=['Booking.com','Airbnb','Agoda','Expedia','Other'];
 function icalUrl(r){ return r&&r.ical_token?SB_URL+'/functions/v1/ical?r='+r.id+'&t='+r.ical_token:''; }
@@ -8029,11 +8049,7 @@ function vSettings(){
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
       {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
       {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
-    section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
-      {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
-      {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
-      {label:'In the mini bar',cell:function(m){ return m.active===false?chip('No'):chip('Yes','ok'); }}],
-      S.minibar.slice().sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(b.name); }),'No items yet. Add what you stock, with the price the guest pays.')),
+    mbSection(),
     stayOfferSection(),
     ratesSettings(),
     extrasSettings(),
@@ -8155,7 +8171,7 @@ var MAP={
   rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked','affiliate_id']},
   charges:{t:'room_charges',r:{},w:['stay_id','day','description','amount_thb','kind']},
-  minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort']}
+  minibar:{t:'minibar_items',r:{},w:['name','price_thb','active','sort','cost_thb','shop_product_id']}
 };
 function must(res){
   if(res.error){ var e=res.error, m=e.message||'Something went wrong.';
