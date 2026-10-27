@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=44"></script>
+<script src="changelog.js?v=45"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -879,7 +879,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=6; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=7; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4914,6 +4914,11 @@ function invView(i){
     else main.push(btn('Payment received',function(){ invPaid(i,true); },'primary')); }
   else if(i.status==='deposit_paid') main=[undo,btn('Balance received',function(){ invPaid(i,true); },'primary')];
   else if(paid) main=[undo];
+  if(me&&me.role==='manager') main.unshift(btn('Change number',function(){ close();
+    openForm({title:'Change the invoice number',note:'Now '+invNo(i)+'. Type the number only, the start ('+(INVDOC.tplOf(IVC.tpl,i.business).prefix||'none')+') is added for you.',values:{number:i.number},
+      fields:[{key:'number',label:'Invoice number',type:'number',required:true,hint:'Must not be used by another invoice.'}],saveLabel:'Change it',doneMsg:'Number changed.',
+      onSave:function(v){ var n=Math.round(Number(v.number)); if(!(n>=1)) return 'Type a whole number, like 1052.';
+        return sb.rpc('invoice_set_number',{p_id:i.id,p_number:n}).then(must).then(function(r){ IVC.list=null; invLoad(); setTimeout(function(){ invView(r); },400); }); }}); },'small'));
   var views=[['invoice','Invoice']]; if(depPaid) views.push(['deposit','Deposit receipt']); if(paid) views.push(['receipt','Receipt']);
   var line=who+', '+thb(i.total)+(hasDep?'. Deposit '+thb(i.deposit)+(depPaid?' paid '+fmtDate(i.deposit_paid_on)+' by '+(INVDOC.METHOD[i.deposit_method]||i.deposit_method):' due now')+', balance '+thb(Number(i.total)-Number(i.deposit))+(paid?' paid '+fmtDate(i.paid_on):' by '+fmtDate(i.balance_due)):'')+(paid?'. Paid by '+(INVDOC.METHOD[i.paid_method]||i.paid_method):'')+'.';
   $dlg.replaceChildren(h('div',{class:'billbox invview'},h('h2',null,(paid?'Receipt '+invNo(i,true):'Invoice '+invNo(i))),
