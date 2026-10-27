@@ -357,7 +357,7 @@ Deno.serve(async (req) => {
         if (plan) { const { error: de } = await admin.from("stays").update({ web_pay_now_thb: plan.now }).eq("id", stayId); if (de) throw new Error(de.message); }
         if (pp) return json({ pp: acc, stay_id: stayId, total: payNow, all: total, deposit: !!plan, what: `${plan ? "Deposit: " : ""}${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}` });
         const lines = plan
-          ? [{ name: `Deposit: ${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}. Stay total ${total.toLocaleString("en-US")} THB, ${plan.rest.toLocaleString("en-US")} THB left to pay${plan.monthly ? " month by month" : " by " + plan.due}`, amount: plan.now }]
+          ? [{ name: `Deposit: ${STAY}, ${rm?.name ?? "room"}, ${from} to ${to} (rest ${plan.rest.toLocaleString("en-US")} THB${plan.monthly ? " monthly" : " by " + plan.due})`, amount: plan.now }]
           : [{ name: `${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}${rp.monthly ? ", monthly price" : q.total < full ? `, book direct ${O.pct}% off` : ""}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
         const url = await stripeSession(lines, payNow, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
         return json({ url, stay_id: stayId, total: payNow, all: total, deposit: !!plan });
