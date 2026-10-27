@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=43"></script>
+<script src="changelog.js?v=44"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -799,7 +799,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['courses','Education'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['emails','Emails'],['courses','Education'],['coaching','Coaching'],['settings','Settings']];
 var TABS=[];
 /* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
    def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
@@ -823,6 +823,7 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
+  {k:'email_log',g:'Messages',n:'Emails page',d:'One page with every email the app sends: emails written in the app, invoices and receipts, welcome emails, action group emails and outreach, with what was sent, what is waiting and what failed. Write a new email from here too.',tabs:['emails']},
   {k:'custview',g:'Customers',n:'Customer view',d:'Managers pick any customer and see their app exactly as they see it: home, packages, courses and coaching. View only.',tabs:['custview']},
   {k:'coach_choose',g:'Training',n:'Coaching chosen per customer',d:'Coaching is only for the customers you turn it on for, and you choose which parts each gets: steps and habits, workouts, food diary, weight. Set it on the customer, Coaching options. Off: everyone has all of it.'},
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
@@ -878,7 +879,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=5; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=6; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4066,6 +4067,33 @@ function coachParts(c){
           if(v.setdef) return sb.rpc('coaching_default_set',{p_parts:v.parts}).then(must); }); }});
   });
 }
+/* Emails: everything the app sends, in one list. Replies are not here: they go to the business inbox */
+var EML={list:null,busy:false,f:'all',q:''};
+function emlLoad(){ EML.busy=true; return sb.rpc('email_log',{p_filter:EML.f,p_q:EML.q.trim()||null,p_limit:300}).then(must).then(function(d){ EML.list=d||[]; EML.busy=false; EML.err=null; schedule(); }).catch(function(e){ EML.busy=false; EML.err=errText(e); EML.list=EML.list||[]; schedule(); }); }
+function emlChip(x){ var st=x.status; return st==='sent'?chip('Sent','ok'):st==='queued'?chip('Waiting to send','warn'):st==='draft'?chip('Draft'):st==='stopped'?chip('Not sent'):chip('Failed','bad'); }
+function emlWhen(x){ return x.at?new Date(x.at).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
+function emlOpen(x){
+  var can=x.src==='mail'&&(x.status==='draft'||x.status==='failed');
+  openForm({title:x.subject||x.kind,note:[x.kind,(x.status==='queued'?'Sends ':'')+emlWhen(x),x.by?'By '+x.by:null].filter(Boolean).join(' · '),values:{},fields:[{key:'info',label:'',type:'info'}],
+    saveLabel:can?(x.status==='failed'?'Try again':'Open and send'):'Close',doneMsg:can?' ':'',
+    onSave:function(){ if(can) setTimeout(function(){ emailOne({id:x.customer_id||null,email:x.to},{id:x.id,to:x.to,subject:x.subject,body:x.body}); },50); return Promise.resolve(); }});
+  var el=document.getElementById('f-info'); if(el) el.replaceChildren.apply(el,[
+    h('p',null,h('b',null,'To: '),h('span',{class:'notr'},(x.name?x.name+', ':'')+(x.to||''))),emlChip(x),
+    x.error?h('p',{class:'err'},x.error):null,
+    x.body?h('div',{class:'panel pad notr',style:'white-space:pre-wrap;margin-top:10px'},x.body):h('p',{class:'sub'},'This email is made by the app from your settings, so there is no copy of the text here.')].filter(Boolean));
+}
+function vEmails(){
+  if(!EML.list&&!EML.busy) emlLoad();
+  var list=EML.list||[], cnt={};
+  var bar=h('div',{class:'ctabs'},[['all','All'],['sent','Sent'],['waiting','Waiting'],['failed','Failed']].map(function(t){ return h('button',{type:'button',class:'ctab'+(EML.f===t[0]?' on':''),onclick:function(){ EML.f=t[0]; EML.list=null; schedule(); }},t[1]); }));
+  var qbox=h('input',{id:'eml-q',type:'search',placeholder:'Search name, email or subject','aria-label':'Search emails',value:EML.q,oninput:function(e){ EML.q=e.target.value; clearTimeout(EML.t); EML.t=setTimeout(function(){ EML.list=null; schedule(); },400); }});
+  return [pageHead('Emails','Every email the app sends: ones you write, invoices, welcome emails, action group emails and outreach. Replies go to your normal inbox ('+(window.BIZ_EMAIL||'hello@phuketking.com')+').',btn('New email',function(){ emailOne({id:null,email:''},{}); },'primary')),
+    bar,h('div',{class:'panel pad'},qbox),
+    EML.err?h('div',{class:'panel empty'},EML.err):!EML.list?h('div',{class:'panel empty'},'Loading.'):
+    list.length?h('div',{class:'panel'},list.map(function(x){ return h('button',{type:'button',class:'lrow',onclick:function(){ emlOpen(x); }},
+      h('span',{class:'lt'},h('b',{class:'notr'},x.subject||x.kind),h('small',{class:'sub notr'},[(x.name||x.to||''),x.name&&x.to?x.to:null].filter(Boolean).join(', ')),h('small',{class:'sub'},x.kind+' · '+emlWhen(x))),emlChip(x)); })):
+    h('div',{class:'panel empty'},'No emails here.')];
+}
 /* owner: pick any customer and see their app as they see it */
 var CVQ='';
 function custPick(){ ui.tab='custview'; if(PV) exitCustomerView(); ui.tab='custview'; schedule(); window.scrollTo(0,0); setTimeout(function(){ var e=document.getElementById('cv-q'); if(e) e.focus(); },60); }
@@ -4876,7 +4904,9 @@ function invView(i){
   if(depPaid) acts.push(btn('Print or PDF: deposit receipt',function(){ invPrint(i,'deposit'); },'small'));
   if(paid) acts.push(btn('Print or PDF: receipt',function(){ invPrint(i,'receipt'); },'small'));
   acts.push(btn('Copy link',function(){ copyText(link,'Link copied. The customer can see, pay and print it.'); },'small'));
-  if(i.to_email) acts.push(btn('Email',function(){ location.href='mailto:'+i.to_email+'?subject='+encodeURIComponent(paid?'Receipt '+invNo(i,true):depPaid?'Deposit receipt '+invNo(i,'deposit'):'Invoice '+invNo(i))+'&body='+encodeURIComponent(msg); },'small'));
+  /* sent from the app (from your business email, replies come back to your inbox); shows in Emails */
+  acts.push(btn(i.to_email?'Email it':'Email it (add their email)',function(){ var subj=paid?'Receipt '+invNo(i,true):depPaid?'Deposit receipt '+invNo(i,'deposit'):'Invoice '+invNo(i);
+    emailOne({id:i.customer_id||null,email:i.to_email||''},{to:i.to_email||'',subject:subj+(BIZ_MAIN?', '+BIZ_MAIN:''),body:msg.replace(/: (https:\S+)$/,'.\n\nSee it, pay and print it here:\n$1')+'\n\nThank you,\n'+BIZ_MAIN}); },'small'));
   if(ph.length>=8) acts.push(btn('WhatsApp',function(){ window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener'); },'small'));
   var main=[], undo=btn('Mark not paid',function(){ if(!confirm('Mark it not paid? The receipts and the money in Accounts are taken off.')) return; sb.rpc('invoice_unpaid',{p_id:i.id}).then(must).then(reload,function(e){ toast(errText(e)); }); },'small');
   if(i.status==='unpaid'){ main=[btn('Edit',function(){ close(); invEdit(i); },'small'),btn('Cancel invoice',function(){ if(!confirm('Cancel invoice '+invNo(i)+'?')) return; sb.rpc('invoice_cancel',{p_id:i.id}).then(must).then(reload,function(e){ toast(errText(e)); }); },'small')];
@@ -7447,7 +7477,7 @@ function emailOne(c,draft){ draft=draft||{};
       return sb.rpc('email_one_save',{p:{id:draft.id||null,customer_id:c.id,to:to,subject:v.subject,body:v.body}}).then(must).then(function(id){
         draft.id=id; if(v.later){ toast('Draft saved.'); return; }
         return emailOneSend(id).then(function(){ toast('Email sent to '+to+'.'); }); })
-      .then(function(){ emailOneLoad(c.id); },function(e){ emailOneLoad(c.id); throw e; }); }}); }
+      .then(function(){ EML.list=null; if(c.id) emailOneLoad(c.id); },function(e){ EML.list=null; if(c.id) emailOneLoad(c.id); throw e; }); }}); }
 function emailOneSection(c){ var E=EMO[c.id]; if(!E){ emailOneLoad(c.id); return null; } if(!E.list||!E.list.length) return null;
   return section('Emails',null,table([{label:'When',cell:function(x){ return fmtDate(String(x.at).slice(0,10)); }},{label:'Subject',cell:function(x){ return h('span',null,x.subject||'(no subject)',h('div',{class:'sub'},'To '+x.to+(x.by?', by '+x.by:''))); }},
     {label:'',cell:function(x){ return x.status==='sent'?chip('Sent','ok'):x.status==='failed'?h('span',{class:'row'},chip('Not sent','warn'),btn('Try again',function(){ emailOne(c,x); },'small')):x.status==='sending'?chip('Sending'):h('span',{class:'row'},chip('Draft'),btn('Open',function(){ emailOne(c,x); },'small primary'),btn('Remove',function(){ sb.rpc('email_one_drop',{p_id:x.id}).then(must).then(function(){ emailOneLoad(c.id); }).catch(function(e){ toast(errText(e)); }); },'small')); }}],E.list,'')); }
@@ -8063,7 +8093,7 @@ function vSettings(){
   else body=[cleanupSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
-var VIEWS={custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 /* Messages: a floating button on phones, and the first item in the menu on computers, with the unread count */
 var $fab=null;

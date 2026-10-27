@@ -1,6 +1,8 @@
 -- Emails page: every email the app has sent or will send, in one list (manager only).
 -- Written emails and invoices (sent_emails, including outreach waiting to go), stay welcome emails (stay_emails)
 -- and action group step emails (group_email_log). Replies are not here: they go to the business inbox.
+create table if not exists public.sent_emails (id uuid primary key default gen_random_uuid(), customer_id uuid references public.customers(id) on delete set null, to_email text not null, subject text not null default '', body text not null default '', status text not null default 'draft', error text, resend_id text, by_staff uuid, created_at timestamptz not null default now(), sent_at timestamptz, to_name text, campaign text, send_after timestamptz);
+alter table public.sent_emails enable row level security;
 create or replace function public.email_log(p_filter text default 'all', p_q text default null, p_limit int default 200)
 returns jsonb language plpgsql stable security definer set search_path to '' as $$
 declare q text := lower(btrim(coalesce(p_q,'')));
