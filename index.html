@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=39"></script>
+<script src="changelog.js?v=40"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -633,6 +633,7 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .cmnone b{font-size:18px}
 .navlang{margin:10px 8px 4px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:14px;max-width:140px}
 .lang-th #view{line-height:1.6}.lang-th h1,.lang-my h1{text-transform:none;letter-spacing:0}
+.settabs{flex-wrap:wrap;margin-bottom:10px}.settabs .ctab{white-space:nowrap}
 .crseye{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .crshead{margin:6px 0 14px}.crshead h1{margin:2px 0 10px;font-size:26px;line-height:1.15}
 .crsbar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin-bottom:6px}.crsbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
@@ -876,7 +877,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=1; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=2; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7916,7 +7917,7 @@ function whatsNewSection(){
 function clNotice(){
   if(!me||me.role!=='manager'||ui.tab==='settings'||ui.tab==='kiosk'||ui.clHide||document.body.classList.contains('kiosk')) return null; var n=clUnseen(); if(!n.length) return null;
   return h('div',{class:'pvbar clbar',role:'status'},h('span',null,h('b',null,'New in the app: '),n[0].title+(n.length>1?' and '+(n.length-1)+' more':'')),
-    h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; schedule(); },'small')));
+    h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; SETT.tab='general'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; schedule(); },'small')));
 }
 /* ---------- Clean up (AI package): scan, see the report, tick what to fix, apply ---------- */
 var CLN=null;
@@ -7989,47 +7990,43 @@ function navEdit(){
     box,err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',save,'primary')))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
+/* Settings in tabs: one place for each kind of setting instead of one long page. The tab is remembered on this device */
+var SETT={tab:pref('pk_settab')||'general'};
+function setTabs(){ var mgr=me.role==='manager';
+  return [['general','General'],['menu','Menu'],['features','Features'],mgr?['look','Look']:null,mgr?['money','Money']:null,mgr?['messages','Messages']:null,
+    ['website','Website'],featOn('stays')?['rooms','Rooms and stays']:null,featOn('privates')?['privates','Privates']:null].filter(Boolean); }
 function vSettings(){
-  return [pageHead('Settings'),
-    cleanupSection(),
-    navSection(),
-    h('div',{id:'whatsnew'},whatsNewSection()),
-    featuresSection(),
-    me.role==='manager'&&(featOn('lang_th')||featOn('lang_my'))?langSection():null,
-    backupSection(),
-    posterSection(),
-    me.role==='manager'?ppSettings():null,
-    me.role==='manager'?pxSettings():null,
-    me.role==='manager'?welcomeSection():null,
-    me.role==='manager'?reviewSection():null,
-    me.role==='manager'?renewSection():null,
-    me.role==='manager'?themeSection():null,
-    me.role==='manager'?aiUsageSection():null,
-    promoSection(),
-    webPhotosSection(),
-    webTextSection(),
-    blogSection(),
+  var tabs=setTabs(); if(!tabs.some(function(t){ return t[0]===SETT.tab; })) SETT.tab='general';
+  var bar=h('div',{class:'ctabs settabs',role:'tablist'},tabs.map(function(t){ return h('button',{type:'button',role:'tab','aria-selected':SETT.tab===t[0]?'true':'false',class:'ctab'+(SETT.tab===t[0]?' on':''),onclick:function(){ SETT.tab=t[0]; pref('pk_settab',t[0]); schedule(); window.scrollTo(0,0); }},t[1]); }));
+  var mgr=me.role==='manager', t=SETT.tab, body;
+  if(t==='menu') body=[navSection()];
+  else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
+  else if(t==='look') body=[themeSection(),promoSection()];
+  else if(t==='money') body=[ppSettings(),pxSettings()];
+  else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
+  else if(t==='website') body=[webPhotosSection(),webTextSection(),blogSection()];
+  else if(t==='rooms') body=[
+    section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
+      {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
+      {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
+      {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
     section('Mini bar',btn('Add item',function(){ editMinibar(); },'small'),table([
       {label:'Item',cell:function(m){ return linkBtn(m.name,function(){ editMinibar(m); }); }},
       {label:'Price',num:true,cell:function(m){ return thb(m.price_thb); }},
       {label:'In the mini bar',cell:function(m){ return m.active===false?chip('No'):chip('Yes','ok'); }}],
       S.minibar.slice().sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(b.name); }),'No items yet. Add what you stock, with the price the guest pays.')),
-    section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
-      {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
-      {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
-      {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
     stayOfferSection(),
     ratesSettings(),
     extrasSettings(),
-    mapSettings(),
+    mapSettings()];
+  else if(t==='privates') body=[
     section('Booking sources',btn('Add source',function(){ editSource(); },'small'),table([
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
-      sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),
-    section('Not in this version yet',null,h('div',{class:'panel pad'},h('ul',{class:'plain'},
-      h('li',null,'Card payments. Customers order in the app and pay at the front desk for now.'),
-      h('li',null,'Grading, the forum and the Pangea coaching screens.'))))];
+      sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.'))];
+  else body=[h('div',{id:'whatsnew'},whatsNewSection()),cleanupSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  return [pageHead('Settings'),bar].concat(body);
 }
 var VIEWS={custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
