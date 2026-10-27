@@ -903,6 +903,10 @@
 ")+new Date(o.at).toLocaleTimeString(",
 ")+new Date(o.at).toLocaleTimeString("
 ],
+"), or type your own.": [
+") หรือพิมพ์เลขเอง",
+"), သို့မဟုတ် ကိုယ်တိုင် ရိုက်ပါ။"
+],
 "). Computers: ": [
 "). คอมพิวเตอร์: ",
 "). ကွန်ပျူတာ: "
@@ -3630,6 +3634,10 @@
 "Change it": [
 "แก้ไข",
 "ပြင်ရန်"
+],
+"Change it if you need a different number. It must not be used by another invoice.": [
+"เปลี่ยนได้ถ้าต้องการเลขอื่น ต้องไม่ซ้ำกับใบแจ้งหนี้อื่น",
+"နံပါတ်အခြား လိုလျှင် ပြောင်းပါ။ အခြားငွေတောင်းခံလွှာနှင့် မတူရ။"
 ],
 "Change it with AI": [
 "แก้ด้วย AI",
@@ -7467,6 +7475,10 @@
 "รูปแบบใบแจ้งหนี้และข้อมูลธนาคาร",
 "ငွေတောင်းခံလွှာ ဒီဇိုင်းနှင့် ဘဏ်အချက်အလက်"
 ],
+"Invoice number": [
+"เลขที่ใบแจ้งหนี้",
+"ငွေတောင်းခံလွှာ နံပါတ်"
+],
 "Invoice number starts with": [
 "เลขใบแจ้งหนี้ขึ้นต้นด้วย",
 "ငွေတောင်းခံလွှာနံပါတ်၏ ရှေ့စာလုံး"
@@ -7814,6 +7826,10 @@
 "Leave empty for the coach's usual share. Set it when it is different, for example 2 people: the coach gets 600.": [
 "เว้นว่างไว้เพื่อใช้ส่วนแบ่งปกติของโค้ช ตั้งค่าเมื่อไม่เหมือนปกติ เช่น 2 คน: โค้ชได้ 600",
 "နည်းပြ၏ ပုံမှန်ဝေစုအတွက် ကွက်လပ်ထားပါ။ ကွာခြားသည့်အခါ သတ်မှတ်ပါ၊ ဥပမာ လူ 2 ယောက်: နည်းပြ 600 ရသည်။"
+],
+"Leave empty for the next number (": [
+"เว้นว่างเพื่อใช้เลขถัดไป (",
+"နောက်နံပါတ်အတွက် ချန်ထားပါ ("
 ],
 "Leave empty for the normal price. With a rate, a private with this coach costs this much, and on a private pack the customer pays the difference as a top up.": [
 "เว้นว่างเพื่อใช้ราคาปกติ ถ้าตั้งราคา ไพรเวทกับโค้ชคนนี้จะราคานี้ และถ้าใช้แพ็กไพรเวท ลูกค้าจ่ายส่วนต่างเพิ่ม",
