@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=46"></script>
+<script src="changelog.js?v=47"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -806,6 +806,7 @@ var TABS=[];
 var FEATURES=[
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
+  {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
   {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
   {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
@@ -879,7 +880,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=8; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=9; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1742,7 +1743,7 @@ function buildPackage(c){
       if(v.room_id) jobs.push(save('stays',null,{customer_id:c.id,room_id:v.room_id,check_in:v.arrive,check_out:v.leave,status:'booked',settled:false,room_price_thb:Math.round(Number(v.room_price)||0),room_paid_thb:0,room_price_manual:true,training_included:!v.room_only,notes:v.room_only?'Package built at the desk, accommodation only':'Package built at the desk'}));
       return Promise.all(jobs).then(function(){ return Promise.all([reload('purchases'),reload('stays')]); }).then(function(){
         setTimeout(function(){
-          if(v.room_id) toast('Added. The room was added here only, so block '+nameOf('rooms',v.room_id)+' for these dates in MotoPress so the website does not sell it.');
+          if(v.room_id&&featOn('motopress')) toast('Added. The room was added here only, so block '+nameOf('rooms',v.room_id)+' for these dates in MotoPress so the website does not sell it.');
           var ns=v.room_id?newStay({customer_id:c.id,room_id:v.room_id,check_in:v.arrive}):null;
           if(ns&&(v.pay==='later'||v.pay==='transfer')) welcomeEmail(ns,true);
           else if(ns&&v.pay==='cash') setTimeout(function(){ welcomeEmail(byId('stays',ns.id)||ns,true); },1500);
@@ -2137,7 +2138,7 @@ function editStay(st){
       if(st.id) body.status=v.status; else body.status='booked';
       var first=v.customer_id?Promise.resolve(v.customer_id):sb.from('customers').insert({name:v.new_name,email:v.new_email?v.new_email.toLowerCase():null,tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); });
       /* a MotoPress booking moving room: MotoPress is changed first, so the website shows the right rooms as free */
-      var synced=st.id&&/^mphb:/.test(String(st.external_id||''));
+      var synced=st.id&&featOn('motopress')&&/^mphb:/.test(String(st.external_id||''));
       var datesCh=synced&&(v.check_in!==st.check_in||v.check_out!==st.check_out);
       var moved=synced&&(v.room_id!==st.room_id||datesCh), note=null;
       var mv=!moved?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'change',stay_id:st.id,room_id:v.room_id,check_in:v.check_in,check_out:v.check_out}}).then(function(res){
@@ -2273,7 +2274,7 @@ function extendStay(st){
       if(v.how==='season'){ var q=roomQuote(st.room_id,st.check_out,v.check_out); if(!q||q.missing.length) return q?quoteText(q):'This room has no season prices.'; add=q.total; r=Math.round(add/extra); }
       else { r=v.how==='same'?rate:Math.round(Number(v.rate)); if(r==null||isNaN(r)||r<0) return 'Type the price per night.'; add=extra*r; }
       var price=(Number(st.room_price_thb)||0)+add;
-      var patch={check_out:v.check_out,room_price_thb:price,room_price_manual:true}, mp=/^mphb:/.test(String(st.external_id||'')), note='';
+      var patch={check_out:v.check_out,room_price_thb:price,room_price_manual:true}, mp=featOn('motopress')&&/^mphb:/.test(String(st.external_id||'')), note='';
       if(st.ical_feed){ patch.dates_locked=true; note=' Extend it on '+(nameOf('sources',st.source_id)||'the booking site')+' too, so the room stays closed there.'; }
       var first=!mp?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'change',stay_id:st.id,room_id:st.room_id,check_in:st.check_in,check_out:v.check_out}}).then(function(res){
         if(res.error) throw {message:'Could not reach MotoPress. Nothing was changed.'}; var d=res.data||{}; if(d.error) throw {message:d.error};
@@ -2366,6 +2367,7 @@ function syncNow(){
   }).catch(function(e){ toast('Sync did not work. '+((e&&e.message)||'')); }).then(function(){ ui.syncing=false; schedule(); });
 }
 function syncLine(){
+  if(!featOn('motopress')) return null;
   var when=MPSYNC&&MPSYNC.at?new Date(MPSYNC.at):null, mins=when?Math.round((Date.now()-when)/60000):null;
   var txt=when?'Website, Booking.com and Airbnb bookings come in from MotoPress every 15 minutes. Last checked '+(mins<1?'just now':mins<60?mins+' min ago':when.toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}))+'.':'Bookings from MotoPress come in every 15 minutes.';
   var errs=MPSYNC&&MPSYNC.errors&&MPSYNC.errors.length?MPSYNC.errors:null;

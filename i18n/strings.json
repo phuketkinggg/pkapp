@@ -8735,6 +8735,10 @@
 "MotoPress แสดง ",
 "MotoPress တွင် ပြသည်: "
 ],
+"MotoPress website bookings": [
+"การจองห้องจาก MotoPress บนเว็บไซต์",
+"ဝက်ဘ်ဆိုက်ပေါ်ရှိ MotoPress အခန်းဘိုကင်များ"
+],
 "Move ": [
 "ย้าย ",
 "ရွှေ့ရန် "
@@ -12654,6 +12658,10 @@
 "Room booking offer": [
 "ข้อเสนอการจองห้องพัก",
 "အခန်းဘိုကင် ပရိုမိုးရှင်း"
+],
+"Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.": [
+"การจองห้องเข้ามาจากปลั๊กอิน MotoPress บนเว็บไซต์ WordPress และการย้ายหรือขยายการจองจะเปลี่ยนใน MotoPress ด้วย ปิด: จองห้องในแอปและหน้าจองของคุณเอง และการเปลี่ยนแปลงการจองเก่าจาก MotoPress จะบันทึกในแอปเท่านั้น",
+"အခန်းဘိုကင်များသည် WordPress ဝက်ဘ်ဆိုက်ပေါ်ရှိ MotoPress ပလပ်ဂင်မှ ဝင်လာပြီး ရွှေ့ခြင်း သို့မဟုတ် တိုးခြင်းသည် MotoPress တွင်လည်း ပြောင်းသည်။ ပိတ်ထားလျှင်: အခန်းများကို အက်ပ်နှင့် သင့်ကိုယ်ပိုင် ဘိုကင်စာမျက်နှာတွင် ဘိုကင်လုပ်ပြီး MotoPress ဘိုကင်ဟောင်းများ၏ ပြောင်းလဲမှုကို အက်ပ်တွင်သာ သိမ်းသည်။"
 ],
 "Room bookings, room bills, welcome emails and housekeeping.": [
 "การจองห้อง บิลห้องพัก อีเมลต้อนรับ และแม่บ้าน",
