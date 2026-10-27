@@ -89,7 +89,10 @@ function quote(R: Rates, g: Group, from: string, to: string) {
   return { total, nights, missing };
 }
 // the website offer (app_settings stay_offer): a direct booking discount on the room, and a gift for long stays
-type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string };
+// deposit: from "nights" nights the guest can pay part now (pct % of the room, high_pct % when they arrive in a busier season, never less than min_nights nights),
+// extras in full; the rest is due balance_days days before arrival. Monthly price stays pay at least the first month.
+type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number };
+type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean };
 async function offer(): Promise<Offer> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
   let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* none */ }
@@ -97,7 +100,28 @@ async function offer(): Promise<Offer> {
   // includes: what every room comes with (for example unlimited group classes for 1 person), shown on each room; not part of the offer switch
   return { on, pct: on ? pct : 0, gift_nights: on && String(j.gift ?? "").trim() ? gn : 0, gift: on ? String(j.gift ?? "").trim().slice(0, 80) : "", includes: String(j.includes ?? "").trim().slice(0, 120),
     // the monthly banner at the top of the booking page (shown when a price group has a monthly price); not part of the offer switch
-    month_banner: String(j.month_banner ?? "").trim().slice(0, 80), all_include: String(j.all_include ?? "").trim().slice(0, 120) };
+    month_banner: String(j.month_banner ?? "").trim().slice(0, 80), all_include: String(j.all_include ?? "").trim().slice(0, 120),
+    // the deposit and "email me this price" are not part of the offer switch
+    deposit: { on: j.dep_on === true, nights: clampN(j.dep_nights, 14, 1, 90), pct: clampN(j.dep_pct, 30, 5, 95), high_pct: clampN(j.dep_high_pct, 50, 5, 95),
+      min_nights: clampN(j.dep_min_nights, 7, 0, 60), balance_days: clampN(j.dep_balance_days, 14, 0, 90) },
+    quote: j.quote_on !== false };
+}
+const clampN = (v: unknown, d: number, lo: number, hi: number) => { const x = Math.round(Number(v)); return v != null && v !== "" && Number.isFinite(x) ? Math.max(lo, Math.min(hi, x)) : d; };
+// the part paid now when the guest picks the deposit (null: pay the whole stay). Same sum as book.html.
+function depositPlan(R: Rates, O: Offer, from: string, nights: number, room: number, extras: number, monthly: boolean) {
+  const D = O.deposit; if (!D.on || nights < D.nights || !(room > 0)) return null;
+  const due = monthly ? addDays(from, 23) : addDays(from, -D.balance_days);
+  if (!monthly && due <= addDays(today(), 2)) return null;
+  const s = seasonOf(R, from), high = !!s && s.id !== R.base;
+  let dep = Math.max(room * (high ? D.high_pct : D.pct) / 100, room * Math.min(D.min_nights, nights) / nights);
+  if (monthly) dep = Math.max(dep, room * Math.min(30, nights) / nights);
+  const total = room + extras, now = Math.min(total, Math.ceil((dep + extras) / 100) * 100);
+  if (now >= total * 0.85) return null;
+  return { now, rest: total - now, due, monthly };
+}
+async function bizStay(): Promise<string> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "acc_names").maybeSingle();
+  try { return String(JSON.parse(data?.value ?? "{}").stay || "").trim() || "Our resort"; } catch { return "Our resort"; }
 }
 const offPrice = (full: number, o: Offer) => o.pct > 0 ? Math.round(full * (100 - o.pct) / 100) : full;
 // long stays: a price group can have a monthly price (Room prices). From month_nights nights (28 unless set) the stay costs the monthly
@@ -205,6 +229,63 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   return j.url as string;
 }
 
+// "Email me this price": the guest gets the price for the room and dates they looked at, with a link back to book it.
+// The front desk gets a notice to follow up. Priced here from the settings, never from the page.
+const RESEND = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+const escH = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+const T = (n: number) => Math.round(n).toLocaleString("en-US") + " THB";
+const dayW = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+async function mailQuote(R: Rates, body: Record<string, unknown>) {
+  const O = await offer(); if (!O.quote) return json({ error: "Not available." });
+  const email = String(body.email ?? "").trim().toLowerCase(), name = String(body.name ?? "").trim().slice(0, 80);
+  if (!/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(email) || email.length > 120) return json({ error: "Type a real email address." });
+  const bad = checkDates(body.from, body.to); if (bad) return json({ error: bad });
+  const from = body.from as string, to = body.to as string, roomId = String(body.room_id ?? "");
+  const g = R.groups.find((x) => x.rooms.includes(roomId)); if (!g) return json({ error: "Pick a room first." });
+  const q = quote(R, g, from, to); if (q.missing) return json({ error: "That room has no price for those dates. Message us." });
+  const since = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
+  const { count: mine } = await admin.from("sent_emails").select("id", { count: "exact", head: true }).eq("campaign", "stay_quote").eq("to_email", email).gte("created_at", since(24));
+  const { count: all } = await admin.from("sent_emails").select("id", { count: "exact", head: true }).eq("campaign", "stay_quote").gte("created_at", since(1));
+  if ((mine ?? 0) >= 3 || (all ?? 0) >= 30) return json({ error: "We already sent you a price. Check your inbox, or WhatsApp us." });
+  if (!RESEND) return json({ error: "Email is not set up. WhatsApp us for a price." });
+  const nights = q.nights.length, rp = roomPrice(R, g, q.total, nights, O), items = extraItems(R, body.extras, from, to);
+  const total = rp.total + items.reduce((t, i) => t + i.price, 0), plan = depositPlan(R, O, from, nights, rp.total, total - rp.total, rp.monthly);
+  const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
+  const STAY = await bizStay(), roomName = rm?.name ?? "Room";
+  const link = backUrl(body.back) + `?from=${from}&to=${to}&room=${encodeURIComponent(roomId)}`;
+  const { data: ms } = await admin.from("app_settings").select("value").eq("key", "mail_from").maybeSingle();
+  let mf: { from?: string; reply_to?: string; whatsapp?: string } = {}; try { mf = JSON.parse(ms?.value ?? "{}"); } catch { /* defaults */ }
+  const wa = String(mf.whatsapp ?? "66969076150").replace(/\D/g, "");
+  const lines: [string, string][] = [[`${roomName}, ${nights} night${nights === 1 ? "" : "s"}`, T(rp.total)]];
+  if (rp.monthly) lines.push(["Monthly price", `${T(Number(g.month))} a month`]); else if (rp.total < q.total) lines.push([`Book direct ${O.pct}% off`, `you save ${T(q.total - rp.total)}`]);
+  items.forEach((i) => lines.push([i.name, T(i.price)]));
+  if (O.gift && O.gift_nights && nights >= O.gift_nights) lines.push([O.gift.charAt(0).toUpperCase() + O.gift.slice(1), "Free"]);
+  const notes = [O.includes, plan ? `Book with a deposit of ${T(plan.now)}, then ${T(plan.rest)} ${plan.monthly ? "month by month, each month 7 days before it starts" : "by " + dayW(plan.due)}.` : ""].filter(Boolean);
+  const hi = name ? name.split(/\s+/)[0] : "there";
+  const subject = `Your price at ${STAY}: ${dayW(from)} to ${dayW(to)}`;
+  const text = [`Hi ${hi},`, "", `Here is your price at ${STAY}, ${dayW(from)} to ${dayW(to)}.`, "", ...lines.map((l) => `${l[0]}: ${l[1]}`), `Total: ${T(total)}`, "", ...notes,
+    "", "Rooms go quickly and prices can change. Book it here:", link, "", `Questions? Reply to this email, or WhatsApp us: https://wa.me/${wa}`].join("\n");
+  const G = "#1a3325", INK = "#22201c", MUT = "#6b665c";
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:${INK};line-height:1.5"><p>Hi ${escH(hi)},</p><p>Here is your price at <b>${escH(STAY)}</b>, ${escH(dayW(from))} to ${escH(dayW(to))}.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${lines.map((l) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e6dfd2">${escH(l[0])}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #e6dfd2;white-space:nowrap">${escH(l[1])}</td></tr>`).join("")}
+<tr><td style="padding:10px 0"><b>Total</b></td><td align="right" style="padding:10px 0"><b>${escH(T(total))}</b></td></tr></table>
+${notes.map((n) => `<p style="color:${MUT};margin:6px 0">${escH(n)}</p>`).join("")}
+<p style="margin:22px 0"><a href="${escH(link)}" style="background:${G};color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Book this room</a></p>
+<p style="color:${MUT}">Rooms go quickly and prices can change. Questions? Reply to this email, or <a href="https://wa.me/${wa}">WhatsApp us</a>.</p></div>`;
+  let ok = false, err: string | null = null, rid: string | null = null;
+  try {
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: mf.from || `${STAY} <hello@app.phuketking.com>`, to: [email], reply_to: mf.reply_to || "hello@phuketking.com", subject, html, text }) });
+    const j = await r.json().catch(() => ({})); if (r.ok) { ok = true; rid = j?.id ?? null; } else err = j?.message || `Email service said ${r.status}`;
+  } catch (e) { err = (e as Error).message; }
+  await admin.from("sent_emails").insert({ to_email: email, to_name: name || null, subject, body: text, status: ok ? "sent" : "failed", error: err, resend_id: rid, sent_at: ok ? new Date().toISOString() : null, campaign: "stay_quote" });
+  if (!ok) return json({ error: "The email could not be sent. WhatsApp us for your price." });
+  const phone = String(body.phone ?? "").trim().slice(0, 30);
+  await admin.from("notices").insert({ kind: "stay", title: `Price sent: ${name || email}, ${roomName}`,
+    detail: `${dayW(from)} to ${dayW(to)}, ${nights} nights, ${T(total)}. ${email}${phone ? ", " + phone : ""}. They have not booked yet: follow up in a day or two.` });
+  return json({ ok: true });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -261,24 +342,32 @@ Deno.serve(async (req) => {
       const offerNote = [rp.monthly ? `Monthly price ${g.month} THB a month (full price ${full} THB).` : O.pct > 0 && q.total < full ? `Book direct ${O.pct}% off (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
       const items = extraItems(R, body.extras, from, to), total = q.total + items.reduce((t, i) => t + i.price, 0);
+      const plan = body.deposit ? depositPlan(R, O, from, nightsN, q.total, total - q.total, rp.monthly) : null;
+      if (body.deposit && !plan) return json({ error: "A deposit is not available for this stay. Pay the whole stay, or WhatsApp us." });
+      const payNow = plan ? plan.now : total, STAY = await bizStay();
+      const depNote = plan ? `Website deposit ${plan.now} THB of ${total} THB. ${plan.rest} THB left, ${plan.monthly ? "month by month, each month 7 days before it starts" : "due by " + plan.due}.` : "";
       await admin.rpc("web_holds_cleanup");
       const { data, error } = await admin.rpc("web_reserve", { p_room: roomId, p_from: from, p_to: to, p_price: q.total, p_name: String(body.name ?? ""), p_email: String(body.email ?? ""),
-        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote].filter(Boolean).join("\n") });
+        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote, depNote].filter(Boolean).join("\n") });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
       if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref), p_at: isNaN(Date.parse(String(body.ref_at ?? ""))) ? null : new Date(String(body.ref_at)).toISOString() });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
-        if (pp) return json({ pp: acc, stay_id: stayId, total, what: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}` });
-        const lines = [{ name: `Pangea Resort, ${rm?.name ?? "room"}, ${from} to ${to}${rp.monthly ? ", monthly price" : q.total < full ? `, book direct ${O.pct}% off` : ""}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
-        const url = await stripeSession(lines, total, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
-        return json({ url, stay_id: stayId, total });
+        if (plan) { const { error: de } = await admin.from("stays").update({ web_pay_now_thb: plan.now }).eq("id", stayId); if (de) throw new Error(de.message); }
+        if (pp) return json({ pp: acc, stay_id: stayId, total: payNow, all: total, deposit: !!plan, what: `${plan ? "Deposit: " : ""}${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}` });
+        const lines = plan
+          ? [{ name: `Deposit: ${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}. Stay total ${total.toLocaleString("en-US")} THB, ${plan.rest.toLocaleString("en-US")} THB left to pay${plan.monthly ? " month by month" : " by " + plan.due}`, amount: plan.now }]
+          : [{ name: `${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}${rp.monthly ? ", monthly price" : q.total < full ? `, book direct ${O.pct}% off` : ""}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
+        const url = await stripeSession(lines, payNow, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
+        return json({ url, stay_id: stayId, total: payNow, all: total, deposit: !!plan });
       } catch (e) {
         await admin.from("stays").update({ status: "cancelled", hold_until: null, notes: "Website booking, card payment could not start." }).eq("id", stayId);
         await admin.from("purchases").update({ cancelled: true }).eq("for_stay", stayId).eq("ordered_in_app", true);
         return json({ error: "Card payment could not start. Try again, or message us. " + (e as Error).message });
       }
     }
+    if (body.mode === "mail_quote") return await mailQuote(R, body);
     if (body.mode === "claim") {
       if (!/^[0-9a-f-]{36}$/.test(String(body.ref ?? ""))) return json({ error: "Not found." });
       const { data, error } = await admin.rpc("web_stay_claim", { p_stay: body.ref });

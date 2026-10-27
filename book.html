@@ -118,6 +118,8 @@ dialog.lb::backdrop{background:rgba(0,0,0,.9)}
 @media (prefers-reduced-motion:reduce){.gallery img{transition:none}}
 footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);font-size:14px}
 .agree{font-size:13px;margin-top:8px}
+.ask{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px}.ask .btn{min-height:40px;padding:8px 14px;font-size:15px}.ask .wa{border-color:#1F8A4C;color:#1F8A4C}
+.qform{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:6px 0 10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--sunken)}.qform input{flex:1 1 200px}.qform .btn{min-height:44px}
 </style>
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Resort","name":"Pangea Resort","url":"https://www.phuketking.com/book","image":"https://www.phuketking.com/img/resort-aerial.jpg","description":"Eleven air conditioned lakeside bungalows next to Phuket King Muay Thai in Kathu, Phuket, with Pangea Cafe and a recovery area on site.","telephone":"+66615155947","email":"hello@phuketking.com","priceRange":"\u0e3f\u0e3f","numberOfRooms":11,"address":{"@type":"PostalAddress","addressLocality":"Kathu","addressRegion":"Phuket","postalCode":"83120","addressCountry":"TH"},"amenityFeature":[{"@type":"LocationFeatureSpecification","name":"Air conditioning","value":true},{"@type":"LocationFeatureSpecification","name":"Lake view","value":true},{"@type":"LocationFeatureSpecification","name":"Cafe on site","value":true},{"@type":"LocationFeatureSpecification","name":"Muay Thai gym on site","value":true},{"@type":"LocationFeatureSpecification","name":"Sauna","value":true},{"@type":"LocationFeatureSpecification","name":"Ice bath","value":true}],"containedInPlace":{"@type":"SportsActivityLocation","name":"Phuket King Muay Thai","url":"https://www.phuketking.com/"}}</script>
 </head>
@@ -166,6 +168,8 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
   <section class="card" id="step-guest" hidden>
     <h2>Your details</h2>
     <div class="sum" id="chosen"></div>
+    <div class="ask" id="ask"></div>
+    <div id="qbox" hidden></div>
     <form class="form" id="guest" novalidate>
       <label>Full name<input id="g-name" autocomplete="name" required maxlength="80"></label>
       <label>Email<input id="g-email" type="email" autocomplete="email" required maxlength="120"></label>
@@ -177,6 +181,10 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
       <fieldset class="wide paywith" id="paywith"><legend>Pay with</legend>
         <label class="pw"><input type="radio" name="pw" value="pp" checked><span><b>Thai QR (PromptPay)</b><small>Scan with any Thai bank app. No card fee.</small></span></label>
         <label class="pw"><input type="radio" name="pw" value="card"><span><b>Card</b><small>Visa, Mastercard and more, on the secure Stripe page.</small></span></label>
+      </fieldset>
+      <fieldset class="wide paywith" id="howmuch" hidden><legend>How much now</legend>
+        <label class="pw"><input type="radio" name="hm" value="all" checked><span><b>The whole stay</b><small id="hm-all"></small></span></label>
+        <label class="pw"><input type="radio" name="hm" value="dep"><span><b id="hm-depb">A deposit</b><small id="hm-dep"></small></span></label>
       </fieldset>
       <p class="sub wide" id="paynote">You pay the whole stay now. Your room is held for 30 minutes while you pay.</p>
       <p class="err wide" id="gerr" role="alert" hidden></p>
@@ -221,7 +229,17 @@ function thb(n){ return Number(n).toLocaleString('en-US')+' THB'; }
 var CURN={thb:'Thai baht (THB)',usd:'US dollars (USD)',gbp:'British pounds (GBP)',eur:'Euros (EUR)'}, CURS={usd:'$',gbp:'£',eur:'€'};
 function cur(){ var e=$('g-cur'); return e&&e.value||'thb'; }
 function payWith(){ if(cur()!=='thb') return 'card'; var x=document.querySelector('input[name=pw]:checked'); return x?x.value:'card'; }
-document.querySelectorAll('input[name=pw]').forEach(function(r){ r.addEventListener('change',function(){ if(pick) summary(); }); });
+document.querySelectorAll('input[name=pw],input[name=hm]').forEach(function(r){ r.addEventListener('change',function(){ if(pick) summary(); }); });
+/* deposit (Settings, Website offer): same sum as the book function. null means the whole stay is paid now */
+function seasonAt(d){ var md=d.slice(5), hit=null; (INFO.seasons||[]).forEach(function(s){ if(!s.base&&(s.ranges||[]).some(function(r){ return r.from&&r.to&&(r.from<=r.to?md>=r.from&&md<=r.to:md>=r.from||md<=r.to); })) hit=s; });
+  return hit||(INFO.seasons||[]).filter(function(s){ return s.base; })[0]||null; }
+function depPlan(room,extras,monthly){ var D=(INFO.offer||{}).deposit, n=Q.nights; if(!D||!D.on||n<D.nights||!(room>0)) return null;
+  var due=monthly?addDays(Q.from,23):addDays(Q.from,-D.balance_days); if(!monthly&&due<=addDays(today,2)) return null;
+  var s=seasonAt(Q.from), high=!!s&&!s.base, dep=Math.max(room*(high?D.high_pct:D.pct)/100,room*Math.min(D.min_nights,n)/n);
+  if(monthly) dep=Math.max(dep,room*Math.min(30,n)/n);
+  var total=room+extras, now=Math.min(total,Math.ceil((dep+extras)/100)*100); if(now>=total*0.85) return null;
+  return {now:now,rest:total-now,due:due,monthly:monthly}; }
+function wantDep(){ var x=document.querySelector('input[name=hm]:checked'); return !$('howmuch').hidden&&x&&x.value==='dep'; }
 /* Thai QR straight to our bank: the QR has the amount in it; the guest taps I have paid, the room is held 12 hours and the front desk confirms */
 function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
 function ppTlv(str){ var out=[], i=0; while(i<str.length){ if(i+4>str.length) return null; var id=str.substr(i,2), n=parseInt(str.substr(i+2,2),10); if(isNaN(n)||i+4+n>str.length) return null; out.push([id,str.substr(i+4,n)]); i+=4+n; } return out; }
@@ -252,7 +270,7 @@ function waitPP(ref){
   ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
   var box=$('step-done'), tries=0;
   function draw(s){ box.innerHTML='';
-    if(s&&s.paid){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); formBtn(box,s); return; }
+    if(s&&s.paid){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},paidText(s))); formBtn(box,s); return; }
     if(s&&(s.rejected||s.cancelled)){ try{ localStorage.removeItem('pk_stay_pp'); }catch(e){} box.appendChild(el('div',{cls:'big'},'Payment not found'));
       var a=el('a',{href:wa('Hi Pangea, I paid for my stay by Thai QR on the website. Here is my slip.'),target:'_blank',rel:'noopener'},'WhatsApp us your payment slip');
       box.appendChild(el('p',null,'We could not find your Thai QR payment in our bank, so the room was let go. If you paid, ',a,' and we will sort it out.')); return; }
@@ -380,19 +398,43 @@ function summary(){
   (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name),el('span',null,thb(pr)))); });
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); });
-  var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&tot<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=tot>0&&payWith()==='card'?Math.round(tot*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,'You pay by card'),el('b',null,thb(tot+fee)))); amts.push(fee); }
+  var plan=depPlan(r.total,ex,!!r.monthly); $('howmuch').hidden=!plan;
+  if(plan){ $('hm-all').textContent=thb(tot)+' now.'; $('hm-depb').textContent='A deposit, '+thb(plan.now);
+    $('hm-dep').textContent='Then '+thb(plan.rest)+(plan.monthly?' month by month, each month 7 days before it starts.':' by '+fmt(plan.due)+'.'); }
+  var dep=plan&&wantDep(), now=dep?plan.now:tot;
+  if(dep){ lines.push(el('div',{cls:'offnote'},el('span',null,'Deposit, pay now'),el('span',null,thb(plan.now)))); lines.push(el('div',null,el('span',null,plan.monthly?'Then month by month':'Then by '+fmt(plan.due)),el('span',null,thb(plan.rest)))); amts=[plan.now]; }
+  $('paynote').textContent=(dep?'You pay the deposit now. We send you a link to pay the rest before it is due.':'You pay the whole stay now.')+' Your room is held for 30 minutes while you pay.';
+  var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&now<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=now>0&&payWith()==='card'?Math.round(now*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,dep?'You pay now by card':'You pay by card'),el('b',null,thb(now+fee)))); amts.push(fee); }
   var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
   $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';
   $('chosen').innerHTML='';
   $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines)));
   $('paywith').hidden=cur()!=='thb'; pick.how=payWith()==='pp'?' with Thai QR':' by card';
-  $('pay').textContent='Pay '+(fc||thb(tot+fee))+pick.how; pick.total=tot; pick.label=fc||thb(tot+fee);
+  $('pay').textContent='Pay '+(dep?'deposit ':'')+(fc||thb(now+fee))+pick.how; pick.total=tot; pick.dep=!!dep; pick.label=(dep?'deposit ':'')+(fc||thb(now+fee));
+  askBar(rr,tot);
 }
 function T(e,i){ try{ if(window.PK&&PK.track) PK.track(e,i); }catch(x){} }
+/* questions before paying: WhatsApp with the room and dates filled in, or the price by email (the desk gets a notice to follow up) */
+function exPicks(){ return (INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }); }
+function askBar(rr,tot){ var a=$('ask'); a.innerHTML='';
+  var msg='Hi, I am looking at '+rr.name+' from '+fmt(Q.from)+' to '+fmt(Q.to)+' ('+Q.nights+' night'+(Q.nights===1?'':'s')+', '+thb(tot)+'). I have a question: ';
+  a.appendChild(el('span',{cls:'sub'},'Not ready to pay?'));
+  a.appendChild(el('a',{cls:'btn wa',href:wa(msg),target:'_blank',rel:'noopener',onclick:function(){ T('stay_wa',rr.name); }},'Ask us on WhatsApp'));
+  if((INFO.offer||{}).quote!==false) a.appendChild(el('button',{type:'button',cls:'btn',onclick:quoteForm},'Email me this price')); }
+function quoteForm(){ var b=$('qbox'); if(!b.hidden){ b.hidden=true; return; } b.innerHTML=''; b.hidden=false;
+  var em=el('input',{type:'email',autocomplete:'email',maxlength:'120',placeholder:'Your email','aria-label':'Your email'}), go=el('button',{type:'button',cls:'btn primary'},'Send me the price'), msg=el('p',{cls:'sub',style:'flex-basis:100%;margin:0'},'We email you this room, your dates and the price, with a link to book it later.');
+  if($('g-email').value) em.value=$('g-email').value.trim();
+  go.onclick=function(){ var v=em.value.trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ msg.textContent='Type your email.'; msg.className='err'; em.focus(); return; }
+    go.disabled=true; go.textContent='Sending';
+    call({mode:'mail_quote',email:v,name:$('g-name').value.trim(),phone:$('g-phone').value.trim(),room_id:pick.id,from:Q.from,to:Q.to,extras:exPicks(),back:location.origin+location.pathname})
+      .then(function(){ T('stay_quote',Q.nights+' night'+(Q.nights===1?'':'s')); b.innerHTML=''; b.appendChild(el('p',{cls:'offnote',style:'margin:6px 0 10px'},'\u2713 Sent to '+v+'. Check your inbox (and junk folder). Your room is not held until you pay.')); },
+        function(x){ go.disabled=false; go.textContent='Send me the price'; msg.textContent=x.message; msg.className='err'; }); };
+  em.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); go.click(); } });
+  b.appendChild(el('div',{cls:'qform'},em,go,msg)); setTimeout(function(){ em.focus(); },30); }
 function choose(rid){
   var r=Q.rooms.filter(function(x){ return x.id===rid; })[0]; if(!r||r.state!=='free') return;
   if(!pick||pick.id!==rid){ var gg=group(r.group); T('stay_room',(gg?gg.name:'Room')+', '+Q.nights+' night'+(Q.nights===1?'':'s')); }
-  pick={id:rid,total:r.total,from:Q.from,to:Q.to}; render();
+  pick={id:rid,total:r.total,from:Q.from,to:Q.to}; $('qbox').hidden=true; render();
   show('step-extras',!!(INFO.extras||[]).length); renderExtras(); summary();
   show('step-guest',true); setTimeout(function(){ $((INFO.extras||[]).length?'step-extras':'step-guest').scrollIntoView({behavior:'smooth',block:'start'}); },50);
 }
@@ -403,22 +445,25 @@ function quote(scroll){ var f=$('from').value,t=$('to').value; $('derr').hidden=
   if(Q&&Q.from===f&&Q.to===t&&!scroll) return;
   pick=null; EX={}; show('step-guest',false); show('step-extras',false);
   var my=++asked; $('rinfo').textContent='Checking which rooms are free.';
-  call({mode:'quote',from:f,to:t}).then(function(d){ if(my!==asked) return; Q=d; T('stay_dates',d.nights+' night'+(d.nights===1?'':'s')); if(!d.rooms.some(function(x){ return x.state==='free'; })) T('stay_full',d.from); show('step-rooms',true); render(); if(scroll) $('map').scrollIntoView({behavior:'smooth',block:'start'}); try{ history.replaceState(null,'','?from='+f+'&to='+t); }catch(x){} })
+  call({mode:'quote',from:f,to:t}).then(function(d){ if(my!==asked) return; Q=d; var want=qp.get('room'); if(want){ qp.delete('room'); setTimeout(function(){ choose(want); },0); } T('stay_dates',d.nights+' night'+(d.nights===1?'':'s')); if(!d.rooms.some(function(x){ return x.state==='free'; })) T('stay_full',d.from); show('step-rooms',true); render(); if(scroll) $('map').scrollIntoView({behavior:'smooth',block:'start'}); try{ history.replaceState(null,'','?from='+f+'&to='+t); }catch(x){} })
     .catch(function(x){ if(my!==asked) return; Q=null; paintMap(); $('rinfo').textContent=''; show('step-rooms',false); $('derr').textContent=x.message; $('derr').hidden=false; }); }
 $('dates').addEventListener('submit',function(e){ e.preventDefault(); quote(true); });
 $('from').addEventListener('change',function(){ if($('from').value){ if(!$('to').value||$('to').value<=$('from').value) $('to').value=addDays($('from').value,3); $('to').min=addDays($('from').value,1); } quote(false); });
 $('to').addEventListener('change',function(){ quote(false); });
+var formSeen=false; $('guest').addEventListener('focusin',function(){ if(!formSeen&&pick){ formSeen=true; T('stay_form',Q.nights+' night'+(Q.nights===1?'':'s')); } });
 $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('pay'), err=$('gerr'); err.hidden=true;
   var name=$('g-name').value.trim(), email=$('g-email').value.trim();
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
-  T('stay_pay',payWith());
+  T('stay_pay',payWith()+(pick.dep?', deposit':''));
   b.disabled=true; b.textContent=payWith()==='pp'?'Making your QR':'Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),extras:(INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }),back:location.origin+location.pathname})
+  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),deposit:!!pick.dep,extras:exPicks(),back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+(pick.how||' by card'); err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
 
+function paidText(s){ var left=s&&s.total&&s.paid_thb!=null?s.total-s.paid_thb:0;
+  return s&&s.pay_now&&left>0?'Deposit received. '+thb(left)+' is left to pay, and we send you a link for it before it is due. We email you the details. See you at Pangea.':'Payment received. We email you the details. See you at Pangea.'; }
 /* after paying: the guest form, so the coaches know them before they arrive */
 function formBtn(box,s){ if(!s||!s.form) return;
   box.appendChild(el('div',{cls:'formnext'},el('b',null,'One more thing: tell your coaches about you'),el('p',{cls:'sub'},'About 5 minutes. Your level, your goals and a photo, so we know you when you walk in.'),
@@ -427,7 +472,7 @@ function afterPay(ref,paid){
   ['step-dates','step-rooms','step-extras','step-guest'].forEach(function(id){ show(id,false); }); show('step-done',true);
   var box=$('step-done'), tries=0;
   function draw(s){ box.innerHTML='';
-    if(s&&s.paid){ box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},'Payment received. We email you the details. See you at Pangea.')); formBtn(box,s); return; }
+    if(s&&s.paid){ box.appendChild(el('div',{cls:'big'},'You are booked')); box.appendChild(el('p',null,s.room+', '+fmt(s.from)+' to '+fmt(s.to)+'.')); box.appendChild(el('p',{cls:'sub'},paidText(s))); formBtn(box,s); return; }
     if(!paid){ box.appendChild(el('div',{cls:'big'},'Not paid')); box.appendChild(el('p',null,'Nothing was charged. The room is held for a few more minutes.')); box.appendChild(el('button',{type:'button',cls:'btn primary',onclick:function(){ location.href=location.pathname; }},'Start again')); return; }
     box.appendChild(el('div',{cls:'big'},'Checking your payment')); box.appendChild(el('p',{cls:'sub'},tries>12?'This is taking longer than usual. Your payment went to Stripe. We email you as soon as it shows here.':'One moment.')); }
   function poll(){ call({mode:'status',ref:ref}).then(function(s){ draw(s); if(paid&&!(s&&s.paid)&&++tries<30) setTimeout(poll,2000); },function(){ draw(null); if(paid&&++tries<30) setTimeout(poll,3000); }); }

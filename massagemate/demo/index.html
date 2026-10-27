@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=45"></script>
+<script src="changelog.js?v=46"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -880,7 +880,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=7; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=8; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4568,19 +4568,29 @@ var SOFF=null;
 function stayOfferSection(){
   if(SOFF===null){ SOFF=false; sb.from('app_settings').select('value').eq('key','stay_offer').maybeSingle().then(function(res){ var v=must(res); try{ SOFF=v?JSON.parse(v.value):{}; }catch(e){ SOFF={}; } schedule(); }); }
   var o=SOFF||{};
-  var line=(!SOFF?'Loading.':o.on?((o.pct>0?o.pct+'% off every room booked on the website':'No discount')+(o.gift&&o.gift_nights?'. Stays of '+o.gift_nights+' nights or more get '+o.gift+'.':'.')):'Off. Rooms are full price on the website.')+(SOFF&&o.includes?' Every room shows: '+o.includes+'.':'')+(SOFF&&o.month_banner?' Banner: '+o.month_banner+'.':'');
+  var line=(!SOFF?'Loading.':o.on?((o.pct>0?o.pct+'% off every room booked on the website':'No discount')+(o.gift&&o.gift_nights?'. Stays of '+o.gift_nights+' nights or more get '+o.gift+'.':'.')):'Off. Rooms are full price on the website.')+(SOFF&&o.includes?' Every room shows: '+o.includes+'.':'')+(SOFF&&o.month_banner?' Banner: '+o.month_banner+'.':'')+(SOFF?(o.dep_on?' Deposit on: stays of '+(o.dep_nights||14)+' nights or more can pay '+(o.dep_pct||30)+'% now ('+(o.dep_high_pct||50)+'% in busier seasons), the rest '+(o.dep_balance_days==null?14:o.dep_balance_days)+' days before arrival.':' Deposit off: every stay is paid in full.')+(o.quote_on===false?' Email me this price is off.':''):'');
   return section('Website offer and banners',me&&me.role==='manager'&&SOFF?btn('Change',function(){
     openForm({title:'Room booking offer',note:'Shown at the top of the booking page and on every room. The discount comes off the room price (not extras). The gift is written on the stay for the front desk.',
-      values:{on:o.on!==false,pct:o.pct==null?10:o.pct,gift_nights:o.gift_nights==null?7:o.gift_nights,gift:o.gift||'a free Massage Mate Demo Spa training top',includes:o.includes||'',month_banner:o.month_banner==null?'Book monthly, save big':o.month_banner,all_include:o.all_include==null?'All prices include unlimited group classes':o.all_include},fields:[
+      values:{on:o.on!==false,pct:o.pct==null?10:o.pct,gift_nights:o.gift_nights==null?7:o.gift_nights,gift:o.gift||'a free Massage Mate Demo Spa training top',includes:o.includes||'',month_banner:o.month_banner==null?'Book monthly, save big':o.month_banner,all_include:o.all_include==null?'All prices include unlimited group classes':o.all_include,
+        dep_on:!!o.dep_on,dep_nights:o.dep_nights==null?14:o.dep_nights,dep_pct:o.dep_pct==null?30:o.dep_pct,dep_high_pct:o.dep_high_pct==null?50:o.dep_high_pct,dep_min_nights:o.dep_min_nights==null?7:o.dep_min_nights,dep_balance_days:o.dep_balance_days==null?14:o.dep_balance_days,quote_on:o.quote_on!==false},fields:[
       {key:'on',label:'Offer is on',type:'checkbox'},
       {key:'pct',label:'Book direct discount, % off the room',type:'number',hint:'0 for no discount.'},
       {key:'gift_nights',label:'Gift for stays of at least (nights)',type:'number',hint:'0 for no gift.'},
       {key:'gift',label:'The gift',hint:'Written as: Stay 7 nights or more and get ... For example: a free Massage Mate Demo Spa training top.'},
       {key:'includes',label:'Every room includes',hint:'Shown with a tick on every room on the booking page, even when the offer is off. For example: Unlimited group Muay Thai classes for 1 person. Leave empty to show nothing.'},
       {key:'month_banner',label:'Monthly banner',hint:'Big words at the top of the booking page when a room price group has a monthly price, with the lowest monthly price. Leave empty to hide it.'},
-      {key:'all_include',label:'Banner line, every price includes',hint:'Shown with a tick under the banner at the top of the booking page. Leave empty to hide it.'}],
+      {key:'all_include',label:'Banner line, every price includes',hint:'Shown with a tick under the banner at the top of the booking page. Leave empty to hide it.'},
+      {key:'dep_on',label:'Long stays can pay a deposit',type:'checkbox',hint:'Guests choose: pay the whole stay, or a deposit now and the rest later. Short stays always pay in full.'},
+      {key:'dep_nights',label:'Deposit from (nights)',type:'number',hint:'Stays shorter than this pay in full.'},
+      {key:'dep_pct',label:'Deposit, % of the room',type:'number',hint:'Extras are always paid in full with the deposit.'},
+      {key:'dep_high_pct',label:'Deposit in busier seasons, % of the room',type:'number',hint:'When they arrive in any season other than the normal one (Room prices).'},
+      {key:'dep_min_nights',label:'Deposit is at least (nights of the room)',type:'number',hint:'For example 7: the deposit is never less than the first 7 nights.'},
+      {key:'dep_balance_days',label:'The rest is due (days before arrival)',type:'number',hint:'Stays starting sooner than this pay in full. Monthly price stays pay at least the first month, then month by month.'},
+      {key:'quote_on',label:'Show Email me this price',type:'checkbox',hint:'Guests get the room, dates and price by email with a link to book it later, and you get a notice to follow up.'}],
       onSave:function(v){ var pct=Math.round(Number(v.pct)||0), gn=Math.round(Number(v.gift_nights)||0); if(pct<0||pct>50) return 'Choose a discount from 0 to 50%.'; if(gn<0||gn>90) return 'Choose 0 to 90 nights.';
-        var val={on:!!v.on,pct:pct,gift_nights:gn,gift:String(v.gift||'').trim(),includes:String(v.includes||'').trim(),month_banner:String(v.month_banner||'').trim(),all_include:String(v.all_include||'').trim()}, txt=JSON.stringify(val);
+        var dn=function(k,lo,hi){ var x=Math.round(Number(v[k])); return isFinite(x)?Math.max(lo,Math.min(hi,x)):null; };
+        var val={on:!!v.on,pct:pct,gift_nights:gn,gift:String(v.gift||'').trim(),includes:String(v.includes||'').trim(),month_banner:String(v.month_banner||'').trim(),all_include:String(v.all_include||'').trim(),
+          dep_on:!!v.dep_on,dep_nights:dn('dep_nights',1,90),dep_pct:dn('dep_pct',5,95),dep_high_pct:dn('dep_high_pct',5,95),dep_min_nights:dn('dep_min_nights',0,60),dep_balance_days:dn('dep_balance_days',0,90),quote_on:!!v.quote_on}, txt=JSON.stringify(val);
         return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','stay_offer').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'stay_offer',value:txt}).then(must); }).then(function(){ SOFF=val; schedule(); }); }}); },'small'):null,
     h('div',{class:'panel pad'},h('p',{style:'margin:0'},line)));
 }
