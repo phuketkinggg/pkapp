@@ -66,7 +66,7 @@ jobs:
           npx capacitor-assets generate --android
           npx cap sync android
           M=android/app/src/main/AndroidManifest.xml
-          for perm in CAMERA RECORD_AUDIO ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION POST_NOTIFICATIONS; do
+          for perm in CAMERA RECORD_AUDIO POST_NOTIFICATIONS; do
             grep -q "android.permission.$perm\"" $M || sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#<uses-permission android:name=\"android.permission.INTERNET\" />\n    <uses-permission android:name=\"android.permission.$perm\" />#" $M
           done
           grep -c uses-permission $M
