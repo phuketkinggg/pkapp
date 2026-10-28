@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=48"></script>
+<script src="changelog.js?v=49"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -881,7 +881,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=10; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=11; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7622,10 +7622,26 @@ function upgFor(cid){ var k=cid||'me', x=UPG[k];
 function upgIncl(o){ return (o.covers&&o.covers.length?'Includes '+o.covers.join(', '):'')+'. No weekly limit.'; }
 function upgSell(o,cid){ sb.rpc('upgrade_order',{p_purchase:o.purchase_id}).then(must).then(function(id){ delete UPG[cid];
     return reload('purchases').then(function(){ var p=byId('purchases',id); toast('Upgrade added: '+thb(o.price)+' to pay.'); if(p) takePayment(p); }); }).catch(function(e){ toast(errText(e)); }); }
+/* the offer when they check in (desk screen or their app): once, unless they upgraded or the team already spoke to them */
+function upgDue(cid,packId){ if(!featOn('upgrades')) return null; var k=cid||'me', l=(UPG[k]&&UPG[k].list)||[];
+  return l.filter(function(o){ return !o.offered&&!o.pending&&(!packId||o.purchase_id===packId); })[0]||null; }
+function upgPopup(o,go){ var done=false;
+  function pick(x){ if(done) return; done=true; try{ $dlg.close(); }catch(e){} go(x); }
+  $dlg.addEventListener('close',function f(){ $dlg.removeEventListener('close',f); if(!done){ done=true; go('no'); } });
+  shopDlg(h('div',{class:'billbox upgpop'},h('h2',null,'Upgrade to '+o.to+'?'),
+    h('p',null,'You have the '+o.from+', which gives you '+(o.have||'the classes in your package only')+'.'),
+    h('p',null,'If you want more, you can upgrade right now to '+o.to+' for '+thb(o.price)+', giving you '+(o.get||'everything in '+o.to)+'.'+(o.pro_rata?' The price is for the time you have left.':'')),
+    h('p',{class:'sub'},'To do that, simply pay by card now, or pay cash at the counter.'),
+    h('div',{class:'row wrap'},btn('Pay by card now',function(){ pick('card'); },'primary'),btn('Pay cash at the counter',function(){ pick('cash'); }),btn('No thanks, just check me in',function(){ pick('no'); })),
+    h('p',{class:'sub'},'Card payments have a card fee of '+cardFeeText()+'.'))); }
+/* after the check in: order the upgrade (card or cash), or note that they said no */
+function upgAfter(o,ch,cid){ delete UPG[cid||'me'];
+  if(ch==='no') return sb.rpc('upgrade_seen',{p_purchase:o.purchase_id}).then(function(){},function(){});
+  return sb.rpc('upgrade_order',{p_purchase:o.purchase_id}).then(must).then(function(id){ if(ch==='card') setTimeout(function(){ stripePay('purchase',id,'Upgrade to '+o.to); },300); return id; }); }
 function upgDesk(c){ if(!featOn('upgrades')) return null; var l=upgFor(c.id); if(!l.length) return null;
   return section('Upgrade offer',null,cards(l.map(function(o){ return {when:o.from+' to '+o.to,right:thb(o.price),
-    note:(o.pro_rata?'For the time left (full difference '+thb(o.full)+'). ':'The price difference. ')+(o.pending?'The upgrade is waiting for payment in Packages below.':'Offer it when they come in: once paid, their package gets the new rules straight away.'),
-    act:o.pending?null:[btn('Sell upgrade',function(){ upgSell(o,c.id); },'primary small')]}; }),'')); }
+    note:(o.pro_rata?'For the time left (full difference '+thb(o.full)+'). ':'The price difference. ')+(o.pending?'The upgrade is waiting for payment in Packages below.':o.offered?'Offered '+fmtDate(String(o.offered_at).slice(0,10))+'. It does not pop up at check in again.':'It pops up when they check in. Once paid, their package gets the new rules straight away.'),
+    act:o.pending?null:[btn('Sell upgrade',function(){ upgSell(o,c.id); },'primary small'),o.offered?null:btn('Spoke to them',function(){ sb.rpc('upgrade_seen',{p_purchase:o.purchase_id}).then(must).then(function(){ delete UPG[c.id]; toast('Noted. It will not pop up at check in.'); schedule(); }).catch(function(e){ toast(errText(e)); }); },'small')]}; }),'')); }
 function cuUpgrades(){ if(!featOn('upgrades')||!CU) return null; var l=upgFor(PV?PV.cid:null); if(!l.length) return null;
   return section('Upgrade offer',null,cards(l.map(function(o){ return {when:'Upgrade to '+o.to,right:thb(o.price),
     note:'Your '+o.from+' becomes '+o.to+'. '+upgIncl(o)+' '+(o.pro_rata?'Priced for the time you have left.':'You only pay the difference.')+(o.pending?' Your upgrade is waiting for payment above.':''),
@@ -7636,19 +7652,21 @@ function upgSave(list){ var txt=JSON.stringify(list);
   return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','upgrades').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'upgrades',value:txt}).then(must); }).then(function(){ UPGP=list; UPG={}; schedule(); }); }
 function upgEdit(i){ var list=upgPaths().slice(), x=i==null?{}:list[i], opts=sortBy(S.packages,'name').map(function(k){ return [k.id,k.name+(k.active===false?' (not on sale)':'')+', '+thb(k.price_thb)]; });
   openForm({title:i==null?'Add an upgrade':'Change upgrade',note:'Customers with the first package see an offer to move up to the second. The upgrade package can be one that is not on sale.',
-    values:{from:x.from||'',to:x.to||'',price:x.price==null?'':x.price},fields:[
+    values:{from:x.from||'',to:x.to||'',price:x.price==null?'':x.price,have:x.have||'',get:x.get||''},fields:[
     {key:'from',label:'From package',type:'select',options:[['','Choose']].concat(opts)},
     {key:'to',label:'Upgrade to',type:'select',options:[['','Choose']].concat(opts)},
-    {key:'price',label:'Upgrade price (THB)',type:'number',hint:'Leave empty for the difference between the two prices. Once they have started, it is less for the time already used.'}],
+    {key:'price',label:'Upgrade price (THB)',type:'number',hint:'Leave empty for the difference between the two prices. Once they have started, it is less for the time already used.'},
+    {key:'have',label:'What their package gives them',hint:'Shown when they check in: You have the ..., which gives you (these words). For example: 1 group class per calendar week, but no access to any of the other facilities.'},
+    {key:'get',label:'What the upgrade gives them',hint:'Shown as: upgrade right now for ..., giving you (these words). For example: unlimited access: group classes, fitness classes and use of the gym outside class hours.'}],
     onDelete:i==null?null:function(){ list.splice(i,1); return upgSave(list); },
     onSave:function(v){ if(!v.from||!v.to) return 'Choose both packages.'; if(v.from===v.to) return 'Choose two different packages.';
       if(list.some(function(y,j){ return j!==i&&y.from===v.from; })) return 'That package already has an upgrade.';
       var pr=v.price===''||v.price==null?null:Math.round(Number(v.price)); if(pr!=null&&(isNaN(pr)||pr<=0)) return 'Type a price, or leave it empty.';
       if(pr==null){ var a=byId('packages',v.from), b=byId('packages',v.to); if(a&&b&&Number(b.price_thb)<=Number(a.price_thb)) return 'The upgrade package costs the same or less. Type an upgrade price.'; }
-      var y={from:v.from,to:v.to,price:pr}; if(i==null) list.push(y); else list[i]=y; return upgSave(list); }}); }
+      var y={from:v.from,to:v.to,price:pr,have:String(v.have||'').trim(),get:String(v.get||'').trim()}; if(i==null) list.push(y); else list[i]=y; return upgSave(list); }}); }
 function upgSection(){ if(!featOn('upgrades')) return null; var list=upgPaths(), man=me&&me.role==='manager';
   return section('Upgrade offers',man?btn('Add upgrade',function(){ upgEdit(null); },'small'):null,h('div',null,
-    h('p',{class:'sub'},'A customer on the first package sees an offer in their app to move up, and the front desk sees it on the customer. They pay the difference, or less once they have started. When it is paid their package takes on the new rules and keeps its dates.'),
+    h('p',{class:'sub'},'A customer on the first package sees an offer in their app to move up, it pops up once when they check in, and the front desk sees it on the customer. They pay the difference, or less once they have started. When it is paid their package takes on the new rules and keeps its dates.'),
     table([{label:'From',cell:function(x){ return nameOf('packages',x.from)||'Removed package'; }},
       {label:'Upgrade to',cell:function(x){ return nameOf('packages',x.to)||'Removed package'; }},
       {label:'Upgrade price',num:true,cell:function(x){ if(x.price!=null) return thb(x.price); var a=byId('packages',x.from), b=byId('packages',x.to); return a&&b?thb(b.price_thb-a.price_thb)+' (difference)':''; }},
@@ -8660,9 +8678,12 @@ function cuYesterday(){
 function cuCheckIn(t){
   var code=liveCode();
   if(!code){ forgetCode(); toast('Scan the QR code at the front desk again.'); schedule(); return; }
-  if(cuBusy) return; cuBusy=true;
+  if(cuBusy) return;
+  var uo=PV?null:upgDue(null); if(uo&&!t.upgAsked){ upgPopup(uo,function(ch){ t.upgAsked=ch; cuCheckIn(t); }); return; }
+  var ch=t.upgAsked; t.upgAsked=null; cuBusy=true;
   sb.rpc('customer_check_in',{p_code:code,p_class:t.kind==='class'?t.id:null,p_facility:t.kind==='facility'?t.name:null}).then(must).then(function(d){
-    cuDone=d; return loadCustomer();
+    cuDone=d; if(uo&&ch) return upgAfter(uo,ch,null).then(function(){ if(ch==='cash') toast('Checked in. Pay '+thb(uo.price)+' at the counter for your upgrade.'); return loadCustomer(); },function(e){ toast(errText(e)); return loadCustomer(); });
+    return loadCustomer();
   }).catch(function(e){
     var m=(e&&e.message)||'That did not work. Try again.';
     if(/out of date/.test(m)) forgetCode();
@@ -9401,7 +9422,7 @@ function kUsable(p,day){ if(isPrivatePack(p)||isMealOnly(p)||unpaidOrder(p)||p.c
 function kTargets(c,day){
   var wd=(parseYmd(day).getDay()+6)%7, cut=shiftTime(timeNow(),-120), entries=entriesOf(day).filter(function(e){ return e.customer_id===c.id; });
   var classToday=entries.some(function(e){ return !!e.class_id; });
-  var ps=S.purchases.filter(function(p){ return p.customer_id===c.id&&kUsable(p,day); });
+  var ps=S.purchases.filter(function(p){ return p.customer_id===c.id&&kUsable(p,day); }); upgFor(c.id);
   var ts=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,ymd(new Date()))&&!k.no_checkin; }),'time').map(function(k){ return {kind:'class',id:k.id,day:Number(k.day),discipline:k.discipline,time:k.time||'',label:k.title}; })
     .concat(FACILITIES.map(function(f){ return {kind:'facility',name:f,time:'',label:f}; }));
   var out=[];
@@ -9414,10 +9435,13 @@ function kTargets(c,day){
   return out;
 }
 function kCheckIn(c,t){
-  if(ui.kbusy) return; ui.kbusy=true; ui.kerr='';
+  if(ui.kbusy) return;
+  var uo=upgDue(c.id,t.pack&&t.pack.id); if(uo&&!t.upgAsked){ kIdle(150000); upgPopup(uo,function(ch){ t.upgAsked=ch; kCheckIn(c,t); }); return; }
+  var ch=t.upgAsked; t.upgAsked=null; ui.kbusy=true; ui.kerr='';
   sb.rpc('check_in',{p_customer:c.id,p_purchase:t.pack.id,p_class:t.kind==='class'?t.id:null,p_facility:t.kind==='facility'?t.name:null}).then(must).then(function(){
-    ui.kdone={cid:c.id,name:String(c.name||'').split(' ')[0],what:(t.time?t.time+' ':'')+t.label,pack:t.pack.package_name};
-    kIdle(owesNow(c.id)>0?30000:5000); return Promise.all([reload('checkin_days'),reload('purchases')]);
+    ui.kdone={cid:c.id,name:String(c.name||'').split(' ')[0],what:(t.time?t.time+' ':'')+t.label,pack:t.pack.package_name+(uo&&ch==='cash'?'. Upgrade to '+uo.to+': pay '+thb(uo.price)+' at the counter.':uo&&ch==='card'?'. Upgrade: scan the code to pay by card.':'')};
+    if(uo&&ch) upgAfter(uo,ch,c.id).catch(function(e){ toast(errText(e)); });
+    kIdle(uo&&ch==='card'?150000:owesNow(c.id)>0||(uo&&ch==='cash')?30000:5000); return Promise.all([reload('checkin_days'),reload('purchases')]);
   }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; schedule(); }).then(function(){ ui.kbusy=false; schedule(); });
 }
 /* desk mode: privates booked for today show at the top, so the customer can check in for them */
