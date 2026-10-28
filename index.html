@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=49"></script>
+<script src="changelog.js?v=50"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -828,6 +828,7 @@ var FEATURES=[
   {k:'email_log',g:'Messages',n:'Emails page',d:'One page with every email the app sends: emails written in the app, invoices and receipts, welcome emails, action group emails and outreach, with what was sent, what is waiting and what failed. Write a new email from here too.',tabs:['emails']},
   {k:'custview',g:'Customers',n:'Customer view',d:'Managers pick any customer and see their app exactly as they see it: home, packages, courses and coaching. View only.',tabs:['custview']},
   {k:'coach_choose',g:'Training',n:'Coaching chosen per customer',d:'Coaching is only for the customers you turn it on for, and you choose which parts each gets: steps and habits, workouts, food diary, weight. Set it on the customer, Coaching options. Off: everyone has all of it.'},
+  {k:'partners',g:'Marketing',n:'Partner programme',d:'A Partners page on your website where people apply to send you customers, at levels you set (for example Affiliate, Creator and Ambassador, each with its own share and perks). Applications come into Affiliates, where you approve them at a level.'},
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
   {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
@@ -881,7 +882,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=11; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=12; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1609,12 +1610,13 @@ function claimsSection(){
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
 /* new things the desk should know about: app sign ups, first app sign ins, packages sold, stays booked */
-var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad'],prearrival:['Ready for camp','ok'],pangea_service:['Pangea plan','ok']};
+var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad'],prearrival:['Ready for camp','ok'],pangea_service:['Pangea plan','ok'],partner:['Partner application','ok']};
 function seesNotices(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
 function loadNotices(){ if(!seesNotices()) return Promise.resolve(); return sb.rpc('notices_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(NOTI); NOTI=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
 setInterval(function(){ if(allReady&&seesNotices()&&!CU&&document.visibilityState!=='hidden') loadNotices(); },30000);
 function noticeDone(id){ NOTI=(NOTI||[]).filter(function(n){ return id&&n.id!==id; }); schedule(); run(sb.rpc('notice_done',{p_id:id||null}).then(must).then(loadNotices)); }
 function noticeOpen(n){
+  if(n.kind==='partner'){ ui.tab='affiliates'; PAPPS=null; schedule(); return; }
   if(n.kind==='stay'){ var st=byId('stays',n.ref_id); noticeDone(n.id); if(st){ if(me.role==='resort'){ ui.tab='stays'; schedule(); } editStay(st); } else if(n.customer_id) openCustomer(n.customer_id); return; }
   if(n.kind==='private'){ var pv=byId('privates',n.ref_id); if(pv){ if(pv.status!=='requested') noticeDone(n.id); if(pv.status==='requested'&&me.role==='manager') approvePrivate(pv); else editPrivate(pv); return; } }
   if(n.kind==='package'||n.kind==='refund'||n.kind==='shop') noticeDone(n.id);
@@ -1628,7 +1630,7 @@ function noticesBox(kinds){
   return section('New ('+list.length+')',list.length>1?btn('Clear all',function(){ if(kinds) list.forEach(function(n){ noticeDone(n.id); }); else noticeDone(null); },'small'):null,
     cards(list.map(function(n){ var k=NOTK[n.kind]||['New'];
       return {when:actAge(n.at)+' ago',right:chip(k[0],k[1]),title:h('b',null,n.title),note:n.detail||null,
-        act:[n.customer_id||n.ref_id?btn(n.kind==='stay'?'Open stay':'Open customer',function(){ noticeOpen(n); },'primary small'):null,btn('Seen',function(){ noticeDone(n.id); },'small')]}; }),''));
+        act:[n.customer_id||n.ref_id?btn(n.kind==='stay'?'Open stay':n.kind==='partner'?'Open application':'Open customer',function(){ noticeOpen(n); },'primary small'):null,btn('Seen',function(){ noticeDone(n.id); },'small')]}; }),''));
 }
 function newTag(c){ return c&&c.seen_at===null&&!c.is_agency?h('i',{class:'newcu'},' New customer'):null; }
 function ackCustomer(id){
@@ -2612,16 +2614,48 @@ function affLinks(a){
 function affOwed(a){ return Math.max(0,Number(a.earned||0)-Number(a.paid||0)); }
 function affCount(a){ return (a.stays||[]).concat(a.sales||[]).filter(function(x){ return x.state!=='cancelled'; }).length; }
 var AFFST={coming:['Coming',''],earned:['Earned','ok'],cancelled:['Cancelled','warn']};
+/* partner programme: people apply on the website Partners page at a level; a manager approves them into an affiliate with that level's share */
+var PAPPS=null, PLEV=null;
+function partLoad(){ if(ui.paBusy) return; ui.paBusy=true;
+  Promise.all([sb.rpc('partner_apps'),sb.from('app_settings').select('value').eq('key','partner_levels').maybeSingle(),sb.rpc('partner_levels_public')]).then(function(r){ ui.paBusy=false;
+    PAPPS=r[0].error?[]:(r[0].data||[]); var own=null; try{ own=r[1].data?JSON.parse(r[1].data.value):null; }catch(e){ own=null; }
+    PLEV=Array.isArray(own)&&own.length?own:(Array.isArray(r[2].data)?r[2].data:[]); schedule(); },function(){ ui.paBusy=false; PAPPS=[]; PLEV=PLEV||[]; schedule(); }); }
+function plName(id){ var l=(PLEV||[]).filter(function(x){ return x.id===id; })[0]; return l?l.name:(id||''); }
+function paNum(n){ return n==null?'':Number(n).toLocaleString('en-US'); }
+function paDecide(a,ok){
+  if(!ok) return openForm({title:'Decline '+a.name,note:'They are not told automatically. Email them if you want to.',saveLabel:'Decline',values:{note:''},fields:[{key:'note',label:'Note for you (optional)'}],
+    onSave:function(v){ return sb.rpc('partner_app_decide',{p_id:a.id,p_ok:false,p_note:v.note||null}).then(must).then(function(){ PAPPS=null; partLoad(); }); }});
+  openForm({title:'Approve '+a.name,note:'They become an affiliate with the share of the level you choose, and get their own link. Send it to them from the list.',saveLabel:'Approve',
+    values:{level:a.level||((PLEV||[])[0]||{}).id||'',note:''},fields:[{key:'level',label:'Level',type:'select',options:(PLEV||[]).map(function(l){ return [l.id,l.name+(l.pct!=null?', '+l.pct+'%':'')]; })},{key:'note',label:'Note (optional)',hint:'For example what content you agreed.'}],
+    onSave:function(v){ if(!v.level) return 'Choose a level.'; return sb.rpc('partner_app_decide',{p_id:a.id,p_ok:true,p_level:v.level,p_note:v.note||null}).then(must).then(function(){ PAPPS=null; AFF=null; partLoad(); affLoad(); toast('Approved. Their link is in the list below: tap Copy link and send it to them.'); }); }});
+}
+function plEditor(){ var L=(PLEV||[]).map(function(l){ return Object.assign({},l); }); if(!L.length) return;
+  var vals={}, fields=[]; L.forEach(function(l,i){ vals['n'+i]=l.name; vals['p'+i]=l.pct; vals['f'+i]=l.min_followers; vals['v'+i]=l.min_views; vals['w'+i]=l.who||''; vals['g'+i]=l.gets||''; vals['o'+i]=l.gives||'';
+    fields.push({key:'h'+i,label:'Level '+(i+1),type:'info'},{key:'n'+i,label:'Name'},{key:'p'+i,label:'Their share (%)',type:'number'},{key:'f'+i,label:'Least followers',type:'number'},{key:'v'+i,label:'Least average views per video',type:'number',hint:'Leave empty if it does not matter.'},
+      {key:'w'+i,label:'Who it is for',type:'textarea'},{key:'g'+i,label:'What they get',type:'textarea'},{key:'o'+i,label:'What they give',type:'textarea'}); vals['h'+i]=''; });
+  openForm({title:'Partner levels',note:'Shown on the Partners page of your website, and used when you approve someone. Changing a share here does not change partners you already approved.',values:vals,fields:fields,
+    onSave:function(v){ var out=[]; for(var i=0;i<L.length;i++){ var pct=Math.round(Number(v['p'+i])); if(!String(v['n'+i]||'').trim()) return 'Give level '+(i+1)+' a name.'; if(!(pct>=0&&pct<=50)) return 'Shares must be 0 to 50%.';
+        out.push({id:L[i].id,name:String(v['n'+i]).trim(),pct:pct,min_followers:v['f'+i]==null?null:Math.round(Number(v['f'+i])),min_views:v['v'+i]==null?null:Math.round(Number(v['v'+i])),who:String(v['w'+i]||'').trim(),gets:String(v['g'+i]||'').trim(),gives:String(v['o'+i]||'').trim()}); }
+      var txt=JSON.stringify(out);
+      return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','partner_levels').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'partner_levels',value:txt}).then(must); }).then(function(){ PLEV=out; schedule(); }); }}); }
+function paSection(){ if(!featOn('partners')||!(me&&me.role==='manager')) return null; if(PAPPS===null){ partLoad(); return null; }
+  var news=PAPPS.filter(function(a){ return a.status==='new'; }), show=news.concat(PAPPS.filter(function(a){ return a.status!=='new'; }).slice(0,10));
+  return section('Partner applications'+(news.length?' ('+news.length+' new)':''),btn('Partner levels',plEditor,'small'),h('div',null,
+    h('p',{class:'sub'},'People apply on the Partners page of your website ('+SITE_URL.replace(/^https:\/\//,'')+'/partners). Check their channels and audience, then approve them at a level: they become an affiliate with that share and their own link.'),
+    cards(show.map(function(a){ return {when:fmtDate(String(a.created_at).slice(0,10)),right:a.status==='new'?chip('New, '+plName(a.level),'warn'):a.status==='approved'?chip('Approved, '+plName(a.level),'ok'):chip('Declined'),
+      title:h('b',null,a.name),note:[a.links,(a.followers?paNum(a.followers)+' followers':'')+(a.avg_views?', '+paNum(a.avg_views)+' average views':''),a.audience?'Audience: '+a.audience:'',a.offer?'Offers: '+a.offer:'',[a.email,a.phone].filter(Boolean).join(', '),a.note?'Note: '+a.note:''].filter(Boolean).join('. '),
+      act:a.status==='new'?[btn('Approve',function(){ paDecide(a,true); },'primary small'),btn('Decline',function(){ paDecide(a,false); },'small')]:null}; }),'No applications yet. Share your Partners page, or wait for people to find it in the footer of your website.'))); }
 function vAff(){
   var mgr=me&&me.role==='manager';
   if(!AFF){ affLoad(); return [h('div',{class:'panel empty'},ui.affErr||'Loading.')]; }
+  var plv={}; (PAPPS||[]).forEach(function(x){ if(x.status==='approved'&&x.affiliate_id) plv[x.affiliate_id]=x.level; });
   var owed=AFF.reduce(function(t,a){ return t+affOwed(a); },0);
   var days=(AFF.filter(function(a){ return a.own_days==null; })[0]||{}).days||AFFDAYS||60;
-  return [section('Referrals',mgr?h('div',{class:'row'},btn('Links count for '+(days||60)+' days',affDaysDlg,'small'),btn('Add an affiliate',function(){ editAff(); },'primary small')):null,h('div',null,
+  return [paSection(),section('Referrals',mgr?h('div',{class:'row'},btn('Links count for '+(days||60)+' days',affDaysDlg,'small'),btn('Add an affiliate',function(){ editAff(); },'primary small')):null,h('div',null,
     h('p',{class:'sub'},'Give anyone who sends you guests their own link. When someone books a room or buys a package or course on the website through it (within the days you set), it is tagged to them and they earn their share of the room price or the package price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
     owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
     table([
-      {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),a.active?null:h('div',{class:'sub'},'Switched off')); }},
+      {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),plv[a.id]?h('span',null,' ',chip(plName(plv[a.id]),'ok')):null,a.active?null:h('div',{class:'sub'},'Switched off')); }},
       {label:'Share',num:true,cell:function(a){ return a.rules?h('span',null,'Own list',h('div',{class:'sub'},affRulesLine(a))):Number(a.pct)+'%'; }},
       {label:'Bookings',num:true,cell:function(a){ return String(affCount(a)); }},
       {label:'Coming',num:true,cell:function(a){ return thb(a.coming)||'0 THB'; }},
