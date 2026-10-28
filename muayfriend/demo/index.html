@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=57"></script>
+<script src="changelog.js?v=58"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -826,6 +826,7 @@ var FEATURES=[
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
+  {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
@@ -886,7 +887,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=18; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=19; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3256,7 +3257,8 @@ function pushOff(){
   }).then(function(){ PUSH.on=false; toast('Notifications off on this phone.'); schedule(); }).catch(function(e){ toast(errText(e)); });
 }
 /* tapping a notification opens that chat */
-if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.type==='open-chat'&&/^[0-9a-f-]{36}$/.test(d.chat||'')){ ui.tab='chat'; ui.openChatId=d.chat; CHAT.list=null; chatRefresh(); schedule(); } });
+if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.type==='open-chat'&&/^[0-9a-f-]{36}$/.test(d.chat||'')){ ui.tab='chat'; ui.openChatId=d.chat; CHAT.list=null; chatRefresh(); schedule(); }
+  if(d.type==='open-tab'&&VIEWS[d.tab]&&tabOn(d.tab)){ ui.tab=d.tab; if(d.tab==='kitchen') loadKitchen(); schedule(); } });
 setInterval(function(){ if(isDeskRole()&&allReady&&ui.tab==='chat'&&document.visibilityState!=='hidden') loadWebChat(); },60000);
 
 
@@ -6582,6 +6584,9 @@ function foodToday(){ if(!featOn('food_plans')||!me||['manager','front_desk','re
     return {when:f.room||'Not staying',right:f.to?'Until '+fmtDate(f.to):null,title:f.who+': '+f.plan+(f.per_day?', '+f.per_day+' a day':''),note:f.note||null,
       act:me.role!=='kitchen'?btn('Open',function(){ ui.tab='customers'; ui.customerId=f.customer_id; schedule(); },'small'):null}; }),'')); }
 
+/* a phone notification for every app order (staff who turn it on here, or in Messages) */
+function orderPushRow(){ if(!ui.pushAsked){ ui.pushAsked=true; pushState(); }
+  return h('div',{class:'row wrap',style:'margin-top:12px;align-items:center'},h('span',{class:'sub'},'A phone notification for every food and drink order from the app:'),pushBtn()); }
 /* coffee and drinks: their own hours and switch, like the kitchen; when closed the app takes no drink orders */
 function barMode(mode,mins){ return sb.rpc('bar_set_mode',{p_mode:mode,p_minutes:mins||null}).then(must).then(function(){ toast(mode==='auto'?'Coffee and drinks follow their hours again.':mode==='closed'?'Coffee and drinks closed. The app takes no drink orders.':mode==='busy'?'Busy: guests see drinks take about 15 minutes.':'Coffee and drinks open.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); }
 function barClose(){
@@ -6638,6 +6643,7 @@ function kitchenControls(){
       k.mode&&k.mode!=='auto'?btn('Back to normal hours',function(){ kitchenMode('auto'); },'small'):null,
       KINFO.manager?btn('Kitchen hours',kitchenHours,'small'):null),
     barControls(),
+    featOn('order_push')?orderPushRow():null,
     dishes.length?h('details',{style:'margin-top:10px'},h('summary',null,'Sold out today'+(out?' ('+out+')':'')),
       h('p',{class:'sub'},'Tap a dish to mark it sold out. It comes back by itself tomorrow.'),
       h('div',{class:'soldgrid'},dishes.map(function(x){ return btn(x.name,function(){ sb.rpc('kitchen_sold_out',{p_product:x.id,p_out:!x.sold_out}).then(must).then(function(){ toast(x.sold_out?x.name+' is back on.':x.name+' is sold out today.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); },x.sold_out?'small out':'small'); }))):null);

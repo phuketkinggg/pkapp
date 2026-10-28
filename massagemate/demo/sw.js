@@ -1,6 +1,6 @@
 // Keeps the app installable and opens the last copy when there is no signal.
 // Always tries the network first, so updates show up straight away. Data calls are never cached.
-const CACHE = 'mm-demo-v166';
+const CACHE = 'mm-demo-v167';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './vendor/supabase-js-2.117.2.js', './vendor/qrcode-generator-1.4.4.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
@@ -23,7 +23,7 @@ self.addEventListener('fetch', (e) => {
   }).catch(() => { const root = new URL('./', self.location).pathname; return caches.match(req.mode === 'navigate' ? ((url.pathname === root || url.pathname === root + 'index.html') ? './' : req) : req).then((r) => r || (url.pathname.startsWith(root + 'pangea/') ? r : caches.match('./'))); }));
 });
 
-// Website chat notifications for the desk (turned on in the app: Messages, Website chat).
+// Phone notifications: chat messages, and new food and drink orders for staff (turned on in the app: Messages, or the kitchen screen).
 self.addEventListener('push', (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_x) { d = { title: 'Massage Mate Demo Spa', body: e.data ? e.data.text() : '' }; }
@@ -37,7 +37,8 @@ self.addEventListener('notificationclick', (e) => {
   const m = url.match(/#chat=([0-9a-f-]{36})/);
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
     const w = list.find((c) => new URL(c.url).origin === self.location.origin);
-    if (w) { w.postMessage({ type: 'open-chat', chat: m ? m[1] : null }); return w.focus(); }
+    const tab = !m && url.match(/#([a-z_]+)$/);
+    if (w) { w.postMessage(tab && tab[1] !== 'chat' ? { type: 'open-tab', tab: tab[1] } : { type: 'open-chat', chat: m ? m[1] : null }); return w.focus(); }
     return self.clients.openWindow(url.startsWith('./') && self.location.origin !== '.' ? './' + url.slice(url.indexOf('#')) : url);
   }));
 });

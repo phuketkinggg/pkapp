@@ -4,6 +4,7 @@
 // send / contact / poll: need the id and key. Poll returns only this chat's messages.
 // Each visitor message sends a notification to desk staff phones that switched notifications on in the app.
 // app: a new message in an app chat (the database calls it with the sync token) notifies the other members' phones.
+// order: a new food or drink order from the app (the database calls it with the sync token) notifies staff phones; tapping opens the kitchen screen.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 
@@ -36,10 +37,10 @@ async function notify(p: { title: string; body: string; chat: string }) {
     await send((data ?? []) as Sub[], p);
   } catch (_e) { /* notifications are best effort */ }
 }
-async function send(subs: Sub[], p: { title: string; body: string; chat: string }) {
+async function send(subs: Sub[], p: { title: string; body: string; chat: string; tag?: string; url?: string }) {
   try {
     await vapid();
-    const msg = JSON.stringify({ title: p.title, body: p.body, tag: "chat-" + p.chat, url: "https://app.phuketking.com/#chat=" + p.chat });
+    const msg = JSON.stringify({ title: p.title, body: p.body, tag: p.tag ?? "chat-" + p.chat, url: p.url ?? "https://app.phuketking.com/#chat=" + p.chat });
     await Promise.all(subs.map(async (s) => {
       try {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, msg, { TTL: 3600, urgency: "high" });
@@ -70,6 +71,14 @@ Deno.serve(async (req) => {
     const { data: t } = await admin.rpc("chat_push_targets", { p_message: str(b.id, 40) });
     const tg = t as { title: string; body: string; chat: string; subs: { endpoint: string; p256dh: string; auth: string }[] } | null;
     if (tg && tg.subs?.length) await send(tg.subs, { title: tg.title, body: tg.body, chat: tg.chat });
+    return json({ ok: true, sent: tg?.subs?.length ?? 0 });
+  }
+  if (mode === "order") {
+    const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
+    if (ok !== true) return json({ error: "Not allowed." }, 401);
+    const { data: t } = await admin.rpc("order_push_targets", { p_order: str(b.id, 40) });
+    const tg = t as { title: string; body: string; order: string; subs: Sub[] } | null;
+    if (tg && tg.subs?.length) await send(tg.subs, { title: tg.title, body: tg.body, chat: "", tag: "order-" + tg.order, url: "https://app.phuketking.com/#kitchen" });
     return json({ ok: true, sent: tg?.subs?.length ?? 0 });
   }
   if (!["status", "start", "send", "contact", "poll"].includes(mode)) return json({ error: "Unknown request." }, 400);
