@@ -1,5 +1,5 @@
 {
- "at": "2026-10-27T15:25:59Z",
+ "at": "2026-10-28T13:08:03Z",
  "classes": [
   {
    "day": 0,
@@ -351,6 +351,13 @@
   },
   {
    "covers": [
+    "Privates"
+   ],
+   "name": "Private Training Coach Tom",
+   "price": 2500
+  },
+  {
+   "covers": [
     "Muay Thai"
    ],
    "name": "Ed visa letter fee",
@@ -464,14 +471,14 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 30 Group Classes, 6 months",
+   "name": "DTV 9 Months Lite",
    "price": 24000
   },
   {
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 9 Months Lite",
+   "name": "DTV 30 Group Classes, 6 months",
    "price": 24000
   },
   {
@@ -486,18 +493,18 @@
   {
    "covers": [
     "Muay Thai",
-    "Spa"
+    "Fitness zone",
+    "Open gym"
    ],
-   "name": "Training + Recovery, 3 Month",
+   "name": "Training Only, 6 Month",
    "price": 28000
   },
   {
    "covers": [
     "Muay Thai",
-    "Fitness zone",
-    "Open gym"
+    "Spa"
    ],
-   "name": "Training Only, 6 Month",
+   "name": "Training + Recovery, 3 Month",
    "price": 28000
   },
   {
