@@ -643,6 +643,10 @@
 " ไม่มียอดค้าง",
 " ပေးရန်ကျန် မရှိပါ။"
 ],
+" package. Or buy the course on its own for ": [
+" หรือซื้อคอร์สแยกในราคา ",
+" ပက်ကေ့ချ်။ သို့မဟုတ် သင်တန်းကို သီးခြားဝယ်ရန် "
+],
 " partners. Do you also want to give these shares to the ": [
 " คุณต้องการให้ส่วนแบ่งเหล่านี้กับ ",
 " partner များ။ ဤဝေစုများကို ပေးလိုပါသလား "
@@ -2834,6 +2838,10 @@
 "Ask the AI to change it, for example: shorter, more fun, add a line about the cafe": [
 "ให้ AI แก้ไข เช่น สั้นลง สนุกขึ้น เพิ่มบรรทัดเกี่ยวกับคาเฟ่",
 "AI ကို ပြင်ခိုင်းပါ၊ ဥပမာ: ပိုတိုအောင်၊ ပိုပျော်စရာကောင်းအောင်၊ ကဖေးအကြောင်း တစ်ကြောင်း ထည့်ပါ"
+],
+"Ask the team at reception about this course.": [
+"สอบถามทีมงานที่เคาน์เตอร์เกี่ยวกับคอร์สนี้",
+"ဤသင်တန်းအကြောင်း ကောင်တာရှိ အဖွဲ့ကို မေးပါ။"
 ],
 "Ask to move": [
 "ขอเลื่อน",
@@ -7722,6 +7730,10 @@
 "It is already on your phone.": [
 "มีอยู่บนโทรศัพท์แล้ว",
 "ဖုန်းထဲတွင် ရှိပြီးသား။"
+],
+"It is included free with any active ": [
+"รวมฟรีกับแพ็กเกจที่ใช้งานอยู่ของ ",
+"တက်ကြွနေသော ပက်ကေ့ချ်တိုင်းနှင့် အခမဲ့ ပါဝင်သည် "
 ],
 "It is included free with any active Phuket King package.": [
 "รวมให้ฟรีกับแพ็กเกจ Phuket King ที่ใช้งานอยู่",

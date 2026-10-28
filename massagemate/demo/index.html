@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=52"></script>
+<script src="changelog.js?v=53"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -883,7 +883,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=14; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=15; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3514,8 +3514,12 @@ function crsSteps(c,back){
 function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
 function crsLocked(c){
+  /* in the store apps, courses are not sold inside the app (Google and Apple want their own billing for digital content): no price or buy link there */
+  if(window.pkNative&&window.pkNative()) return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
+    h('p',{class:'sub'},c.members_free?'It is included free with any active '+BIZ_MAIN+' package.':'Ask the team at reception about this course.'),
+    c.members_free?h('div',{class:'row'},btn('See packages',function(){ CRS.view=null; ui.tab='c_buy'; schedule(); },'small')):null);
   return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
-    h('p',{class:'sub'},c.members_free&&c.price?'It is included free with any active Massage Mate Demo Spa package. Or buy the course on its own for '+thb(c.price)+'.':c.members_free?'It is included free with any active Massage Mate Demo Spa package.':'Buy the course for '+thb(c.price)+' to unlock every lesson.'),
+    h('p',{class:'sub'},c.members_free&&c.price?'It is included free with any active '+BIZ_MAIN+' package. Or buy the course on its own for '+thb(c.price)+'.':c.members_free?'It is included free with any active '+BIZ_MAIN+' package.':'Buy the course for '+thb(c.price)+' to unlock every lesson.'),
     h('div',{class:'row'},c.price?h('a',{class:'btn primary',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'Buy the course, '+thb(c.price)):null,
       c.members_free?btn('See packages',function(){ CRS.view=null; ui.tab='c_buy'; schedule(); },'small'):null),
     c.price?h('p',{class:'sub'},'Use the same email as your app account when you buy, then come back here.'):null);
