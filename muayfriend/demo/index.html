@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=55"></script>
+<script src="changelog.js?v=56"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -8311,13 +8311,16 @@ function renderNav(){
   var tabs=(TABS.length&&chatOn()?[['chat',M('tab')]].concat(TABS):TABS).filter(function(t){ return tabOn(t[0]); });
   msgFab();
   var chatT=tabs.filter(function(t){ return t[0]==='chat'; }), rest=navOrder(tabs.filter(function(t){ return t[0]!=='chat'; }));
-  /* group titles open and close their part of the menu; the part with the page you are on stays open; remembered on this device */
+  /* group titles open and close their part of the menu; the part with the page you are on opens by itself, but a tap closes it; remembered on this device */
   var open=navOpen(), grp=null, shut={}, curG=null;
   rest.forEach(function(x){ if(x.g) grp=x.g; else if(grp&&x.t[0]===ui.tab) curG=grp; });
   grp=null;
   $nav.replaceChildren.apply($nav,chatT.map(function(t){ return {t:t}; }).concat(rest).map(function(x){
-    if(x.g){ grp=x.g; var isOpen=open.indexOf(x.g)>=0||curG===x.g; shut[x.g]=!isOpen;
-      return h('button',{type:'button',class:'navgrp','aria-expanded':isOpen?'true':'false',onclick:function(){ var o=navOpen(), i=o.indexOf(x.g); if(i>=0) o.splice(i,1); else o.push(x.g); pref('pk_navopen',JSON.stringify(o)); renderNav(); }},h('span',null,x.g),h('span',{class:'navcar','aria-hidden':'true'},isOpen?'\u25BE':'\u25B8')); }
+    if(x.g){ grp=x.g; var isOpen=open.indexOf(x.g)>=0||(curG===x.g&&ui.navShut!==x.g+'|'+ui.tab); shut[x.g]=!isOpen;
+      return h('button',{type:'button',class:'navgrp','aria-expanded':isOpen?'true':'false',onclick:function(){ var o=navOpen(), i=o.indexOf(x.g);
+        /* a tap always closes an open group, also the one with the page you are on (it opens again when you go to another page in it) */
+        if(isOpen){ if(i>=0) o.splice(i,1); ui.navShut=curG===x.g?x.g+'|'+ui.tab:null; } else { if(i<0) o.push(x.g); ui.navShut=null; }
+        pref('pk_navopen',JSON.stringify(o)); renderNav(); }},h('span',null,x.g),h('span',{class:'navcar','aria-hidden':'true'},isOpen?'\u25BE':'\u25B8')); }
     var t=x.t, hid=grp&&shut[grp]; return h('button',{type:'button',class:(t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):'')+(grp?' navin':'')+(hid?' shut':''),'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
   var lp=langPick(); if(lp) $nav.appendChild(lp);
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
