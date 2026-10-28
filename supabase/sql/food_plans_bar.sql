@@ -79,8 +79,8 @@ begin
   if not private.shop_kitchen_ok() then raise exception 'Not allowed.'; end if;
   return coalesce((select jsonb_agg(x order by x->>'room' nulls last, x->>'who') from (
     select jsonb_build_object('id', f.id, 'customer_id', f.customer_id, 'who', c.name, 'plan', f.name, 'per_day', f.per_day, 'from', f.starts_on, 'to', f.ends_on, 'note', f.note,
-      'room', (select r.name from public.stays s join public.rooms r on r.id = s.room_id where s.customer_id = f.customer_id and s.status in ('booked','in')
-               and s.check_in <= d and s.check_out >= d and s.hold_until is null order by s.check_in desc limit 1)) x
+      'room', (select r.name from public.stays s join public.rooms r on r.id = s.room_id where s.customer_id = f.customer_id and s.hold_until is null
+               and (s.status = 'in' or (s.status = 'booked' and s.check_in <= d and s.check_out >= d)) order by s.status = 'in' desc, s.check_in desc limit 1)) x
     from public.food_plans f join public.customers c on c.id = f.customer_id
     where f.starts_on <= d and (f.ends_on is null or f.ends_on >= d) and private.food_plan_live(f)) q), '[]'::jsonb);
 end $f$;
