@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=56"></script>
+<script src="changelog.js?v=57"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -825,6 +825,7 @@ var FEATURES=[
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
+  {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
@@ -885,7 +886,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=17; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=18; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2761,6 +2762,7 @@ function vStays(){
   if(view==='aff') return head.concat(vAff());
   return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
+    foodToday(),
     free.length?h('p',{class:'sub'},'Free tonight: '+free.map(function(r){ return r.name; }).join(', ')+'.'):null,
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
       return {when:nameOf('rooms',st.room_id),right:thb(billTotal(st)),title:g.name||'Guest',note:'Left '+fmtDate(st.check_out),act:btn('Settle',function(){ openBill(st); },'primary small')}; }),'')):null,
@@ -6538,7 +6540,7 @@ function vKitchen(){
   if(!KITCHEN){ if(!ui.kitAsked){ ui.kitAsked=true; loadKitchen(); } return [pageHead('Kitchen',''),h('div',{class:'panel empty'},ui.kitErr||'Loading.')]; }
   var next={new:['preparing','Start'],preparing:['ready','Ready'],ready:['done','Served']};
   function mins(at){ var m=Math.round((Date.now()-new Date(at))/60000); return m<1?'just now':m+' min ago'; }
-  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),kitchenControls(),
+  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),kitchenControls(),foodToday(),
     h('div',{class:'kitgrid'},KITCHEN.map(function(o){
       var n=next[o.status];
       return h('div',{class:'kcard '+o.status},
@@ -6550,6 +6552,61 @@ function vKitchen(){
           o.status!=='new'?btn('Back',function(){ var back={preparing:'new',ready:'preparing'}[o.status]; sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:back}).then(must).then(loadKitchen); },'small'):null)); })),
     !KITCHEN.length?h('div',{class:'panel empty'},'New orders from the till and the app show here. A sound plays when one comes in (tap the screen once so the tablet allows sound).'):null];
 }
+
+/* food plans: who has a meal plan, breakfast and so on, for which days (on the customer); today's list for the kitchen and the resort */
+var FPLANS={}, FTODAY=null;
+function loadFoodPlans(cid){ return sb.rpc('food_plans_of',{p_customer:cid}).then(function(r){ if(r.error) return; FPLANS[cid]=r.data; schedule(); }); }
+function loadFoodToday(){ ui.ftAt=Date.now(); return sb.rpc('food_plans_day',{p_day:null}).then(function(r){ if(r.error) return; if(JSON.stringify(r.data)!==JSON.stringify(FTODAY)){ FTODAY=r.data||[]; if(!document.querySelector('dialog[open]')) schedule(); } }); }
+function foodPlanEdit(c,f){ var d=FPLANS[c.id]||{}, types=(d.types||[]).slice(); f=f||{};
+  if(f.name&&types.indexOf(f.name)<0) types.push(f.name);
+  openForm({title:f.id?'Edit food plan':'Add a food plan',note:c.name+'. The kitchen and the resort see it on the days it runs.',values:{name:f.name||types[0]||'',other:'',from:f.from||ymd(new Date()),to:f.to||'',per_day:f.per_day,note:f.note||''},saveLabel:'Save',doneMsg:'Food plan saved.',
+    onDelete:f.id&&!f.auto?function(){ return sb.rpc('food_plan_remove',{p_id:f.id}).then(must).then(function(){ loadFoodPlans(c.id); FTODAY=null; }); }:null,
+    fields:[{key:'name',label:'Plan',type:'select',options:types.map(function(t){ return [t,t]; }).concat([['__other','Something else']]),onChange:function(v,set,get,o,show){ show('other',v==='__other'); }},
+      {key:'other',label:'What plan?',hide:true,hint:'For example: Dinner only, vegan.'},
+      {key:'from',label:'First day',type:'date',required:true},
+      {key:'to',label:'Last day',type:'date',hint:'Leave empty if it has no end yet.'},
+      {key:'per_day',label:'Meals a day (if it helps the kitchen)',type:'number'},
+      {key:'note',label:'Note for the kitchen',type:'textarea',rows:2,hint:'For example: no pork, allergic to peanuts, breakfast at 07:00.'}],
+    onSave:function(v){ var nm=v.name==='__other'?v.other:v.name; if(!nm) return 'Choose the plan.';
+      return sb.rpc('food_plan_save',{p:{id:f.id||null,customer_id:c.id,name:nm,from:v.from,to:v.to||null,per_day:v.per_day,note:v.note}}).then(must).then(function(){ loadFoodPlans(c.id); FTODAY=null; }); }}); }
+function foodPlansPanel(c){ if(!featOn('food_plans')||!me||['manager','front_desk','resort','kitchen'].indexOf(me.role)<0) return null;
+  var d=FPLANS[c.id]; if(d===undefined){ FPLANS[c.id]=null; loadFoodPlans(c.id); return null; } if(!d) return null;
+  var day=ymd(new Date()), list=d.plans||[];
+  return section('Food plans',btn('Add a food plan',function(){ foodPlanEdit(c); },'small'),cards(list.map(function(f){ var now=f.from<=day&&(!f.to||f.to>=day), past=f.to&&f.to<day;
+    return {when:fmtDate(f.from)+(f.to?' to '+fmtDate(f.to):', no end date'),right:chip(now?'Today':past?'Ended':'Coming',now?'ok':past?null:'warn'),title:f.name+(f.per_day?', '+f.per_day+' a day':''),
+      note:[f.note,f.auto?'Added from what they bought.':''].filter(Boolean).join(' ')||null,act:btn('Edit',function(){ foodPlanEdit(c,f); },'small')}; }),'No food plan. Add one when they have a meal plan, breakfast or another food plan.')); }
+function foodToday(){ if(!featOn('food_plans')||!me||['manager','front_desk','resort','kitchen'].indexOf(me.role)<0) return null;
+  if(FTODAY===null||Date.now()-(ui.ftAt||0)>60000){ if(!ui.ftBusy){ ui.ftBusy=true; loadFoodToday().then(function(){ ui.ftBusy=false; },function(){ ui.ftBusy=false; }); } }
+  if(!FTODAY||!FTODAY.length) return null;
+  return section('Food plans today ('+FTODAY.length+')',null,cards(FTODAY.map(function(f){
+    return {when:f.room||'Not staying',right:f.to?'Until '+fmtDate(f.to):null,title:f.who+': '+f.plan+(f.per_day?', '+f.per_day+' a day':''),note:f.note||null,
+      act:me.role!=='kitchen'?btn('Open',function(){ ui.tab='customers'; ui.customerId=f.customer_id; schedule(); },'small'):null}; }),'')); }
+
+/* coffee and drinks: their own hours and switch, like the kitchen; when closed the app takes no drink orders */
+function barMode(mode,mins){ return sb.rpc('bar_set_mode',{p_mode:mode,p_minutes:mins||null}).then(must).then(function(){ toast(mode==='auto'?'Coffee and drinks follow their hours again.':mode==='closed'?'Coffee and drinks closed. The app takes no drink orders.':mode==='busy'?'Busy: guests see drinks take about 15 minutes.':'Coffee and drinks open.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); }
+function barClose(){
+  openForm({title:'Close coffee and drinks',note:'Guests still see the menu, but drink orders from the app stop. Food follows the kitchen.',saveLabel:'Close',doneMsg:'Coffee and drinks closed.',fields:[
+    {key:'for',label:'For how long?',type:'select',def:'60',options:[['30','30 minutes'],['60','1 hour'],['120','2 hours'],['open','Until I open it again']]}],
+    onSave:function(v){ return sb.rpc('bar_set_mode',{p_mode:'closed',p_minutes:v.for==='open'?null:Number(v.for)}).then(must).then(loadKInfo); }});
+}
+function barHours(){
+  var DN=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], hr=(KINFO&&KINFO.bar_hours)||{}, d=hr.days||[], vals={last:hr.last!=null?hr.last:0};
+  DN.forEach(function(n,i){ vals['d'+i]=d[i]?d[i][0]+'-'+d[i][1]:''; });
+  openForm({title:'Coffee and drinks hours',note:'Write each day like 07:00-18:00. Leave a day empty when coffee and drinks are closed all day. To have no hours (always open), empty every day.',values:vals,saveLabel:'Save hours',doneMsg:'Coffee and drinks hours saved.',
+    fields:DN.map(function(n,i){ return {key:'d'+i,label:n,hint:i===0?'For example 07:00-18:00':null}; }).concat([{key:'last',label:'Last orders, minutes before closing',type:'number'}]),
+    onSave:function(v){ var bad=null, any=false, days=DN.map(function(n,i){ var x=String(v['d'+i]||'').replace(/\s/g,'').replace(/\./g,':'); if(!x) return null; var m=x.match(/^(\d{1,2}:\d{2})(?:-|to)(\d{1,2}:\d{2})$/); if(!m){ bad=bad||n; return null; } any=true; return [m[1],m[2]]; });
+      if(bad) return Promise.reject(new Error('Check '+bad+': write it like 07:00-18:00.'));
+      return sb.rpc('bar_hours_save',{p:any?{days:days,last:v.last==null?0:v.last}:null}).then(must).then(loadKInfo); }});
+}
+function barControls(){
+  if(!KINFO||!KINFO.bar) return null;
+  var k=KINFO.bar, cls=!k.open?'bad':k.busy?'warn':'ok', lab=!k.open?'Closed':k.busy?'Busy':'Open';
+  return h('div',{style:'margin-top:12px'},
+    h('div',{class:'kstat'},h('span',{class:'kst '+cls},'Coffee and drinks: '+lab),h('span',{class:'sub'},k.text||(k.no_hours?'No hours set yet, so coffee and drinks count as open.':''))),
+    h('div',{class:'row wrap'},k.open&&!k.busy?btn('Busy',function(){ barMode('busy',120); },'small'):null,
+      k.open?btn('Close coffee and drinks',barClose,'small'):btn('Open now',function(){ barMode('open',240); },'primary small'),
+      k.mode&&k.mode!=='auto'?btn('Back to normal hours',function(){ barMode('auto'); },'small'):null,
+      KINFO.manager?btn('Coffee and drinks hours',barHours,'small'):null)); }
 
 /* kitchen open and close: the switch, sold out today, and the hours (manager) */
 function kitchenMode(mode,mins){ return sb.rpc('kitchen_set_mode',{p_mode:mode,p_minutes:mins||null}).then(must).then(function(){ toast(mode==='auto'?'Kitchen follows its hours again.':mode==='closed'?'Kitchen closed. The app takes no food orders.':mode==='busy'?'Busy: guests see food takes about 30 minutes.':'Kitchen open.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); }
@@ -6580,6 +6637,7 @@ function kitchenControls(){
       k.open?btn('Close kitchen',kitchenClose,'small'):btn('Open now',function(){ kitchenMode('open',240); },'primary small'),
       k.mode&&k.mode!=='auto'?btn('Back to normal hours',function(){ kitchenMode('auto'); },'small'):null,
       KINFO.manager?btn('Kitchen hours',kitchenHours,'small'):null),
+    barControls(),
     dishes.length?h('details',{style:'margin-top:10px'},h('summary',null,'Sold out today'+(out?' ('+out+')':'')),
       h('p',{class:'sub'},'Tap a dish to mark it sold out. It comes back by itself tomorrow.'),
       h('div',{class:'soldgrid'},dishes.map(function(x){ return btn(x.name,function(){ sb.rpc('kitchen_sold_out',{p_product:x.id,p_out:!x.sold_out}).then(must).then(function(){ toast(x.sold_out?x.name+' is back on.':x.name+' is sold out today.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); },x.sold_out?'small out':'small'); }))):null);
@@ -6817,8 +6875,9 @@ function loadMenu(){ return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_my_
 setInterval(function(){ if(me&&me.role==='customer'&&ui.tab==='c_food'&&document.visibilityState!=='hidden') sb.rpc('shop_my_orders').then(function(r){ if(!r.error&&JSON.stringify(r.data)!==JSON.stringify(MYORDERS)){ MYORDERS=r.data; schedule(); } }); },15000);
 function vCFood(){
   if(!SHOP){ if(!ui.menuAsked){ ui.menuAsked=true; loadMenu(); } return [pageHead('Food',''),h('div',{class:'panel empty'},ui.menuErr||'Loading the menu.')]; }
-  var cats=(SHOP.categories||[]), prods=(SHOP.products||[]).filter(function(p){ return p.active&&p.in_app; }), kn=SHOP.kitchen||{open:true};
+  var cats=(SHOP.categories||[]), prods=(SHOP.products||[]).filter(function(p){ return p.active&&p.in_app; }), kn=SHOP.kitchen||{open:true}, bn=SHOP.bar||{open:true};
   var foodIn=cart().some(function(l){ var q=prods.filter(function(x){ return x.id===l.id; })[0]; return q&&q.kitchen; });
+  var drinkIn=cart().some(function(l){ var q=prods.filter(function(x){ return x.id===l.id; })[0]; return q&&!q.kitchen; });
   var sub=cartSub(), stay=SHOP.stay;
   var kst={new:['Order received','warn'],preparing:['Being made','warn'],ready:['Ready','ok'],done:['Done','ok']};
   var mine=(MYORDERS||[]).filter(function(o){ return o.kitchen_status&&o.kitchen_status!=='done'||o.status==='waiting'; });
@@ -6840,6 +6899,7 @@ function vCFood(){
   }
   return [pageHead('Food','Order from the gym cafe. '+(stay?'You can charge it to '+stay.room+'.':'Pay at the counter when you collect.')),
     (!kn.open||kn.busy)&&kn.text?h('div',{class:'kbanner '+(kn.open?'warn':'bad')},kn.text):null,
+    (!bn.open||bn.busy)&&bn.text?h('div',{class:'kbanner '+(bn.open?'warn':'bad')},bn.text):null,
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
       return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
@@ -6848,6 +6908,7 @@ function vCFood(){
       h('label',{for:'fo-note'},'Anything we should know?'),h('input',{id:'fo-note',type:'text',placeholder:'No chilli, extra rice...'}),
       h('label',{for:'fo-where'},'Where are you?'),h('input',{id:'fo-where',type:'text',placeholder:stay?'My room, or the gym, or the cafe':'At the gym, or the cafe'}),
       foodIn&&!kn.open?h('p',{class:'kbanner bad'},(kn.text||'The kitchen is closed.')+' Remove the food to order drinks.'):
+      drinkIn&&!bn.open?h('p',{class:'kbanner bad'},(bn.text||'Coffee and drinks are closed.')+' Remove the drinks to order food.'):
       h('div',{class:'row'},stay?btn('Charge to '+stay.room,function(){ order('room'); },'primary'):null,btn('Pay at the counter',function(){ order('counter'); },stay?'':'primary'))):null];
 }
 
@@ -7632,6 +7693,7 @@ function vCustomers(){
           {label:'Extras on bill',num:true,cell:function(st){ var x=extrasTotal(st); return x?thb(x):''; }},
           {label:'To pay',num:true,cell:function(st){ var o=(st.settled?0:Math.max(0,billTotal(st)))+stayExtras(st).reduce(function(t,x){ return t+x.owe; },0); return o?chip(thb(o),'warn'):chip(st.settled?'Settled':'Nothing','ok'); }},
           {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),st.status==='booked'||st.status==='in'?btn('Extend',function(){ extendStay(st); },'small'):null,btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
+      foodPlansPanel(c),
       upgDesk(c),
       section('Packages',null,table([
         {label:'Package',cell:function(p){return p.package_name;}},
