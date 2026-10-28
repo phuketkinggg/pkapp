@@ -81,7 +81,8 @@ jobs:
         run: |
           if [ -n "$KS_B64" ] && [ -n "$KS_PW" ]; then
             # pasted secrets can pick up spaces, line breaks or quotes: take them out
-            B64=$(printf '%s' "$KS_B64" | tr -d ' \r\n\t"' )
+            # the key is one long base64 line: take that, and ignore anything copied before or after it (like the alias or fingerprint lines)
+            B64=$(printf '%s' "$KS_B64" | tr -d '\r"' | grep -oE '[A-Za-z0-9+/=]{200,}' | tr -d '\n' )
             PW=$(printf '%s' "$KS_PW" | tr -d ' \r\n\t"' )
             echo "Key secret: ${#B64} characters (should be 5856). Password: ${#PW} characters (should be 28)."
             if ! printf '%s' "$B64" | base64 -d > "$RUNNER_TEMP/upload.jks" 2>/dev/null; then
