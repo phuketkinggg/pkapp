@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=51"></script>
+<script src="changelog.js?v=52"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -882,7 +882,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=13; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=14; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2534,7 +2534,7 @@ function affRulesLine(a){ var r=a.rules||{}, p=[], np=Object.keys(r.packages||{}
   return p.length?p.join(', '):'nothing yet'; }
 /* package groups from the names: the words before the first comma, or the first word (DTV 6 Months Lite: DTV; Training Only, 1 Month: Training Only) */
 function pkgGroup(n){ var s=String(n||'').trim(), c=s.indexOf(','); if(c>0) return s.slice(0,c).trim(); var w=s.replace(/^\d+\s+/,'').split(/\s+/)[0]||'Other'; return w.charAt(0).toUpperCase()+w.slice(1); }
-function affRules(a){
+function affRules(a,onDone){
   var base=Number(a.pct)||10, r=a.rules?JSON.parse(JSON.stringify(a.rules)):null, err=h('p',{class:'ferr',role:'alert',hidden:true});
   if(featOn('courses')&&!CRS.list&&!CRS.busy) crsLoad().then(function(){ if($dlg.open) draw(); });
   var pk=sortBy((S.packages||[]).filter(function(k){ return k.active!==false; }),'name'), groups={}, order=[];
@@ -2570,10 +2570,11 @@ function affRules(a){
     if(r){ [r.stays,r.other].concat(Object.keys(r.packages).map(function(k){ return r.packages[k]; }),Object.keys(r.courses).map(function(k){ return r.courses[k]; })).forEach(function(v){ if(v!=null&&!(v>=0&&v<=50)) bad='Each % must be between 0 and 50.'; });
       if(!bad&&r.stays==null&&r.other==null&&!Object.keys(r.packages).length&&!Object.keys(r.courses).length) bad='Tick at least one thing they earn on.'; }
     if(bad){ err.textContent=bad; err.hidden=false; return; }
+    if(onDone){ $dlg.close(); onDone(r); return; }
     sb.rpc('affiliate_rules_set',{p_id:a.id,p_rules:r}).then(must).then(function(){ $dlg.close(); toast('Saved. New bookings and sales use this.'); AFF=null; affLoad(); },function(e){ err.textContent=errText(e); err.hidden=false; }); }
   draw();
   $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'What '+a.name+' earns on'),
-    h('p',{class:'sub'},'Only what is ticked counts: a booking or sale of anything else through their link is not tagged to them. Changes count for new bookings and sales.'),
+    h('p',{class:'sub'},(onDone?'Everyone you approve at this level gets these shares. ':'')+'Only what is ticked counts: a booking or sale of anything else through their link is not tagged to them. Changes count for new bookings and sales.'),
     h('div',{class:'affrules'},box),err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',save,'primary')))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
@@ -2630,17 +2631,35 @@ function paDecide(a,ok){
     onSave:function(v){ if(!v.level) return 'Choose a level.'; return sb.rpc('partner_app_decide',{p_id:a.id,p_ok:true,p_level:v.level,p_note:v.note||null}).then(must).then(function(){ PAPPS=null; AFF=null; partLoad(); affLoad(); toast('Approved. Their link is in the list below: tap Copy link and send it to them.'); }); }});
 }
 function plEditor(){ var L=(PLEV||[]).map(function(l){ return Object.assign({},l); }); if(!L.length) return;
-  var vals={}, fields=[]; L.forEach(function(l,i){ vals['n'+i]=l.name; vals['p'+i]=l.pct; vals['f'+i]=l.min_followers; vals['v'+i]=l.min_views; vals['w'+i]=l.who||''; vals['g'+i]=l.gets||''; vals['o'+i]=l.gives||'';
-    fields.push({key:'h'+i,label:'Level '+(i+1),type:'info'},{key:'n'+i,label:'Name'},{key:'p'+i,label:'Their share (%)',type:'number'},{key:'f'+i,label:'Least followers',type:'number'},{key:'v'+i,label:'Least average views per video',type:'number',hint:'Leave empty if it does not matter.'},
+  var vals={}, fields=[]; L.forEach(function(l,i){ vals['n'+i]=l.name; vals['p'+i]=l.pct; vals['a'+i]=l.web_from==null?'':l.web_from; vals['b'+i]=l.web_to==null?'':l.web_to; vals['f'+i]=l.min_followers; vals['v'+i]=l.min_views; vals['w'+i]=l.who||''; vals['g'+i]=l.gets||''; vals['o'+i]=l.gives||'';
+    fields.push({key:'h'+i,label:'Level '+(i+1),type:'info'},{key:'n'+i,label:'Name'},{key:'p'+i,label:'Their share (%)',type:'number',hint:'Used for everything, unless you set What each level earns on.'},{key:'a'+i,label:'On the website: share from (%)',type:'number'},{key:'b'+i,label:'On the website: share up to (%)',type:'number',hint:'For example 7 and 12 shows: 7 to 12% of what is booked through your link. Leave both empty to show the share above.'},{key:'f'+i,label:'Least followers',type:'number'},{key:'v'+i,label:'Least average views per video',type:'number',hint:'Leave empty if it does not matter.'},
       {key:'w'+i,label:'Who it is for',type:'textarea'},{key:'g'+i,label:'What they get',type:'textarea'},{key:'o'+i,label:'What they give',type:'textarea'}); vals['h'+i]=''; });
   openForm({title:'Partner levels',note:'Shown on the Partners page of your website, and used when you approve someone. Changing a share here does not change partners you already approved.',values:vals,fields:fields,
     onSave:function(v){ var out=[]; for(var i=0;i<L.length;i++){ var pct=Math.round(Number(v['p'+i])); if(!String(v['n'+i]||'').trim()) return 'Give level '+(i+1)+' a name.'; if(!(pct>=0&&pct<=50)) return 'Shares must be 0 to 50%.';
-        out.push({id:L[i].id,name:String(v['n'+i]).trim(),pct:pct,min_followers:v['f'+i]==null?null:Math.round(Number(v['f'+i])),min_views:v['v'+i]==null?null:Math.round(Number(v['v'+i])),who:String(v['w'+i]||'').trim(),gets:String(v['g'+i]||'').trim(),gives:String(v['o'+i]||'').trim()}); }
+        var wa=v['a'+i]==null?null:Math.round(Number(v['a'+i])*10)/10, wb=v['b'+i]==null?null:Math.round(Number(v['b'+i])*10)/10;
+        if(wa!=null&&wb!=null&&wa>wb) return 'Level '+(i+1)+': the website share from must be lower than up to.';
+        out.push({id:L[i].id,rules:L[i].rules||null,share_text:L[i].rules?plShareText(L[i].rules,pct):'',web_from:wa,web_to:wb,name:String(v['n'+i]).trim(),pct:pct,min_followers:v['f'+i]==null?null:Math.round(Number(v['f'+i])),min_views:v['v'+i]==null?null:Math.round(Number(v['v'+i])),who:String(v['w'+i]||'').trim(),gets:String(v['g'+i]||'').trim(),gives:String(v['o'+i]||'').trim()}); }
       var txt=JSON.stringify(out);
       return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','partner_levels').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'partner_levels',value:txt}).then(must); }).then(function(){ PLEV=out; schedule(); }); }}); }
+/* a level's share per product: the same choices as one affiliate (rooms, packages, courses), copied to everyone approved at that level */
+function plShareText(r,pct){ if(!r) return pct!=null?pct+'% of everything booked through your link':'';
+  var pk=Object.keys(r.packages||{}).map(function(k){ return r.packages[k]; }).concat(Object.keys(r.courses||{}).map(function(k){ return r.courses[k]; })), out=[];
+  if(r.stays!=null) out.push(r.stays+'% on rooms');
+  if(pk.length){ var lo=Math.min.apply(null,pk), hi=Math.max.apply(null,pk); out.push((lo===hi?lo+'%':lo+' to '+hi+'%')+' on training packages and courses'); }
+  if(r.other!=null) out.push(r.other+'% on anything else');
+  return out.join(', '); }
+function plRules(i){ var L=(PLEV||[]).map(function(l){ return Object.assign({},l); }), l=L[i]; if(!l) return;
+  affRules({name:'the '+l.name+' level',pct:l.pct,rules:l.rules||null},function(r){ l.rules=r; l.share_text=plShareText(r,l.pct); var txt=JSON.stringify(L);
+    sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','partner_levels').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'partner_levels',value:txt}).then(must); })
+      .then(function(){ PLEV=L; schedule(); var have=(PAPPS||[]).filter(function(x){ return x.status==='approved'&&x.level===l.id&&x.affiliate_id; });
+        if(!have.length){ toast('Saved. Partners you approve as '+l.name+' get these shares.'); return; }
+        openForm({title:'Update '+have.length+' '+l.name+(have.length===1?' partner':' partners')+' too?',note:'Saved for new '+l.name+' partners. Do you also want to give these shares to the '+have.length+' already approved at this level? Their past bookings do not change.',saveLabel:'Update them',cancelLabel:'Only new partners',fields:[],
+          onSave:function(){ return Promise.all(have.map(function(x){ return sb.rpc('affiliate_rules_set',{p_id:x.affiliate_id,p_rules:r}).then(must); })).then(function(){ AFF=null; affLoad(); }); },doneMsg:'Updated.'}); })
+      .catch(function(e){ toast(errText(e)); }); }); }
 function paSection(){ if(!featOn('partners')||!(me&&me.role==='manager')) return null; if(PAPPS===null){ partLoad(); return null; }
   var news=PAPPS.filter(function(a){ return a.status==='new'; }), show=news.concat(PAPPS.filter(function(a){ return a.status!=='new'; }).slice(0,10));
   return section('Partner applications'+(news.length?' ('+news.length+' new)':''),btn('Partner levels',plEditor,'small'),h('div',null,
+    (PLEV||[]).length?h('div',{class:'row',style:'margin-bottom:8px'},h('span',{class:'sub'},'What each level earns on:'),(PLEV||[]).map(function(l,i){ return btn(l.name+(l.rules?'':', '+l.pct+'% of everything'),function(){ plRules(i); },'small'); })):null,
     h('p',{class:'sub'},'People apply on the Partners page of your website ('+SITE_URL.replace(/^https:\/\//,'')+'/partners). Check their channels and audience, then approve them at a level: they become an affiliate with that share and their own link.'),
     cards(show.map(function(a){ return {when:fmtDate(String(a.created_at).slice(0,10)),right:a.status==='new'?chip('New, '+plName(a.level),'warn'):a.status==='approved'?chip('Approved, '+plName(a.level),'ok'):chip('Declined'),
       title:h('b',null,a.name),note:[a.links,(a.followers?paNum(a.followers)+' followers':'')+(a.avg_views?', '+paNum(a.avg_views)+' average views':''),a.audience?'Audience: '+a.audience:'',a.offer?'Offers: '+a.offer:'',[a.email,a.phone].filter(Boolean).join(', '),a.note?'Note: '+a.note:''].filter(Boolean).join('. '),
