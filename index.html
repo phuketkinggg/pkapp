@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=50"></script>
+<script src="changelog.js?v=51"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -882,7 +882,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=12; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=13; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4086,7 +4086,19 @@ function coOpen(cid){ COACH.cid=cid; COACH.view='client'; return sb.rpc('coach_c
   .catch(function(e){ toast(errText(e)); COACH.view='clients'; COACH.cid=null; schedule(); }); }
 function coReload(){ return COACH.cid?coOpen(COACH.cid):coLoad(); }
 function coTpl(){ return sb.rpc('program_templates').then(must).then(function(l){ COACH.tpl=l; schedule(); return l; }); }
-function coEx(){ return sb.rpc('exercise_list').then(must).then(function(l){ COACH.ex=l; schedule(); return l; }); }
+function coEx(){ coGroups(); return sb.rpc('exercise_list').then(must).then(function(l){ COACH.ex=l; schedule(); return l; }); }
+/* exercise groups: your own groups (Legs, Core...), an exercise can be in several */
+function coGroups(){ return sb.rpc('exercise_groups_list').then(function(r){ COACH.groups=r.error?[]:(r.data||[]); schedule(); return COACH.groups; },function(){ COACH.groups=COACH.groups||[]; }); }
+function coGroupName(id){ var g=(COACH.groups||[]).filter(function(x){ return x.id===id; })[0]; return g?g.name:''; }
+function coEditGroup(g){ g=g||{};
+  openForm({title:g.id?'Rename group':'New group',values:{name:g.name||''},fields:[{key:'name',label:'Group name',required:true,hint:'For example Legs, Core, Shoulders, Mobility.'}],
+    onDelete:g.id?function(){ return sb.rpc('exercise_group_remove',{p_id:g.id}).then(must).then(function(){ COACH.exGroup=null; return coEx(); }); }:null,
+    onSave:function(v){ return sb.rpc('exercise_group_save',{p:{id:g.id||null,name:v.name}}).then(must).then(function(id){ COACH.exGroup=id; return coEx(); }); }}); }
+function coGroupPick(g){ var all=COACH.ex||[];
+  if(!all.length){ toast('Add some exercises first.'); return; }
+  openForm({title:'Exercises in '+g.name,note:'Tick every exercise that belongs in this group. An exercise can be in more than one group.',values:{ex:all.filter(function(x){ return (x.groups||[]).indexOf(g.id)>=0; }).map(function(x){ return x.id; })},
+    fields:[{key:'ex',label:'Exercises',type:'checks',options:all.map(function(x){ return [x.id,x.name]; })}],
+    onSave:function(v){ return sb.rpc('exercise_group_save',{p:{id:g.id,name:g.name,exercises:v.ex||[]}}).then(must).then(coEx); }}); }
 /* coaching chosen per customer: none, or any of its parts. Empty choice = the business default */
 var CPARTS=[['steps','Steps and habits'],['workouts','Workouts and programmes'],['food','Food diary and meal advice'],['weight','Weight']];
 function coachPartsText(l){ return l&&l.length?CPARTS.filter(function(p){ return l.indexOf(p[0])>=0; }).map(function(p){ return p[1].toLowerCase(); }).join(', '):'no coaching'; }
@@ -4153,7 +4165,7 @@ function vCoaching(){
   if(COACH.view==='arriving') return [pageHead('Coaching','Guests arriving soon. They get an email up to 14 days before, open the app in one tap and tell you their level, goals, weight and injuries.'),top,paSettings(),paList()];
   if(COACH.view==='groups') return COACH.gopen?coGroups():[pageHead('Coaching','Action groups: a series of steps that unlock week by week from each person\u2019s start date. For example Fight camp or Weight loss.',btn('New action group',function(){ coEditGroup({name:'',notes:'',items:[coNewStep()]}); },'primary')),top,coGroups()];
   if(COACH.view==='templates') return [pageHead('Coaching','Program templates: build once, add to any client. Each client gets their own copy to adjust.',btn('New template',function(){ coEditProg({name:'',notes:'',routines:[coNewRoutine()]},'templates'); },'primary')),top,coTemplates()];
-  if(COACH.view==='exercises') return [pageHead('Coaching','Exercise library: name, demo video and coaching points. Use them in programs.',btn('New exercise',function(){ coEditEx(); },'primary')),top,coExercises()];
+  if(COACH.view==='exercises') return [pageHead('Coaching','Exercise library: name, demo video and coaching points, sorted into your own groups. Use them in programs.',btn('New exercise',function(){ coEditEx(); },'primary')),top,coExercises()];
   if(!COACH.list){ if(!COACH.busy) coLoad(); return [pageHead('Coaching',''),top,h('div',{class:'panel empty'},COACH.err||'Loading.')]; }
   var mgr=me&&me.role==='manager';
   return [pageHead('Coaching',mgr?'Clients with a coach. Pick the coaches for a client: only they and the managers can see that client’s food diary, weight, habits and videos.':'Your clients. Only you, their other coaches and the managers can see this.',mgr?btn('Add a client',coPickClient,'primary'):null),top,
@@ -4404,15 +4416,38 @@ function coGiveTpl(p){ (COACH.list?Promise.resolve(COACH.list):sb.rpc('coach_cli
     onSave:function(v){ return sb.rpc('program_assign',{p_template:p.id,p_customer:v.c}).then(must).then(function(){ coTpl(); }); }}); }).catch(function(e){ toast(errText(e)); }); }
 function coExercises(){
   if(!COACH.ex){ coEx().catch(function(e){ COACH.exErr=errText(e); schedule(); }); return h('div',{class:'panel empty'},COACH.exErr||'Loading.'); }
-  return table([{label:'Exercise',cell:function(x){ return linkBtn(x.name,function(){ coEditEx(x); }); }},{label:'Video',cell:function(x){ return x.video?chip('Video','ok'):''; }},{label:'Coaching points',cell:function(x){ return (x.notes||'').slice(0,80); }}],COACH.ex,'No exercises yet. Tap New exercise.'); }
-function coEditEx(x){ x=x||{};
-  openForm({title:x.id?'Edit exercise':'New exercise',values:{name:x.name||'',video:x.video||'',notes:x.notes||''},saveLabel:'Save',doneMsg:'Saved.',
-    fields:[{key:'name',label:'Name',required:true},{key:'video',label:'Demo video',hint:'A YouTube link (Unlisted is fine), or upload a video below.'},{key:'notes',label:'Coaching points',type:'textarea',rows:4}],
+  var gs=COACH.groups||[], sel=COACH.exGroup&&gs.filter(function(g){ return g.id===COACH.exGroup; })[0]||null, q=String(COACH.exQ||'').trim().toLowerCase();
+  var list=COACH.ex.filter(function(x){ return (!sel||(x.groups||[]).indexOf(sel.id)>=0)&&(!q||String(x.name).toLowerCase().indexOf(q)>=0); });
+  var search=h('input',{type:'search',id:'ex-q',placeholder:'Search exercises','aria-label':'Search exercises',value:COACH.exQ||''});
+  search.addEventListener('input',function(){ COACH.exQ=search.value; schedule(); setTimeout(function(){ var e=document.getElementById('ex-q'); if(e){ e.focus(); e.setSelectionRange(e.value.length,e.value.length); } },0); });
+  return h('div',null,
+    h('div',{class:'row exgroups',style:'margin-bottom:8px'},btn('All ('+COACH.ex.length+')',function(){ COACH.exGroup=null; schedule(); },'small'+(sel?'':' primary')),
+      gs.map(function(g){ return btn(g.name+' ('+g.count+')',function(){ COACH.exGroup=g.id; schedule(); },'small'+(sel&&sel.id===g.id?' primary':'')); }),
+      btn('+ New group',function(){ coEditGroup(); },'small')),
+    sel?h('div',{class:'row',style:'margin-bottom:8px'},h('b',null,sel.name),btn('Choose exercises',function(){ coGroupPick(sel); },'primary small'),btn('New exercise in '+sel.name,function(){ coEditEx(null,sel.id); },'small'),btn('Rename or remove',function(){ coEditGroup(sel); },'small')):null,
+    h('div',{class:'row'},search),
+    table([{label:'Exercise',cell:function(x){ return linkBtn(x.name,function(){ coEditEx(x); }); }},
+      {label:'Groups',cell:function(x){ return h('span',{class:'wrap'},(x.groups||[]).map(function(id){ return chip(coGroupName(id)); })); }},
+      {label:'Video',cell:function(x){ return x.video?chip('Video','ok'):''; }},{label:'Coaching points',cell:function(x){ return (x.notes||'').slice(0,80); }}],list,
+      sel?'No exercises in '+sel.name+' yet. Tap Choose exercises.':q?'No exercise matches that.':'No exercises yet. Tap New exercise.')); }
+function coEditEx(x,inGroup){ x=x||{}; var gs=COACH.groups||[];
+  openForm({title:x.id?'Edit exercise':'New exercise',values:{name:x.name||'',video:x.video||'',notes:x.notes||'',groups:x.id?(x.groups||[]):(inGroup?[inGroup]:(COACH.exGroup?[COACH.exGroup]:[]))},saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'name',label:'Name',required:true},{key:'video',label:'Demo video',hint:'A YouTube link (Unlisted is fine), or upload a video below.'},{key:'notes',label:'Coaching points',type:'textarea',rows:4}]
+      .concat(gs.length?[{key:'groups',label:'Groups',type:'checks',options:gs.map(function(g){ return [g.id,g.name]; }),hint:'Tick as many as you like. Make new groups on the Exercises page.'}]:[]),
     onDelete:x.id?function(){ return sb.rpc('exercise_remove',{p_id:x.id}).then(must).then(coEx); }:null,
-    onSave:function(v){ return sb.rpc('exercise_save',{p:{id:x.id||null,name:v.name,video:v.video,notes:v.notes}}).then(must).then(coEx); }});
+    onSave:function(v){ var body={id:x.id||null,name:v.name,video:v.video,notes:v.notes}; if(gs.length) body.groups=v.groups||[]; return sb.rpc('exercise_save',{p:body}).then(must).then(coEx); }});
   var vi=document.getElementById('f-video'); if(vi) vi.parentNode.appendChild(h('div',{class:'row'},btn('Upload a video',function(){ coUpload('ex',function(u){ vi.value=u; },'video/*'); },'small')));
 }
 /* program editor: routines (one per day if you like), sections and exercises with sets, reps, intensity, rest, video and progressions */
+/* program editor: pick a group, then tick the exercises to add (name, video and coaching points come from the library) */
+function coAddFromGroup(r){ var gs=(COACH.groups||[]).filter(function(g){ return g.count>0; });
+  if(!gs.length){ toast('Your groups have no exercises yet. Add them on the Exercises page.'); return; }
+  openForm({title:'Add from a group',values:{g:gs[0].id},saveLabel:'Next',fields:[{key:'g',label:'Group',type:'select',options:gs.map(function(g){ return [g.id,g.name+' ('+g.count+')']; })}],
+    onSave:function(v){ var g=gs.filter(function(x){ return x.id===v.g; })[0], ex=(COACH.ex||[]).filter(function(x){ return (x.groups||[]).indexOf(v.g)>=0; });
+      setTimeout(function(){ openForm({title:'Add from '+g.name,note:'Tick the exercises to add to this workout. Then set the sets and reps.',saveLabel:'Add',values:{ex:ex.map(function(x){ return x.id; })},
+        fields:[{key:'ex',label:'Exercises',type:'checks',options:ex.map(function(x){ return [x.id,x.name]; })}],
+        onSave:function(w){ (w.ex||[]).forEach(function(id){ var x=ex.filter(function(e){ return e.id===id; })[0]; if(x) r.items.push({id:'i'+cRand(),kind:'exercise',name:x.name,sets:'',reps:'',intensity:'',rest:'',notes:x.notes||'',video:x.video||'',progressions:[],step:0}); });
+          schedule(); return Promise.resolve(); }}); },300); return Promise.resolve(); }}); }
 function coNewRoutine(){ return {id:'r'+cRand(),name:'Workout 1',day:'',items:[{id:'i'+cRand(),kind:'section',name:'Warm up'},{id:'i'+cRand(),kind:'exercise',name:'',sets:'',reps:'',intensity:'',rest:'',notes:'',video:'',progressions:[],step:0}]}; }
 function coEditProg(p,back){ COACH.prog=p; COACH.progBack=back; if(!COACH.ex) coEx().catch(function(){}); schedule(); window.scrollTo(0,0); }
 function coProgEditor(){
@@ -4452,7 +4487,8 @@ function coProgEditor(){
           h('button',{type:'button','aria-label':'Remove workout',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Sure?'; return; } p.routines.splice(ri,1); schedule(); }},'×'))),
       h('div',{class:'pitems'},(r.items||[]).map(function(it,i){ return exRow(r,it,i); })),
       h('div',{class:'row'},btn('Add exercise',function(){ r.items.push({id:'i'+cRand(),kind:'exercise',name:'',sets:'',reps:'',intensity:'',rest:'',notes:'',video:'',progressions:[],step:0}); schedule(); setTimeout(function(){ var l=r.items[r.items.length-1], e=document.getElementById('pn-'+l.id); if(e) e.focus(); },60); },'small'),
-        btn('Add section',function(){ r.items.push({id:'i'+cRand(),kind:'section',name:''}); schedule(); },'small')));
+        btn('Add section',function(){ r.items.push({id:'i'+cRand(),kind:'section',name:''}); schedule(); },'small'),
+        (COACH.groups||[]).length?btn('Add from a group',function(){ coAddFromGroup(r); },'small'):null));
   });
   var save=btn('Save',function(){ save.disabled=true;
     sb.rpc('program_save',{p:{id:p.id||null,customer_id:p.customer_id||null,name:p.name,notes:p.notes,routines:p.routines}}).then(must).then(function(){
