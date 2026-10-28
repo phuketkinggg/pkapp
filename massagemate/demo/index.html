@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=53"></script>
+<script src="changelog.js?v=54"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -174,6 +174,7 @@ body.chatting{overflow:hidden}
 .msgwho{font-size:12px;font-weight:600;color:var(--gold-ink);margin-bottom:2px}
 .msgbody{white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
 .msgtime{font-size:11px;opacity:.6;margin-top:3px;text-align:right}
+.msgreport{font-size:11px;margin-left:8px;padding:0;min-height:0;color:inherit;text-decoration:underline}
 .chatnote{text-align:center;margin:0;padding:4px}
 .chatempty{text-align:center;margin:auto}
 .chatcompose{display:flex;gap:8px;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface);align-items:flex-end}
@@ -824,6 +825,7 @@ var FEATURES=[
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package',d:'One online course can be offered as a tick box when someone buys a package, on the website and at the desk, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
+  {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
   {k:'email_log',g:'Messages',n:'Emails page',d:'One page with every email the app sends: emails written in the app, invoices and receipts, welcome emails, action group emails and outreach, with what was sent, what is waiting and what failed. Write a new email from here too.',tabs:['emails']},
@@ -883,7 +885,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=15; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=16; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1611,13 +1613,14 @@ function claimsSection(){
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
 /* new things the desk should know about: app sign ups, first app sign ins, packages sold, stays booked */
-var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad'],prearrival:['Ready for camp','ok'],pangea_service:['Spa plan','ok'],partner:['Partner application','ok']};
+var NOTI=null, NOTK={signup:['New customer','ok'],first_signin:['First sign in','ok'],package:['Muay Thai package','warn'],stay:['Resort stay','warn'],refund:['Refund','bad'],shop:['Website shop order','bad'],prearrival:['Ready for camp','ok'],pangea_service:['Spa plan','ok'],partner:['Partner application','ok'],chat_report:['Reported message','bad']};
 function seesNotices(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
 function loadNotices(){ if(!seesNotices()) return Promise.resolve(); return sb.rpc('notices_list').then(function(r){ if(r.error) return; var d=Array.isArray(r.data)?r.data:[]; var ch=JSON.stringify(d)!==JSON.stringify(NOTI); NOTI=d; if(ch&&!document.querySelector('dialog[open]')) schedule(); },function(){}); }
 setInterval(function(){ if(allReady&&seesNotices()&&!CU&&document.visibilityState!=='hidden') loadNotices(); },30000);
 function noticeDone(id){ NOTI=(NOTI||[]).filter(function(n){ return id&&n.id!==id; }); schedule(); run(sb.rpc('notice_done',{p_id:id||null}).then(must).then(loadNotices)); }
 function noticeOpen(n){
   if(n.kind==='partner'){ ui.tab='affiliates'; PAPPS=null; schedule(); return; }
+  if(n.kind==='chat_report'){ noticeDone(n.id); ui.tab='chat'; ui.openChatId=n.ref_id; CHAT.list=null; chatRefresh(); schedule(); return; }
   if(n.kind==='stay'){ var st=byId('stays',n.ref_id); noticeDone(n.id); if(st){ if(me.role==='resort'){ ui.tab='stays'; schedule(); } editStay(st); } else if(n.customer_id) openCustomer(n.customer_id); return; }
   if(n.kind==='private'){ var pv=byId('privates',n.ref_id); if(pv){ if(pv.status!=='requested') noticeDone(n.id); if(pv.status==='requested'&&me.role==='manager') approvePrivate(pv); else editPrivate(pv); return; } }
   if(n.kind==='package'||n.kind==='refund'||n.kind==='shop') noticeDone(n.id);
@@ -3146,7 +3149,8 @@ function openChat(c){
         m.mine?null:h('div',{class:'msgwho'},m.who),
         media.length?h('div',{class:'msgmedia'},media.map(function(x){ return x.type==='image'?h('a',{href:x.url,target:'_blank',rel:'noopener'},h('img',{src:x.url,alt:'Photo',loading:'lazy'})):h('a',{href:x.url,target:'_blank',rel:'noopener'},x.type==='video'?'Open the video':x.type==='audio'?'Play the voice message':'Open the file'); })):null,
         m.body&&!(media.length&&/^\[(Photo or file|Message)\]$/.test(m.body))?h('div',{class:'msgbody'},m.body):null,
-        h('div',{class:'msgtime'},chatTime(m.at),m.status==='sending'?' · Sending':m.status==='sent'&&m.mine?' · Delivered to Meta':null),
+        h('div',{class:'msgtime'},chatTime(m.at),m.status==='sending'?' · Sending':m.status==='sent'&&m.mine?' · Delivered to Meta':null,
+          !m.mine&&!m.staff&&['web','fb','ig'].indexOf(c.kind)<0&&featOn('chat_report')||!m.mine&&me.role==='customer'&&featOn('chat_report')?h('button',{type:'button',class:'link msgreport',onclick:function(){ chatReport(m); }},'Report'):null),
         m.status==='failed'?h('div',{class:'msgfail'},m.error||'Not delivered.'):null);
       if(old) old.replaceWith(node); else msgs.appendChild(node);
       if(m.status==='sending') pending[m.id]=1; else delete pending[m.id];
@@ -3172,6 +3176,12 @@ function openChat(c){
   load().then(function(){ msgs.scrollTop=msgs.scrollHeight; });
   CHAT.poll=setInterval(function(){ if(document.visibilityState!=='hidden') load(); },4000);
   setTimeout(function(){ input.focus(); },50);
+}
+/* report a message someone else wrote: the team gets a notice */
+function chatReport(m){
+  openForm({title:'Report this message',note:'"'+String(m.body||'').slice(0,200)+'"',saveLabel:'Report',doneMsg:'Thank you. The team will look at it.',
+    fields:[{key:'reason',label:'What is wrong with it? (you can leave this empty)',type:'textarea',rows:3}],
+    onSave:function(v){ return sb.rpc('chat_report',{p_message:m.id,p_reason:v.reason||null}).then(must); }});
 }
 function closeChat(){
   if(!CHAT.open) return;
