@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=47"></script>
+<script src="changelog.js?v=48"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -804,6 +804,7 @@ var TABS=[];
 /* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
    def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
 var FEATURES=[
+  {k:'upgrades',g:'Selling',n:'Package upgrades',d:'Customers on one package can move up to a better one, for example a weekly class pass to unlimited, for the difference in price (less for time already used). They see the offer in the app and pay it like any order; the front desk sees it on the customer. Set the upgrades in Packages.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
@@ -880,7 +881,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=9; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=10; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7527,6 +7528,7 @@ function vCustomers(){
           {label:'Extras on bill',num:true,cell:function(st){ var x=extrasTotal(st); return x?thb(x):''; }},
           {label:'To pay',num:true,cell:function(st){ var o=(st.settled?0:Math.max(0,billTotal(st)))+stayExtras(st).reduce(function(t,x){ return t+x.owe; },0); return o?chip(thb(o),'warn'):chip(st.settled?'Settled':'Nothing','ok'); }},
           {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),st.status==='booked'||st.status==='in'?btn('Extend',function(){ extendStay(st); },'small'):null,btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
+      upgDesk(c),
       section('Packages',null,table([
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
@@ -7610,8 +7612,49 @@ function vCustomers(){
     table(cols,list,q?'No customer matches that search.':show!=='all'?'Nobody in '+label.toLowerCase()+' right now.':'No customers yet. Add your first customer to start selling packages and checking people in.')
   ];
 }
+/* package upgrades: a customer moves up to a better package for the price difference, less for time already used.
+   The upgrade is an order; when it is paid the package takes on the new rules and keeps its dates. Paths: app_settings 'upgrades'. */
+var UPG={};
+function upgFor(cid){ var k=cid||'me', x=UPG[k];
+  if(!x||(!x.busy&&Date.now()-x.at>20000)){ UPG[k]={busy:true,list:x&&x.list,at:Date.now()};
+    sb.rpc('upgrade_offers',cid?{p_customer:cid}:{}).then(function(r){ UPG[k]={list:r.error?[]:(r.data||[]),at:Date.now()}; schedule(); },function(){ UPG[k]={list:[],at:Date.now()}; }); }
+  return (UPG[k]&&UPG[k].list)||[]; }
+function upgIncl(o){ return (o.covers&&o.covers.length?'Includes '+o.covers.join(', '):'')+'. No weekly limit.'; }
+function upgSell(o,cid){ sb.rpc('upgrade_order',{p_purchase:o.purchase_id}).then(must).then(function(id){ delete UPG[cid];
+    return reload('purchases').then(function(){ var p=byId('purchases',id); toast('Upgrade added: '+thb(o.price)+' to pay.'); if(p) takePayment(p); }); }).catch(function(e){ toast(errText(e)); }); }
+function upgDesk(c){ if(!featOn('upgrades')) return null; var l=upgFor(c.id); if(!l.length) return null;
+  return section('Upgrade offer',null,cards(l.map(function(o){ return {when:o.from+' to '+o.to,right:thb(o.price),
+    note:(o.pro_rata?'For the time left (full difference '+thb(o.full)+'). ':'The price difference. ')+(o.pending?'The upgrade is waiting for payment in Packages below.':'Offer it when they come in: once paid, their package gets the new rules straight away.'),
+    act:o.pending?null:[btn('Sell upgrade',function(){ upgSell(o,c.id); },'primary small')]}; }),'')); }
+function cuUpgrades(){ if(!featOn('upgrades')||!CU) return null; var l=upgFor(PV?PV.cid:null); if(!l.length) return null;
+  return section('Upgrade offer',null,cards(l.map(function(o){ return {when:'Upgrade to '+o.to,right:thb(o.price),
+    note:'Your '+o.from+' becomes '+o.to+'. '+upgIncl(o)+' '+(o.pro_rata?'Priced for the time you have left.':'You only pay the difference.')+(o.pending?' Your upgrade is waiting for payment above.':''),
+    act:o.pending?null:[btn('Upgrade for '+thb(o.price),function(){ cuCall('upgrade_order',{p_purchase:o.purchase_id}).then(function(){ UPG={}; toast('Upgrade ordered. Pay for it above and it works straight away.'); window.scrollTo(0,0); },function(e){ toast(errText(e)); }); },'primary small')]}; }),'')); }
+var UPGP=null;
+function upgPaths(){ if(UPGP===null){ UPGP=false; sb.from('app_settings').select('value').eq('key','upgrades').maybeSingle().then(function(res){ var v=res.data; try{ UPGP=v?JSON.parse(v.value):[]; }catch(e){ UPGP=[]; } if(!Array.isArray(UPGP)) UPGP=[]; schedule(); }); } return UPGP||[]; }
+function upgSave(list){ var txt=JSON.stringify(list);
+  return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','upgrades').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'upgrades',value:txt}).then(must); }).then(function(){ UPGP=list; UPG={}; schedule(); }); }
+function upgEdit(i){ var list=upgPaths().slice(), x=i==null?{}:list[i], opts=sortBy(S.packages,'name').map(function(k){ return [k.id,k.name+(k.active===false?' (not on sale)':'')+', '+thb(k.price_thb)]; });
+  openForm({title:i==null?'Add an upgrade':'Change upgrade',note:'Customers with the first package see an offer to move up to the second. The upgrade package can be one that is not on sale.',
+    values:{from:x.from||'',to:x.to||'',price:x.price==null?'':x.price},fields:[
+    {key:'from',label:'From package',type:'select',options:[['','Choose']].concat(opts)},
+    {key:'to',label:'Upgrade to',type:'select',options:[['','Choose']].concat(opts)},
+    {key:'price',label:'Upgrade price (THB)',type:'number',hint:'Leave empty for the difference between the two prices. Once they have started, it is less for the time already used.'}],
+    onDelete:i==null?null:function(){ list.splice(i,1); return upgSave(list); },
+    onSave:function(v){ if(!v.from||!v.to) return 'Choose both packages.'; if(v.from===v.to) return 'Choose two different packages.';
+      if(list.some(function(y,j){ return j!==i&&y.from===v.from; })) return 'That package already has an upgrade.';
+      var pr=v.price===''||v.price==null?null:Math.round(Number(v.price)); if(pr!=null&&(isNaN(pr)||pr<=0)) return 'Type a price, or leave it empty.';
+      if(pr==null){ var a=byId('packages',v.from), b=byId('packages',v.to); if(a&&b&&Number(b.price_thb)<=Number(a.price_thb)) return 'The upgrade package costs the same or less. Type an upgrade price.'; }
+      var y={from:v.from,to:v.to,price:pr}; if(i==null) list.push(y); else list[i]=y; return upgSave(list); }}); }
+function upgSection(){ if(!featOn('upgrades')) return null; var list=upgPaths(), man=me&&me.role==='manager';
+  return section('Upgrade offers',man?btn('Add upgrade',function(){ upgEdit(null); },'small'):null,h('div',null,
+    h('p',{class:'sub'},'A customer on the first package sees an offer in their app to move up, and the front desk sees it on the customer. They pay the difference, or less once they have started. When it is paid their package takes on the new rules and keeps its dates.'),
+    table([{label:'From',cell:function(x){ return nameOf('packages',x.from)||'Removed package'; }},
+      {label:'Upgrade to',cell:function(x){ return nameOf('packages',x.to)||'Removed package'; }},
+      {label:'Upgrade price',num:true,cell:function(x){ if(x.price!=null) return thb(x.price); var a=byId('packages',x.from), b=byId('packages',x.to); return a&&b?thb(b.price_thb-a.price_thb)+' (difference)':''; }},
+      {label:'',cell:function(x){ var i=list.indexOf(x); return man?btn('Change',function(){ upgEdit(i); },'small'):null; }}],list,UPGP===false?'Loading.':'No upgrades yet. For example: a weekly class pass to unlimited for the same months.'))); }
 function vPackages(){
-  return [pageHead('Packages','What you sell, and the rules the check in follows.',btn('Add package',function(){ editPackage(); },'primary')),
+  return [pageHead('Packages','What you sell, and the rules the check in follows.',btn('Add package',function(){ editPackage(); },'primary')),upgSection(),
     table([
       {label:'Name',cell:function(p){return [linkBtn(p.name,function(){ editPackage(p); }),exChip(p)];}},
       {label:'Standard',num:true,cell:function(p){return thb(p.price_thb);}},
@@ -8574,7 +8617,7 @@ function scanQR(prompt,onText){
       e&&e.message==='load'?'Could not load the scanner. Check your connection and try again.':'Could not open the camera. Use your normal camera app to scan the poster.';
   });
 }
-function loadCustomer(){ lastLoad=Date.now(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status'),sb.rpc('prearrival_mine'),sb.rpc('affiliate_mine'),sb.rpc('customer_fighter')]).then(function(r){ READY=r[4]&&!r[4].error?r[4].data:null; AFFME=r[5]&&!r[5].error?r[5].data:null; CU=must(r[0]); if(CU){ CU.fighter=r[6]&&!r[6].error?r[6].data:null; CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
+function loadCustomer(){ lastLoad=Date.now(); UPG={}; return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status'),sb.rpc('prearrival_mine'),sb.rpc('affiliate_mine'),sb.rpc('customer_fighter')]).then(function(r){ READY=r[4]&&!r[4].error?r[4].data:null; AFFME=r[5]&&!r[5].error?r[5].data:null; CU=must(r[0]); if(CU){ CU.fighter=r[6]&&!r[6].error?r[6].data:null; CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
 function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
 function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
 function cuWd(){ return (parseYmd(CU.today).getDay()+6)%7; }
@@ -8834,6 +8877,7 @@ function vCHome(){
     CU.stay?cuStay():null,
     cuHk(),
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
+    cuUpgrades(),
     section('My packages',btn('Buy a package',function(){ go('c_buy'); },'small'),cards(live.map(pkgCard),'No active package yet. Order one here and pay at the front desk.')),
     nextP?section('Next private',btn('All privates',function(){ go('c_pt'); },'small'),cards([ptCard(nextP,true)],'')):null,
     CU.fights&&CU.fights.length?section('Phuket King fighters in action',null,h('div',{class:'panel cards'},CU.fights.map(function(f){
@@ -9012,7 +9056,7 @@ function viewAsCustomer(c){
   }).catch(function(e){ toast(errText(e)); });
 }
 var PVBACK=null;
-function pvReset(){ TEC.list=null; TEC.view=null; TEC.busy=false; CRS.sec=null; COF.list=null; COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
+function pvReset(){ UPG={}; TEC.list=null; TEC.view=null; TEC.busy=false; CRS.sec=null; COF.list=null; COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
 function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab=PV.tab==='custview'?'custview':'customers'; ui.customerId=PV.cid; CU=null; PV=null; PVBACK=null; pvReset(); document.body.classList.remove('cuview'); schedule(); }
 
 /* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */
