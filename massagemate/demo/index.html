@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=54"></script>
+<script src="changelog.js?v=55"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -823,7 +823,7 @@ var FEATURES=[
   {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.'},
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
-  {k:'course_offer',g:'Selling',n:'Course offer when buying a package',d:'One online course can be offered as a tick box when someone buys a package, on the website and at the desk, with its own price and words. Set it on the course, in Courses.'},
+  {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
@@ -885,7 +885,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=16; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=17; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3576,7 +3576,7 @@ function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
   return [h('div',{class:'row'},btn('All courses',function(){ CRS.edit=null; CRS.list=null; schedule(); },'small')),
     pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),
       h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),featOn('course_offer')?btn(OFFER&&OFFER.id===c.id?'Offer with packages: on':'Offer with packages',function(){ crsOfferEdit(c); },'small'):null,btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
-    OFFER&&OFFER.id===c.id&&featOn('course_offer')?h('div',{class:'panel pad'},h('b',null,'Offered with packages for '+thb(OFFER.price)),h('p',{class:'sub',style:'margin:4px 0 0'},'A tick box when someone buys '+(OFFER.with==='all'?'any package':'a Muay Thai training package')+(OFFER.new_only?' as a new member (their first package)':'')+', on the website and at the desk.'+(c.status!=='published'?' This course is still a draft: buyers get it in their app once you publish it.':'')+(!L.length?' It has no lessons yet.':''))):null,
+    OFFER&&OFFER.id===c.id&&featOn('course_offer')?h('div',{class:'panel pad'},h('b',null,'Offered with packages for '+thb(OFFER.price)),h('p',{class:'sub',style:'margin:4px 0 0'},'A tick box when someone buys '+(OFFER.with==='all'?'any package':'a Muay Thai training package')+(OFFER.new_only?' as a new member (their first package)':'')+', on the website and at the desk, and when someone books a room on the website.'+(c.status!=='published'?' This course is still a draft: buyers get it in their app once you publish it.':'')+(!L.length?' It has no lessons yet.':''))):null,
     crsGroupsSection(c),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
     section('Lessons ('+L.length+')',null,L.length?h('div',{class:'panel lessonlist'},L.map(function(l,i){

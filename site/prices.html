@@ -167,7 +167,7 @@ function offerBox(box){
     wrap.innerHTML='<b style="display:block;margin:14px 0 4px">Add '+PK.esc(OFR.title)+'?</b>'+
       (OFR.text?'<p class="sub" style="margin:0 0 8px;white-space:pre-line">'+PK.esc(OFR.text)+'</p>':'')+
       '<div class="pp-yn"><button type="button" data-o="1" aria-pressed="'+ADD+'">Yes, add it, '+PK.thb(OFR.price)+'</button><button type="button" data-o="0" aria-pressed="'+(!ADD)+'">No thanks</button></div>'+
-      (OFR.new_only?'<p class="sub" style="margin:8px 0 0">For new members, with your first package.'+(OFR.full_price&&OFR.full_price>OFR.price?' Usually '+PK.thb(OFR.full_price)+'.':'')+'</p>':'')+
+      (OFR.new_only||OFR.full_price>OFR.price?'<p class="sub" style="margin:8px 0 0">'+(OFR.full_price>OFR.price?Math.round((1-OFR.price/OFR.full_price)*100)+'% off with your package, usually '+PK.thb(OFR.full_price)+'. ':'')+(OFR.new_only?'For new members, with your first package.':'')+'</p>':'')+
       (ADD?'<p class="sub" style="margin:8px 0 0">It opens in the Phuket King app, in the Learn tab. Sign in with the same email.</p>':'');
     Array.prototype.forEach.call(wrap.querySelectorAll('[data-o]'),function(b){ b.onclick=function(){ ADD=b.getAttribute('data-o')==='1'; T('buy_course_offer',ADD?'yes':'no'); draw(); payLabel(); }; });
   }

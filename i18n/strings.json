@@ -4803,6 +4803,10 @@
 "เสนอคอร์สตอนซื้อแพ็กเกจ",
 "ပက်ကေ့ချ်ဝယ်စဉ် သင်တန်း ကမ်းလှမ်းချက်"
 ],
+"Course offer when buying a package or a room": [
+"ข้อเสนอคอร์สเมื่อซื้อแพ็กเกจหรือจองห้องพัก",
+"ပက်ကေ့ချ် သို့မဟုတ် အခန်းဝယ်ချိန် သင်တန်းကမ်းလှမ်းချက်"
+],
 "Course: ": [
 "คอร์ส: ",
 "သင်တန်း: "
@@ -10686,6 +10690,10 @@
 "One online course can be offered as a tick box when someone buys a package, on the website and at the desk, with its own price and words. Set it on the course, in Courses.": [
 "เสนอคอร์สออนไลน์หนึ่งคอร์สเป็นช่องติ๊กตอนซื้อแพ็กเกจ ทั้งบนเว็บไซต์และที่เคาน์เตอร์ มีราคาและข้อความของตัวเอง ตั้งค่าที่คอร์สในหน้าคอร์ส",
 "ပက်ကေ့ချ်ဝယ်ချိန်တွင် အွန်လိုင်းသင်တန်းတစ်ခုကို အမှန်ခြစ်ကွက်အဖြစ် ကမ်းလှမ်းနိုင်သည်၊ ဝဘ်ဆိုက်နှင့် ကောင်တာတွင်၊ ကိုယ်ပိုင်ဈေးနှင့် စာသားဖြင့်။ သင်တန်းများ တွင် သင်တန်းပေါ်၌ သတ်မှတ်ပါ။"
+],
+"One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.": [
+"เสนอคอร์สออนไลน์หนึ่งคอร์สได้เมื่อมีคนซื้อแพ็กเกจ (บนเว็บไซต์และที่เคาน์เตอร์) หรือจองห้องพักบนเว็บไซต์ พร้อมราคาและข้อความของตัวเอง ตั้งค่าที่คอร์สในหน้าคอร์ส",
+"တစ်စုံတစ်ယောက် ပက်ကေ့ချ်ဝယ်သည့်အခါ (ဝက်ဘ်ဆိုက်နှင့် ကောင်တာတွင်) သို့မဟုတ် ဝက်ဘ်ဆိုက်တွင် အခန်းဘွတ်ကင်လုပ်သည့်အခါ အွန်လိုင်းသင်တန်းတစ်ခုကို ၎င်း၏ကိုယ်ပိုင်စျေးနှုန်းနှင့် စာသားဖြင့် ကမ်းလှမ်းနိုင်သည်။ သင်တန်းများတွင် သင်တန်းပေါ်၌ သတ်မှတ်ပါ။"
 ],
 "One page with every email the app sends: emails written in the app, invoices and receipts, welcome emails, action group emails and outreach, with what was sent, what is waiting and what failed. Write a new email from here too.": [
 "หน้าเดียวรวมทุกอีเมลที่แอปส่ง: อีเมลที่เขียนในแอป ใบแจ้งหนี้และใบเสร็จ อีเมลต้อนรับ อีเมลกลุ่มกิจกรรม และอีเมลติดต่อ ดูได้ว่าอะไรส่งแล้ว รอส่ง หรือไม่สำเร็จ และเขียนอีเมลใหม่จากที่นี่ได้",

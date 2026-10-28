@@ -66,7 +66,17 @@ type Group = { id: string; name: string; rooms: string[]; prices: Record<string,
 type Opt = { id: string; name: string; price: number; limit?: number };
 type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; any?: boolean; any_max?: number; max?: number; unit?: string; note?: string };
 type Rates = { base: string; month_nights?: number; seasons: Season[]; groups: Group[]; extras?: Extra[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
-type Item = { name: string; price: number; covers: string[]; limit?: number | null; days?: number | null; starts?: string | null; expires?: string | null };
+type Item = { name: string; price: number; covers: string[]; limit?: number | null; days?: number | null; starts?: string | null; expires?: string | null; course_id?: string };
+// the online course on offer (Courses, Offer it), added to a stay as an extra; checked and priced by the database
+async function courseOffer() { try { const { data } = await admin.rpc("course_offer"); return data && (data as { id?: string }).id ? data : null; } catch { return null; } }
+async function courseItem(body: Record<string, unknown>, items: Item[], from: string, to: string): Promise<Item | null> {
+  if (!body.course) return null;
+  const training = items.some((i) => (i.covers || []).includes("Muay Thai"));
+  const { data, error } = await admin.rpc("web_course_item", { p_course: String(body.course), p_email: String(body.email ?? ""), p_training: training });
+  if (error) throw new Error(error.message);
+  const c = data as { course_id: string; price: number; name: string } | null; if (!c) return null;
+  return { name: c.name, price: c.price, covers: [], course_id: c.course_id, starts: from, expires: addDays(to, 365) };
+}
 
 async function rates(): Promise<Rates> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "room_rates").maybeSingle();
@@ -249,6 +259,7 @@ async function mailQuote(R: Rates, body: Record<string, unknown>) {
   if ((mine ?? 0) >= 3 || (all ?? 0) >= 30) return json({ error: "We already sent you a price. Check your inbox, or WhatsApp us." });
   if (!RESEND) return json({ error: "Email is not set up. WhatsApp us for a price." });
   const nights = q.nights.length, rp = roomPrice(R, g, q.total, nights, O), items = extraItems(R, body.extras, from, to);
+  try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
   const total = rp.total + items.reduce((t, i) => t + i.price, 0), plan = depositPlan(R, O, from, nights, rp.total, total - rp.total, rp.monthly);
   const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
   const STAY = await bizStay(), roomName = rm?.name ?? "Room";
@@ -304,6 +315,7 @@ Deno.serve(async (req) => {
         extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
         offer: await offer(),
+        course: await courseOffer(),
         fx: await fx(),
         ...(await cardRule().then((r) => ({ card_pct: r.pct, card_fixed: r.fixed, card_fixed_under: r.under }))),
       });
@@ -341,7 +353,9 @@ Deno.serve(async (req) => {
       const rp = roomPrice(R, g, full, nightsN, O); q.total = rp.total;
       const offerNote = [rp.monthly ? `Monthly price ${g.month} THB a month (full price ${full} THB).` : O.pct > 0 && q.total < full ? `Book direct ${O.pct}% off (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
-      const items = extraItems(R, body.extras, from, to), total = q.total + items.reduce((t, i) => t + i.price, 0);
+      const items = extraItems(R, body.extras, from, to);
+      try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
+      const total = q.total + items.reduce((t, i) => t + i.price, 0);
       const plan = body.deposit ? depositPlan(R, O, from, nightsN, q.total, total - q.total, rp.monthly) : null;
       if (body.deposit && !plan) return json({ error: "A deposit is not available for this stay. Pay the whole stay, or WhatsApp us." });
       const payNow = plan ? plan.now : total, STAY = await bizStay();
