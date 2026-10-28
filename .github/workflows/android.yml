@@ -80,8 +80,16 @@ jobs:
           KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           if [ -n "$KS_B64" ] && [ -n "$KS_PW" ]; then
-            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
-            echo "pw=$KS_PW" >> $GITHUB_OUTPUT; echo "play=1" >> $GITHUB_OUTPUT
+            # pasted secrets can pick up spaces, line breaks or quotes: take them out
+            B64=$(printf '%s' "$KS_B64" | tr -d ' \r\n\t"' )
+            PW=$(printf '%s' "$KS_PW" | tr -d ' \r\n\t"' )
+            echo "Key secret: ${#B64} characters (should be 5856). Password: ${#PW} characters (should be 28)."
+            if ! printf '%s' "$B64" | base64 -d > "$RUNNER_TEMP/upload.jks" 2>/dev/null; then
+              echo "::error title=key::ANDROID_KEYSTORE_B64 is not complete. Copy the whole long line again (${#B64} of 5856 characters arrived)."; exit 1; fi
+            if ! keytool -list -keystore "$RUNNER_TEMP/upload.jks" -storepass "$PW" -alias upload >/dev/null 2>&1; then
+              echo "::error title=key::The key and the password do not match. Check ANDROID_KEYSTORE_PASSWORD (${#PW} of 28 characters) and ANDROID_KEYSTORE_B64 (${#B64} of 5856)."; exit 1; fi
+            echo "::notice title=key::Upload key OK. Making the Google Play file."
+            echo "pw=$PW" >> $GITHUB_OUTPUT; echo "play=1" >> $GITHUB_OUTPUT
           else
             echo "::warning title=key::No upload key in the secrets yet. Making a test APK only, signed with a throwaway key."
             PW=throwaway$RANDOM$RANDOM
