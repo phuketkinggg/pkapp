@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=60"></script>
+<script src="changelog.js?v=61"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -216,6 +216,11 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .till{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin:14px 0}
 @media (max-width:860px){.till{grid-template-columns:1fr}.cartbox{position:static}}
 .tillleft{display:flex;flex-direction:column;gap:10px;min-width:0}
+body.till #view{max-width:none}
+@media (min-width:1400px){.till{grid-template-columns:minmax(0,1fr) 400px}}
+.toprow{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));grid-template-rows:auto;grid-auto-rows:0;row-gap:0;column-gap:8px;overflow:hidden;padding-bottom:2px}
+.toprow .tillbtn{border-color:var(--gold,#C9A84C)}
+.toplabel{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin:2px 0 -4px}
 .tillleft input[type=search]{width:100%;box-sizing:border-box}
 .catchips{gap:6px}
 .tillgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
@@ -827,6 +832,7 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
+  {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
@@ -888,7 +894,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=21; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=22; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -5937,7 +5943,7 @@ function vHours(){
 }
 
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
-var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null, KINFO=null;
+var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null, KINFO=null, TOPP=null;
 var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['bill','Bill to customer'],['staff','Staff tab'],['stripe','Stripe card link']];
 function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)'})[m]||(m||''); }
 function isBoss(){ return me&&((me.role==='manager'&&can('refunds'))||me.role==='resort'); }
@@ -6545,6 +6551,11 @@ function vShop(){
     btn('Staff tabs',function(){ ui.shopView='tabs'; TABS_ST=null; schedule(); },'small'),
     isBoss()?btn(SHOP.has_pin?'Change my PIN':'Set my approval PIN',pinDlg,SHOP.has_pin?'small':'primary small'):null);
   var search=h('input',{id:'shop-q',type:'search',placeholder:'Search products',value:ui.shopQ||'',oninput:function(e){ ui.shopQ=e.target.value; schedule(); }});
+  /* most used: the products sold most at this shop in the last 30 days, one row on top */
+  if(featOn('shop_top')&&(!TOPP||TOPP.loc!==loc||Date.now()-TOPP.at>600000)&&!ui.topBusy){ ui.topBusy=true; sb.rpc('shop_top',{p_location:loc,p_days:30,p_limit:16}).then(function(r){ ui.topBusy=false; TOPP={loc:loc,at:Date.now(),ids:r.error?[]:(r.data||[])}; schedule(); },function(){ ui.topBusy=false; }); }
+  var here2=prodByCat(null), topList=!q&&!pkMode&&featOn('shop_top')&&TOPP&&TOPP.loc===loc?TOPP.ids.map(function(id){ return here2.filter(function(p){ return p.id===id; })[0]; }).filter(Boolean):[];
+  var topRow=topList.length?[h('div',{class:'toplabel'},'Most used'),h('div',{class:'toprow'},topList.map(function(p){ var sq=stockAt(p,loc);
+    return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),sq!=null?h('small',null,sq+' left'):null,h('b',null,p.open_price?'Type price':thb(p.price))); }))]:null;
   var grid=pkMode?h('div',{class:'tillgrid'},tillPackages().filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0; }).map(function(p){ var t=tiersFor(p,'standard');
       return h('button',{type:'button',class:'tillbtn',onclick:function(){ tillPackage(p); }},h('span',null,p.name),h('small',null,'Training package'),h('b',null,t?thb(tierUnit(t,1))+(p.qty_unit==='days'?' a day':' each'):thb(priceFor(p,'standard')))); }))
     :h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return Object.assign({},p,{grp:null}); }):prods).map(function(g){
@@ -6575,7 +6586,7 @@ function vShop(){
     waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
       act:[shift?PAYS.filter(function(m){ return m[0]!=='room'&&m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
-    h('div',{class:'till'},h('div',{class:'tillleft'},search,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
+    h('div',{class:'till'},h('div',{class:'tillleft'},search,topRow,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
         cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); }),
         gymTill(loc)?btn('Training packages',function(){ ui.shopCat='__pk'; ui.shopQ=''; schedule(); },pkMode?'primary small':'small'):null):null,grid),cartBox),
     section('Sales today',null,cards(today.slice(0,40).map(function(o){
