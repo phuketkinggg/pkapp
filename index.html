@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=58"></script>
+<script src="changelog.js?v=59"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -886,7 +886,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=19; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=20; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3291,6 +3291,7 @@ function lsUrl(p){ var c=LSIGN[p]; if(c&&c.u&&c.exp>Date.now()) return c.u; if(!
     sb.storage.from('learn').createSignedUrl(p,3600).then(function(r){ if(r&&r.data&&r.data.signedUrl){ LSIGN[p]={u:r.data.signedUrl,exp:Date.now()+3300e3}; schedule(); } else LSIGN[p]={u:null,exp:Date.now()+60000,err:true}; },function(){}); }
   return null; }
 function learnVideo(x){ if(x&&x.video_path){ var u=lsUrl(x.video_path); return u?h('video',{class:'cvid lvideo',src:u,controls:true,preload:'metadata',playsinline:true,controlslist:'nodownload'}):h('div',{class:'cvid cwait'},LSIGN[x.video_path]&&LSIGN[x.video_path].err?'This video could not load.':'Loading the video'); }
+  if(x&&x.video&&!ytId(x.video)&&/^https:\/\//.test(x.video)) return h('video',{class:'cvid lvideo',src:x.video,controls:true,preload:'metadata',playsinline:true,controlslist:'nodownload'});
   return x?ytFrame(x.video):null; }
 function learnUp(file,onProg){ var ext=(String(file.name).match(/\.([a-z0-9]{2,4})$/i)||[0,'mp4'])[1].toLowerCase(), path=new Date().toISOString().slice(0,7)+'/'+Math.random().toString(36).slice(2,10)+Date.now().toString(36)+'.'+ext;
   var type=file.type||(ext==='mov'?'video/quicktime':'video/mp4');
@@ -3321,14 +3322,14 @@ function tecLoad(){ TEC.busy=true; return sb.rpc('technique_list',PV?{p_customer
 function tecVis(v){ var x=TECVIS.filter(function(t){ return t[0]===v; })[0]; return x?x[1]:v; }
 function tecEdit(t){ t=t||{visibility:'public'}; var cover=t.cover||null, vst={path:t.video_path||null};
   var cats=[]; (TEC.list||[]).forEach(function(x){ if(x.category&&cats.indexOf(x.category)<0) cats.push(x.category); }); cats.sort();
-  openForm({title:t.id?'Edit video':'Add a video',values:{title:t.title||'',category:t.category||'',video_url:t.video||'',body:t.body||'',visibility:t.visibility||'app',sort:t.sort||0},
+  openForm({title:t.id?'Edit video':'Add a video',note:featOn('coaching')?'Every library video is also an exercise in Coaching, Exercises: change the name, video or coaching points here or there and both change. Delete only takes it out of the library.':null,values:{title:t.title||'',category:t.category||'',video_url:t.video||'',body:t.body||'',visibility:t.visibility||'app',sort:t.sort||0},
     fields:[{key:'title',label:'Name',required:true,hint:'For example: The teep, front kick.'},
       {key:'category',label:'Category',hint:cats.length?'Same name groups them together. Now: '+cats.join(', ')+'.':'For example Strikes, Kicks, Knees and elbows, Clinch, Defence, Conditioning.'},
       {key:'video_url',label:'YouTube link',hint:'Paste a YouTube link, or upload the video below. Public videos do best on YouTube (free, and people find them there). For members videos, uploading keeps them private.'},
       {key:'visibility',label:'Who can watch it',type:'select',options:TECVIS},
       {key:'body',label:'Coaching points',type:'textarea',rows:8,hint:'Key points and common mistakes. A blank line starts a new paragraph, - makes a list, **word** is bold.'},
       {key:'sort',label:'Order in its category',type:'number'}],
-    onSave:function(v){ if(v.video_url&&!ytId(v.video_url)) return 'The video must be a YouTube link, for example https://youtu.be/...'; if(!v.video_url&&!vst.path) return 'Add a YouTube link or upload a video.';
+    onSave:function(v){ if(v.video_url&&!/^https:\/\//.test(v.video_url)) return 'The video must be a link starting with https://, for example https://youtu.be/...'; if(!v.video_url&&!vst.path) return 'Add a YouTube link or upload a video.';
       return sb.rpc('technique_save',{p:{id:t.id||null,slug:t.slug||null,title:v.title,category:v.category,video_url:v.video_url||null,video_path:vst.path,cover_url:cover,body:v.body,visibility:v.visibility,sort:v.sort}}).then(must).then(function(){ return tecLoad(); }); },
     onDelete:t.id?function(){ return sb.rpc('technique_remove',{p_id:t.id}).then(must).then(function(){ return tecLoad(); }); }:null});
   learnUpField('f-video_url',vst);
@@ -4465,14 +4466,24 @@ function coExercises(){
     h('div',{class:'row'},search),
     table([{label:'Exercise',cell:function(x){ return linkBtn(x.name,function(){ coEditEx(x); }); }},
       {label:'Groups',cell:function(x){ return h('span',{class:'wrap'},(x.groups||[]).map(function(id){ return chip(coGroupName(id)); })); }},
-      {label:'Video',cell:function(x){ return x.video?chip('Video','ok'):''; }},{label:'Coaching points',cell:function(x){ return (x.notes||'').slice(0,80); }}],list,
+      {label:'Video',cell:function(x){ return x.video?chip('Video','ok'):''; }},
+      featOn('techniques')?{label:'Library',cell:function(x){ return x.share?chip(x.share.visibility==='public'?'Public':x.share.visibility==='members'?'Members':x.share.visibility==='hidden'?'In courses':'In the app','ok'):''; }}:null,
+      {label:'Coaching points',cell:function(x){ return (x.notes||'').slice(0,80); }}].filter(Boolean),list,
       sel?'No exercises in '+sel.name+' yet. Tap Choose exercises.':q?'No exercise matches that.':'No exercises yet. Tap New exercise.')); }
-function coEditEx(x,inGroup){ x=x||{}; var gs=COACH.groups||[];
-  openForm({title:x.id?'Edit exercise':'New exercise',values:{name:x.name||'',video:x.video||'',notes:x.notes||'',groups:x.id?(x.groups||[]):(inGroup?[inGroup]:(COACH.exGroup?[COACH.exGroup]:[]))},saveLabel:'Save',doneMsg:'Saved.',
+function coEditEx(x,inGroup){ x=x||{}; var gs=COACH.groups||[], sh=x.share||null, canShare=featOn('techniques')&&me&&me.role==='manager';
+  var cats=[]; (COACH.ex||[]).concat(TEC.list||[]).forEach(function(e){ var c=e.share?e.share.category:e.category; if(c&&cats.indexOf(c)<0) cats.push(c); }); cats.sort();
+  openForm({title:x.id?'Edit exercise':'New exercise',values:{name:x.name||'',video:x.video||'',notes:x.notes||'',groups:x.id?(x.groups||[]):(inGroup?[inGroup]:(COACH.exGroup?[COACH.exGroup]:[])),share:!!sh,category:sh?sh.category:'',visibility:sh?sh.visibility:'app'},saveLabel:'Save',doneMsg:'Saved.',
     fields:[{key:'name',label:'Name',required:true},{key:'video',label:'Demo video',hint:'A YouTube link (Unlisted is fine), or upload a video below.'},{key:'notes',label:'Coaching points',type:'textarea',rows:4}]
-      .concat(gs.length?[{key:'groups',label:'Groups',type:'checks',options:gs.map(function(g){ return [g.id,g.name]; }),hint:'Tick as many as you like. Make new groups on the Exercises page.'}]:[]),
-    onDelete:x.id?function(){ return sb.rpc('exercise_remove',{p_id:x.id}).then(must).then(coEx); }:null,
-    onSave:function(v){ var body={id:x.id||null,name:v.name,video:v.video,notes:v.notes}; if(gs.length) body.groups=v.groups||[]; return sb.rpc('exercise_save',{p:body}).then(must).then(coEx); }});
+      .concat(gs.length?[{key:'groups',label:'Groups',type:'checks',options:gs.map(function(g){ return [g.id,g.name]; }),hint:'Tick as many as you like. Make new groups on the Exercises page.'}]:[])
+      .concat(canShare?[{key:'share',label:'Show it in the technique library (Education)',type:'checkbox',onChange:function(v,set,get,o,show){ show('category',v); show('visibility',v); }},
+        {key:'category',label:'Library category',hide:!sh,hint:cats.length?'Same name groups them together. Now: '+cats.join(', ')+'.':'For example Kicks, Elbows, Clinch, Defence.'},
+        {key:'visibility',label:'Who can watch it in the library',type:'select',options:TECVIS,hide:!sh}]:[]),
+    onDelete:x.id?function(){ return sb.rpc('exercise_remove',{p_id:x.id}).then(must).then(function(){ TEC.list=null; return coEx(); }); }:null,
+    onSave:function(v){ var body={id:x.id||null,name:v.name,video:v.video,notes:v.notes}; if(gs.length) body.groups=v.groups||[];
+      if(canShare&&v.share&&!v.video) return 'Add a video to show it in the technique library.';
+      return sb.rpc('exercise_save',{p:body}).then(must).then(function(id){
+        if(!canShare||(!v.share&&!sh)) return;
+        return sb.rpc('exercise_share',{p_exercise:id||x.id,p:{on:!!v.share,category:v.category,visibility:v.visibility}}).then(must); }).then(function(){ TEC.list=null; return coEx(); }); }});
   var vi=document.getElementById('f-video'); if(vi) vi.parentNode.appendChild(h('div',{class:'row'},btn('Upload a video',function(){ coUpload('ex',function(u){ vi.value=u; },'video/*'); },'small')));
 }
 /* program editor: routines (one per day if you like), sections and exercises with sets, reps, intensity, rest, video and progressions */
