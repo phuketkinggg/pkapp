@@ -5,6 +5,7 @@
 // reserve with pay:"pp": Thai QR (PromptPay) straight to our bank: returns the QR instead of a Stripe page
 // claim:   the guest tapped "I have paid": the room is held 12 hours and the desk checks the bank
 // status:  after paying, the page asks if the booking went through
+// followups: (the database, every 15 minutes, with the sync token) a friendly email to guests who started paying but did not finish
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -297,6 +298,58 @@ ${notes.map((n) => `<p style="color:${MUT};margin:6px 0">${escH(n)}</p>`).join("
   return json({ ok: true });
 }
 
+// unpaid website bookings: about an hour later the guest gets their stay and a link to finish it, in a friendly tone
+async function followups(req: Request) {
+  const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
+  if (ok !== true) return json({ error: "Not allowed." }, 401);
+  if (!RESEND) return json({ error: "Email is not set up." });
+  const { data } = await admin.rpc("web_followups_due");
+  const due = (data ?? []) as { id: string; name: string; email: string; room_id: string; room: string; from: string; to: string; room_price: number; extras: { name: string; price: number }[] }[];
+  if (!due.length) return json({ ok: true, sent: 0 });
+  const O = await offer(), STAY = await bizStay();
+  const { data: so } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
+  let sj: { book_url?: string } = {}; try { sj = JSON.parse(so?.value ?? "{}"); } catch { /* defaults */ }
+  const base = /^https:\/\/[^\s]+$/.test(String(sj.book_url ?? "")) ? String(sj.book_url) : "https://www.phuketking.com/book";
+  const { data: ms } = await admin.from("app_settings").select("value").eq("key", "mail_from").maybeSingle();
+  let mf: { from?: string; reply_to?: string; whatsapp?: string } = {}; try { mf = JSON.parse(ms?.value ?? "{}"); } catch { /* defaults */ }
+  const wa = String(mf.whatsapp ?? "66969076150").replace(/\D/g, "");
+  let sent = 0;
+  for (const g of due.slice(0, 20)) {
+    const nights = Math.round((Date.parse(g.to) - Date.parse(g.from)) / 864e5), hi = g.name ? g.name.split(/\s+/)[0] : "there";
+    const total = Number(g.room_price || 0) + (g.extras || []).reduce((t, x) => t + Number(x.price || 0), 0);
+    const link = base + (base.includes("?") ? "&" : "?") + `from=${g.from}&to=${g.to}&room=${encodeURIComponent(g.room_id)}`;
+    const lines: [string, string][] = [[`${g.room || "Your room"}, ${nights} night${nights === 1 ? "" : "s"}`, T(Number(g.room_price || 0))], ...(g.extras || []).map((x) => [x.name, T(Number(x.price || 0))] as [string, string])];
+    const dep = O.deposit.on && nights >= O.deposit.nights;
+    const subject = `Your stay at ${STAY}, ${dayW(g.from)} to ${dayW(g.to)}`;
+    const paras = [
+      `We saw you started booking a stay with us, but the payment did not go through. No worries, that happens a lot, especially with bigger card payments from abroad that some banks stop for a moment.`,
+      `Here is what you chose, so you do not have to start again. The room is not held yet, so book it when you are ready:`,
+    ];
+    const after = [
+      dep ? `You can also pay a deposit now and the rest closer to your arrival. Just choose the deposit on the booking page.` : "",
+      `And if you have any questions, about the stay, the training, the food or anything else, just reply to this email or message us on WhatsApp. Whether you stay with us or not, we are always happy to help.`,
+    ].filter(Boolean);
+    const text = [`Hi ${hi},`, "", ...paras, "", ...lines.map((l) => `${l[0]}: ${l[1]}`), `Total: ${T(total)}`, "", "Finish your booking: " + link, "", ...after, "", `WhatsApp: https://wa.me/${wa}`, "", `Have a great day,`, `The ${STAY} team`].join("\n");
+    const G = "#1a3325", INK = "#22201c", MUT = "#6b665c";
+    const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:${INK};line-height:1.55"><p>Hi ${escH(hi)},</p>${paras.map((p) => `<p>${escH(p)}</p>`).join("")}
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${lines.map((l) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e6dfd2">${escH(l[0])}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #e6dfd2;white-space:nowrap">${escH(l[1])}</td></tr>`).join("")}
+<tr><td style="padding:10px 0"><b>Total</b></td><td align="right" style="padding:10px 0"><b>${escH(T(total))}</b></td></tr></table>
+<p style="margin:22px 0"><a href="${escH(link)}" style="background:${G};color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Finish my booking</a></p>
+${after.map((p) => `<p>${escH(p)}</p>`).join("")}<p><a href="https://wa.me/${wa}">Message us on WhatsApp</a></p><p>Have a great day,<br>The ${escH(STAY)} team</p>
+<p style="color:${MUT};font-size:12px;margin-top:22px">You get this one email because you started a booking on our website. We will not send more about it.</p></div>`;
+    let okm = false, err: string | null = null, rid: string | null = null;
+    try {
+      const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: mf.from || `${STAY} <hello@app.phuketking.com>`, to: [g.email], reply_to: mf.reply_to || "hello@phuketking.com", subject, html, text }) });
+      const j = await r.json().catch(() => ({})); if (r.ok) { okm = true; rid = j?.id ?? null; } else err = j?.message || `Email service said ${r.status}`;
+    } catch (e) { err = (e as Error).message; }
+    await admin.from("sent_emails").insert({ to_email: g.email, to_name: g.name || null, subject, body: text, status: okm ? "sent" : "failed", error: err, resend_id: rid, sent_at: okm ? new Date().toISOString() : null, campaign: "stay_followup" });
+    await admin.rpc("web_followup_mark", { p_stay: g.id });
+    if (okm) sent++;
+  }
+  return json({ ok: true, sent });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -382,6 +435,7 @@ Deno.serve(async (req) => {
       }
     }
     if (body.mode === "mail_quote") return await mailQuote(R, body);
+    if (body.mode === "followups") { await admin.rpc("web_holds_cleanup"); return await followups(req); }
     if (body.mode === "claim") {
       if (!/^[0-9a-f-]{36}$/.test(String(body.ref ?? ""))) return json({ error: "Not found." });
       const { data, error } = await admin.rpc("web_stay_claim", { p_stay: body.ref });
