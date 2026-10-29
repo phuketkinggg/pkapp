@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=62"></script>
+<script src="changelog.js?v=63"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -895,7 +895,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=23; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=24; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3891,9 +3891,16 @@ function cmGroups(d){ var t=d.today;
 }
 
 /* coach: list, group page, editor */
+/* open one action group from anywhere (for example a course): leave any open program or editor, go to Coaching, Action groups */
+function coOpenGroup(id){
+  if(!tabOn('coaching')){ toast('Turn on Online coaching in Settings, Features, to open groups.'); return; }
+  COACH.prog=null; COACH.gedit=null; COACH.cid=null; COACH.view='groups'; COACH.gopen=id; ui.tab='coaching';
+  try{ history.replaceState(null,'','#coaching'); }catch(e){}
+  if(!COACH.grp) coGrpLoad().catch(function(){});
+  schedule(); window.scrollTo(0,0); }
 function coGrpLoad(){ return sb.rpc('group_list').then(must).then(function(l){ COACH.grp=l; schedule(); return l; }); }
 function coGroups(){
-  if(COACH.gopen){ var g=(COACH.grp||[]).filter(function(x){ return x.id===COACH.gopen; })[0]; if(g) return coGroupPage(g); COACH.gopen=null; }
+  if(COACH.gopen&&COACH.grp){ var g=COACH.grp.filter(function(x){ return x.id===COACH.gopen; })[0]; if(g) return coGroupPage(g); COACH.gopen=null; }
   if(!COACH.grp){ coGrpLoad().catch(function(e){ COACH.grpErr=errText(e); schedule(); }); return h('div',{class:'panel empty'},COACH.grpErr||'Loading.'); }
   return COACH.grp.length?h('div',{class:'panel'},COACH.grp.map(function(g){ var n=(g.items||[]).length, m=(g.members||[]).length;
     return h('button',{type:'button',class:'lrow',onclick:function(){ COACH.gopen=g.id; schedule(); window.scrollTo(0,0); }},h('div',{class:'hmain'},h('b',null,g.name),h('small',{class:'sub'},n+' step'+(n===1?'':'s')+', '+m+' '+(m===1?'person':'people')+(g.by?', by '+g.by:'')))); }))
@@ -4102,11 +4109,11 @@ function crsGroupsSection(c){
   if(!COACH.grp){ if(!CRS.grpAsked){ CRS.grpAsked=true; coGrpLoad().catch(function(){}); } }
   var linked=(c.groups||[]).map(function(x){ return (COACH.grp||[]).filter(function(g){ return g.id===x.id; })[0]||x; });
   return section('Groups in this course',h('div',{class:'row'},btn('Link groups',function(){ crsGroupsEdit(c); },'small'),
-      btn('New group for this course',function(){ coEditGroup({name:c.title,notes:'',items:[coNewStep()],_course:c.id}); ui.tab='coaching'; COACH.view='groups'; COACH.gopen=null; schedule(); },'small')),
+      btn('New group for this course',function(){ if(!tabOn('coaching')){ toast('Turn on Online coaching in Settings, Features, to make groups.'); return; } COACH.prog=null; coEditGroup({name:c.title,notes:'',items:[coNewStep()],_course:c.id}); ui.tab='coaching'; COACH.view='groups'; COACH.gopen=null; try{ history.replaceState(null,'','#coaching'); }catch(e){} schedule(); },'small')),
     linked.length?h('div',{class:'panel'},linked.map(function(g){ var it=g.items||[], em=it.filter(function(x){ return x.kind==='email'; }).length;
         return h('div',{class:'lrow static'},h('div',{class:'hmain'},h('b',null,g.name),
             h('small',{class:'sub'},g.items?[it.length+' step'+(it.length===1?'':'s'),em?em+' email'+(em===1?'':'s'):null,(g.members||[]).length+' '+((g.members||[]).length===1?'person':'people')].filter(Boolean).join(', '):'')),
-          btn('Open',function(){ ui.tab='coaching'; COACH.view='groups'; COACH.gopen=g.id; COACH.gedit=null; schedule(); window.scrollTo(0,0); },'small')); }),
+          btn('Open',function(){ coOpenGroup(g.id); },'small')); }),
         h('p',{class:'sub',style:'padding:8px 14px'},'Everyone who gets this course (bought, given, or free with a package) joins these groups that day: their emails, habits, steps and coaching start from day 1.'))
       :h('div',{class:'panel empty'},'No groups yet. Groups hold the emails, habits, steps and coaching that come with this course. Tap New group for this course, or Link groups to use ones you already have.'));
 }
