@@ -1,5 +1,5 @@
 {
- "at": "2026-10-28T13:08:03Z",
+ "at": "2026-10-29T10:08:30Z",
  "classes": [
   {
    "day": 0,
@@ -2722,6 +2722,106 @@
  },
  "techniques": [
   {
+   "category": "",
+   "description": "How to do Heavy Bag how to use in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "heavy-bag-how-to-use",
+   "title": "Heavy Bag how to use",
+   "updated": "2026-10-29T07:08:20.02971+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do Jab oparry to elbow in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "jab-oparry-to-elbow",
+   "title": "Jab oparry to elbow",
+   "updated": "2026-10-29T07:00:33.647611+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do Parry Teep, Inside outside kick in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "parry-teep-inside-outside-kick",
+   "title": "Parry Teep, Inside outside kick",
+   "updated": "2026-10-29T07:01:29.878777+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do Power hurdle to box jump lateral jump in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "power-hurdle-to-box-jump-lateral-jump",
+   "title": "Power hurdle to box jump lateral jump",
+   "updated": "2026-10-29T07:02:19.486407+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do right parry to elbow attack in Muay Thai, from the Phuket King coaches.",
+   "embed": "https://www.youtube-nocookie.com/embed/UTVuxU7rkQQ",
+   "html": "<div class=\"cvid\"><iframe src=\"https://www.youtube-nocookie.com/embed/UTVuxU7rkQQ?rel=0\" title=\"right parry to elbow attack\" allow=\"accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div>",
+   "image": "https://i.ytimg.com/vi/UTVuxU7rkQQ/hqdefault.jpg",
+   "slug": "right-parry-to-elbow-attack",
+   "title": "right parry to elbow attack",
+   "updated": "2026-10-29T07:03:30.5269+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do Switch conditioning in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "switch-conditioning",
+   "title": "Switch conditioning",
+   "updated": "2026-10-29T07:04:10.677015+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do switch kick in Muay Thai, from the Phuket King coaches.",
+   "embed": "https://www.youtube-nocookie.com/embed/ENIMHxOuo7k",
+   "html": "<div class=\"cvid\"><iframe src=\"https://www.youtube-nocookie.com/embed/ENIMHxOuo7k?rel=0\" title=\"switch kick\" allow=\"accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div>",
+   "image": "https://i.ytimg.com/vi/ENIMHxOuo7k/hqdefault.jpg",
+   "slug": "switch-kick",
+   "title": "switch kick",
+   "updated": "2026-10-29T07:04:41.353395+00:00"
+  },
+  {
+   "category": "",
+   "description": "How to do teep, fake teep elbow in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "teep-fake-teep-elbow",
+   "title": "teep, fake teep elbow",
+   "updated": "2026-10-29T07:06:06.850068+00:00"
+  },
+  {
+   "category": "elbow",
+   "description": "How to do How to defend a clinch entry using an elbow. in Muay Thai, from the Phuket King coaches.",
+   "embed": "https://www.youtube-nocookie.com/embed/7yV_J6U02HM",
+   "html": "<div class=\"cvid\"><iframe src=\"https://www.youtube-nocookie.com/embed/7yV_J6U02HM?rel=0\" title=\"How to defend a clinch entry using an elbow.\" allow=\"accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div>",
+   "image": "https://i.ytimg.com/vi/7yV_J6U02HM/hqdefault.jpg",
+   "slug": "how-to-defend-a-clinch-entry-using-an-elbow",
+   "title": "How to defend a clinch entry using an elbow.",
+   "updated": "2026-10-29T06:58:36.59447+00:00"
+  },
+  {
+   "category": "elbow",
+   "description": "How to do Jab to elbow in Muay Thai, from the Phuket King coaches.",
+   "embed": "https://www.youtube-nocookie.com/embed/AklE6QB4BYI",
+   "html": "<div class=\"cvid\"><iframe src=\"https://www.youtube-nocookie.com/embed/AklE6QB4BYI?rel=0\" title=\"Jab to elbow\" allow=\"accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div>",
+   "image": "https://i.ytimg.com/vi/AklE6QB4BYI/hqdefault.jpg",
+   "slug": "jab-to-elbow",
+   "title": "Jab to elbow",
+   "updated": "2026-10-29T06:59:42.596885+00:00"
+  },
+  {
    "category": "Elbow",
    "description": "This is s simple elbow technique from Kru Max. Turning Defence into attack by using a simple jab parry. Start slow, working on balance and technique.",
    "embed": "https://www.youtube-nocookie.com/embed/AklE6QB4BYI",
@@ -2750,6 +2850,16 @@
    "slug": "stop-hitting-the-heavy-bag-wrong",
    "title": "Stop Hitting the Heavy Bag Wrong",
    "updated": "2026-10-26T13:41:56.790477+00:00"
+  },
+  {
+   "category": "Kick",
+   "description": "How to do Beginner roundhouse in Muay Thai, from the Phuket King coaches.",
+   "embed": "https://www.youtube-nocookie.com/embed/SuI3z6KGbGk",
+   "html": "<div class=\"cvid\"><iframe src=\"https://www.youtube-nocookie.com/embed/SuI3z6KGbGk?rel=0\" title=\"Beginner roundhouse\" allow=\"accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div>",
+   "image": "https://i.ytimg.com/vi/SuI3z6KGbGk/hqdefault.jpg",
+   "slug": "beginner-roundhouse",
+   "title": "Beginner roundhouse",
+   "updated": "2026-10-29T06:59:12.661695+00:00"
   },
   {
    "category": "Kick",
