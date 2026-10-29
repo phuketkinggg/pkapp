@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=59"></script>
+<script src="changelog.js?v=60"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -229,6 +229,7 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .tillbtn small{color:var(--muted);font-size:12px}
 .tillbtn.grp{background:var(--sunken)}
 .optgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:60vh;overflow:auto}
+.modgrp{margin:0 0 14px}.modgrp .optgrid{max-height:none}.modhead{display:flex;gap:8px;align-items:baseline;margin-bottom:6px}.tillbtn.on{border:2px solid var(--ink,#141414);background:var(--surface2,#f1ede4)}.modtot{font-size:18px;align-self:center}
 .cartbox{position:sticky;top:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .carthead{display:flex;justify-content:space-between;align-items:center}
 .cartlines{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
@@ -827,6 +828,7 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
+  {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
@@ -887,7 +889,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=20; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=21; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -5965,7 +5967,52 @@ function lowList(loc){ return (SHOP&&SHOP.products||[]).filter(function(p){ retu
 function cart(){ return ui.cart||(ui.cart=[]); }
 function cartSub(){ return cart().reduce(function(t,l){ return t+l.price*l.qty; },0); }
 function cartDisc(){ return ui.cartDisc&&ui.cartDisc.amount||0; }
-function addToCart(p,price){ var pr=price!=null?price:p.price; var l=cart().filter(function(x){ return x.id===p.id&&!x.note&&x.price===pr; })[0]; if(l) l.qty++; else cart().push({id:p.id,name:p.name,price:pr,qty:1,note:'',open:!!p.open_price}); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }
+function addToCart(p,price,md){
+  if(md===undefined&&prodMods(p).length){ setTimeout(function(){ modPick(p,price!=null?price:p.price,function(m){ addToCart(p,price,m); }); },60); return; }
+  var pr=(price!=null?price:p.price)+(md?md.extra:0), key=md&&md.ids.length?md.ids.join(','):'';
+  var l=cart().filter(function(x){ return x.id===p.id&&!x.note&&x.price===pr&&(x.modk||'')===key; })[0];
+  if(l) l.qty++; else cart().push({id:p.id,name:p.name+(md&&md.label?' ('+md.label+')':''),price:pr,qty:1,note:'',open:!!p.open_price,mods:md&&md.ids.length?md.ids:null,modk:key,modx:md?md.extra:0});
+  if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); }
+/* modifiers, like Loyverse: choices with their own price (Milk: Oat milk +20; Hot or iced; Extras: Add cheese), asked when a product is added */
+function prodMods(p){ if(!featOn('shop_modifiers')||!SHOP||!p||!(p.mods||[]).length) return []; return (SHOP.modifiers||[]).filter(function(m){ return p.mods.indexOf(m.id)>=0; }); }
+function modPick(p,base,done){ var ms=prodMods(p); if(!ms.length){ done(null); return; }
+  var sel={}, total=h('b',{class:'modtot'}), err=h('p',{class:'ferr',role:'alert',hidden:true}), box=h('div');
+  ms.forEach(function(m){ sel[m.id]=[]; });
+  function extra(){ var x=0; ms.forEach(function(m){ (m.options||[]).forEach(function(o){ if(sel[m.id].indexOf(o.id)>=0) x+=Number(o.price)||0; }); }); return x; }
+  function draw(){ box.replaceChildren.apply(box,ms.map(function(m){ return h('div',{class:'modgrp'},h('div',{class:'modhead'},h('b',null,m.name),h('span',{class:'sub'},m.required?(m.multi?'Choose at least one':'Choose one'):(m.multi?'Optional, choose any':'Optional'))),
+      h('div',{class:'optgrid'},(m.options||[]).map(function(o){ var on=sel[m.id].indexOf(o.id)>=0;
+        return h('button',{type:'button',class:'tillbtn'+(on?' on':''),'aria-pressed':on?'true':'false',onclick:function(){ var a=sel[m.id], i=a.indexOf(o.id); if(i>=0) a.splice(i,1); else { if(!m.multi) a.length=0; a.push(o.id); } err.hidden=true; draw(); }},
+          h('span',null,o.name),h('b',null,Number(o.price)?(o.price>0?'+':'')+thb(o.price):'')); }))); }));
+    total.textContent=thb(base+extra()); }
+  draw();
+  shopDlg(h('div',{class:'billbox'},h('h2',null,p.name),box,err,h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),h('div',{class:'row'},total,btn('Add',function(){
+    var miss=ms.filter(function(m){ return m.required&&!sel[m.id].length; })[0]; if(miss){ err.textContent='Choose '+miss.name.toLowerCase()+'.'; err.hidden=false; return; }
+    var ids=[], names=[]; ms.forEach(function(m){ (m.options||[]).forEach(function(o){ if(sel[m.id].indexOf(o.id)>=0){ ids.push(o.id); names.push(o.name); } }); });
+    $dlg.close(); done({ids:ids,label:names.join(', '),extra:extra()}); },'primary')))));
+}
+/* manager: the modifiers and which products use them */
+function modifiersDlg(){ var ms=(SHOP&&SHOP.modifiers)||[], prods=(SHOP.products||[]);
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Modifiers'),
+    h('p',{class:'sub'},'Choices asked when a product is added at the till or in the app, each with its own price. For example Milk (Oat milk +20, Almond milk +25), Hot or iced, or Extras (Add cheese +30). For different drinks with their own price, like Latte and Espresso, use products with the same Group instead.'),
+    ms.length?table([{label:'Modifier',cell:function(m){ return linkBtn(m.name,function(){ modifierEdit(m); }); }},
+      {label:'Choices',cell:function(m){ return (m.options||[]).map(function(o){ return o.name+(Number(o.price)?' +'+o.price:''); }).join(', '); }},
+      {label:'Rule',cell:function(m){ return m.required?(m.multi?'Must choose, any':'Must choose one'):(m.multi?'Optional, any':'Optional, one'); }},
+      {label:'Products',num:true,cell:function(m){ return prods.filter(function(p){ return (p.mods||[]).indexOf(m.id)>=0; }).length; }}],ms,''):h('p',{class:'panel empty'},'No modifiers yet.'),
+    h('div',{class:'factions'},btn('Close',function(){ $dlg.close(); }),btn('New modifier',function(){ modifierEdit(); },'primary')))); }
+function modifierEdit(m){ m=m||{options:[]}; var prods=sortBy((SHOP.products||[]).filter(function(p){ return p.active&&(p.in_app||p.kitchen||(p.mods||[]).indexOf(m.id)>=0); }),'name');
+  var cats=SHOP.categories||[]; function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:''; }
+  var lines=(m.options||[]).map(function(o){ return o.name+(Number(o.price)?' '+o.price:''); }).join('\n');
+  setTimeout(function(){ openForm({title:m.id?'Edit '+m.name:'New modifier',values:{name:m.name||'',options:lines,required:!!m.required,multi:!!m.multi,products:prods.filter(function(p){ return (p.mods||[]).indexOf(m.id)>=0; }).map(function(p){ return p.id; })},saveLabel:'Save',doneMsg:'Modifier saved.',
+    onDelete:m.id?function(){ return sb.rpc('shop_modifier_remove',{p_id:m.id}).then(must).then(loadShop); }:null,
+    fields:[{key:'name',label:'Name',required:true,hint:'For example Milk, Hot or iced, Extras, Sweetness.'},
+      {key:'options',label:'Choices, one per line, with the extra price',type:'textarea',rows:6,required:true,hint:'For example:\nNormal milk 0\nOat milk 20\nAlmond milk 25'},
+      {key:'required',label:'They must choose (for example hot or iced)',type:'checkbox'},
+      {key:'multi',label:'They can choose more than one (for example extras)',type:'checkbox'},
+      {key:'products',label:'Use it on',type:'checks',options:prods.map(function(p){ return [p.id,p.name+(cname(p.category_id)?' ('+cname(p.category_id)+')':'')]; }),hint:'Cafe and app products. Other products: open the product and tick the modifier there.'}],
+    onSave:function(v){ var opts=[], bad=null; String(v.options||'').split('\n').forEach(function(l){ l=l.trim(); if(!l) return; var mm=l.match(/^(.*?)\s*[+]?\s*(-?\d+)\s*(thb|baht)?$/i), nm=mm?mm[1].trim():l, pr=mm?Number(mm[2]):0; if(!nm){ bad=l; return; }
+        var old=(m.options||[]).filter(function(o){ return o.name.toLowerCase()===nm.toLowerCase(); })[0]; opts.push({id:old?old.id:null,name:nm,price:pr}); });
+      if(bad) return 'Check this line: '+bad; if(!opts.length) return 'Add at least one choice.';
+      return sb.rpc('shop_modifier_save',{p:{id:m.id||null,name:v.name,options:opts,required:!!v.required,multi:!!v.multi,products:v.products||[]}}).then(must).then(loadShop); }}); },60); }
 /* open price products ask for the price; grouped products (sizes, flavours) ask which one */
 function tillTap(p){
   if(!p.open_price){ addToCart(p); return; }
@@ -6011,7 +6058,7 @@ function miscDlg(){
 }
 function clearCart(){ ui.cart=[]; ui.cartDisc=null; schedule(); }
 /* training packages on the gym till: the package goes on the customer, the money goes through the till */
-function cartItems(){ return cart().map(function(l){ return l.misc?{misc:true,name:l.name,price:l.price,qty:l.qty,note:l.note||null}:l.pkg?{package:l.pkg,price:l.price}:{product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price:null}; }); }
+function cartItems(){ return cart().map(function(l){ return l.misc?{misc:true,name:l.name,price:l.price,qty:l.qty,note:l.note||null}:l.pkg?{package:l.pkg,price:l.price}:{product_id:l.id,qty:l.qty,note:l.note||null,price:l.open?l.price-(l.modx||0):null,mods:l.mods||null}; }); }
 function cartCust(){ var l=cart().filter(function(x){ return x.pkg; })[0]; return l?l.pkg.customer_id:null; }
 function gymTill(loc){ return !!loc&&!/cafe/i.test(locName(loc)); }
 function tillPackages(){ return sortBy(S.packages.filter(function(p){ return p.active!==false&&!isMealOnly(p); }),'name'); }
@@ -6286,7 +6333,7 @@ function pinDlg(){
 function editProduct(p){
   p=p||{}; var cats=SHOP.categories||[];
   openForm({title:p.id?'Edit product':'New product',values:{name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,description:p.description,sku:p.sku,open_price:!!p.open_price,grp:p.grp,
-    locations:p.locations&&p.locations.length?p.locations:(SHOP.locations||[]).map(function(l){ return l.id; }),track_stock:!!p.track_stock,low_stock:p.low_stock,on_web:!!p.on_web},fields:[
+    locations:p.locations&&p.locations.length?p.locations:(SHOP.locations||[]).map(function(l){ return l.id; }),track_stock:!!p.track_stock,low_stock:p.low_stock,on_web:!!p.on_web,mods:p.mods||[]},fields:[
     {key:'name',label:'Name',required:true},
     {key:'category_id',label:'Category',type:'select',options:[['','No category']].concat(cats.map(function(c){ return [c.id,c.name]; }))},
     {key:'price',label:'Price (THB)',type:'number',required:true},
@@ -6299,12 +6346,13 @@ function editProduct(p){
     {key:'on_web',label:'Show in the website shop',type:'checkbox'},
     {key:'active',label:'On sale',type:'checkbox'},
     {key:'open_price',label:'Price typed in at the till each time',type:'checkbox'},
-    {key:'grp',label:'Group',hint:'Products with the same group share one button on the till, for sizes and flavours. For example: Training shirt.'},
+    {key:'grp',label:'Group',hint:'Products with the same group share one button on the till, for sizes and flavours. For example: Training shirt, or Coffee for Latte, Espresso and Americano.'},
+    featOn('shop_modifiers')&&(SHOP.modifiers||[]).length?{key:'mods',label:'Modifiers',type:'checks',options:(SHOP.modifiers||[]).map(function(m){ return [m.id,m.name]; }),hint:'Choices asked when it is added, like milk or hot or iced. Make them with Modifiers on the Products page.'}:null,
     {key:'sort',label:'Order on the till',type:'number'},
     {key:'description',label:'Description for the app menu and website shop',type:'textarea'},
-    {key:'sku',label:'Code or barcode',hint:'Optional.'}],
-    onSave:function(v){ return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v,{image_url:imgs[0]||null})}).then(must)
-      .then(function(id){ return sb.rpc('shop_product_images_save',{p_id:id||p.id,p_images:imgs}).then(must); }).then(loadShop); }});
+    {key:'sku',label:'Code or barcode',hint:'Optional.'}].filter(Boolean),
+    onSave:function(v){ var mods=v.mods; delete v.mods; return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v,{image_url:imgs[0]||null})}).then(must)
+      .then(function(id){ var pid=id||p.id; return sb.rpc('shop_product_images_save',{p_id:pid,p_images:imgs}).then(must).then(function(){ return mods?sb.rpc('shop_product_mods',{p_product:pid,p_ids:mods}).then(must):null; }); }).then(loadShop); }});
   // product photos for the website shop and the app: add several, the first one is the main photo
   var imgs=(p.images&&p.images.length?p.images:(p.image_url?[p.image_url]:[])).slice(), desc=document.getElementById('f-description'); if(!desc) return;
   var strip=h('div',{class:'pstrip'}), addB=btn('Add photos',function(){ addPhotos(); },'small'), busy=0;
@@ -6332,7 +6380,7 @@ function editCategory(c){
 function vProducts(){
   var cats=SHOP.categories||[], prods=SHOP.products||[];
   function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:'No category'; }
-  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
+  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),featOn('shop_modifiers')?btn('Modifiers'+((SHOP.modifiers||[]).length?' ('+SHOP.modifiers.length+')':''),modifiersDlg,'small'):null,btn('Add product',function(){ editProduct(); },'primary'))),
     section('Categories',null,cats.length?h('div',{class:'row wrap'},[btn('All ('+prods.length+')',function(){ ui.prodCat=''; schedule(); },'small'+(!ui.prodCat?' primary':''))].concat(cats.map(function(c){ var n=prods.filter(function(x){ return x.category_id===c.id; }).length;
         return btn(c.name+' ('+n+')'+(c.active?'':' (hidden)'),function(){ ui.prodCat=ui.prodCat===c.id?'':c.id; schedule(); },'small'+(ui.prodCat===c.id?' primary':'')); }))
       .concat(prods.some(function(x){ return !x.category_id||!cats.some(function(c){ return c.id===x.category_id; }); })?[btn('No category',function(){ ui.prodCat=ui.prodCat==='_none'?'':'_none'; schedule(); },'small'+(ui.prodCat==='_none'?' primary':''))]:[])):h('div',{class:'panel empty'},'No categories yet.')),
@@ -6910,7 +6958,7 @@ function vCFood(){
           :p.sold_out?chip('Sold out today','warn'):btn('Add',function(){ addToCart(p); },'primary small'))); }))); }
   function order(pay){
     var note=document.getElementById('fo-note'), where=document.getElementById('fo-where');
-    sb.rpc('shop_app_order',{p:{pay:pay,note:note?note.value:'',deliver_to:where?where.value:'',items:cart().map(function(l){ return {product_id:l.id,qty:l.qty}; })}}).then(must).then(function(r){
+    sb.rpc('shop_app_order',{p:{pay:pay,note:note?note.value:'',deliver_to:where?where.value:'',items:cart().map(function(l){ return {product_id:l.id,qty:l.qty,mods:l.mods||null}; })}}).then(must).then(function(r){
       clearCart(); toast(r.room?'Order #'+r.number+' sent. It goes on your room bill.':'Order #'+r.number+' sent. Pay at the counter.'); return sb.rpc('shop_my_orders').then(function(x){ MYORDERS=x.data||[]; schedule(); });
     }).catch(function(e){ toast(errText(e)); });
   }
