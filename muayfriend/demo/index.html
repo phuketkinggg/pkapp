@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=69"></script>
+<script src="changelog.js?v=70"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -752,8 +752,9 @@ function pxFields(baseKey,init,after,totalLabel){ init=init||{};
   function tot(set,get,show){ set('x_total',thb(total(get))||'0 THB'); if(show) show('x_total',!!(get('x_fee')||get('x_tax'))); if(after) after(set,get,show); }
   function re(set,get,show){ if(get('x_fee')) set('fee_thb',cardFee(base(get))); if(get('x_tax')) set('tax_thb',Math.round(base(get)*pxRate('tax_pct')/100)); tot(set,get,show); }
   var f0=Number(init.fee)||0, t0=Number(init.tax)||0;
-  return {re:re,total:total,values:{x_fee:f0>0,fee_thb:f0||null,x_tax:t0>0,tax_thb:t0||null,x_total:thb((Number(init.base)||0)+f0+t0)},fields:[
-    {key:'x_fee',label:'Add card payment fee ('+cardFeeText()+')',type:'checkbox',hide:init.hide,onChange:function(v,set,get,o,show){ show('fee_thb',v); set('fee_thb',v?cardFee(base(get)):null); tot(set,get,show); }},
+  function method(m,set,get,show){ var on=m==='card'; if(!!get('x_fee')===on) return; set('x_fee',on); show('fee_thb',on); set('fee_thb',on?cardFee(base(get)):null); tot(set,get,show); }
+  return {re:re,total:total,method:method,values:{x_fee:f0>0,fee_thb:f0||null,x_tax:t0>0,tax_thb:t0||null,x_total:thb((Number(init.base)||0)+f0+t0)},fields:[
+    {key:'x_fee',label:'Add card payment fee ('+cardFeeText()+')',type:'checkbox',hide:init.hide,hint:'Ticked by itself when they pay by card machine. Untick it to let them off the fee this time.',onChange:function(v,set,get,o,show){ show('fee_thb',v); set('fee_thb',v?cardFee(base(get)):null); tot(set,get,show); }},
     {key:'fee_thb',label:'Card fee (THB)',type:'number',hide:!(f0>0),hint:'Covers the bank or Stripe fee. Not part of any coach share.',onChange:function(v,set,get,o,show){ tot(set,get,show); }},
     {key:'x_tax',label:'Add tax ('+pxRate('tax_pct')+'%)',type:'checkbox',hide:init.hide,onChange:function(v,set,get,o,show){ show('tax_thb',v); set('tax_thb',v?Math.round(base(get)*pxRate('tax_pct')/100):null); tot(set,get,show); }},
     {key:'tax_thb',label:'Tax (THB)',type:'number',hide:!(t0>0),hint:'Not part of any coach share.',onChange:function(v,set,get,o,show){ tot(set,get,show); }},
@@ -907,7 +908,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=27; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=28; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1222,7 +1223,7 @@ function sellPackage(c){
     {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
     {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(PAYOPTS,PAYLINK),hint:'Not paid yet: the package works straight away and the full price shows as owed until they pay with Take payment. Stripe card link and PromptPay QR show the payment straight after you tap Record sale.',
-      onChange:function(v,set,get,o,show){ show('paid_now',v!=='later'); set('paid_now',v==='later'?0:px.total(get)); }},
+      onChange:function(v,set,get,o,show){ px.method(v,set,get,show); show('paid_now',v!=='later'); set('paid_now',v==='later'?0:px.total(get)); }},
     {key:'paid_now',label:'Amount paid now (THB)',type:'number',hint:'If they pay part now, type what they paid. The rest shows as owed and they pay it later with Take payment.'}]),
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
       var x=pxOf(v), base=Math.round(Number(v.price_thb)||0); v.price_thb=base+x.fee+x.tax;
@@ -1406,7 +1407,7 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
     {key:'coach_share_thb',label:'Coach gets (THB)',type:'number',hide:!featOn('private_share'),hint:'Leave empty for the coach\'s usual share. Set it when it is different, for example 2 people: the coach gets 600.'},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
-    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us. If the pack above is not paid yet, the pack goes on the room bill.'},
+    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us. If the pack above is not paid yet, the pack goes on the room bill.',onChange:function(v,set,get,o,show){ if(!get('purchase_id')) px.method(v,set,get,show); }},
     {key:'notes',label:'Notes',type:'textarea'}]),
     onSave:function(v){
       var today=ymd(new Date());
@@ -1792,7 +1793,7 @@ function payCustomer(c){
   var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
   var px=pxFields('amount',{base:o.total},null,'Customer pays now');
   openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
-    values:Object.assign({amount:o.total},px.values),fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true,onChange:function(v,set,get,o2,show){ px.re(set,get,show); }}].concat(px.fields,[{key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR (money already in the bank)'],['stripe','Stripe card link for everything owed']])},{key:'note',label:'Note',hint:'Optional.'}]),
+    values:Object.assign({amount:o.total},px.values),fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true,onChange:function(v,set,get,o2,show){ px.re(set,get,show); }}].concat(px.fields,[{key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR (money already in the bank)'],['stripe','Stripe card link for everything owed']]),onChange:function(v,set,get,o2,show){ px.method(v,set,get,show); }},{key:'note',label:'Note',hint:'Optional.'}]),
     onSave:function(v){ var a=Math.round(v.amount||0), x=pxOf(v), tg=(x.fee||x.tax)?pxTarget(c.id):null; if((x.fee||x.tax)&&!tg) return 'Nothing to add the fee to.';
       if(v.method==='stripe'){ return pxAdd(tg?tg[0]:'',tg?tg[1]:null,x).then(function(){ setTimeout(function(){ stripePay('customer',c.id,c.name); },300); }); } if(a<=0) return 'Type the amount paid.'; if(a>o.total) return 'That is more than they owe ('+thb(o.total)+').';
       a+=x.fee+x.tax;
@@ -1802,7 +1803,7 @@ function takePayment(p){
   var owe=owedOf(p), px=pxFields('x_base',{base:owe},null,'Customer pays now');
   openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(owe)+' to pay'+(pxNote(p)?' ('+pxNote(p)+')':'')+'.',saveLabel:'Payment received',doneMsg:'Paid. The package is ready to use.',values:Object.assign({x_base:owe},px.values),fields:[
     {key:'x_base',label:'To pay (THB)',type:'number',readonly:true}].concat(px.fields,[
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat(PAYLINK)}]),
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat(PAYLINK),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}]),
     onSave:function(v){ var x=pxOf(v);
       return pxAdd('purchase',p.id,x).then(function(){ var q=byId('purchases',p.id)||p;
         if(v.method==='stripe'){ setTimeout(function(){ stripePay('purchase',q.id,q.package_name); },300); return; }
