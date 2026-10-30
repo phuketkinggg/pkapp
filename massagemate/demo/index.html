@@ -9750,7 +9750,9 @@ function kDimMins(){ var v=Number(pref('pk_kdim')); return pref('pk_kdim')==null
 function kDimLater(){ clearTimeout(KWAKE.t); var m=kDimMins(); if(m>0&&document.body.classList.contains('kiosk')) KWAKE.t=setTimeout(function(){ kDim(true); },m*60000); }
 function kDim(on){
   if(on&&!KWAKE.dim){ KWAKE.dim=h('div',{class:'kdim',role:'button','aria-label':'Tap to start'},h('span',null,'Tap the screen to check in'));
-    KWAKE.dim.addEventListener('pointerdown',function(e){ e.preventDefault(); e.stopPropagation(); kDim(false); kDimLater(); },true); document.body.appendChild(KWAKE.dim); }
+    // the tap that wakes the screen does nothing else: the dim layer catches it and goes away on the click
+    KWAKE.dim.addEventListener('pointerdown',function(e){ e.preventDefault(); e.stopPropagation(); },true);
+    KWAKE.dim.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation(); kDim(false); kDimLater(); },true); document.body.appendChild(KWAKE.dim); }
   else if(!on&&KWAKE.dim){ KWAKE.dim.remove(); KWAKE.dim=null; }
 }
 document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'&&document.body.classList.contains('kiosk')) kWake(true); });
