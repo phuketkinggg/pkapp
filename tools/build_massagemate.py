@@ -55,8 +55,22 @@ COLORS = [  # brand colours: Massage Mate teal instead of Phuket King gold
 ]
 
 
+# personalised copies of the demo for a shop we show it to: same demo database (private.mm_demo_profile picks its data),
+# their name, colours and icon. out: the folder under massagemate/
+VARIANTS = [
+    {'out': 'demo', 'name': 'Massage Mate Demo Spa', 'short': 'Massage Mate', 'caps': 'MASSAGE MATE', 'colors': COLORS, 'bg': '#16352F', 'icon': None, 'cache': 'mm-demo-'},
+    {'out': 'karahill', 'name': 'Karahill Nail and Beauty', 'short': 'Karahill', 'caps': 'KARAHILL', 'bg': '#3B2E22', 'cache': 'mm-karahill-',
+     'icon': os.path.join(ROOT, 'massagemate', 'brand', 'karahill-crown.png'), 'icon_bg': (247, 241, 232, 255),
+     'colors': [('--gold:#B88A44; --gold-ink:#7A5720; --btn-bg:#101311;', '--gold:#9C7A55; --gold-ink:#6E5235; --btn-bg:#3B2E22;'),
+                ('--gold:#B88A44; --gold-ink:#CFA35C; --btn-bg:#B88A44;', '--gold:#C4A27A; --gold-ink:#D9BC96; --btn-bg:#C4A27A;')]},
+]
+V = VARIANTS[0]
+
+
 def swap(text, extra=()):
     for a, b in list(SWAPS) + list(extra):
+        if V['out'] != 'demo':
+            b = b.replace('Massage Mate Demo Spa', V['name']).replace('MASSAGE MATE', V['caps'])
         text = text.replace(a, b)
     return text
 
@@ -64,6 +78,17 @@ def swap(text, extra=()):
 def icons():
     from PIL import Image, ImageDraw
     os.makedirs(os.path.join(OUT, 'icons'), exist_ok=True)
+    if V.get('icon'):  # the shop's own mark on a plain background
+        mark = Image.open(V['icon']).convert('RGBA')
+        def own(size, pad, name, rounded):
+            big = size * 4; im = Image.new('RGBA', (big, big), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+            d.rounded_rectangle([0, 0, big - 1, big - 1], radius=int(big * 0.22) if rounded else 0, fill=V['icon_bg'])
+            w = big - 2 * pad * 4; m = mark.copy(); m.thumbnail((w, w), Image.LANCZOS)
+            im.alpha_composite(m, ((big - m.width) // 2, (big - m.height) // 2))
+            im.resize((size, size), Image.LANCZOS).save(os.path.join(OUT, 'icons', name))
+        for a in ((192, 30, 'icon-192.png', True), (512, 80, 'icon-512.png', True), (512, 130, 'maskable-512.png', False), (180, 26, 'apple-touch-icon.png', False), (48, 6, 'favicon-48.png', True)):
+            own(*a)
+        return
 
     def make(size, pad, name, rounded):
         big = size * 4
@@ -90,26 +115,32 @@ def icons():
 
 
 def main():
+    global V, OUT
+    for v in VARIANTS:
+        V = v; OUT = os.path.join(ROOT, 'massagemate', v['out']); build()
+
+
+def build():
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
     os.makedirs(OUT)
     html = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
-    html = swap(html, COLORS)
-    pre = '<script>window.SHOP_TYPE="spa";window.DEMO_BRAND="Massage Mate";window.DEMO_HOME="./";window.DEMO_LOGINS=' + json.dumps(LOGINS) + ';</script>\n'
+    html = swap(html, V['colors'])
+    pre = '<script>window.SHOP_TYPE="spa";window.DEMO_BRAND="' + V['short'] + '";window.DEMO_HOME="./";window.DEMO_LOGINS=' + json.dumps(LOGINS) + ';</script>\n'
     html = html.replace('<script src="vendor/supabase-js', pre + '<script src="vendor/supabase-js', 1)
-    html = html.replace('<title>Massage Mate Demo Spa</title>', '<title>Massage Mate Demo Spa | Massage Mate demo</title><meta name="robots" content="noindex">', 1)
+    html = html.replace('<title>' + V['name'] + '</title>', '<title>' + V['name'] + ' | Massage Mate demo</title><meta name="robots" content="noindex">', 1)
     left = [w for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea') if w in html]
     if left:
         sys.exit('Phuket King text left in the Massage Mate demo: ' + ', '.join(left))
     open(os.path.join(OUT, 'index.html'), 'w', encoding='utf-8').write(html)
 
     sw = open(os.path.join(ROOT, 'sw.js'), encoding='utf-8').read()
-    sw = swap(sw).replace("const CACHE = 'pk-shell-", "const CACHE = 'mm-demo-")
+    sw = swap(sw).replace("const CACHE = 'pk-shell-", "const CACHE = '" + V['cache'])
     open(os.path.join(OUT, 'sw.js'), 'w', encoding='utf-8').write(sw)
 
     man = json.load(open(os.path.join(ROOT, 'manifest.webmanifest'), encoding='utf-8'))
-    man.update({'name': 'Massage Mate Demo Spa', 'short_name': 'Massage Mate', 'description': 'The Massage Mate demo spa.',
-                'background_color': '#16352F', 'theme_color': '#16352F'})
+    man.update({'name': V['name'], 'short_name': V['short'], 'description': V['name'] + ', a Massage Mate demo.',
+                'background_color': V['bg'], 'theme_color': V['bg']})
     json.dump(man, open(os.path.join(OUT, 'manifest.webmanifest'), 'w', encoding='utf-8'), indent=2)
 
     shutil.copytree(os.path.join(ROOT, 'vendor'), os.path.join(OUT, 'vendor'))
@@ -130,7 +161,7 @@ def main():
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import check_js
     if not check_js.check(os.path.join(OUT, 'index.html')): sys.exit('The build has broken JavaScript: fix the swap or the code.')
-    print('Massage Mate demo built in massagemate/demo/')
+    print('%s built in massagemate/%s/' % (V['name'], V['out']))
 
 
 if __name__ == '__main__':

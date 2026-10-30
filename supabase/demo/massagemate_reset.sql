@@ -281,7 +281,7 @@ begin
 end $f$;
 revoke all on function private.mm_demo_run() from public, anon, authenticated;
 
--- Personalised demo: "Karahill Nail & Beauty", Patong (nails, extensions, manicure and pedicure, eyelashes, head spa, waxing).
+-- Personalised demo: "Karahill Nail and Beauty", Patong (nails, extensions, manicure and pedicure, eyelashes, head spa, waxing).
 -- Menu and prices from their price list. Times, stations and staff names are examples until the owner sends the real ones.
 create or replace function private.mm_demo_karahill() returns jsonb language plpgsql security definer set search_path='' as $f$
 declare
@@ -304,9 +304,9 @@ begin
     ('checkin_code','KARAHILL'),
     ('review_message','Hi {name}, thank you for visiting Karahill Nail and Beauty! If you loved your nails, a quick Google review helps us a lot: {link}'),
     ('renew_message',''), ('kiosk_promos','[]'), ('shop_vat','{"rate":0,"included":true}'), ('app_theme','{"accent":"#9C7A55"}'),
-    ('acc_names','{"main":"Karahill Nail & Beauty","stay":"Karahill Nail & Beauty","cafe":"Drinks"}');
+    ('acc_names','{"main":"Karahill Nail and Beauty","stay":"Karahill Nail and Beauty","cafe":"Drinks"}');
 
-  insert into public.spa_shops(id,name,sort) values (sh,'Karahill Nail & Beauty',1);
+  insert into public.spa_shops(id,name,sort) values (sh,'Karahill Nail and Beauty',1);
 
   insert into public.staff(id,user_id,name,email,role,commission_pct,active,work_days,work_start,work_end,shop_ids,bio) values
     (s_owner,'e0000000-0000-4000-8000-000000000001','Owner','owner@demo.massagemate.app','manager',0,true,null,null,null,'{}',null),

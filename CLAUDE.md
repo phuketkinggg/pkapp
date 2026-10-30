@@ -1,7 +1,7 @@
 # Working on this repo
 
 One codebase, many businesses. `index.html` is the app for Phuket King and Pangea, and the same file is built into every other app
-(Massage Mate in `massagemate/demo/` by `tools/build_massagemate.py`, Muay Friend in `muayfriend/demo/` by `tools/build_demo.py`).
+(Massage Mate in `massagemate/demo/`, and personalised shop demos like `massagemate/karahill/`, by `tools/build_massagemate.py`, Muay Friend in `muayfriend/demo/` by `tools/build_demo.py`).
 Tom's standing rule: every change he asks for goes to every app, is written in the changelog, and can be switched on or off by each business.
 The apps are built for durability and utility: wherever a business could want it different, make it a setting.
 
