@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=65"></script>
+<script src="changelog.js?v=66"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -904,7 +904,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=25; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=26; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -6026,17 +6026,28 @@ function modifiersDlg(){ var ms=(SHOP&&SHOP.modifiers)||[], prods=(SHOP.products
 function modifierEdit(m){ m=m||{options:[]}; var prods=sortBy((SHOP.products||[]).filter(function(p){ return p.active&&(p.in_app||p.kitchen||(p.mods||[]).indexOf(m.id)>=0); }),'name');
   var cats=SHOP.categories||[]; function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:''; }
   var lines=(m.options||[]).map(function(o){ return o.name+(Number(o.price)?' '+o.price:''); }).join('\n');
-  setTimeout(function(){ openForm({title:m.id?'Edit '+m.name:'New modifier',values:{name:m.name||'',options:lines,required:!!m.required,multi:!!m.multi,products:prods.filter(function(p){ return (p.mods||[]).indexOf(m.id)>=0; }).map(function(p){ return p.id; })},saveLabel:'Save',doneMsg:'Modifier saved.',
+  // product groups (Coffee) are one tick for all their options; a group where only some options have it keeps those unless you tick it
+  var has=function(p){ return (p.mods||[]).indexOf(m.id)>=0; }, groups={}, useOpts=[], ticked=[];
+  sortBy((SHOP.products||[]).filter(function(p){ return p.active&&p.grp; }),'grp').forEach(function(p){ (groups[p.grp]=groups[p.grp]||[]).push(p); });
+  Object.keys(groups).forEach(function(g){ var l=groups[g], n=l.filter(has).length, c=cname(l[0].category_id);
+    useOpts.push(['g:'+g,g+' ('+l.length+' options'+(c?', '+c:'')+')'+(n&&n<l.length?', on some options: tick to use it on all':'')]); if(n&&n===l.length) ticked.push('g:'+g); });
+  prods=prods.filter(function(p){ return !p.grp; });
+  prods.forEach(function(p){ useOpts.push([p.id,p.name+(cname(p.category_id)?' ('+cname(p.category_id)+')':'')]); if(has(p)) ticked.push(p.id); });
+  function expand(sel){ var out=[]; sel=sel||[]; Object.keys(groups).forEach(function(g){ var l=groups[g];
+      if(sel.indexOf('g:'+g)>=0) l.forEach(function(p){ out.push(p.id); }); else if(l.some(has)&&!l.every(has)) l.filter(has).forEach(function(p){ out.push(p.id); }); });
+    sel.forEach(function(id){ if(id.indexOf('g:')!==0) out.push(id); });
+    (SHOP.products||[]).forEach(function(p){ if(has(p)&&!p.active&&out.indexOf(p.id)<0) out.push(p.id); }); return out; }
+  setTimeout(function(){ openForm({title:m.id?'Edit '+m.name:'New modifier',values:{name:m.name||'',options:lines,required:!!m.required,multi:!!m.multi,products:ticked},saveLabel:'Save',doneMsg:'Modifier saved.',
     onDelete:m.id?function(){ return sb.rpc('shop_modifier_remove',{p_id:m.id}).then(must).then(loadShop); }:null,
     fields:[{key:'name',label:'Name',required:true,hint:'For example Milk, Hot or iced, Extras, Sweetness.'},
       {key:'options',label:'Choices, one per line, with the extra price',type:'textarea',rows:6,required:true,hint:'For example:\nNormal milk 0\nOat milk 20\nAlmond milk 25'},
       {key:'required',label:'They must choose (for example hot or iced)',type:'checkbox'},
       {key:'multi',label:'They can choose more than one (for example extras)',type:'checkbox'},
-      {key:'products',label:'Use it on',type:'checks',options:prods.map(function(p){ return [p.id,p.name+(cname(p.category_id)?' ('+cname(p.category_id)+')':'')]; }),hint:'Cafe and app products. Other products: open the product and tick the modifier there.'}],
+      {key:'products',label:'Use it on',type:'checks',options:useOpts,hint:'Product groups (all their options) and cafe and app products. Other products: open the product and tick the modifier there.'}],
     onSave:function(v){ var opts=[], bad=null; String(v.options||'').split('\n').forEach(function(l){ l=l.trim(); if(!l) return; var mm=l.match(/^(.*?)\s*[+]?\s*(-?\d+)\s*(thb|baht)?$/i), nm=mm?mm[1].trim():l, pr=mm?Number(mm[2]):0; if(!nm){ bad=l; return; }
         var old=(m.options||[]).filter(function(o){ return o.name.toLowerCase()===nm.toLowerCase(); })[0]; opts.push({id:old?old.id:null,name:nm,price:pr}); });
       if(bad) return 'Check this line: '+bad; if(!opts.length) return 'Add at least one choice.';
-      return sb.rpc('shop_modifier_save',{p:{id:m.id||null,name:v.name,options:opts,required:!!v.required,multi:!!v.multi,products:v.products||[]}}).then(must).then(loadShop); }}); },60); }
+      return sb.rpc('shop_modifier_save',{p:{id:m.id||null,name:v.name,options:opts,required:!!v.required,multi:!!v.multi,products:expand(v.products)}}).then(must).then(loadShop); }}); },60); }
 /* open price products ask for the price; grouped products (sizes, flavours) ask which one */
 function tillTap(p){
   if(!p.open_price){ addToCart(p); return; }
@@ -6611,7 +6622,7 @@ function vShop(){
   var here=prodByCat(null), cats=(SHOP.categories||[]).filter(function(c){ return c.active&&here.some(function(p){ return p.category_id===c.id; }); });
   var q=(ui.shopQ||'').toLowerCase();
   var pkMode=ui.shopCat==='__pk'&&gymTill(loc);
-  var prods=pkMode?[]:prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q; });
+  var prods=pkMode?[]:prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q||(p.grp||'').toLowerCase().indexOf(q)>=0; });
   var pend=(APPROVALS||[]).filter(function(a){ return a.status==='pending'; });
   var waiting=(SALES&&SALES.waiting||[]).filter(function(o){ return !o.location_id||o.location_id===loc; });
   var head=h('div',{class:'row wrap'},
@@ -6632,7 +6643,7 @@ function vShop(){
     return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),sq!=null?h('small',null,sq+' left'):null,h('b',null,p.open_price?'Type price':thb(p.price))); }))]:null;
   var grid=pkMode?h('div',{class:'tillgrid'},tillPackages().filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0; }).map(function(p){ var t=tiersFor(p,'standard');
       return h('button',{type:'button',class:'tillbtn',onclick:function(){ tillPackage(p); }},h('span',null,p.name),h('small',null,'Training package'),h('b',null,t?thb(tierUnit(t,1))+(p.qty_unit==='days'?' a day':' each'):thb(priceFor(p,'standard')))); }))
-    :h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return Object.assign({},p,{grp:null}); }):prods).map(function(g){
+    :h('div',{class:'tillgrid'},prods.length?groupProducts(q?prods.map(function(p){ return p.grp&&p.grp.toLowerCase().indexOf(q)>=0?p:Object.assign({},p,{grp:null}); }):prods).map(function(g){
       if(g.one){ var p=g.one, sq=stockAt(p,loc); return h('button',{type:'button',class:'tillbtn'+(p.kitchen?' k':'')+(isLow(p,loc)?' low':''),onclick:function(){ tillTap(p); }},h('span',null,p.name),sq!=null?h('small',null,sq+' left'):null,h('b',null,p.open_price?'Type price':thb(p.price))); }
       return h('button',{type:'button',class:'tillbtn grp'+(g.items[0].kitchen?' k':''),onclick:function(){ pickOption(g.grp,g.items,tillTap); }},h('span',null,g.grp),h('small',null,g.items.length+' options'),h('b',null,priceRange(g.items))); })
     :h('div',{class:'panel empty'},(SHOP.products||[]).length?'Nothing matches.':me.role==='manager'?'No products yet. Tap Products to add them, or send the Loyverse export to load them all.':'No products yet. A manager adds them.'));
