@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=68"></script>
+<script src="changelog.js?v=69"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -41,6 +41,8 @@
   --gold:#5B84EE; --gold-ink:#8FAAF3; --btn-bg:#5B84EE; --btn-fg:#101311;
   --ok:#8FD1AE; --warn:#E3BE7E; --bad:#F0A19A; --ok-bg:#16332A; --warn-bg:#3A2E14; --bad-bg:#3F1F1C; --z-gym:#3987e5; --z-spa:#d95926; --z-cafe:#199e70; --z-resort:#c98500; color-scheme:dark }
 html,body{height:100%}
+/* Safari on iPhone and iPad: keep text the size we set when the screen turns (it enlarges text in landscape otherwise) */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0}
 [hidden]{display:none!important}
 img{max-width:100%}

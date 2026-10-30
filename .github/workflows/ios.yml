@@ -1,6 +1,7 @@
 # Builds the iPhone apps on a cloud Mac and uploads them to TestFlight.
 # Run it from GitHub: Actions, "iOS apps", Run workflow, choose the app. Or push a change under native/.
-# iPhone only (no iPad), so the App Store needs iPhone screenshots only.
+# iPhone and iPad (universal): on an iPad, and on Apple silicon Macs, the app fills the screen instead of running as a small iPhone app.
+# The App Store then needs iPad screenshots (13 inch) as well as iPhone ones.
 # Needs repository secrets ASC_ISSUER_ID, ASC_KEY_ID, ASC_KEY_P8 (an App Store Connect API key).
 name: iOS apps
 on:
@@ -117,7 +118,7 @@ jobs:
           xcodebuild $TGT -scheme App -configuration Release -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" archive $AUTH \
             DEVELOPMENT_TEAM=$TEAM_ID CODE_SIGN_STYLE=Automatic PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE \
-            CURRENT_PROJECT_VERSION=$BUILD MARKETING_VERSION=1.0 TARGETED_DEVICE_FAMILY=1 > "$RUNNER_TEMP/archive.log" 2>&1 || { report archive; exit 1; }
+            CURRENT_PROJECT_VERSION=$BUILD MARKETING_VERSION=1.0 TARGETED_DEVICE_FAMILY="1,2" > "$RUNNER_TEMP/archive.log" 2>&1 || { report archive; exit 1; }
           cat > "$RUNNER_TEMP/export.plist" <<PL
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
