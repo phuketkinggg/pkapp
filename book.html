@@ -345,7 +345,7 @@ function render(){
     var chosen=pick&&rs.some(function(r){ return r.id===pick.id; });
     gs.appendChild(el('div',{cls:'g'+(chosen?' chosen':'')},el('h3',null,g.name.replace(/^[A-Z]\d+,\s*/,'')),el('div',{cls:'sub'},g.note||''),
       q?el('div',null,q.full>q.total?el('span',{cls:'was'},thb(q.full)):null,el('span',{cls:'price'},thb(q.total)),el('span',{cls:'sub'},' for '+Q.nights+' night'+(Q.nights===1?'':'s'))):el('div',{cls:'err'},'Full for these dates'),
-      q&&q.full>q.total?el('div',{cls:'offnote'},q.monthly?'Monthly price, you save '+thb(q.full-q.total):'You save '+thb(q.full-q.total)+' booking direct'):null,
+      q&&q.full>q.total?el('div',{cls:'offnote'},q.monthly?'Monthly price, you save '+thb(q.full-q.total):'You save '+thb(q.full-q.total)+(q.promo?', '+q.promo:' booking direct')):null,
       (INFO.offer||{}).includes?el('div',{cls:'incl'},'\u2713 '+INFO.offer.includes):null,
       q?el('div',{cls:'sub'},q.monthly?thb(q.month)+' a month of '+(INFO.month_nights||28)+' nights'+(Q.nights>(INFO.month_nights||28)?', '+thb(Math.round(q.month/(INFO.month_nights||28)))+' a night after that':''):parts.join(', ')):null,
       el('div',{cls:'rooms'},rs.map(function(r){ var rr=room(r.id); return el('button',{type:'button',cls:'chip'+(r.state!=='free'?' full':'')+(pick&&pick.id===r.id?' on':''),disabled:r.state!=='free'?'':null,onclick:function(){ choose(r.id); }},short(rr?rr.name:'Room')); })),
@@ -499,10 +499,12 @@ var qp=new URLSearchParams(location.search), today=new Date(Date.now()+7*3600e3)
 $('from').min=today; $('to').min=addDays(today,1);
 if(qp.get('ref')&&/^[0-9a-f-]{36}$/.test(qp.get('ref'))){ afterPay(qp.get('ref'),qp.get('paid')==='1'); }
 else (function(){ try{ var m=JSON.parse(localStorage.getItem('pk_stay_pp')||'null'); if(m&&m.id&&Date.now()-m.at<2*864e5) call({mode:'status',ref:m.id}).then(function(s){ if(s&&(s.checking||(s.paid&&Date.now()-m.at<864e5))) waitPP(m.id); else localStorage.removeItem('pk_stay_pp'); },function(){}); }catch(e){} })();
-function offerText(o){ var a=[]; if(o.pct>0) a.push('<b>BOOK DIRECT: '+o.pct+'% OFF</b><span>every room booked on this page</span>'); if(o.gift&&o.gift_nights) a.push('<span>Stay '+o.gift_nights+' nights or more and get '+esc(o.gift)+'</span>'); return a.join(''); }
+function dShort(d){ return new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}); }
+function offerText(o){ var a=[]; (o.promos||[]).filter(function(p){ return p.pct>0; }).forEach(function(p){ a.push('<b>'+esc((p.name||'Special offer').toUpperCase())+': '+p.pct+'% OFF</b><span>nights from '+dShort(p.from)+' to '+dShort(p.to)+'</span>'); });
+  if(o.pct>0) a.push('<b>BOOK DIRECT: '+o.pct+'% OFF</b><span>every room booked on this page</span>'); if(o.gift&&o.gift_nights) a.push('<span>Stay '+o.gift_nights+' nights or more and get '+esc(o.gift)+'</span>'); return a.join(''); }
 function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 call({mode:'info'}).then(function(d){ INFO=d;
-  if(d.offer&&(d.offer.pct>0||d.offer.gift)){ $('offer').innerHTML=offerText(d.offer); $('offer').hidden=false; }
+  if(d.offer&&(d.offer.pct>0||d.offer.gift||(d.offer.promos||[]).length)){ $('offer').innerHTML=offerText(d.offer); $('offer').hidden=false; }
   (function(){ var sel=$('g-cur'); ['usd','gbp','eur'].forEach(function(c){ if(d.fx&&d.fx[c]) sel.appendChild(el('option',{value:c},CURN[c])); }); sel.onchange=function(){ summary(); }; if(sel.options.length<2) sel.parentNode.hidden=true; })();
   (function(){ var o=d.offer||{}, ms=(d.groups||[]).map(function(g){ return g.month; }).filter(Boolean), a=[];
     if(o.month_banner&&ms.length) a.push('<b>'+esc(o.month_banner.toUpperCase())+'</b><span>Monthly rooms from '+thb(Math.min.apply(null,ms))+', stay '+(d.month_nights||28)+' nights or more</span>');

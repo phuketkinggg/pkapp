@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=72"></script>
+<script src="changelog.js?v=73"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -910,7 +910,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=30; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=31; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4688,7 +4688,7 @@ function vSiteStats(){
     section('Most viewed pages',null,table([{label:'Page',cell:function(x){ return x.page; }},{label:'Views',cell:function(x){ return ssBar(x.views,maxPg,x.visitors+' visitors'); }}],d.pages||[],'Nothing yet.')),
     ssMore(d,'end'),
     (d.wa_pages||[]).length?section('WhatsApp taps by page',null,table([{label:'Page',cell:function(x){ return x.page; }},{label:'Visits that tapped',num:true,cell:function(x){ return String(x.n); }}],d.wa_pages,'')):null,
-    stayOfferSection(),
+    stayOfferSection(),promoDatesSection(),
     section('Google search: what people type, and who links to you',null,h('div',{class:'panel pad'},
       h('p',{style:'margin-top:0'},'Google keeps the search words, your position on Google and the list of websites that link to you (backlinks). Your website cannot see those, so they live in Google Search Console, which is free.'),
       h('p',null,'Open Search Console, add your website domain and verify it with the DNS record Google gives you (where you bought the domain). After a few days you see: searches that showed your site, clicks, your position, and Links: every website linking to you.'),
@@ -4754,9 +4754,30 @@ function stayOfferSection(){
       onSave:function(v){ var pct=Math.round(Number(v.pct)||0), gn=Math.round(Number(v.gift_nights)||0); if(pct<0||pct>50) return 'Choose a discount from 0 to 50%.'; if(gn<0||gn>90) return 'Choose 0 to 90 nights.';
         var dn=function(k,lo,hi){ var x=Math.round(Number(v[k])); return isFinite(x)?Math.max(lo,Math.min(hi,x)):null; };
         var val={on:!!v.on,pct:pct,gift_nights:gn,gift:String(v.gift||'').trim(),includes:String(v.includes||'').trim(),month_banner:String(v.month_banner||'').trim(),all_include:String(v.all_include||'').trim(),
-          dep_on:!!v.dep_on,dep_nights:dn('dep_nights',1,90),dep_pct:dn('dep_pct',5,95),dep_high_pct:dn('dep_high_pct',5,95),dep_min_nights:dn('dep_min_nights',0,60),dep_balance_days:dn('dep_balance_days',0,90),quote_on:!!v.quote_on,followup_on:!!v.followup_on,book_url:/^https:\/\/\S+$/.test(v.book_url||'')?v.book_url:''}, txt=JSON.stringify(val);
+          promos:o.promos||[],dep_on:!!v.dep_on,dep_nights:dn('dep_nights',1,90),dep_pct:dn('dep_pct',5,95),dep_high_pct:dn('dep_high_pct',5,95),dep_min_nights:dn('dep_min_nights',0,60),dep_balance_days:dn('dep_balance_days',0,90),quote_on:!!v.quote_on,followup_on:!!v.followup_on,book_url:/^https:\/\/\S+$/.test(v.book_url||'')?v.book_url:''}, txt=JSON.stringify(val);
         return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','stay_offer').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'stay_offer',value:txt}).then(must); }).then(function(){ SOFF=val; schedule(); }); }}); },'small'):null,
     h('div',{class:'panel pad'},h('p',{style:'margin:0'},line)));
+}
+/* dated offers: nights between two dates get their own % off on the booking page, for example 1 to 15 November 20% off */
+function soffSave(o){ var txt=JSON.stringify(o);
+  return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','stay_offer').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'stay_offer',value:txt}).then(must); }).then(function(){ SOFF=o; schedule(); }); }
+function promoEdit(i){ var o=SOFF||{}, l=(o.promos||[]).slice(), p=i==null?{name:'',from:'',to:'',pct:15}:l[i];
+  openForm({title:i==null?'New offer for dates':'Edit '+(p.name||'offer'),note:'Nights between these dates get this discount on the booking page instead of the book direct discount. It shows at the top of the booking page until it ends.',
+    values:{name:p.name,from:p.from,to:p.to,pct:p.pct},saveLabel:'Save',doneMsg:'Offer saved.',
+    onDelete:i==null?null:function(){ l.splice(i,1); return soffSave(Object.assign({},o,{promos:l})); },
+    fields:[{key:'name',label:'Name',required:true,hint:'Shown to guests. For example: Early November offer.'},
+      {key:'from',label:'First night',type:'date',required:true},{key:'to',label:'Last night',type:'date',required:true},
+      {key:'pct',label:'% off the room',type:'number',required:true,hint:'For example 20. Put 0 to give no discount on these nights (for example over New Year).'}],
+    onSave:function(v){ var pc=Math.round(Number(v.pct)); if(!(pc>=0&&pc<=80)) return 'Choose 0 to 80%.'; if(!v.from||!v.to||v.to<v.from) return 'The last night must be on or after the first night.';
+      var n={name:String(v.name||'').trim().slice(0,60),from:v.from,to:v.to,pct:pc}; if(i==null) l.push(n); else l[i]=n; l.sort(function(a,b){ return a.from<b.from?-1:1; });
+      return soffSave(Object.assign({},o,{promos:l})); }}); }
+function promoDatesSection(){
+  if(!SOFF) return null; var l=SOFF.promos||[], mgr=me&&me.role==='manager', t=ymd(new Date());
+  return section('Offers for dates',mgr?btn('Add offer for dates',function(){ promoEdit(null); },'small'):null,
+    l.length?table([{label:'Offer',cell:function(p){ return mgr?linkBtn(p.name||'Offer',function(){ promoEdit(l.indexOf(p)); }):h('b',null,p.name); }},
+      {label:'Nights',cell:function(p){ return fmtDate(p.from)+' to '+fmtDate(p.to); }},{label:'Off',num:true,cell:function(p){ return p.pct+'%'; }},
+      {label:'',cell:function(p){ return p.to<t?chip('Ended'):p.from<=t?chip('On now','ok'):chip('Coming'); }}],l,'')
+      :h('div',{class:'panel empty'},'None. Add one to give a discount on certain dates, for example 1 to 15 November 20% off.'));
 }
 function vWebPages(){
   if(WPG.edit) return wpgEditor();
@@ -8501,7 +8522,7 @@ function vSettings(){
       {label:'In use',cell:function(r){ return r.active===false?chip('No'):chip('Yes','ok'); }},
       {label:'Booking sites',cell:function(r){ var f=Array.isArray(r.ical_feeds)?r.ical_feeds:[]; return h('span',{class:'row'},f.length?chip(f.map(function(x){ return x.name; }).join(', '),'ok'):h('span',{class:'sub'},'None yet'),r.ical_token?btn('Copy our link',function(){ copyText(icalUrl(r),'Calendar link for '+r.name+' copied.'); },'small'):null); }}],sortBy(S.rooms,'sort','name').sort(function(a,b){ return (a.sort||0)-(b.sort||0); }),'No rooms yet.')),
     mbSection(),
-    stayOfferSection(),
+    stayOfferSection(),promoDatesSection(),
     ratesSettings(),
     extrasSettings(),
     mapSettings()];
