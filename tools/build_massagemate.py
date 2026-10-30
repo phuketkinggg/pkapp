@@ -86,7 +86,7 @@ def icons():
             w = big - 2 * pad * 4; m = mark.copy(); m.thumbnail((w, w), Image.LANCZOS)
             im.alpha_composite(m, ((big - m.width) // 2, (big - m.height) // 2))
             im.resize((size, size), Image.LANCZOS).save(os.path.join(OUT, 'icons', name))
-        for a in ((192, 30, 'icon-192.png', True), (512, 80, 'icon-512.png', True), (512, 130, 'maskable-512.png', False), (180, 26, 'apple-touch-icon.png', False), (48, 6, 'favicon-48.png', True)):
+        for a in ((192, 20, 'icon-192.png', True), (512, 52, 'icon-512.png', True), (512, 110, 'maskable-512.png', False), (180, 18, 'apple-touch-icon.png', False), (48, 4, 'favicon-48.png', True)):
             own(*a)
         return
 
