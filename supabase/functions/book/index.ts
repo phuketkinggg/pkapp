@@ -121,11 +121,11 @@ const clampN = (v: unknown, d: number, lo: number, hi: number) => { const x = Ma
 // the part paid now when the guest picks the deposit (null: pay the whole stay). Same sum as book.html.
 function depositPlan(R: Rates, O: Offer, from: string, nights: number, room: number, extras: number, monthly: boolean) {
   const D = O.deposit; if (!D.on || nights < D.nights || !(room > 0)) return null;
-  const due = monthly ? addDays(from, 23) : addDays(from, -D.balance_days);
+  const due = monthly ? addDays(from, monthNights(R) - 7) : addDays(from, -D.balance_days);
   if (!monthly && due <= addDays(today(), 2)) return null;
   const s = seasonOf(R, from), high = !!s && s.id !== R.base;
   let dep = Math.max(room * (high ? D.high_pct : D.pct) / 100, room * Math.min(D.min_nights, nights) / nights);
-  if (monthly) dep = Math.max(dep, room * Math.min(30, nights) / nights);
+  if (monthly) dep = Math.max(dep, room * Math.min(monthNights(R), nights) / nights);
   const total = room + extras, now = Math.min(total, Math.ceil((dep + extras) / 100) * 100);
   if (now >= total * 0.85) return null;
   return { now, rest: total - now, due, monthly };
@@ -135,8 +135,8 @@ async function bizStay(): Promise<string> {
   try { return String(JSON.parse(data?.value ?? "{}").stay || "").trim() || "Our resort"; } catch { return "Our resort"; }
 }
 const offPrice = (full: number, o: Offer) => o.pct > 0 ? Math.round(full * (100 - o.pct) / 100) : full;
-// long stays: a price group can have a monthly price (Room prices). From month_nights nights (28 unless set) the stay costs the monthly
-// price for up to 30 nights, and a 30th of it for each night after. It is used only when it is cheaper than the nightly price with the offer.
+// long stays: a price group can have a monthly price (Room prices). A month is month_nights nights (28 unless set): that many nights cost the
+// monthly price, and each night after costs that share of it (a 28th for a 28 night month). It is used only when it is cheaper than the nightly price with the offer.
 const monthNights = (R: Rates) => Math.max(7, Math.min(90, Math.round(Number(R.month_nights) || 28)));
 // shorter stays never cost more than the monthly price either
 // a price group can have a monthly price for each season (months), else one for the whole year (month). A stay across seasons
@@ -153,7 +153,7 @@ function monthTotal(R: Rates, g: Group, days: string[]): { total: number; month:
   if (!days.length) return null; let sum = 0;
   for (const d of days) { const v = monthRate(R, g, d); if (isNaN(v)) return null; sum += v; }
   const avg = sum / days.length, month = Math.round(avg / 10) * 10;
-  return { month, total: days.length < monthNights(R) ? month : Math.round(avg * Math.max(days.length, 30) / 30 / 10) * 10 };
+  return { month, total: days.length <= monthNights(R) ? month : Math.round(avg * days.length / monthNights(R) / 10) * 10 };
 }
 // the price a guest pays for the room: the cheaper of the nightly price with the website offer, and the monthly price
 function roomPrice(R: Rates, g: Group, full: number, days: string[], O: Offer) {

@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=71"></script>
+<script src="changelog.js?v=72"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -910,7 +910,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=29; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=30; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1916,14 +1916,14 @@ function roomQuote(roomId,from,to){
   var mt=monthTotal(g,q.nights.map(function(n){ return n.day; })); if(mt!=null&&!q.missing.length&&mt.total<q.total){ q.full=q.total; q.total=mt.total; q.monthly=true; q.month=mt.month; }
   return q;
 }
-/* long stays: from monthNights() nights the monthly price is used (up to 30 nights, then a 30th of it a night), when it is cheaper */
+/* long stays: a month is monthNights() nights at the monthly price, each night after costs that share of it (a 28th for 28 nights), when it is cheaper */
 function monthNights(){ return Math.max(7,Math.min(90,Math.round(Number(RATES&&RATES.month_nights)||28))); }
 /* a price group can have a monthly price for each season (months), else one for the whole year (month); a stay across seasons uses the average of its nights */
 function monthRate(g,day){ var se=seasonOf(day), v=se&&g&&g.months?Number(g.months[se.id]):NaN; return v>=1000?v:(Number(g&&g.month)>=1000?Number(g.month):NaN); }
 function hasMonth(g){ return !!g&&(Number(g.month)>=1000||Object.keys(g.months||{}).some(function(k){ return Number(g.months[k])>=1000; })); }
 function monthTotal(g,days){ if(!hasMonth(g)||!days.length) return null; var sum=0;
   for(var i=0;i<days.length;i++){ var v=monthRate(g,days[i]); if(isNaN(v)) return null; sum+=v; }
-  var avg=sum/days.length, m=Math.round(avg/10)*10; return {month:m,total:days.length<monthNights()?m:Math.round(avg*Math.max(days.length,30)/30/10)*10}; }
+  var avg=sum/days.length, m=Math.round(avg/10)*10; return {month:m,total:days.length<=monthNights()?m:Math.round(avg*days.length/monthNights()/10)*10}; }
 function quoteText(q){ if(!q) return ''; if(q.missing.length) return 'No '+q.missing.join(' or ')+' price set for '+q.group.name+'.';
   var by=[]; q.nights.forEach(function(n){ var l=by.filter(function(x){ return x.s===n.season&&x.p===n.price; })[0]; if(l) l.n++; else by.push({s:n.season,p:n.price,n:1}); });
   if(q.monthly) return q.group.name+': monthly price '+thb(q.month)+' a month, '+q.nights.length+' nights = '+thb(q.total)+' (nightly would be '+thb(q.full)+').';
@@ -1950,7 +1950,7 @@ function editRateGroup(g){
   var fields=[{key:'name',label:'Price group name',required:true,hint:'For example Mango Grove 3 and 4.'},
     {key:'rooms',label:'Rooms in this group',type:'checks',options:rooms.map(function(x){ var o=rateGroup(x.id); return [x.id,x.name+(o&&o.id!==g.id?' (now in '+o.name+')':'')]; }),hint:'A room can be in one group. Ticking a room here takes it out of its other group.'}]
     .concat(r.seasons.map(function(se){ return {key:'p_'+se.id,label:se.name+' price per night (THB)',type:'number'}; }))
-    .concat([{key:'month',label:'Monthly price (THB), for stays of '+monthNights()+' nights or more',type:'number',hint:'Optional. For example 40000. A stay of '+monthNights()+' to 30 nights costs this, longer stays a 30th of it for each extra night. Used only when it is cheaper than the nightly price. Change '+monthNights()+' nights in Room prices, Monthly from. To charge more in busy seasons, fill in the monthly prices for each season below: a season left empty uses this price.'}])
+    .concat([{key:'month',label:'Monthly price (THB), for stays of '+monthNights()+' nights or more',type:'number',hint:'Optional. For example 40000. A month is '+monthNights()+' nights: that stay costs this, longer stays a '+monthNights()+'th of it for each extra night. Used only when it is cheaper than the nightly price. Change '+monthNights()+' nights in Room prices, Monthly from. To charge more in busy seasons, fill in the monthly prices for each season below: a season left empty uses this price.'}])
     .concat(r.seasons.map(function(se){ return {key:'m_'+se.id,label:'Monthly price in '+se.name+' season (THB)',type:'number',hint:'Optional. A stay across seasons is priced night by night, for example 10 nights '+se.name+' and 20 nights in another season.'}; }))
     .concat([{key:'note',label:'Note',hint:'Optional. For example: sleeps 2, lake view.'}]);
   openForm({title:isNew?'Add a price group':'Edit '+g.name,values:vals,fields:fields,doneMsg:'Prices saved.',
@@ -1968,10 +1968,10 @@ function ratesSettings(){
   var r=needRates(), mgr=me&&me.role==='manager';
   if(!r) return section('Room prices',null,h('div',{class:'panel empty'},'Loading.'));
   var none=S.rooms.filter(function(x){ return x.active!==false&&!rateGroup(x.id); });
-  function monthEdit(){ openForm({title:'Monthly prices',note:'Price groups with a monthly price use it for stays of this many nights or more (on the booking page and at the desk).',values:{n:monthNights()},
-      fields:[{key:'n',label:'Monthly price from (nights)',type:'number',required:true,hint:'For example 28.'}],
+  function monthEdit(){ openForm({title:'Monthly prices',note:'How many nights a month is. A stay this long costs the monthly price, and each night after costs that share of it (on the booking page and at the desk).',values:{n:monthNights()},
+      fields:[{key:'n',label:'A month is (nights)',type:'number',required:true,hint:'For example 28: a 28 night stay costs the monthly price, 30 nights costs it plus 2 28ths.'}],
       onSave:function(v){ var n=Math.round(Number(v.n)); if(!(n>=7&&n<=90)) return 'Choose 7 to 90 nights.'; var x=JSON.parse(JSON.stringify(r)); x.month_nights=n; return saveRates(x); }}); }
-  return [section('Room prices',mgr?h('div',{class:'row'},btn('Add price group',function(){ editRateGroup(); },'small'),btn('Add season',function(){ editSeason(); },'small'),btn('Monthly from '+monthNights()+' nights',monthEdit,'small')):null,h('div',null,
+  return [section('Room prices',mgr?h('div',{class:'row'},btn('Add price group',function(){ editRateGroup(); },'small'),btn('Add season',function(){ editSeason(); },'small'),btn('A month is '+monthNights()+' nights',monthEdit,'small')):null,h('div',null,
       h('p',{class:'row sub'},'Guests book online at ',h('a',{href:'book.html',target:'_blank',rel:'noopener'},'the Book your stay page'),' ',btn('Copy link',function(){ copyText(location.origin+location.pathname.replace(/[^/]*$/,'')+'book.html','Booking page link copied.'); },'small')),
       h('p',{class:'sub'},'Rooms with the same prices go in one group. Each group has a price per night for each season. New stays and the availability check use these prices.'),
       table([{label:'Price group',cell:function(g){ return mgr?linkBtn(g.name,function(){ editRateGroup(g); }):h('b',null,g.name); }},

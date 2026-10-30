@@ -242,9 +242,9 @@ document.querySelectorAll('input[name=pw],input[name=hm]').forEach(function(r){ 
 function seasonAt(d){ var md=d.slice(5), hit=null; (INFO.seasons||[]).forEach(function(s){ if(!s.base&&(s.ranges||[]).some(function(r){ return r.from&&r.to&&(r.from<=r.to?md>=r.from&&md<=r.to:md>=r.from||md<=r.to); })) hit=s; });
   return hit||(INFO.seasons||[]).filter(function(s){ return s.base; })[0]||null; }
 function depPlan(room,extras,monthly){ var D=(INFO.offer||{}).deposit, n=Q.nights; if(!D||!D.on||n<D.nights||!(room>0)) return null;
-  var due=monthly?addDays(Q.from,23):addDays(Q.from,-D.balance_days); if(!monthly&&due<=addDays(today,2)) return null;
+  var mn=INFO.month_nights||28, due=monthly?addDays(Q.from,mn-7):addDays(Q.from,-D.balance_days); if(!monthly&&due<=addDays(today,2)) return null;
   var s=seasonAt(Q.from), high=!!s&&!s.base, dep=Math.max(room*(high?D.high_pct:D.pct)/100,room*Math.min(D.min_nights,n)/n);
-  if(monthly) dep=Math.max(dep,room*Math.min(30,n)/n);
+  if(monthly) dep=Math.max(dep,room*Math.min(mn,n)/n);
   var total=room+extras, now=Math.min(total,Math.ceil((dep+extras)/100)*100); if(now>=total*0.85) return null;
   return {now:now,rest:total-now,due:due,monthly:monthly}; }
 function wantDep(){ var x=document.querySelector('input[name=hm]:checked'); return !$('howmuch').hidden&&x&&x.value==='dep'; }
@@ -355,7 +355,7 @@ function render(){
       q?el('div',null,q.full>q.total?el('span',{cls:'was'},thb(q.full)):null,el('span',{cls:'price'},thb(q.total)),el('span',{cls:'sub'},' for '+Q.nights+' night'+(Q.nights===1?'':'s'))):el('div',{cls:'err'},'Full for these dates'),
       q&&q.full>q.total?el('div',{cls:'offnote'},q.monthly?'Monthly price, you save '+thb(q.full-q.total):'You save '+thb(q.full-q.total)+' booking direct'):null,
       (INFO.offer||{}).includes?el('div',{cls:'incl'},'\u2713 '+INFO.offer.includes):null,
-      q?el('div',{cls:'sub'},q.monthly?thb(q.month)+' a month'+(Q.nights>30?', '+thb(Math.round(q.month/30))+' a night after 30 nights':''):parts.join(', ')):null,
+      q?el('div',{cls:'sub'},q.monthly?thb(q.month)+' a month of '+(INFO.month_nights||28)+' nights'+(Q.nights>(INFO.month_nights||28)?', '+thb(Math.round(q.month/(INFO.month_nights||28)))+' a night after that':''):parts.join(', ')):null,
       el('div',{cls:'rooms'},rs.map(function(r){ var rr=room(r.id); return el('button',{type:'button',cls:'chip'+(r.state!=='free'?' full':'')+(pick&&pick.id===r.id?' on':''),disabled:r.state!=='free'?'':null,onclick:function(){ choose(r.id); }},short(rr?rr.name:'Room')); })),
       q?el('button',{type:'button',cls:'btn'+(chosen?' primary':''),onclick:function(){ choose(chosen?pick.id:q.id); }},chosen?'Chosen: '+short(room(pick.id).name):'Choose this room'):null)); });
 }
