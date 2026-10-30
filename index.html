@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=63"></script>
+<script src="changelog.js?v=64"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -231,7 +231,7 @@ body.till #view{max-width:none}
 .tillbtn span{font-weight:600;line-height:1.2}
 .tillbtn b{color:var(--gold-ink)}
 .tillbtn small{color:var(--muted);font-size:12px}
-.tillbtn.grp{background:var(--sunken)}
+.tillbtn.grp{background:var(--sunken)}.pgrows{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}.pgrow{display:grid;grid-template-columns:1fr 96px auto 24px;gap:8px;align-items:center}.pgrow .check{margin:0;white-space:nowrap}
 .optgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:60vh;overflow:auto}
 .modgrp{margin:0 0 14px}.modgrp .optgrid{max-height:none}.modhead{display:flex;gap:8px;align-items:baseline;margin-bottom:6px}.tillbtn.on{border:2px solid var(--ink,#141414);background:var(--surface2,#f1ede4)}.modtot{font-size:18px;align-self:center}
 .cartbox{position:sticky;top:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
@@ -894,7 +894,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=24; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=25; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -6391,19 +6391,74 @@ function editCategory(c){
     {key:'name',label:'Name',required:true},{key:'sort',label:'Order',type:'number'},{key:'active',label:'Shown on the till',type:'checkbox'}],
     onSave:function(v){ return sb.rpc('shop_category_save',{p:Object.assign({id:c.id||null},v)}).then(must).then(loadShop); }});
 }
+/* a product group, for example Coffee: its options (Latte, Espresso, Americano) each with their own price, made and changed in one place.
+   Every option is a product with the same group; the till and the app show the group as one button and ask which one. */
+function groupBase(p){ return {id:p.id,name:p.name,category_id:p.category_id||'',price:p.price,cost:p.cost,kitchen:!!p.kitchen,in_app:!!p.in_app,active:p.active!==false,sort:p.sort||0,
+  description:p.description||'',sku:p.sku||'',open_price:!!p.open_price,grp:p.grp||'',locations:p.locations||[],track_stock:!!p.track_stock,low_stock:p.low_stock,on_web:!!p.on_web}; }
+function productGroupDlg(name,catId){
+  var cats=SHOP.categories||[], all=SHOP.products||[], old=name?all.filter(function(p){ return p.grp===name; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0)||String(a.name).localeCompare(b.name); }):[], first=old[0]||{};
+  var ms=featOn('shop_modifiers')?(SHOP.modifiers||[]):[];
+  var nm=h('input',{id:'pg-name',value:name||'',placeholder:'For example Coffee',autocomplete:'off'});
+  var cat=h('select',{id:'pg-cat'},[h('option',{value:''},'No category')].concat(cats.map(function(c){ return h('option',{value:c.id},c.name); })));
+  cat.value=(name?first.category_id:catId)||'';
+  function cb(label,on){ var i=h('input',{type:'checkbox'}); i.checked=!!on; return {i:i,el:h('label',{class:'check'},i,h('span',null,label))}; }
+  var kit=cb('Goes to the kitchen screen',name?first.kitchen:false), app=cb('Guests and members can order it in the app',name?first.in_app:false);
+  // a modifier on every option is ticked, on some options it shows as part ticked; only a modifier you change is changed on every option
+  var mcs=ms.map(function(m){ var n=old.filter(function(p){ return (p.mods||[]).indexOf(m.id)>=0; }).length, some=n>0&&n<old.length;
+    var c=cb(m.name+' ('+(m.options||[]).map(function(o){ return o.name; }).join(', ')+')'+(some?', on some options':''),old.length>0&&n===old.length); c.id=m.id; c.was=c.i.checked; c.some=some;
+    if(some){ c.i.indeterminate=true; c.i.addEventListener('change',function(){ c.some=false; }); } return c; });
+  var rows=old.map(function(p){ return {p:p,name:optLabel(p),price:p.price,on:p.active!==false}; });
+  if(!rows.length) rows=[{name:'',price:'',on:true},{name:'',price:'',on:true}];
+  var list=h('div',{class:'pgrows'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function draw(){ list.replaceChildren.apply(list,rows.map(function(r,i){
+    var n=h('input',{value:r.name,placeholder:i===0?'For example Latte':'Option name','aria-label':'Option '+(i+1)+' name',class:'notr',oninput:function(ev){ r.name=ev.target.value; }});
+    var pr=h('input',{type:'number',inputmode:'numeric',value:r.price,placeholder:'Price','aria-label':'Option '+(i+1)+' price',oninput:function(ev){ r.price=ev.target.value; }});
+    var on=h('input',{type:'checkbox','aria-label':'Option '+(i+1)+' on sale',onchange:function(ev){ r.on=ev.target.checked; }}); on.checked=r.on;
+    return h('div',{class:'pgrow'},n,pr,h('label',{class:'check',title:'On sale'},on,h('span',null,'On sale')),
+      r.p?null:h('button',{type:'button',class:'link','aria-label':'Remove option '+(i+1),onclick:function(){ rows.splice(i,1); draw(); }},'×')); })); }
+  draw();
+  function save(){
+    var g=nm.value.trim(); err.hidden=true;
+    if(!g){ err.textContent='Give the group a name, for example Coffee.'; err.hidden=false; return; }
+    if(g!==name&&all.some(function(p){ return p.grp===g; })){ err.textContent='There is already a group called '+g+'. Open it from the list to add options.'; err.hidden=false; return; }
+    var use=rows.filter(function(r){ return String(r.name).trim(); });
+    for(var i=0;i<use.length;i++){ if(!(Number(use[i].price)>=0)||use[i].price===''){ err.textContent='Add a price for '+use[i].name.trim()+'.'; err.hidden=false; return; } }
+    if(!use.length){ err.textContent='Add at least one option, for example Latte 80.'; err.hidden=false; return; }
+    function modsFor(p){ var cur=(p&&p.mods)||[]; return mcs.filter(function(c){ return c.some?cur.indexOf(c.id)>=0:c.i.checked; }).map(function(c){ return c.id; }); }
+    var base=first.id?groupBase(first):{locations:[],on_web:false};
+    var jobs=use.map(function(r,k){ var v=r.p?groupBase(r.p):Object.assign({},base,{id:null,cost:null,description:'',sku:'',open_price:false,track_stock:false,low_stock:null});
+      return {v:Object.assign(v,{name:String(r.name).trim(),price:Math.round(Number(r.price)),active:!!r.on,grp:g,category_id:cat.value||'',kitchen:kit.i.checked,in_app:app.i.checked,sort:k}),mods:modsFor(r.p)}; });
+    saveB.disabled=true;
+    jobs.reduce(function(pr,j){ return pr.then(function(){ return sb.rpc('shop_product_save',{p:j.v}).then(must).then(function(id){ var pid=id||j.v.id;
+        return ms.length?sb.rpc('shop_product_mods',{p_product:pid,p_ids:j.mods}).then(must):null; }); }); },Promise.resolve())
+      .then(function(){ $dlg.close(); toast(g+' saved.'); return loadShop(); }).then(function(){ schedule(); })
+      .catch(function(e){ saveB.disabled=false; err.textContent=errText(e); err.hidden=false; });
+  }
+  var saveB=btn('Save group',save,'primary');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,name?'Group: '+name:'New product group'),
+    h('p',{class:'sub'},'A group is one button on the till and in the app, for example Coffee. Tap it and staff or guests pick the option, for example Latte or Espresso, each with its own price. Then the modifiers are asked, for example milk or hot or iced.'),
+    field('pg-name','Group name',nm),field('pg-cat','Category',cat),
+    h('div',{class:'ff'},h('label',null,'Options and their prices'),list,h('div',{class:'row'},btn('Add option',function(){ rows.push({name:'',price:'',on:true}); draw(); var l=list.querySelectorAll('input:not([type=number]):not([type=checkbox])'); if(l.length) l[l.length-1].focus(); },'small'))),
+    ms.length?h('div',{class:'ff'},h('label',null,'Modifiers for every option'),h('span',{class:'sub'},'Asked after the option, for example Milk or Hot or iced.'),mcs.map(function(c){ return c.el; })):
+      featOn('shop_modifiers')?h('p',{class:'sub'},'No modifiers yet. Make them with Modifiers on the Products page, then tick them here.'):null,
+    kit.el,app.el,
+    old.length?h('p',{class:'sub'},'Photos, stock, cost and where it is sold: open an option from the products list.'):null,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),saveB))));
+  setTimeout(function(){ (name?list.querySelector('input'):nm).focus(); },40);
+}
 function vProducts(){
   var cats=SHOP.categories||[], prods=SHOP.products||[];
   function cname(id){ var c=cats.filter(function(x){ return x.id===id; })[0]; return c?c.name:'No category'; }
-  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),featOn('shop_modifiers')?btn('Modifiers'+((SHOP.modifiers||[]).length?' ('+SHOP.modifiers.length+')':''),modifiersDlg,'small'):null,btn('Add product',function(){ editProduct(); },'primary'))),
+  return [pageHead('Products',prods.length+' products. Only managers can change products and prices.',h('div',{class:'row'},btn('Back to the till',function(){ ui.shopView=''; schedule(); },'small'),btn('Stock',function(){ ui.shopView='stock'; schedule(); },'small'),btn('Add category',function(){ editCategory(); },'small'),featOn('shop_modifiers')?btn('Modifiers'+((SHOP.modifiers||[]).length?' ('+SHOP.modifiers.length+')':''),modifiersDlg,'small'):null,btn('Add group',function(){ productGroupDlg(null,ui.prodCat&&ui.prodCat!=='_none'?ui.prodCat:''); },'small'),btn('Add product',function(){ editProduct(); },'primary'))),
     section('Categories',null,cats.length?h('div',{class:'row wrap'},[btn('All ('+prods.length+')',function(){ ui.prodCat=''; schedule(); },'small'+(!ui.prodCat?' primary':''))].concat(cats.map(function(c){ var n=prods.filter(function(x){ return x.category_id===c.id; }).length;
         return btn(c.name+' ('+n+')'+(c.active?'':' (hidden)'),function(){ ui.prodCat=ui.prodCat===c.id?'':c.id; schedule(); },'small'+(ui.prodCat===c.id?' primary':'')); }))
       .concat(prods.some(function(x){ return !x.category_id||!cats.some(function(c){ return c.id===x.category_id; }); })?[btn('No category',function(){ ui.prodCat=ui.prodCat==='_none'?'':'_none'; schedule(); },'small'+(ui.prodCat==='_none'?' primary':''))]:[])):h('div',{class:'panel empty'},'No categories yet.')),
     (function(){ var sel=cats.filter(function(c){ return c.id===ui.prodCat; })[0];
-      return sel?h('div',{class:'panel pad row wrap'},h('b',null,sel.name+(sel.active?'':' (hidden)')),btn('Edit category',function(){ editCategory(sel); },'small'),btn('Add a product to '+sel.name,function(){ editProduct({category_id:sel.id}); },'primary small')):null; })(),
+      return sel?h('div',{class:'panel pad row wrap'},h('b',null,sel.name+(sel.active?'':' (hidden)')),btn('Edit category',function(){ editCategory(sel); },'small'),btn('Add a group to '+sel.name,function(){ productGroupDlg(null,sel.id); },'small'),btn('Add a product to '+sel.name,function(){ editProduct({category_id:sel.id}); },'primary small')):null; })(),
     h('div',{class:'row'},h('input',{id:'prodq',type:'search',class:'search',placeholder:'Search products','aria-label':'Search products',value:ui.prodQ||'',oninput:function(ev){ ui.prodQ=ev.target.value; schedule(); }})),
     section(ui.prodCat==='_none'?'No category':ui.prodCat?cname(ui.prodCat):'All products',null,table([
       {label:'Product',cell:function(p){ return h('span',{class:'row',style:'flex-wrap:nowrap;gap:8px'},p.image_url?h('img',{src:p.image_url,alt:'',loading:'lazy',style:'width:36px;height:36px;object-fit:cover;border-radius:6px;flex:none'}):null,linkBtn(p.name,function(){ editProduct(p); })); }},
-      {label:'Group',cell:function(p){ return p.grp||''; }},
+      {label:'Group',cell:function(p){ return p.grp?linkBtn(p.grp,function(){ productGroupDlg(p.grp); }):''; }},
       {label:'Category',cell:function(p){ return cname(p.category_id); }},
       {label:'Price',num:true,cell:function(p){ return p.open_price?'Typed in':thb(p.price); }},
       {label:'Cost',num:true,cell:function(p){ return p.cost!=null?thb(p.cost):''; }},
