@@ -323,6 +323,13 @@ def main():
         "/search-availability /book 301", "/search-availability/ /book 301", "/search-availability-2 /book 301", "/search-availability-2/ /book 301",
         "/accommodation/* /book 301", "/accommodations/* /book 301", "/accommodation-category/* /book 301", "/accommodation-tag/* /book 301", "/accommodation-facility/* /book 301",
         "/my-account1 " + APP + " 301", "/my-account1/ " + APP + " 301", "/blog/page/* /blog 301", "/schedule/* /#schedule 301", "/home. / 301",
+        # old WordPress sitemaps and language folders search engines still ask for (Website numbers, Oct 2026)
+        "/sitemap /sitemap.xml 301", "/sitemap/ /sitemap.xml 301", "/sitemap.txt /sitemap.xml 301", "/sitemap_index.xml /sitemap.xml 301", "/sitemap-index.xml /sitemap.xml 301",
+        "/page-sitemap.xml /sitemap.xml 301", "/post-sitemap.xml /sitemap.xml 301", "/product-sitemap.xml /sitemap.xml 301", "/product_cat-sitemap.xml /sitemap.xml 301",
+        "/team-sitemap.xml /sitemap.xml 301", "/author-sitemap.xml /sitemap.xml 301", "/category-sitemap.xml /sitemap.xml 301", "/post_tag-sitemap.xml /sitemap.xml 301",
+        "/news-sitemap.xml /sitemap.xml 301", "/news_sitemap.xml /sitemap.xml 301", "/mphb_room_type-sitemap.xml /sitemap.xml 301",
+        "/mphb_room_type_category-sitemap.xml /sitemap.xml 301", "/mphb_room_type_facility-sitemap.xml /sitemap.xml 301", "/mphb_room_type_tag-sitemap.xml /sitemap.xml 301",
+        "/th / 301", "/th/ / 301", "/th/* / 301", "/stay /book 301", "/stay/ /book 301", "/rooms /book 301", "/rooms/ /book 301",
     ]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
