@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=64"></script>
+<script src="changelog.js?v=65"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -507,6 +507,16 @@ body.till #nav{flex-direction:column;overflow:visible}
 body.till #nav button[aria-current="page"]{box-shadow:inset 3px 0 0 var(--gold)}
 body.till .who{margin:auto 8px 0;flex-direction:column;align-items:flex-start}
 body.till .sidegrip{display:flex;position:fixed;left:0;top:0;bottom:0;width:22px;z-index:59;align-items:center;justify-content:flex-start;padding:0 0 0 3px;border:0;background:transparent;cursor:pointer;touch-action:none}
+/* phones with a notch or Dynamic Island (and the iPhone and Android apps, which draw under the status bar): keep the menu, pages and dialogs clear of the status bar, the home bar and rounded corners */
+.side{padding-top:max(20px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px))}
+main{padding-bottom:max(24px,calc(16px + env(safe-area-inset-bottom,0px)));padding-right:max(24px,env(safe-area-inset-right,0px))}
+dialog{max-height:calc(100% - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+@media (max-width:760px){
+  .side{padding-top:max(12px,env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  main{padding-bottom:max(16px,calc(12px + env(safe-area-inset-bottom,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+}
+body.till .side{padding-top:max(20px,env(safe-area-inset-top,0px))}
+body.has-install main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
 .sidegrip span{display:flex;align-items:center;justify-content:center;width:16px;height:84px;border-radius:0 10px 10px 0;background:var(--sunken);border:1px solid var(--gold);border-left:0;color:var(--gold-ink);font-size:18px;font-weight:700;line-height:1;box-shadow:1px 0 4px rgba(0,0,0,.08)}
 .sidegrip:hover span,.sidegrip:focus-visible span{color:var(--gold-ink);border-color:var(--gold)}
 body.till main{padding-left:30px}
