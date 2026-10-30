@@ -103,7 +103,7 @@ function quote(R: Rates, g: Group, from: string, to: string) {
 // deposit: from "nights" nights the guest can pay part now (pct % of the room, high_pct % when they arrive in a busier season, never less than min_nights nights),
 // extras in full; the rest is due balance_days days before arrival. Monthly price stays pay at least the first month.
 type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number };
-type Promo = { name: string; from: string; to: string; pct: number };
+type Promo = { id: string; name: string; from: string; to: string; pct: number; book_by: string; limit: number; free: string; left: number | null };
 type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean; promos: Promo[] };
 async function offer(): Promise<Offer> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
@@ -119,9 +119,26 @@ async function offer(): Promise<Offer> {
     quote: j.quote_on !== false,
     // dated offers (Settings, Website offer, Offers for dates): nights between from and to get their own % off instead of the book direct discount.
     // Shown on the booking page until they end. Not part of the offer switch.
-    promos: (Array.isArray(j.promos) ? j.promos : []).map((x: Record<string, unknown>) => ({ name: String(x.name ?? "").trim().slice(0, 60), from: String(x.from ?? ""), to: String(x.to ?? ""), pct: Math.max(0, Math.min(80, Math.round(Number(x.pct) || 0))) }))
-      .filter((x: Promo) => isDay(x.from) && isDay(x.to) && x.to >= x.from && x.to >= today()) };
+    // book_by: the offer can be booked until this day; limit: only the first so many bookings get it; free: an extra given free for the stay
+    promos: await promosLeft((Array.isArray(j.promos) ? j.promos : []).map((x: Record<string, unknown>) => ({ id: String(x.id ?? x.name ?? ""), name: String(x.name ?? "").trim().slice(0, 60), from: String(x.from ?? ""), to: String(x.to ?? ""),
+        pct: Math.max(0, Math.min(80, Math.round(Number(x.pct) || 0))), book_by: isDay(x.book_by) ? String(x.book_by) : "", limit: Math.max(0, Math.round(Number(x.limit) || 0)), free: String(x.free ?? ""), left: null }))
+      .filter((x: Promo) => isDay(x.from) && isDay(x.to) && x.to >= x.from && x.to >= today() && (!x.book_by || x.book_by >= today()))) };
 }
+// offers for the first so many bookings: how many are left (bookings not cancelled); a full offer is taken off
+async function promosLeft(l: Promo[]): Promise<Promo[]> {
+  const ids = l.filter((p) => p.limit > 0).map((p) => p.id); if (!ids.length) return l;
+  const { data } = await admin.from("stays").select("web_promo").in("web_promo", ids).neq("status", "cancelled");
+  const used: Record<string, number> = {}; (data ?? []).forEach((r: { web_promo: string }) => { used[r.web_promo] = (used[r.web_promo] || 0) + 1; });
+  return l.map((p) => p.limit > 0 ? { ...p, left: p.limit - (used[p.id] || 0) } : p).filter((p) => p.left == null || p.left > 0);
+}
+// the extra an offer gives free, for the whole stay (for example spa access); the guest does not also pay for it
+function freeItem(R: Rates, p: Promo | null, from: string, to: string): Item | null {
+  if (!p || !p.free) return null; const e = (R.extras || []).find((x) => x.id === p.free); if (!e) return null;
+  // only for the nights of the stay inside the offer dates
+  const a = from > p.from ? from : p.from, z = to < addDays(p.to, 1) ? to : addDays(p.to, 1), nights = Math.round((Date.parse(z) - Date.parse(a)) / 864e5); if (nights < 1) return null;
+  return { name: `${e.name}, free with ${p.name || "the offer"}`, price: 0, covers: e.covers || [], limit: e.kind === "day" && e.per_day ? e.per_day * nights : null, days: e.kind === "day" ? nights : null, starts: a, expires: e.kind === "day" ? addDays(z, -1) : addDays(to, 30) };
+}
+const notFree = (picks: unknown, p: Promo | null) => Array.isArray(picks) && p?.free ? picks.filter((x: Record<string, unknown>) => x?.id !== p.free) : picks;
 // the % off for one night: a dated offer for that night (the biggest when several), else the book direct discount
 function pctAt(O: Offer, day: string): { pct: number; promo: Promo | null } {
   let best: Promo | null = null; for (const p of O.promos) if (day >= p.from && day <= p.to && (!best || p.pct > best.pct)) best = p;
@@ -147,8 +164,10 @@ async function bizStay(): Promise<string> {
 // the room with the offer taken off night by night, and the dated offer used (for the label)
 function offPrice(nights: { day: string; price: number }[], O: Offer) {
   let total = 0, promo: Promo | null = null;
-  for (const n of nights) { const a = pctAt(O, n.day); total += a.pct > 0 ? n.price * (100 - a.pct) / 100 : n.price; if (a.promo && a.pct > 0 && (!promo || a.pct > promo.pct)) promo = a.promo; }
-  return { total: Math.round(total), promo };
+  let promoPct = 0;
+  for (const n of nights) { const a = pctAt(O, n.day); total += a.pct > 0 ? n.price * (100 - a.pct) / 100 : n.price; if (a.promo) promoPct += a.pct; if (a.promo && (a.pct > 0 || a.promo.free) && (!promo || a.pct > promo.pct)) promo = a.promo; }
+  // share: the average dated offer % over the stay, also taken off the monthly price
+  return { total: Math.round(total), promo, share: nights.length ? promoPct / nights.length / 100 : 0 };
 }
 // long stays: a price group can have a monthly price (Room prices). A month is month_nights nights (28 unless set): that many nights cost the
 // monthly price, and each night after costs that share of it (a 28th for a 28 night month). It is used only when it is cheaper than the nightly price with the offer.
@@ -172,8 +191,10 @@ function monthTotal(R: Rates, g: Group, days: string[]): { total: number; month:
 }
 // the price a guest pays for the room: the cheaper of the nightly price with the website offer, and the monthly price
 function roomPrice(R: Rates, g: Group, nights: { day: string; price: number }[], O: Offer) {
-  const off = offPrice(nights, O), mt = monthTotal(R, g, nights.map((n) => n.day));
-  return mt != null && mt.total < off.total ? { total: mt.total, monthly: true, month: mt.month, promo: null as Promo | null } : { total: off.total, monthly: false, month: null as number | null, promo: off.promo };
+  const off = offPrice(nights, O), m0 = monthTotal(R, g, nights.map((n) => n.day));
+  // a dated offer comes off the monthly price too (the book direct discount does not)
+  const mt = m0 && off.share > 0 ? { ...m0, total: Math.round(m0.total * (1 - off.share) / 10) * 10 } : m0;
+  return mt != null && mt.total < off.total ? { total: mt.total, monthly: true, month: mt.month, promo: off.promo } : { total: off.total, monthly: false, month: null as number | null, promo: off.promo };
 }
 const offLabel = (rp: { promo: Promo | null }, O: Offer) => rp.promo ? `${rp.promo.name || "Special offer"} ${rp.promo.pct}% off` : `Book direct ${O.pct}% off`;
 async function roomsOn() {
@@ -287,7 +308,7 @@ async function mailQuote(R: Rates, body: Record<string, unknown>) {
   const { count: all } = await admin.from("sent_emails").select("id", { count: "exact", head: true }).eq("campaign", "stay_quote").gte("created_at", since(1));
   if ((mine ?? 0) >= 3 || (all ?? 0) >= 30) return json({ error: "We already sent you a price. Check your inbox, or WhatsApp us." });
   if (!RESEND) return json({ error: "Email is not set up. WhatsApp us for a price." });
-  const nights = q.nights.length, rp = roomPrice(R, g, q.nights, O), items = extraItems(R, body.extras, from, to);
+  const nights = q.nights.length, rp = roomPrice(R, g, q.nights, O), items = extraItems(R, notFree(body.extras, rp.promo), from, to), fr = freeItem(R, rp.promo, from, to);
   try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
   const total = rp.total + items.reduce((t, i) => t + i.price, 0), plan = depositPlan(R, O, from, nights, rp.total, total - rp.total, rp.monthly);
   const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
@@ -297,8 +318,9 @@ async function mailQuote(R: Rates, body: Record<string, unknown>) {
   let mf: { from?: string; reply_to?: string; whatsapp?: string } = {}; try { mf = JSON.parse(ms?.value ?? "{}"); } catch { /* defaults */ }
   const wa = String(mf.whatsapp ?? "66969076150").replace(/\D/g, "");
   const lines: [string, string][] = [[`${roomName}, ${nights} night${nights === 1 ? "" : "s"}`, T(rp.total)]];
-  if (rp.monthly) lines.push(["Monthly price", `${T(Number(rp.month))} a month`]); else if (rp.total < q.total) lines.push([offLabel(rp, O), `you save ${T(q.total - rp.total)}`]);
+  if (rp.monthly) lines.push([rp.promo ? `Monthly price, with ${offLabel(rp, O)}` : "Monthly price", `${T(Number(rp.month))} a month`]); else if (rp.total < q.total) lines.push([offLabel(rp, O), `you save ${T(q.total - rp.total)}`]);
   items.forEach((i) => lines.push([i.name, T(i.price)]));
+  if (fr) lines.push([fr.name.charAt(0).toUpperCase() + fr.name.slice(1), "Free"]);
   if (O.gift && O.gift_nights && nights >= O.gift_nights) lines.push([O.gift.charAt(0).toUpperCase() + O.gift.slice(1), "Free"]);
   const notes = [O.includes, plan ? `Book with a deposit of ${T(plan.now)}, then ${T(plan.rest)} ${plan.monthly ? "month by month, each month 7 days before it starts" : "by " + dayW(plan.due)}.` : ""].filter(Boolean);
   const hi = name ? name.split(/\s+/)[0] : "there";
@@ -412,7 +434,7 @@ Deno.serve(async (req) => {
         const q = quote(R, g, from, to);
         if (q.missing) return { id: r.id, group: g.id, state: "off" };
         const rp = roomPrice(R, g, q.nights, O);
-        return { id: r.id, group: g.id, state: "free", total: rp.total, full: q.total, monthly: rp.monthly, month: rp.monthly ? rp.month : null, promo: rp.promo?.name || (rp.promo ? "Special offer" : null), nights: q.nights };
+        return { id: r.id, group: g.id, state: "free", total: rp.total, full: q.total, monthly: rp.monthly, month: rp.monthly ? rp.month : null, promo: rp.promo?.name || (rp.promo ? "Special offer" : null), promo_pct: rp.promo?.pct ?? null, free: rp.promo?.free || null, nights: q.nights };
       });
       return json({ from, to, nights: Math.round((Date.parse(to) - Date.parse(from)) / 864e5), rooms: out });
     }
@@ -432,10 +454,11 @@ Deno.serve(async (req) => {
       // the direct booking discount is taken off the room price; long stays get the gift (noted on the stay for the front desk)
       const O = await offer(), full = q.total, nightsN = Math.round((Date.parse(to) - Date.parse(from)) / 864e5);
       const rp = roomPrice(R, g, q.nights, O); q.total = rp.total;
-      const offerNote = [rp.monthly ? `Monthly price ${rp.month} THB a month (full price ${full} THB).` : q.total < full ? `${offLabel(rp, O)} (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
+      const offerNote = [rp.monthly ? `Monthly price ${rp.month} THB a month${rp.promo ? ", with " + offLabel(rp, O) : ""} (full price ${full} THB).` : q.total < full ? `${offLabel(rp, O)} (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
-      const items = extraItems(R, body.extras, from, to);
+      const items = extraItems(R, notFree(body.extras, rp.promo), from, to), fr = freeItem(R, rp.promo, from, to);
       try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
+      if (fr) items.push(fr);
       const total = q.total + items.reduce((t, i) => t + i.price, 0);
       const plan = body.deposit ? depositPlan(R, O, from, nightsN, q.total, total - q.total, rp.monthly) : null;
       if (body.deposit && !plan) return json({ error: "A deposit is not available for this stay. Pay the whole stay, or WhatsApp us." });
@@ -450,10 +473,11 @@ Deno.serve(async (req) => {
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
         if (plan) { const { error: de } = await admin.from("stays").update({ web_pay_now_thb: plan.now }).eq("id", stayId); if (de) throw new Error(de.message); }
+        if (rp.promo) await admin.from("stays").update({ web_promo: rp.promo.id }).eq("id", stayId);
         if (pp) return json({ pp: acc, stay_id: stayId, total: payNow, all: total, deposit: !!plan, what: `${plan ? "Deposit: " : ""}${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}` });
         const lines = plan
           ? [{ name: `Deposit: ${STAY}, ${rm?.name ?? "room"}, ${from} to ${to} (rest ${plan.rest.toLocaleString("en-US")} THB${plan.monthly ? " monthly" : " by " + plan.due})`, amount: plan.now }]
-          : [{ name: `${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}${rp.monthly ? ", monthly price" : q.total < full ? `, ${offLabel(rp, O).toLowerCase()}` : ""}`, amount: q.total }].concat(items.map((i) => ({ name: i.name, amount: i.price })));
+          : [{ name: `${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}${rp.monthly ? ", monthly price" : q.total < full ? `, ${offLabel(rp, O).toLowerCase()}` : ""}`, amount: q.total }].concat(items.filter((i) => i.price > 0).map((i) => ({ name: i.name, amount: i.price })));
         const url = await stripeSession(lines, payNow, stayId, (data as { email: string }).email, backUrl(body.back), cur, rate, body.pay === "qr" && cur === "thb");
         return json({ url, stay_id: stayId, total: payNow, all: total, deposit: !!plan });
       } catch (e) {
