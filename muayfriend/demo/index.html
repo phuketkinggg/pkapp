@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=70"></script>
+<script src="changelog.js?v=71"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -498,6 +498,8 @@ ul.plain{margin:0;padding-left:18px;color:var(--muted);font-size:14px}
 body.kiosk .side{display:none}
 html:has(body.kiosk),body.kiosk{overscroll-behavior:none;overflow-x:hidden}
 body.kiosk main{padding:24px}
+.kdim{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.82);display:flex;align-items:flex-end;justify-content:center;padding-bottom:max(48px,env(safe-area-inset-bottom,0px));cursor:pointer}
+.kdim span{color:rgba(255,255,255,.55);font-size:20px;letter-spacing:.04em}
 body.kiosk #view{max-width:1100px;margin:0 auto}
 /* till: the side menu slides away so the till has the whole screen; drag in from the left edge (or tap the line) to bring it back */
 .sidegrip{display:none}
@@ -908,7 +910,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=28; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=29; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9725,14 +9727,37 @@ function promoSection(){
   if(!PROMOS){ loadPromos().catch(function(){}); return null; }
   var mgr=me&&me.role==='manager';
   return section('Desk mode screen',mgr?btn('Add offer or notice',function(){ editPromo(null); },'small'):null,
-    h('div',null,h('p',{class:'sub'},'Shown under the name box in desk mode. Names stay hidden until someone types. With more than one, they change every few seconds.'),
+    h('div',null,(function(){ var sel=h('select',{id:'kdim-min','aria-label':'Dim the desk mode screen after'},[[0,'Never'],[1,'1 minute'],[3,'3 minutes'],[5,'5 minutes'],[10,'10 minutes'],[30,'30 minutes']].map(function(o){ return h('option',{value:String(o[0])},o[1]); }));
+        sel.value=String(kDimMins()); sel.onchange=function(){ pref('pk_kdim',sel.value); toast('Saved on this device.'); };
+        return h('div',{class:'panel pad'},h('p',null,'Desk mode keeps the screen on. When nobody uses it, it dims the screen. A tap brings it back.'),
+          h('label',{class:'row',for:'kdim-min',style:'align-items:center;gap:10px'},h('span',null,'Dim the screen after'),sel),
+          h('p',{class:'sub'},'Set on each tablet. If the screen still turns off, set Auto-Lock to Never on the tablet (iPad: Settings, Display and Brightness, Auto-Lock).')); })(),
+      h('p',{class:'sub'},'Shown under the name box in desk mode. Names stay hidden until someone types. With more than one, they change every few seconds.'),
       PROMOS.length?h('div',{class:'promolist'},PROMOS.map(function(pr,i){ return h('div',{class:'promoitem'+(pr.on===false?' off':'')},promoCard(pr),
         h('div',{class:'row'},pr.on===false?chip('Hidden','warn'):chip('Showing','ok'),mgr?btn('Edit',function(){ editPromo(i); },'small'):null,
           mgr&&i>0?btn('Move up',function(){ var l=PROMOS.slice(); var t=l[i-1]; l[i-1]=l[i]; l[i]=t; run(savePromos(l)); },'small'):null)); }))
       :h('div',{class:'panel empty'},'Nothing yet. Add an offer, a promotion or some news.')));
 }
+/* desk mode keeps the screen on (screen wake lock, where the browser has it) and dims it after a few minutes with nobody using it;
+   a tap brings it back. The minutes are in Settings, Look, Desk mode screen (0 never dims). */
+var KWAKE={lock:null,t:0,dim:null};
+function kWake(on){
+  if(!on){ try{ if(KWAKE.lock) KWAKE.lock.release(); }catch(e){} KWAKE.lock=null; clearTimeout(KWAKE.t); kDim(false); return; }
+  try{ if(navigator.wakeLock&&!KWAKE.lock&&document.visibilityState==='visible') navigator.wakeLock.request('screen').then(function(l){ KWAKE.lock=l; l.addEventListener('release',function(){ if(KWAKE.lock===l) KWAKE.lock=null; }); }).catch(function(){}); }catch(e){}
+  kDimLater();
+}
+function kDimMins(){ var v=Number(pref('pk_kdim')); return pref('pk_kdim')==null||isNaN(v)?3:Math.max(0,Math.min(60,v)); }
+function kDimLater(){ clearTimeout(KWAKE.t); var m=kDimMins(); if(m>0&&document.body.classList.contains('kiosk')) KWAKE.t=setTimeout(function(){ kDim(true); },m*60000); }
+function kDim(on){
+  if(on&&!KWAKE.dim){ KWAKE.dim=h('div',{class:'kdim',role:'button','aria-label':'Tap to start'},h('span',null,'Tap the screen to check in'));
+    KWAKE.dim.addEventListener('pointerdown',function(e){ e.preventDefault(); e.stopPropagation(); kDim(false); kDimLater(); },true); document.body.appendChild(KWAKE.dim); }
+  else if(!on&&KWAKE.dim){ KWAKE.dim.remove(); KWAKE.dim=null; }
+}
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'&&document.body.classList.contains('kiosk')) kWake(true); });
+document.addEventListener('pointerdown',function(){ if(document.body.classList.contains('kiosk')&&!KWAKE.dim) kDimLater(); },true);
+document.addEventListener('keydown',function(){ if(document.body.classList.contains('kiosk')){ kDim(false); kDimLater(); } },true);
 function enterKiosk(){
-  loadPromos().catch(function(){});
+  loadPromos().catch(function(){}); kWake(true);
   document.body.classList.add('kiosk'); TABS=[]; ui.tab='kiosk'; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr='';
   try{ history.replaceState(null,'','#'); history.pushState({kiosk:1},'','#desk'); }catch(e){}
   try{ if(document.documentElement.requestFullscreen&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); }catch(e){}
@@ -9746,7 +9771,7 @@ function kIdle(ms){ clearTimeout(kTimer); kTimer=setTimeout(kReset,ms); }
 document.addEventListener('pointerdown',function(){ if(ui.tab==='kiosk'&&(ui.kc||ui.kq)&&!ui.kdone) kIdle(30000); },true);
 function exitKiosk(){
   var email=me.email||currentEmail;
-  function leave(){ pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk');
+  function leave(){ pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk'); kWake(false);
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
     TABS=staffTabs(me); ui.tab=SPA?'board':'today'; schedule(); }
   if(window.DEMO_LOGINS){ leave(); toast('Desk mode off. In your own gym, staff type their password here.'); return; } // demo only: no password to leave desk mode
