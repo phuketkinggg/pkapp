@@ -63,7 +63,7 @@ const addDays = (d: string, n: number) => new Date(Date.parse(d + "T00:00:00Z") 
 const isDay = (d: unknown) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(Date.parse(d));
 
 type Season = { id: string; name: string; ranges?: { from: string; to: string }[] };
-type Group = { id: string; name: string; rooms: string[]; prices: Record<string, number>; note?: string; month?: number };
+type Group = { id: string; name: string; rooms: string[]; prices: Record<string, number>; note?: string; month?: number; months?: Record<string, number> };
 type Opt = { id: string; name: string; price: number; limit?: number };
 type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; any?: boolean; any_max?: number; max?: number; unit?: string; note?: string };
 type Rates = { base: string; month_nights?: number; seasons: Season[]; groups: Group[]; extras?: Extra[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
@@ -139,14 +139,26 @@ const offPrice = (full: number, o: Offer) => o.pct > 0 ? Math.round(full * (100 
 // price for up to 30 nights, and a 30th of it for each night after. It is used only when it is cheaper than the nightly price with the offer.
 const monthNights = (R: Rates) => Math.max(7, Math.min(90, Math.round(Number(R.month_nights) || 28)));
 // shorter stays never cost more than the monthly price either
-function monthTotal(R: Rates, g: Group, nights: number): number | null {
-  const m = Number(g.month); if (!(m >= 1000)) return null;
-  return nights < monthNights(R) ? m : Math.round(m * Math.max(nights, 30) / 30 / 10) * 10;
+// a price group can have a monthly price for each season (months), else one for the whole year (month). A stay across seasons
+// uses each night's season: the month price is the average of the nights, rounded to 10 THB.
+function monthRate(R: Rates, g: Group, day: string) {
+  const s = seasonOf(R, day), v = s && g.months ? Number(g.months[s.id]) : NaN;
+  return v >= 1000 ? v : Number(g.month) >= 1000 ? Number(g.month) : NaN;
+}
+function lowestMonth(g: Group) {
+  const l = [Number(g.month), ...Object.values(g.months || {}).map(Number)].filter((v) => v >= 1000);
+  return l.length ? Math.min(...l) : null;
+}
+function monthTotal(R: Rates, g: Group, days: string[]): { total: number; month: number } | null {
+  if (!days.length) return null; let sum = 0;
+  for (const d of days) { const v = monthRate(R, g, d); if (isNaN(v)) return null; sum += v; }
+  const avg = sum / days.length, month = Math.round(avg / 10) * 10;
+  return { month, total: days.length < monthNights(R) ? month : Math.round(avg * Math.max(days.length, 30) / 30 / 10) * 10 };
 }
 // the price a guest pays for the room: the cheaper of the nightly price with the website offer, and the monthly price
-function roomPrice(R: Rates, g: Group, full: number, nights: number, O: Offer) {
-  const off = offPrice(full, O), mt = monthTotal(R, g, nights);
-  return mt != null && mt < off ? { total: mt, monthly: true } : { total: off, monthly: false };
+function roomPrice(R: Rates, g: Group, full: number, days: string[], O: Offer) {
+  const off = offPrice(full, O), mt = monthTotal(R, g, days);
+  return mt != null && mt.total < off ? { total: mt.total, monthly: true, month: mt.month } : { total: off, monthly: false, month: null as number | null };
 }
 async function roomsOn() {
   const { data } = await admin.from("rooms").select("id,name,sort,active").eq("active", true).order("sort");
@@ -259,7 +271,7 @@ async function mailQuote(R: Rates, body: Record<string, unknown>) {
   const { count: all } = await admin.from("sent_emails").select("id", { count: "exact", head: true }).eq("campaign", "stay_quote").gte("created_at", since(1));
   if ((mine ?? 0) >= 3 || (all ?? 0) >= 30) return json({ error: "We already sent you a price. Check your inbox, or WhatsApp us." });
   if (!RESEND) return json({ error: "Email is not set up. WhatsApp us for a price." });
-  const nights = q.nights.length, rp = roomPrice(R, g, q.total, nights, O), items = extraItems(R, body.extras, from, to);
+  const nights = q.nights.length, rp = roomPrice(R, g, q.total, q.nights.map((n) => n.day), O), items = extraItems(R, body.extras, from, to);
   try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
   const total = rp.total + items.reduce((t, i) => t + i.price, 0), plan = depositPlan(R, O, from, nights, rp.total, total - rp.total, rp.monthly);
   const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
@@ -269,7 +281,7 @@ async function mailQuote(R: Rates, body: Record<string, unknown>) {
   let mf: { from?: string; reply_to?: string; whatsapp?: string } = {}; try { mf = JSON.parse(ms?.value ?? "{}"); } catch { /* defaults */ }
   const wa = String(mf.whatsapp ?? "66969076150").replace(/\D/g, "");
   const lines: [string, string][] = [[`${roomName}, ${nights} night${nights === 1 ? "" : "s"}`, T(rp.total)]];
-  if (rp.monthly) lines.push(["Monthly price", `${T(Number(g.month))} a month`]); else if (rp.total < q.total) lines.push([`Book direct ${O.pct}% off`, `you save ${T(q.total - rp.total)}`]);
+  if (rp.monthly) lines.push(["Monthly price", `${T(Number(rp.month))} a month`]); else if (rp.total < q.total) lines.push([`Book direct ${O.pct}% off`, `you save ${T(q.total - rp.total)}`]);
   items.forEach((i) => lines.push([i.name, T(i.price)]));
   if (O.gift && O.gift_nights && nights >= O.gift_nights) lines.push([O.gift.charAt(0).toUpperCase() + O.gift.slice(1), "Free"]);
   const notes = [O.includes, plan ? `Book with a deposit of ${T(plan.now)}, then ${T(plan.rest)} ${plan.monthly ? "month by month, each month 7 days before it starts" : "by " + dayW(plan.due)}.` : ""].filter(Boolean);
@@ -362,7 +374,7 @@ Deno.serve(async (req) => {
       return json({
         today: today(),
         seasons: R.seasons.map((s) => ({ id: s.id, name: s.name, ranges: s.ranges || [], base: s.id === R.base })),
-        groups: R.groups.map((g) => ({ id: g.id, name: g.name, note: g.note || "", prices: g.prices, month: Number(g.month) >= 1000 ? Number(g.month) : null })),
+        groups: R.groups.map((g) => ({ id: g.id, name: g.name, note: g.note || "", prices: g.prices, month: lowestMonth(g) })),
         month_nights: monthNights(R),
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
         extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
@@ -383,8 +395,8 @@ Deno.serve(async (req) => {
         if (taken.has(r.id)) return { id: r.id, group: g.id, state: "taken" };
         const q = quote(R, g, from, to);
         if (q.missing) return { id: r.id, group: g.id, state: "off" };
-        const rp = roomPrice(R, g, q.total, q.nights.length, O);
-        return { id: r.id, group: g.id, state: "free", total: rp.total, full: q.total, monthly: rp.monthly, month: rp.monthly ? Number(g.month) : null, nights: q.nights };
+        const rp = roomPrice(R, g, q.total, q.nights.map((n) => n.day), O);
+        return { id: r.id, group: g.id, state: "free", total: rp.total, full: q.total, monthly: rp.monthly, month: rp.monthly ? rp.month : null, nights: q.nights };
       });
       return json({ from, to, nights: Math.round((Date.parse(to) - Date.parse(from)) / 864e5), rooms: out });
     }
@@ -403,8 +415,8 @@ Deno.serve(async (req) => {
       const q = quote(R, g, from, to); if (q.missing || !(q.total >= 20)) return json({ error: "That room has no price for those dates. Message us." });
       // the direct booking discount is taken off the room price; long stays get the gift (noted on the stay for the front desk)
       const O = await offer(), full = q.total, nightsN = Math.round((Date.parse(to) - Date.parse(from)) / 864e5);
-      const rp = roomPrice(R, g, full, nightsN, O); q.total = rp.total;
-      const offerNote = [rp.monthly ? `Monthly price ${g.month} THB a month (full price ${full} THB).` : O.pct > 0 && q.total < full ? `Book direct ${O.pct}% off (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
+      const rp = roomPrice(R, g, full, q.nights.map((n) => n.day), O); q.total = rp.total;
+      const offerNote = [rp.monthly ? `Monthly price ${rp.month} THB a month (full price ${full} THB).` : O.pct > 0 && q.total < full ? `Book direct ${O.pct}% off (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
       const items = extraItems(R, body.extras, from, to);
       try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
