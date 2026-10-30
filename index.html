@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=74"></script>
+<script src="changelog.js?v=75"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -909,7 +909,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=32; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=33; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4762,9 +4762,10 @@ function soffSave(o){ var txt=JSON.stringify(o);
   return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','stay_offer').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'stay_offer',value:txt}).then(must); }).then(function(){ SOFF=o; schedule(); }); }
 function promoEdit(i){ var o=SOFF||{}, l=(o.promos||[]).slice(), p=i==null?{name:'',from:'',to:'',pct:15}:l[i], exs=(RATES&&RATES.extras||[]).filter(function(e){ return !e.off; });
   openForm({title:i==null?'New offer for dates':'Edit '+(p.name||'offer'),note:'Nights between these dates get this discount on the booking page instead of the book direct discount. It shows at the top of the booking page until it ends.',
-    values:{name:p.name,from:p.from,to:p.to,pct:p.pct,book_by:p.book_by||'',limit:p.limit||'',free:p.free||''},saveLabel:'Save',doneMsg:'Offer saved.',
+    values:{name:p.name,text:p.text||'',from:p.from,to:p.to,pct:p.pct,book_by:p.book_by||'',limit:p.limit||'',free:p.free||''},saveLabel:'Save',doneMsg:'Offer saved.',
     onDelete:i==null?null:function(){ l.splice(i,1); return soffSave(Object.assign({},o,{promos:l})); },
-    fields:[{key:'name',label:'Name',required:true,hint:'Shown to guests. For example: Early November offer.'},
+    fields:[{key:'name',label:'Name',required:true,hint:'Shown to guests in big letters. For example: Early bird 2027. Up to 100 letters.'},
+      {key:'text',label:'More about the offer (optional)',type:'textarea',hint:'Shown under the name on the booking page. For example: Book next year now and get 20% off your stay plus free recovery. Up to 400 letters.'},
       {key:'from',label:'First night',type:'date',required:true},{key:'to',label:'Last night',type:'date',required:true},
       {key:'pct',label:'% off the room',type:'number',required:true,hint:'For example 20. Put 0 to give no discount on these nights (for example over New Year).'},
       {key:'book_by',label:'Book by (optional)',type:'date',hint:'The last day guests can book it. After that it comes off the booking page. Empty: until the last night.'},
@@ -4772,7 +4773,7 @@ function promoEdit(i){ var o=SOFF||{}, l=(o.promos||[]).slice(), p=i==null?{name
       {key:'free',label:'Free with it (optional)',type:'select',options:[['','Nothing']].concat(exs.map(function(e){ return [e.id,e.name]; })),hint:'An extra given free for the whole stay, for example spa access. Guests do not pay for it as well.'}],
     onSave:function(v){ var pc=Math.round(Number(v.pct)); if(!(pc>=0&&pc<=80)) return 'Choose 0 to 80%.'; if(!v.from||!v.to||v.to<v.from) return 'The last night must be on or after the first night.';
       var lim=v.limit===''||v.limit==null?0:Math.round(Number(v.limit)); if(!(lim>=0&&lim<=1000)) return 'Choose a number of bookings, or leave it empty.';
-      var n={id:p.id||('o'+Date.now().toString(36)),name:String(v.name||'').trim().slice(0,60),from:v.from,to:v.to,pct:pc,book_by:v.book_by||'',limit:lim,free:v.free||''}; if(i==null) l.push(n); else l[i]=n; l.sort(function(a,b){ return a.from<b.from?-1:1; });
+      var n={id:p.id||('o'+Date.now().toString(36)),name:String(v.name||'').trim().slice(0,100),text:String(v.text||'').trim().slice(0,400),from:v.from,to:v.to,pct:pc,book_by:v.book_by||'',limit:lim,free:v.free||''}; if(i==null) l.push(n); else l[i]=n; l.sort(function(a,b){ return a.from<b.from?-1:1; });
       return soffSave(Object.assign({},o,{promos:l})); }}); }
 function promoDatesSection(){
   if(!SOFF) return null; needRates(); var l=SOFF.promos||[], mgr=me&&me.role==='manager', t=ymd(new Date());

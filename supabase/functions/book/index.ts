@@ -103,7 +103,7 @@ function quote(R: Rates, g: Group, from: string, to: string) {
 // deposit: from "nights" nights the guest can pay part now (pct % of the room, high_pct % when they arrive in a busier season, never less than min_nights nights),
 // extras in full; the rest is due balance_days days before arrival. Monthly price stays pay at least the first month.
 type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number };
-type Promo = { id: string; name: string; from: string; to: string; pct: number; book_by: string; limit: number; free: string; left: number | null };
+type Promo = { id: string; name: string; text: string; from: string; to: string; pct: number; book_by: string; limit: number; free: string; left: number | null };
 type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean; promos: Promo[] };
 async function offer(): Promise<Offer> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
@@ -120,7 +120,7 @@ async function offer(): Promise<Offer> {
     // dated offers (Settings, Website offer, Offers for dates): nights between from and to get their own % off instead of the book direct discount.
     // Shown on the booking page until they end. Not part of the offer switch.
     // book_by: the offer can be booked until this day; limit: only the first so many bookings get it; free: an extra given free for the stay
-    promos: await promosLeft((Array.isArray(j.promos) ? j.promos : []).map((x: Record<string, unknown>) => ({ id: String(x.id ?? x.name ?? ""), name: String(x.name ?? "").trim().slice(0, 60), from: String(x.from ?? ""), to: String(x.to ?? ""),
+    promos: await promosLeft((Array.isArray(j.promos) ? j.promos : []).map((x: Record<string, unknown>) => ({ id: String(x.id ?? x.name ?? ""), name: String(x.name ?? "").trim().slice(0, 100), text: String(x.text ?? "").trim().slice(0, 400), from: String(x.from ?? ""), to: String(x.to ?? ""),
         pct: Math.max(0, Math.min(80, Math.round(Number(x.pct) || 0))), book_by: isDay(x.book_by) ? String(x.book_by) : "", limit: Math.max(0, Math.round(Number(x.limit) || 0)), free: String(x.free ?? ""), left: null }))
       .filter((x: Promo) => isDay(x.from) && isDay(x.to) && x.to >= x.from && x.to >= today() && (!x.book_by || x.book_by >= today()))) };
 }
