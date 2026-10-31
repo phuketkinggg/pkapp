@@ -140,7 +140,7 @@ begin
   if s like '%also_customers%' then return; end if;
   s := replace(s, $a$                         else c.name end,
         'notes', p.notes,$a$, $a$                         else c.name end
-          || coalesce(' + ' || (select string_agg(x.name, ', ' order by x.name) from public.customers x where x.id = any((select l.also_customers from public.privates l where l.id = coalesce(p.lead_id, p.id)))), '')
+          || coalesce(' + ' || (select string_agg(x.name, ', ' order by x.name) from public.customers x where x.id in (select unnest(l.also_customers) from public.privates l where l.id = coalesce(p.lead_id, p.id))), '')
           || coalesce(' (with ' || (select string_agg(s2.name, ', ' order by s2.name) from public.privates o join public.staff s2 on s2.id = o.coach_id
                where (o.id = coalesce(p.lead_id, p.id) or o.lead_id = coalesce(p.lead_id, p.id)) and o.id <> p.id and o.status <> 'cancelled') || ')', ''),
         'notes', p.notes,$a$);
