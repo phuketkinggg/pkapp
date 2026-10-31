@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=88"></script>
+<script src="changelog.js?v=89"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -917,7 +917,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=44; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=45; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1238,7 +1238,7 @@ function editCustomer(c){ c=c||{};
       body.tags=String(v.tags_txt||'').split(',').map(function(t){ return t.trim().toLowerCase(); }).filter(function(t,i,a){ return t&&a.indexOf(t)===i; });
       body.marketing_ok=v.ok_txt==='no'?false:(c.marketing_ok===false||c.marketing_ok===true?true:c.marketing_ok==null?null:true); body.lead_source=v.lead_source||null; body.country=v.country||null;
       delete body.tags_txt; delete body.ok_txt; return save('customers',c.id,body).then(function(r){ CRM=null; return r; }); },
-    onDelete:c.id?function(){ return db.doc('customers/'+c.id).delete().then(function(){ ui.customerId=null; schedule(); }); }:null});
+    onDelete:c.id?function(){ return sb.rpc('customer_remove',{p_id:c.id}).then(must).then(function(r){ toast(r&&r.kept?'Deleted. Their past purchases and payments stay in the accounts as Deleted customer.':'Deleted.'); ui.customerId=null; return reload('customers'); }); }:null});
 }
 function sellPackage(c){
   var group=c.price_group||'standard';
