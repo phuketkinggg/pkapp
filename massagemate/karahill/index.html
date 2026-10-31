@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=85"></script>
+<script src="changelog.js?v=86"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -912,7 +912,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=42; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=43; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2410,6 +2410,11 @@ function checkOutStay(st){
   if((!st.settled&&billTotal(st)>0)||exO>0) return openBill(st,'Settle the bill before checking out.',true);
   setStay(st,{status:'out',settled:true,settled_on:st.settled_on||ymd(new Date()),settled_method:st.settled_method||null},'Checked out.');
 }
+/* food plans on each stay (meal plans, protein shakes) so the desk and kitchen see them on arrival */
+var FPSTAY={}, FPSTAYK='';
+function loadFpStays(list){ if(!featOn('food_plans')) return; var ids=list.map(function(x){ return x.id; }).sort(), k=ids.join(',');
+  if(!ids.length||k===FPSTAYK) return; FPSTAYK=k;
+  sb.rpc('food_plans_stays',{p_ids:ids}).then(function(r){ if(r.error) return; var m={}; (r.data||[]).forEach(function(x){ m[x.stay_id]=x.plans; }); FPSTAY=m; schedule(); }); }
 function stayCard(st,day){
   var g=byId('customers',st.customer_id)||{}, total=billTotal(st), meal=mealPlanOf(st.customer_id,day), acts=[];
   var status=st.hold_until&&st.status==='booked'?chip('Website, waiting for card payment','warn'):st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
@@ -2422,6 +2427,7 @@ function stayCard(st,day){
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
   if(st.status==='booked'||st.status==='in') acts.push(btn(st.welcome_sent_at?'Email again':'Welcome email',function(){ welcomeEmail(st); },'small'));
   var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),(st.room_price_thb!=null?'Room '+thb(st.room_price_thb)+(Number(st.room_paid_thb)>0?', '+thb(st.room_paid_thb)+' paid':'')+'. ':'No room price. ')+(st.settled?'Settled':'To pay '+(thb(Math.max(0,total))||'0 THB'))];
+  if(FPSTAY[st.id]) bits.unshift('Food plan: '+FPSTAY[st.id]);
   if(meal) bits.push('Meals left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:''));
   if(st.guests) bits.push(st.guests);
   if(st.source_id) bits.push('Via '+nameOf('sources',st.source_id));
@@ -2430,7 +2436,7 @@ function stayCard(st,day){
   var tr=st.training_included!==false;
   bits.push(tr?'Group Muay Thai included for 1 person (morning class only on the leaving day)':'No training included');
   if(st.status!=='out'&&st.status!=='cancelled') acts.push(btn(tr?'Remove training':'Add training',function(){ setStay(st,{training_included:!tr},tr?'Training taken off this stay.':'Group Muay Thai added to this stay.'); setTimeout(function(){ reload('purchases'); },700); },'small'));
-  return {when:nameOf('rooms',st.room_id),right:status,title:g.id?linkBtn(g.name||'Guest',function(){ openCustomer(g.id); }):'Guest',note:bits.join('. '),act:acts};
+  return {when:nameOf('rooms',st.room_id),right:FPSTAY[st.id]&&st.status!=='out'?h('span',{class:'row',style:'gap:4px;justify-content:flex-end'},chip('Food plan','ok'),status):status,title:g.id?linkBtn(g.name||'Guest',function(){ openCustomer(g.id); }):'Guest',note:bits.join('. '),act:acts};
 }
 var MPSYNC=null;
 function loadMpSync(){ return sb.from('app_settings').select('value').eq('key','motopress_last_sync').maybeSingle().then(function(res){ var d=res.data; try{ MPSYNC=d&&d.value?JSON.parse(d.value):null; }catch(e){ MPSYNC=null; } schedule(); }); }
@@ -2822,6 +2828,7 @@ function vStays(){
   var here=S.stays.filter(function(st){ return stayOn(st,day); }).sort(roomSort);
   var tonight=here.filter(function(st){ return st.check_out>day; }).length;
   var coming=sortBy(S.stays.filter(function(st){ return st.status==='booked'&&st.check_in>day&&st.check_in<=soon; }),'check_in');
+  loadFpStays(here.concat(coming));
   var open=sortBy(S.stays.filter(function(st){ return !st.settled&&(st.status==='out'||(st.status!=='cancelled'&&st.check_out<day))&&billTotal(st)>0; }),'check_out');
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   var view=ui.stayView||'calendar';

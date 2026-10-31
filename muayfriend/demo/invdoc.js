@@ -11,7 +11,7 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ ret
 function money(n){ return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function day(d){ if(!d) return ''; var x=new Date(String(d).slice(0,10)+'T00:00:00Z'); return x.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}); }
 function num(p,n,pad){ return (p||'')+String(n||0).padStart(pad||4,'0'); }
-function tplOf(t,biz){ t=t||{}; var b=(t.biz&&t.biz[biz])||{}, d=DEF.biz[biz]||DEF.biz['Muay Fight Gym'], o={};
+function tplOf(t,biz){ t=t||{}; var b=(t.biz&&t.biz[biz])||{}, first=(t.biz&&t.biz[Object.keys(t.biz)[0]])||DEF.biz[Object.keys(DEF.biz)[0]], d=DEF.biz[biz]||Object.assign({},first,{name:biz||first.name,logo:''}), o={};
   ['name','address','tax_id','phone','email','website','logo','bank_name','bank_account_name','bank_account_number','bank_branch','bank_swift','promptpay_id'].forEach(function(k){ o[k]=b[k]!=null&&b[k]!==''?b[k]:(d[k]||''); });
   ['prefix','receipt_prefix','pad','color','terms','footer'].forEach(function(k){ o[k]=t[k]!=null&&t[k]!==''?t[k]:DEF[k]; });
   return o; }

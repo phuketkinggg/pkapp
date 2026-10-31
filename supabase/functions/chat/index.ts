@@ -81,6 +81,15 @@ Deno.serve(async (req) => {
     if (tg && tg.subs?.length) await send(tg.subs, { title: tg.title, body: tg.body, chat: "", tag: "order-" + tg.order, url: "https://app.phuketking.com/#kitchen" });
     return json({ ok: true, sent: tg?.subs?.length ?? 0 });
   }
+  // other phone notices the database asks for, for example a guest with a food plan checking in (push_targets)
+  if (mode === "push") {
+    const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
+    if (ok !== true) return json({ error: "Not allowed." }, 401);
+    const { data: t } = await admin.rpc("push_targets", { p_kind: str(b.kind, 20), p_id: str(b.id, 40) });
+    const tg = t as { title: string; body: string; tag: string; url: string; subs: Sub[] } | null;
+    if (tg && tg.subs?.length) await send(tg.subs, { title: tg.title, body: tg.body, chat: "", tag: tg.tag, url: "https://app.phuketking.com/" + (tg.url || "") });
+    return json({ ok: true, sent: tg?.subs?.length ?? 0 });
+  }
   if (!["status", "start", "send", "contact", "poll"].includes(mode)) return json({ error: "Unknown request." }, 400);
   const p: Record<string, string> = { mode };
   if (mode === "start") { p.name = str(b.name, 80); p.contact = str(b.contact, 120); p.body = str(b.body, 2000); p.page = str(b.page, 200); p.ip = await ipHash(req); }
