@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=81"></script>
+<script src="changelog.js?v=82"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -911,7 +911,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=38; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=39; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9688,10 +9688,27 @@ function spaSitePhotos(o){
       ph.map(function(u,i){ return thumb(u,'Gallery '+(i+1),function(){ var v=Object.assign({},o); v.photos=ph.filter(function(x,j){ return j!==i; }); spaSiteSave(v); }); }),
       ph.length<24?h('div',null,btn('Add to gallery',function(){ spaSiteUp('photo',function(u){ return spaSiteSave(Object.assign({},o,{photos:ph.concat([u])})); }); },'small')):null));
 }
+/* the website's look: style (colours), background texture, heading font and an own accent colour */
+var SPA_STYLES=[['cream','Warm cream'],['blush','Blush pink'],['marble','White and gold'],['sage','Sage green'],['lavender','Soft lavender'],['noir','Dark and gold']];
+var SPA_STYLE_AC={cream:'#9c7a55',blush:'#b46f6a',marble:'#a8864f',sage:'#6e8566',lavender:'#8c74b0',noir:'#c9a86a'};
+var SPA_TEX=[['none','Plain'],['paper','Soft paper'],['linen','Linen'],['marble','Marble'],['dots','Small dots'],['waves','Waves'],['petals','Petals']];
+var SPA_FONTS=[['serif','Elegant (Cormorant)'],['playfair','Classic (Playfair)'],['modern','Modern (Montserrat)']];
+function spaSiteLook(o){ var t=o.look||{};
+  openForm({title:'Website look',note:'Pick a style, a background texture and a font for the headings. Open your website after saving to see it.',
+    values:{style:t.style||'cream',texture:t.texture||'none',font:t.font||'serif',own:!!t.accent,accent:t.accent||SPA_STYLE_AC[t.style||'cream']},
+    fields:[{key:'style',label:'Style',type:'select',options:SPA_STYLES,onChange:function(v,set,get){ if(!get('own')) set('accent',SPA_STYLE_AC[v]||'#9c7a55'); }},
+      {key:'texture',label:'Background texture',type:'select',options:SPA_TEX},
+      {key:'font',label:'Heading font',type:'select',options:SPA_FONTS},
+      {key:'own',label:'Use my own button colour',type:'checkbox',onChange:function(v,set,get,so,show){ show('accent',v); }},
+      {key:'accent',label:'Button colour',type:'color',hide:!t.accent}],
+    saveLabel:'Save',doneMsg:'Saved. Your website shows it now.',
+    onSave:function(v){ var look={style:v.style,texture:v.texture,font:v.font}; if(v.own&&/^#[0-9a-f]{6}$/i.test(v.accent||'')) look.accent=v.accent;
+      return spaSiteSave(Object.assign({},o,{look:look})); }});
+}
 function spaSiteSection(){
   if(SPASITE===null){ SPASITE=false; sb.from('app_settings').select('value').eq('key','spa_site').maybeSingle().then(function(res){ var v=must(res); try{ SPASITE=v?JSON.parse(v.value)||{}:{}; }catch(e){ SPASITE={}; } schedule(); }); }
   var o=SPASITE||{}, mgr=me&&me.role==='manager';
-  return section('Your website',mgr&&SPASITE?btn('Change',function(){
+  return section('Your website',mgr&&SPASITE?h('span',{class:'row'},btn('Look',function(){ spaSiteLook(o); },'small'),btn('Change',function(){
     openForm({title:'Your website',note:'Treatments, prices and your team come from Setup. Here you set the words around them.',
       values:{tagline:o.tagline||'',about:o.about||'',points:(o.points||[]).join('\n'),hours:o.hours||'',address:o.address||'',map_url:o.map_url||'',phone:o.phone||'',whatsapp:o.whatsapp||'',line:o.line||'',instagram:o.instagram||'',facebook:o.facebook||'',book_note:o.book_note||''},
       fields:[{key:'tagline',label:'Line under your name',hint:'For example: Nails, lashes and beauty in Patong.'},
@@ -9703,12 +9720,12 @@ function spaSiteSection(){
         {key:'phone',label:'Phone'},{key:'whatsapp',label:'WhatsApp number',hint:'With the country code, for example +66 81 234 5678.'},
         {key:'line',label:'LINE ID'},{key:'instagram',label:'Instagram name'},{key:'facebook',label:'Facebook page'},
         {key:'book_note',label:'Note on prices and booking',hint:'For example: Most prices are starting prices.'}],
-      onSave:function(v){ var val={}; ['logo','hero','photos'].forEach(function(k){ if(o[k]) val[k]=o[k]; }); Object.keys(v).forEach(function(k){ var x=String(v[k]||'').trim(); if(k==='points') x=x.split('\n').map(function(y){ return y.trim(); }).filter(Boolean).slice(0,8); if(x&&x.length) val[k]=x; });
+      onSave:function(v){ var val={}; ['logo','hero','photos','look'].forEach(function(k){ if(o[k]) val[k]=o[k]; }); Object.keys(v).forEach(function(k){ var x=String(v[k]||'').trim(); if(k==='points') x=x.split('\n').map(function(y){ return y.trim(); }).filter(Boolean).slice(0,8); if(x&&x.length) val[k]=x; });
         var txt=JSON.stringify(val);
         return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','spa_site').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'spa_site',value:txt}).then(must); }).then(function(){ SPASITE=val; }); },
       saveLabel:'Save',doneMsg:'Saved. Your website shows it now.'});
     document.querySelectorAll('dialog textarea, dialog input').forEach(function(t){ t.classList.add('notr'); });
-  },'small'):null,
+  },'small')):null,
     SPASITE&&mgr?spaSitePhotos(o):null,
     h('div',{class:'panel pad'},h('p',{style:'margin:0 0 8px'},!SPASITE?'Loading.':(o.tagline||o.about?(o.tagline||String(o.about).slice(0,120)):'No words yet. Tap Change to add your about text, hours and address.')),
       h('p',{class:'row sub',style:'margin:0'},'Customers book at ',h('a',{href:spaSiteUrl(),target:'_blank',rel:'noopener'},'your website'),' ',btn('Copy link',function(){ copyText(spaSiteUrl(),'Website link copied.'); },'small'))));
