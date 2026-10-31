@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Book online</title>
+<meta name="description" content="Book online, see prices and find us.">
+<link rel="icon" href="../icons/favicon-48.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- A simple website for a spa or salon: Book, Prices and About. Everything comes from the app (Settings, Your website; Spa setup for treatments, prices and team). -->
+<style>
+:root{--ac:#9C7A55;--ink:#2E241B;--soft:#6F6255;--bg:#F7F1E8;--card:#FFFDF9;--line:#E7DCCB;--acs:rgba(156,122,85,.12)}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif}
+a{color:inherit}
+h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;line-height:1.1;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px}
+header.top{position:sticky;top:0;z-index:5;background:rgba(247,241,232,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+.bar{display:flex;align-items:center;gap:12px;height:62px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
+.brand img{width:38px;height:38px;border-radius:50%;background:#fff;object-fit:contain}
+.brand b{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav{margin-left:auto;display:flex;gap:4px}
+nav a{text-decoration:none;font-size:14px;font-weight:500;padding:8px 12px;border-radius:99px;color:var(--soft)}
+nav a.on{background:var(--ink);color:#fff}
+.hero{padding:46px 0 30px;text-align:center}
+.hero img{width:96px;height:96px;border-radius:50%;background:#fff;object-fit:contain;box-shadow:0 6px 24px rgba(46,36,27,.08)}
+.hero h1{font-size:clamp(36px,7vw,58px);margin:18px 0 8px}
+.hero p{color:var(--soft);margin:0 auto;max-width:520px}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.btn{appearance:none;border:0;cursor:pointer;font:600 15px Inter,sans-serif;padding:13px 22px;border-radius:99px;background:var(--ac);color:#fff;text-decoration:none;display:inline-block}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.small{padding:8px 14px;font-size:13px}
+section.page{display:none;padding:10px 0 60px}
+section.page.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.step{margin-bottom:16px}
+.step h2{font-size:26px;margin-bottom:12px;display:flex;align-items:baseline;gap:10px}
+.step h2 i{font-style:normal;font-family:Inter,sans-serif;font-size:12px;font-weight:600;color:#fff;background:var(--ac);border-radius:99px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;flex:none;transform:translateY(-3px)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 14px;font:500 14px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip:disabled{opacity:.35;cursor:default}
+.list{display:grid;gap:8px;margin-top:12px}
+.svc{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
+.svc.on{border-color:var(--ac);box-shadow:0 0 0 2px var(--acs)}
+.svc .n{font-weight:600}
+.svc .m{font-size:13px;color:var(--soft)}
+.svc .p{margin-left:auto;font-weight:600;white-space:nowrap}
+.days{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:none;width:62px;border:1px solid var(--line);background:#fff;border-radius:14px;padding:8px 0;text-align:center;cursor:pointer;font:inherit;color:inherit}
+.day small{display:block;font-size:11px;color:var(--soft);text-transform:uppercase;letter-spacing:.06em}
+.day b{display:block;font-size:20px}
+.day.on{background:var(--ink);border-color:var(--ink);color:#fff}.day.on small{color:#e9dfd2}
+.times{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-top:4px}
+.time{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 0;font:600 14px Inter,sans-serif;cursor:pointer;color:var(--ink)}
+.time.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.muted{color:var(--soft);font-size:14px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+input,textarea{width:100%;font:16px Inter,sans-serif;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+input:focus,textarea:focus{outline:2px solid var(--acs);border-color:var(--ac)}
+.sum{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.sum span{background:var(--acs);border-radius:99px;padding:6px 12px;font-size:14px}
+.err{color:#A23B2A;font-size:14px;margin-top:10px;min-height:1px}
+.done{text-align:center;padding:30px 20px}
+.done .tick{width:62px;height:62px;border-radius:50%;background:var(--ac);color:#fff;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.dept{margin-top:26px}
+.dept h3{font-size:28px;margin-bottom:8px}
+.prow{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line)}
+.prow:last-child{border-bottom:0}
+.prow .n{font-weight:600}
+.prow .d{font-size:13px;color:var(--soft)}
+.prow .r{margin-left:auto;text-align:right;white-space:nowrap}
+.prow .r b{display:block}
+.grid2{display:grid;gap:16px;grid-template-columns:1.3fr 1fr}
+.about p{margin:0 0 12px}
+.points{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.points span{border:1px solid var(--line);border-radius:99px;padding:6px 12px;font-size:14px;background:#fff}
+.team{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:12px}
+.person{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center}
+.person .ph{width:74px;height:74px;border-radius:50%;margin:0 auto 8px;background:var(--acs);display:flex;align-items:center;justify-content:center;font:600 28px 'Cormorant Garamond',serif;color:var(--ac);overflow:hidden}
+.person .ph img{width:100%;height:100%;object-fit:cover}
+.info div{padding:10px 0;border-bottom:1px dashed var(--line)}
+.info div:last-child{border:0}
+.info small{display:block;color:var(--soft);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+.load{padding:80px 0;text-align:center;color:var(--soft)}
+@media (max-width:720px){.grid2{grid-template-columns:1fr}.brand b{font-size:18px}nav a{padding:7px 10px;font-size:13px}.hero{padding:30px 0 20px}}
+@media (max-width:380px){.brand b{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap bar">
+  <a class="brand" href="#book"><img src="../icons/icon-192.png" alt=""><b id="bname"></b></a>
+  <nav><a href="#book" data-p="book">Book</a><a href="#prices" data-p="prices">Prices</a><a href="#about" data-p="about">About</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="hero">
+    <img src="../icons/icon-512.png" alt="">
+    <h1 id="hname"></h1>
+    <p id="htag"></p>
+    <div class="btns"><a class="btn" href="#book">Book now</a><a class="btn ghost" href="#prices">See prices</a></div>
+  </div>
+  <div id="loading" class="load">Loading...</div>
+  <section class="page" id="p-book"></section>
+  <section class="page" id="p-prices"></section>
+  <section class="page" id="p-about"></section>
+</main>
+<footer><div class="wrap" id="foot"></div></footer>
+<script>
+var SB_URL='https://phjekupadmjwzrocahiv.supabase.co', SB_KEY='sb_publishable_lbQ8bwEF3IvTt1NSIRa3uA_WWFgUCne';
+var D=null, B={svc:null,dept:'',day:null,staff:'',time:null,times:null,busy:false,done:null}, DAYS=21;
+function rpc(fn,args){ return fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+SB_KEY},body:JSON.stringify(args||{})})
+  .then(function(r){ return r.json().then(function(j){ if(!r.ok) throw new Error((j&&j.message)||'Something went wrong. Please try again.'); return j; }); }); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function baht(n){ return Number(n||0).toLocaleString('en-US')+' THB'; }
+function from_(x){ var t=String(x.text||''), re=/^From [\d,]+ THB\.?\s*/i, f=re.test(t)||/^from /i.test(t); return {from:f, text:t.replace(re,'').replace(/^[\d,]+ THB\.?\s*/,'')}; }
+function priceOf(x){ var f=from_(x); return (f.from?'From ':'')+baht(x.price); }
+function mins(m){ return m>=60?(Math.floor(m/60)+' h'+(m%60?' '+m%60+' min':'')):m+' min'; }
+function today(){ return new Date(Date.now()+7*3600e3).toISOString().slice(0,10); }
+function addDays(s,n){ var d=new Date(s+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function dName(s,o){ return new Date(s+'T00:00:00Z').toLocaleDateString('en-GB',Object.assign({timeZone:'UTC'},o)); }
+function svc(id){ return (D.services||[]).filter(function(s){ return s.id===id; })[0]; }
+function depts(){ var o=[]; (D.services||[]).forEach(function(s){ var k=s.department||'Treatments'; if(o.indexOf(k)<0) o.push(k); }); return o; }
+function site(){ return D.site||{}; }
+function wa(){ var w=String(site().whatsapp||'').replace(/\D/g,''); return w?'https://wa.me/'+w:''; }
+function map(){ return site().map_url||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(D.name+' '+(site().address||''))); }
+
+function page(){ var p=(location.hash||'#book').slice(1); if(['book','prices','about'].indexOf(p)<0) p='book';
+  document.querySelectorAll('nav a').forEach(function(a){ a.classList.toggle('on',a.dataset.p===p); });
+  document.querySelectorAll('section.page').forEach(function(s){ s.classList.toggle('on',s.id==='p-'+p); }); }
+window.addEventListener('hashchange',function(){ page(); var s=document.querySelector('section.page.on'); if(s&&window.scrollY>s.offsetTop) window.scrollTo({top:s.offsetTop-80,behavior:'smooth'}); });
+
+/* Book */
+function loadTimes(){ B.times=null; B.time=null; drawBook(); if(!B.svc||!B.day) return;
+  var key=B.svc+B.day+B.staff;
+  rpc('spa_web_times',{p_service:B.svc,p_date:B.day,p_staff:B.staff||null}).then(function(t){ if(key!==B.svc+B.day+B.staff) return; B.times=t||[]; drawBook(); },
+    function(e){ B.times=[]; B.err=e.message; drawBook(); }); }
+function drawBook(){ var el=document.getElementById('p-book');
+  if(!D.booking){ el.innerHTML='<div class="card done"><h2>Book with us</h2><p class="muted">Online booking is not open yet. '+(wa()?'<a href="'+wa()+'">Message us on WhatsApp</a> and we will find you a time.':'Please call in or message us.')+'</p></div>'; return; }
+  if(B.done){ var r=B.done; el.innerHTML='<div class="card done"><div class="tick">&#10003;</div><h2>You are booked in</h2><div class="sum" style="justify-content:center">'+
+      '<span>'+esc(r.service)+'</span><span>'+esc(dName(r.date,{weekday:'long',day:'numeric',month:'long'}))+'</span><span>'+esc(r.time)+'</span><span>'+esc(r.staff)+'</span><span>'+baht(r.price)+'</span></div>'+
+      '<p class="muted">See you soon at '+esc(D.name)+'. Pay in the shop after your treatment.'+(wa()?' To change your time, <a href="'+wa()+'">message us</a>.':'')+'</p>'+
+      '<button class="btn ghost" id="again">Book another</button></div>';
+    document.getElementById('again').onclick=function(){ B={svc:null,dept:'',day:B.day,staff:'',time:null,times:null}; drawBook(); }; return; }
+  var ds=depts(); if(!B.dept) B.dept=ds[0]||'';
+  var s=B.svc&&svc(B.svc), h='';
+  h+='<div class="card step"><h2><i>1</i>Choose a treatment</h2><div class="chips">'+ds.map(function(d){ return '<button class="chip'+(d===B.dept?' on':'')+'" data-dept="'+esc(d)+'">'+esc(d)+'</button>'; }).join('')+'</div><div class="list">'+
+    (D.services||[]).filter(function(x){ return (x.department||'Treatments')===B.dept; }).map(function(x){
+      return '<button class="svc'+(x.id===B.svc?' on':'')+'" data-svc="'+x.id+'"><div><div class="n">'+esc(x.name)+'</div><div class="m">'+mins(x.minutes)+(from_(x).text?' · '+esc(from_(x).text):'')+'</div></div><div class="p">'+priceOf(x)+'</div></button>'; }).join('')+'</div></div>';
+  if(s){
+    var staff=(D.team||[]).filter(function(p){ return !s.staff.length||s.staff.indexOf(p.id)>=0; });
+    h+='<div class="card step" id="st2"><h2><i>2</i>Choose a day</h2><div class="days">';
+    for(var i=0;i<DAYS;i++){ var d=addDays(today(),i); h+='<button class="day'+(d===B.day?' on':'')+'" data-day="'+d+'"><small>'+(i===0?'Today':dName(d,{weekday:'short'}))+'</small><b>'+dName(d,{day:'numeric'})+'</b><small>'+dName(d,{month:'short'})+'</small></button>'; }
+    h+='</div>'+(staff.length>1?'<label>With</label><div class="chips"><button class="chip'+(!B.staff?' on':'')+'" data-staff="">Anyone</button>'+staff.map(function(p){ return '<button class="chip'+(p.id===B.staff?' on':'')+'" data-staff="'+p.id+'">'+esc(p.name)+'</button>'; }).join('')+'</div>':'')+'</div>';
+  }
+  if(s&&B.day){
+    h+='<div class="card step" id="st3"><h2><i>3</i>Choose a time</h2>'+(B.times===null?'<p class="muted">Finding free times...</p>':!B.times.length?'<p class="muted">No free times that day'+(B.staff?' with that person':'')+'. Try another day'+(B.staff?' or Anyone':'')+'.</p>':
+      '<div class="times">'+B.times.map(function(t){ return '<button class="time'+(t===B.time?' on':'')+'" data-time="'+t+'">'+t+'</button>'; }).join('')+'</div>')+'</div>';
+  }
+  if(s&&B.day&&B.time){
+    h+='<div class="card step" id="st4"><h2><i>4</i>Your details</h2><div class="sum"><span>'+esc(s.name)+'</span><span>'+esc(dName(B.day,{weekday:'short',day:'numeric',month:'short'}))+' at '+B.time+'</span><span>'+mins(s.minutes)+'</span><span>'+priceOf(s)+'</span></div>'+
+      '<label for="f-name">Name</label><input id="f-name" autocomplete="name" value="'+esc(B.name||'')+'">'+
+      '<label for="f-phone">Phone or WhatsApp</label><input id="f-phone" type="tel" autocomplete="tel" placeholder="+66 ..." value="'+esc(B.phone||'')+'">'+
+      '<label for="f-email">Email (optional)</label><input id="f-email" type="email" autocomplete="email" value="'+esc(B.email||'')+'">'+
+      '<label for="f-note">Anything we should know? (optional)</label><textarea id="f-note" rows="2" placeholder="Colour, design, allergies">'+esc(B.note||'')+'</textarea>'+
+      (site().book_note?'<p class="muted" style="margin:12px 0 0">'+esc(site().book_note)+'</p>':'')+
+      '<div class="err" id="f-err"></div><div style="margin-top:14px"><button class="btn" id="f-go"'+(B.busy?' disabled':'')+'>'+(B.busy?'Booking...':'Book '+B.time)+'</button></div></div>';
+  }
+  el.innerHTML=h;
+  el.querySelectorAll('[data-dept]').forEach(function(b){ b.onclick=function(){ B.dept=b.dataset.dept; drawBook(); }; });
+  el.querySelectorAll('[data-svc]').forEach(function(b){ b.onclick=function(){ B.svc=b.dataset.svc; B.staff=''; if(!B.day) B.day=today(); loadTimes(); goTo('st2'); }; });
+  el.querySelectorAll('[data-day]').forEach(function(b){ b.onclick=function(){ B.day=b.dataset.day; loadTimes(); }; });
+  el.querySelectorAll('[data-staff]').forEach(function(b){ b.onclick=function(){ B.staff=b.dataset.staff; loadTimes(); }; });
+  el.querySelectorAll('[data-time]').forEach(function(b){ b.onclick=function(){ B.time=b.dataset.time; drawBook(); goTo('st4'); }; });
+  ['name','phone','email','note'].forEach(function(k){ var i=document.getElementById('f-'+k); if(i) i.oninput=function(){ B[k]=i.value; }; });
+  var go=document.getElementById('f-go'); if(go) go.onclick=book;
+}
+function goTo(id){ setTimeout(function(){ var e=document.getElementById(id); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); },60); }
+function book(){ var err=document.getElementById('f-err');
+  if((B.name||'').trim().length<2){ err.textContent='Write your name.'; return; }
+  if((B.phone||'').replace(/\D/g,'').length<8){ err.textContent='Write your phone or WhatsApp number.'; return; }
+  B.busy=true; drawBook();
+  rpc('spa_web_book',{p:{service_id:B.svc,date:B.day,time:B.time,staff_id:B.staff||null,name:B.name,phone:B.phone,email:B.email||'',note:B.note||''}}).then(function(r){
+    B.busy=false; B.done=r; drawBook(); window.scrollTo({top:document.getElementById('p-book').offsetTop-80,behavior:'smooth'}); },
+    function(e){ B.busy=false; drawBook(); document.getElementById('f-err').textContent=e.message; if(/gone|not free/.test(e.message)) loadTimes(); }); }
+
+/* Prices */
+function drawPrices(){ var el=document.getElementById('p-prices');
+  el.innerHTML='<div class="card"><h2 style="font-size:34px">Prices</h2>'+(site().book_note?'<p class="muted" style="margin:6px 0 0">'+esc(site().book_note)+'</p>':'')+
+    depts().map(function(d){ return '<div class="dept"><h3>'+esc(d)+'</h3>'+(D.services||[]).filter(function(x){ return (x.department||'Treatments')===d; }).map(function(x){
+      return '<div class="prow"><div><div class="n">'+esc(x.name)+'</div>'+(from_(x).text?'<div class="d">'+esc(from_(x).text)+'</div>':'')+'</div><div class="r"><b>'+priceOf(x)+'</b><span class="muted">'+mins(x.minutes)+'</span>'+
+        (D.booking?'<div style="margin-top:6px"><button class="btn small" data-bk="'+x.id+'">Book</button></div>':'')+'</div></div>'; }).join('')+'</div>'; }).join('')+'</div>';
+  el.querySelectorAll('[data-bk]').forEach(function(b){ b.onclick=function(){ var s=svc(b.dataset.bk); B.done=null; B.svc=s.id; B.dept=s.department||'Treatments'; B.staff=''; B.day=B.day||today(); location.hash='#book'; loadTimes(); goTo('st2'); }; }); }
+
+/* About */
+function drawAbout(){ var el=document.getElementById('p-about'), s=site();
+  var paras=String(s.about||'').split(/\n\s*\n/).filter(function(x){ return x.trim(); });
+  var info=[s.hours?['Open',esc(s.hours)]:null, s.address?['Find us','<a href="'+esc(map())+'" target="_blank" rel="noopener">'+esc(s.address)+'</a>']:null,
+    s.phone?['Phone','<a href="tel:'+esc(String(s.phone).replace(/[^\d+]/g,''))+'">'+esc(s.phone)+'</a>']:null, wa()?['WhatsApp','<a href="'+wa()+'" target="_blank" rel="noopener">Message us</a>']:null,
+    s.line?['LINE',esc(s.line)]:null, s.instagram?['Instagram','<a href="https://www.instagram.com/'+esc(String(s.instagram).replace(/^@/,''))+'" target="_blank" rel="noopener">@'+esc(String(s.instagram).replace(/^@/,''))+'</a>']:null,
+    s.facebook?['Facebook','<a href="'+esc(/^https?:/.test(s.facebook)?s.facebook:'https://www.facebook.com/'+s.facebook)+'" target="_blank" rel="noopener">Facebook page</a>']:null].filter(Boolean);
+  el.innerHTML='<div class="grid2"><div class="card about"><h2 style="font-size:34px;margin-bottom:12px">About us</h2>'+(paras.length?paras.map(function(p){ return '<p>'+esc(p)+'</p>'; }).join(''):'<p class="muted">Welcome to '+esc(D.name)+'.</p>')+
+    ((s.points||[]).length?'<div class="points">'+s.points.map(function(p){ return '<span>'+esc(p)+'</span>'; }).join('')+'</div>':'')+'</div>'+
+    '<div class="card info"><h2 style="font-size:28px;margin-bottom:6px">Visit</h2>'+info.map(function(i){ return '<div><small>'+i[0]+'</small>'+i[1]+'</div>'; }).join('')+
+    '<div style="padding-top:14px"><a class="btn" href="#book">Book now</a></div></div></div>'+
+    ((D.team||[]).length?'<div class="card" style="margin-top:16px"><h2 style="font-size:30px">Our team</h2><div class="team">'+D.team.map(function(p){
+      return '<div class="person"><div class="ph">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="" loading="lazy">':esc((p.name||'?').charAt(0)))+'</div><b>'+esc(p.name)+'</b>'+(p.text?'<div class="muted">'+esc(p.text)+'</div>':'')+'</div>'; }).join('')+'</div></div>':''); }
+
+function start(){ rpc('spa_web').then(function(d){ D=d||{}; var s=site();
+    document.documentElement.style.setProperty('--ac',D.accent||'#9C7A55');
+    var h=String(D.accent||'#9C7A55').replace('#',''); if(h.length===6) document.documentElement.style.setProperty('--acs','rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+',.13)');
+    document.title=D.name+(s.tagline?' | '+s.tagline:'');
+    var md=document.querySelector('meta[name=description]'); md.content=(s.tagline||'')+(s.tagline?'. ':'')+'Book online, see prices and find '+D.name+(s.address?' in '+s.address:'')+'.';
+    document.getElementById('bname').textContent=D.name; document.getElementById('hname').textContent=D.name; document.getElementById('htag').textContent=s.tagline||'';
+    document.getElementById('foot').innerHTML=esc(D.name)+(s.address?' · '+esc(s.address):'')+(s.hours?' · '+esc(s.hours):'');
+    document.getElementById('loading').remove();
+    drawBook(); drawPrices(); drawAbout(); page();
+  },function(e){ document.getElementById('loading').textContent='Could not load. Please refresh the page.'; }); }
+start();
+</script>
+</body>
+</html>

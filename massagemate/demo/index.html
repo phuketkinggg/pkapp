@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=76"></script>
+<script src="changelog.js?v=77"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -880,6 +880,7 @@ var FEATURES=[
   {k:'social',g:'Marketing',n:'Social media',d:'Plan and post to your social accounts.',tabs:['social']},
   {k:'webpages',g:'Website',n:'Web pages',d:'Make and change pages on your website.',tabs:['webpages']},
   {k:'sitestats',g:'Website',n:'Website numbers',d:'Visits and bookings from your website.',tabs:['sitestats']},
+  {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
@@ -910,7 +911,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=34; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=35; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8526,7 +8527,7 @@ function vSettings(){
   else if(t==='look') body=[themeSection(),promoSection()];
   else if(t==='money') body=[ppSettings(),pxSettings()];
   else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
-  else if(t==='website') body=[webPhotosSection(),webTextSection(),blogSection()];
+  else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
@@ -9617,6 +9618,33 @@ function webTextEdit(t){
     extraBtn:cur?['Use original',function(){ $dlg.close(); run(sb.rpc('site_text_save',{p_key:t.id,p_text:null}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; }),'Back to the original text.'); }]:null,
     onSave:function(v){ if(v.text.length>3000) return 'That is too long. Keep it under 3000 letters.';
       return sb.rpc('site_text_save',{p_key:t.id,p_text:v.text===t.text?null:v.text}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; schedule(); }); }});
+}
+/* the shop's own simple website (Book, Prices, About): texts kept in app_settings spa_site, read by spa_web() */
+var SPASITE=null;
+function spaSiteUrl(){ return location.origin+location.pathname.replace(/[^/]*$/,'')+'site/'; }
+function spaSiteSection(){
+  if(SPASITE===null){ SPASITE=false; sb.from('app_settings').select('value').eq('key','spa_site').maybeSingle().then(function(res){ var v=must(res); try{ SPASITE=v?JSON.parse(v.value)||{}:{}; }catch(e){ SPASITE={}; } schedule(); }); }
+  var o=SPASITE||{}, mgr=me&&me.role==='manager';
+  return section('Your website',mgr&&SPASITE?btn('Change',function(){
+    openForm({title:'Your website',note:'Treatments, prices and your team come from Setup. Here you set the words around them.',
+      values:{tagline:o.tagline||'',about:o.about||'',points:(o.points||[]).join('\n'),hours:o.hours||'',address:o.address||'',map_url:o.map_url||'',phone:o.phone||'',whatsapp:o.whatsapp||'',line:o.line||'',instagram:o.instagram||'',facebook:o.facebook||'',book_note:o.book_note||''},
+      fields:[{key:'tagline',label:'Line under your name',hint:'For example: Nails, lashes and beauty in Patong.'},
+        {key:'about',label:'About us',type:'textarea',rows:6,hint:'A blank line starts a new paragraph.'},
+        {key:'points',label:'Short points',type:'textarea',rows:4,hint:'One on each line, for example: Walk ins welcome.'},
+        {key:'hours',label:'Opening hours',hint:'For example: Every day 10:00 to 21:00.'},
+        {key:'address',label:'Address'},
+        {key:'map_url',label:'Google Maps link',hint:'Optional. Empty: a map search for your name and address.'},
+        {key:'phone',label:'Phone'},{key:'whatsapp',label:'WhatsApp number',hint:'With the country code, for example +66 81 234 5678.'},
+        {key:'line',label:'LINE ID'},{key:'instagram',label:'Instagram name'},{key:'facebook',label:'Facebook page'},
+        {key:'book_note',label:'Note on prices and booking',hint:'For example: Most prices are starting prices.'}],
+      onSave:function(v){ var val={}; Object.keys(v).forEach(function(k){ var x=String(v[k]||'').trim(); if(k==='points') x=x.split('\n').map(function(y){ return y.trim(); }).filter(Boolean).slice(0,8); if(x&&x.length) val[k]=x; });
+        var txt=JSON.stringify(val);
+        return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','spa_site').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'spa_site',value:txt}).then(must); }).then(function(){ SPASITE=val; }); },
+      saveLabel:'Save',doneMsg:'Saved. Your website shows it now.'});
+    document.querySelectorAll('dialog textarea, dialog input').forEach(function(t){ t.classList.add('notr'); });
+  },'small'):null,
+    h('div',{class:'panel pad'},h('p',{style:'margin:0 0 8px'},!SPASITE?'Loading.':(o.tagline||o.about?(o.tagline||String(o.about).slice(0,120)):'No words yet. Tap Change to add your about text, hours and address.')),
+      h('p',{class:'row sub',style:'margin:0'},'Customers book at ',h('a',{href:spaSiteUrl(),target:'_blank',rel:'noopener'},'your website'),' ',btn('Copy link',function(){ copyText(spaSiteUrl(),'Website link copied.'); },'small'))));
 }
 function webTextSection(){
   if(!me||me.role!=='manager'||!WEBP.photos) return null;

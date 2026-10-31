@@ -157,6 +157,11 @@ def build():
         src = os.path.join(ROOT, 'i18n-%s.js' % lang)
         if os.path.exists(src):
             open(os.path.join(OUT, 'i18n-%s.js' % lang), 'w', encoding='utf-8').write(swap(open(src, encoding='utf-8').read()))
+    # the shop's own simple website (Book, Prices, About), all from the app: site/
+    ws = swap(open(os.path.join(ROOT, 'spasite.html'), encoding='utf-8').read())
+    if any(w in ws for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea')): sys.exit('Phuket King text left in spasite.html')
+    os.makedirs(os.path.join(OUT, 'site'), exist_ok=True)
+    open(os.path.join(OUT, 'site', 'index.html'), 'w', encoding='utf-8').write(ws)
     icons()
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import check_js
