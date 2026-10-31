@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-31', title: 'Reset a customer password at the desk', what: 'A manager can now give any customer a new starting password from App access, also when they already use the app. Their old password stops working straight away and they choose a new one when they sign in.', feature: 'reset_pw'},
   {date: '2026-10-31', title: 'Sign out only signs out this phone', what: 'Signing out now ends the session on that phone or computer only. Before, it signed you out on every device, which could stop a manager giving app access on another screen. If your sign in has ended, the app now says so and takes you back to sign in.'},
   {date: '2026-10-31', title: 'Delete any customer', what: 'Deleting a customer now always works. Someone with nothing recorded is removed completely. Someone with purchases, payments, check ins, privates or stays has their login, contact details and coaching data deleted, and their past sales stay in the accounts as Deleted customer, so the books stay right.', where: 'Customers, Edit, Delete'},
   {date: '2026-10-31', title: 'Fits the phone screen', what: 'On phones the app can no longer be wider than the screen or slide sideways: long names, emails and links now wrap onto the next line, and photos and videos shrink to fit.'},

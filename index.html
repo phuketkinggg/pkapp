@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=90"></script>
+<script src="changelog.js?v=91"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -885,6 +885,7 @@ var FEATURES=[
   {k:'social',g:'Marketing',n:'Social media',d:'Plan and post to your social accounts.',tabs:['social']},
   {k:'webpages',g:'Website',n:'Web pages',d:'Make and change pages on your website.',tabs:['webpages']},
   {k:'sitestats',g:'Website',n:'Website numbers',d:'Visits and bookings from your website.',tabs:['sitestats']},
+  {k:'reset_pw',g:'Customers',n:'Managers reset customer passwords',d:'A manager can give any customer a new starting password from App access, also when they already use the app, for example when they are locked out at the desk. Off: customers who already use the app reset it themselves with Forgot password.'},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
@@ -917,7 +918,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=46; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=47; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10424,7 +10425,7 @@ function giveAccess(kind,row){
   go=btn(row.user_id?'Make a new starting password':'Give access',run1,'primary');
   $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access'),
     h('p',null,row.name+', '+row.email),
-    h('p',{class:'sub'},row.user_id?'They already have a login. This sets a new starting password, and they choose their own when they sign in.':'This makes their login ready straight away, with no email check, and gives you a starting password to hand over.'),
+    h('p',{class:'sub'},row.user_id?'They already have a login. This replaces their password with a new starting password straight away, and they choose their own when they next sign in.':'This makes their login ready straight away, with no email check, and gives you a starting password to hand over.'),
     err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',close),go))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }

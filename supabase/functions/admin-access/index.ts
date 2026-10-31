@@ -1,5 +1,5 @@
-// A manager gives a staff member or customer app access: their login is made already verified,
-// with a starting password shown once to the manager. They must choose their own password on first sign in.
+// A manager gives a staff member or customer app access, or a new starting password: their login is made already verified,
+// with a starting password shown once to the manager. Customers already using the app only when feature reset_pw is on (default). They must choose their own password on first sign in.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -44,8 +44,11 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 400);
       uid = made.user!.id;
     } else {
-      // a customer already using the app keeps their own password; they can use Forgot password
-      if (kind === "customers" && found.signed_in) return json({ error: `${row.name} already uses the app. If they forgot their password, they tap Forgot password on the sign in screen.` }, 409);
+      // a customer already using the app: only when the business allows managers to reset passwords (feature reset_pw, on by default)
+      if (kind === "customers" && found.signed_in) {
+        const { data: f } = await admin.rpc("app_features");
+        if ((f as Record<string, unknown> | null)?.reset_pw === false) return json({ error: `${row.name} already uses the app. If they forgot their password, they tap Forgot password on the sign in screen.` }, 409);
+      }
       const { error } = await admin.auth.admin.updateUserById(found.id, { password, email_confirm: true, user_metadata: meta });
       if (error) return json({ error: error.message }, 400);
       uid = found.id;
