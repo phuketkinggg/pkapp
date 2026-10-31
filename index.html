@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=87"></script>
+<script src="changelog.js?v=88"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -42,12 +42,17 @@
 html,body{height:100%}
 /* Safari on iPhone and iPad: keep text the size we set when the screen turns (it enlarges text in landscape otherwise) */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* the page never scrolls sideways on a phone: long words and links wrap, and nothing can push the page wider than the screen */
+html,body{max-width:100%;overflow-x:clip}
+body{overflow-wrap:anywhere}
+main{min-width:0;max-width:100%}
+img,video,iframe,canvas{max-width:100%}
 body{margin:0}
 [hidden]{display:none!important}
 img{max-width:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
 *{box-sizing:border-box}
-.app{display:flex;min-height:100%}
+.app{display:flex;min-height:100%;max-width:100%}
 .side{width:212px;flex:none;background:var(--sunken);border-right:1px solid var(--line);padding:20px 12px;display:flex;flex-direction:column;gap:16px}
 .brand{display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .b1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.1em;color:var(--gold-ink);white-space:nowrap}
