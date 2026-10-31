@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=82"></script>
+<script src="changelog.js?v=83"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -912,7 +912,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=39; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=40; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1095,7 +1095,31 @@ function openForm(spec){
 function opts(list,blank){ var o=list.map(function(d){return [d.id,d.name||'Unnamed'];}); if(blank) o.unshift(['',blank]); return o; }
 function coaches(){ return sortBy(S.staff.filter(function(s){return (s.role==='coach'||s.also_coach)&&s.active!==false;}),'name'); }
 
-function editPackage(p){ p=p||{};
+/* spa and salon apps: a pack is a number of sessions of the treatments you tick (10 nail visits, 5 massages), used up on the board */
+var SPKT=null;
+function editSpaPack(p){ p=p||{};
+  if(!SPKT){ sb.from('spa_services').select('id,name,department,minutes,price_thb').eq('active',true).order('sort').then(function(r){ SPKT=r.data||[]; editSpaPack(p); }); return; }
+  var depts=[]; SPKT.forEach(function(x){ var d=x.department||'Treatments'; if(depts.indexOf(d)<0) depts.push(d); });
+  var v0=Object.assign({},p,{svc:(p.service_ids||[]).slice(),sessions:p.class_limit||p.visit_limit||null});
+  openForm({title:p.id?'Edit pack':'New pack',note:'A pack is a number of visits for the treatments you tick, for example 10 gel nail visits or 5 Thai massages. When they come in, tap their appointment on the board and pay it from the pack.',values:v0,fields:[
+    {key:'name',label:'Name',required:true,hint:'For example: 10 gel nail visits, or 5 x 60 minute Thai massage.'},
+    {key:'sessions',label:'Number of visits',type:'number',required:true,hint:'How many treatments the pack covers.'},
+    {key:'price_thb',label:'Price for the pack (THB)',type:'number',required:true},
+    {key:'price_local_thb',label:'Local resident price (THB)',type:'number',hint:'Leave empty and everyone pays the price above.'},
+    {key:'price_thai_thb',label:'Thai price (THB)',type:'number',hint:'Leave empty and Thai customers pay the local price, or the price above.'},
+    {key:'audience',label:'Who can buy it',type:'select',def:'all',options:[['all','Everyone'],['local','Local residents and Thai customers only'],['thai','Thai customers only']]},
+    {key:'svc',label:'It can be used for',type:'checks',options:SPKT.map(function(x){ return [x.id,x.name+' ('+(x.department||'Treatments')+', '+x.minutes+' min, '+thb(x.price_thb)+')']; }),hint:'Tick the treatments the pack pays for. Tick none and it pays for any treatment.'},
+    {key:'duration_days',label:'Valid for (days)',type:'number',hint:'For example 90 for three months, 365 for a year. Leave empty if it never expires.'},
+    {key:'clock',label:'The time starts',type:'select',def:'first',options:[['first','At their first visit'],['purchase','On the day it is bought']]},
+    {key:'active',label:'On sale now',type:'checkbox',def:true},
+    {key:'notes',label:'Notes',type:'textarea'}],
+    onSave:function(v){ var n=Math.round(Number(v.sessions)); if(!(n>0&&n<=500)) return 'Write how many visits, 1 to 500.'; if(!(Number(v.price_thb)>0)) return 'Add the price.';
+      var body=Object.assign({},p,v,{covers:['Privates'],class_limit:n,service_ids:(v.svc||[]).length?v.svc:null,tiers:null,tiers_local:null,qty_default:null,qty_unit:'visits',times:null,per_week_limit:null,addon_fz_thb:null,addon_fz_local_thb:null});
+      delete body.svc; delete body.sessions;
+      return save('packages',p.id,body); },
+    onDelete:p.id?function(){ return db.doc('packages/'+p.id).delete(); }:null});
+}
+function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
   // every class slot in the timetable, as "Sat 16:30"; a plain "16:30" in the package ticks that time on every day it runs
   var slot={}; S.classes.forEach(function(c){ if(c.time&&c.day!=null) slot[DAY3[Number(c.day)]+' '+c.time]={d:Number(c.day),t:c.time,k:(slot[DAY3[Number(c.day)]+' '+c.time]||{}).k||c.title}; });
   (p.times||[]).forEach(function(t){ if(t.length>5&&!slot[t]) slot[t]={d:DAY3.indexOf(t.slice(0,3)),t:t.slice(-5),k:'not in the timetable now'}; });
@@ -6920,6 +6944,9 @@ function spaBook(pre){
 function spaAppt(a){
   var st=spaStaff(a.staff_id), bd=spaBed(a.bed_id), sh=spaShop(a.shop_id), end=m2hm(hm2m(a.time)+a.minutes);
   function step(s,msg){ return sb.rpc('spa_step',{p_id:a.id,p_step:s}).then(must).then(function(){ $dlg.close(); toast(msg); return loadSpa(); }).catch(function(e){ toast(errText(e)); }); }
+  var packBox=h('div',{class:'row wrap',style:'margin-top:8px'});
+  if(!a.paid&&me.role!=='coach') sb.rpc('spa_pack_options',{p_id:a.id}).then(function(r){ (r.data||[]).forEach(function(o){
+    packBox.appendChild(btn('Use pack: '+o.name+' ('+o.left+' left)',function(){ sb.rpc('spa_pay_pack',{p_id:a.id,p_purchase:o.id}).then(must).then(function(){ $dlg.close(); toast('Paid from the pack. '+(o.left-1)+' left.'); return loadSpa(); }).catch(function(e){ toast(errText(e)); }); },'primary')); }); });
   function pay(m){ return sb.rpc('spa_pay',{p_id:a.id,p_method:m}).then(must).then(function(){ $dlg.close(); toast('Paid by '+m+'. It shows in the takings.'); return loadSpa(); }).catch(function(e){ toast(errText(e)); }); }
   $dlg.replaceChildren(h('div',{class:'billbox'},
     h('h2',null,a.who),
@@ -6931,6 +6958,7 @@ function spaAppt(a){
       a.status==='confirmed'&&a.started?btn('Finish',function(){ step('done','Finished. The therapist is back in the queue.'); },'primary'):null,
       a.status==='confirmed'&&a.started?btn('Not started yet',function(){ step('unstart','Back to booked.'); }):null,
       !a.paid?btn('Paid cash',function(){ pay('cash'); }):null, !a.paid?btn('Paid card',function(){ pay('card'); }):null, !a.paid?btn('Paid transfer',function(){ pay('transfer'); }):null),
+    packBox,
     a.status==='confirmed'&&me.role!=='coach'?h('div',{class:'row wrap',style:'margin-top:8px'},btn('No show',function(){ step('noshow','Marked as a no show.'); },'small'),btn('Cancel booking',function(){ step('cancel','Cancelled.'); },'small danger')):null,
     h('div',{class:'row',style:'margin-top:14px;justify-content:flex-end'},btn('Close',function(){ $dlg.close(); }))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
@@ -8060,7 +8088,7 @@ function upgSection(){ if(!featOn('upgrades')) return null; var list=upgPaths(),
       {label:'Upgrade price',num:true,cell:function(x){ if(x.price!=null) return thb(x.price); var a=byId('packages',x.from), b=byId('packages',x.to); return a&&b?thb(b.price_thb-a.price_thb)+' (difference)':''; }},
       {label:'',cell:function(x){ var i=list.indexOf(x); return man?btn('Change',function(){ upgEdit(i); },'small'):null; }}],list,UPGP===false?'Loading.':'No upgrades yet. For example: a weekly class pass to unlimited for the same months.'))); }
 function vPackages(){
-  return [pageHead('Packages','What you sell, and the rules the check in follows.',btn('Add package',function(){ editPackage(); },'primary')),upgSection(),
+  return [pageHead('Packages',SPA?'Packs of visits customers buy upfront, like 10 gel nail visits or 5 massages. Pay an appointment from a pack on the board.':'What you sell, and the rules the check in follows.',btn(SPA?'Add pack':'Add package',function(){ editPackage(); },'primary')),upgSection(),
     table([
       {label:'Name',cell:function(p){return [linkBtn(p.name,function(){ editPackage(p); }),exChip(p)];}},
       {label:'Standard',num:true,cell:function(p){return thb(p.price_thb);}},
@@ -8691,7 +8719,7 @@ function tillSide(on){
 var SB_URL='https://yojllgjjekitbktzblcc.supabase.co', SB_KEY='sb_publishable_RSMrHUIN5CFQgUX0o_gIpw_MyogMxJX';
 var sb=null, me=null, currentUser=null, lastLoad=0;
 var MAP={
-  packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit']},
+  packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit','service_ids']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access','bio','photo_url','also_coach','private_rate_thb','video_url','web_show','web_name','web_title','web_about','web_sort']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country','is_fighter','fighter_name','fighter_free','fight_weight']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},

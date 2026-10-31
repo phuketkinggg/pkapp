@@ -443,6 +443,12 @@ begin
     select ord, p.id, p.name, p.price_thb, 1, false from public.shop_products p order by random() limit 1+(i%2);
     update public.shop_orders o set subtotal_thb=s.v, total_thb=s.v from (select sum(price_thb*qty) v from public.shop_order_items where order_id=ord) s where o.id=ord;
   end loop;
+  -- packs of visits (10 gel nail visits, 5 head spas), and the guest login owns a nail pack
+  insert into public.packages(name,price_thb,covers,visit_limit,duration_days,clock,active,service_ids,audience,notes) values
+    ('10 gel nail visits',2690,'{Privates}',10,180,'first',true,(select array_agg(id) from public.spa_services where name in ('Gel Polish','Korean Premium Gel Nail')),'all','Example pack'),
+    ('5 head spa visits, 60 minutes',5400,'{Privates}',5,120,'first',true,(select array_agg(id) from public.spa_services where name='Head Spa, 60 minutes'),'all','Example pack');
+  insert into public.purchases(customer_id,package_id,package_name,price_thb,price_group,paid,method,purchased_on,covers,visit_limit,visits_left,duration_days)
+    select 'e2000000-0000-4000-8000-000000000001', id, name, price_thb, 'standard', true, 'card', t-3, covers, visit_limit, visit_limit, duration_days from public.packages where name='10 gel nail visits';
   return jsonb_build_object('profile','karahill','services',(select count(*) from public.spa_services),'appointments',(select count(*) from public.privates),'today',(select count(*) from public.privates where date=t));
 end $f$;
 revoke all on function private.mm_demo_karahill() from public, anon, authenticated;
