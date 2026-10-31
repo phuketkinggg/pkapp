@@ -156,3 +156,27 @@ begin
   d := replace(d, 'set business = ''Pangea Resort'' where business = p_name', 'set business = private.biz_stay() where business = p_name');
   execute d;
 end $p$;
+
+-- a receipt filed under a department goes to the business that department belongs to
+create or replace function private.receipt_business(p_dept text) returns text language sql stable security definer set search_path to '' as $$
+  select case when p_dept = private.dept_cafe() then private.biz_cafe()
+    when p_dept in ('Gym','Gym shop','Spa','Office','Marketing','Visa and DTV') then private.biz_main()
+    else coalesce((select min(b->>'name') from jsonb_array_elements(private.acc_struct()->'businesses') b where b->'depts' ? p_dept
+                   having count(*) = 1), private.biz_stay()) end
+$$;
+
+-- renaming a business also renames its invoice details (Settings, Invoices)
+create or replace function private.acc_move_invoice_tpl(old text, nm text) returns void language sql security definer set search_path to '' as $$
+  update public.app_settings set value = jsonb_set(value::jsonb, '{biz}', ((value::jsonb->'biz') - old) || jsonb_build_object(nm, value::jsonb->'biz'->old))::text
+  where key = 'invoice_template' and value ~ '^\s*\{' and value::jsonb->'biz' ? old and not (value::jsonb->'biz' ? nm)
+$$;
+revoke all on function private.acc_move_invoice_tpl(text, text) from public, anon, authenticated;
+do $p$
+declare d text;
+begin
+  d := pg_get_functiondef('private.acc_move_business(text,text)'::regprocedure);
+  if position('acc_move_invoice_tpl' in d) > 0 then return; end if;
+  execute replace(d, '  update public.shop_locations set acc_business = nm where acc_business = old;', '  update public.shop_locations set acc_business = nm where acc_business = old;
+  perform private.acc_move_invoice_tpl(old, nm);');
+  if position('acc_move_invoice_tpl' in pg_get_functiondef('private.acc_move_business(text,text)'::regprocedure)) = 0 then raise exception 'acc_move_business patch did not apply'; end if;
+end $p$;

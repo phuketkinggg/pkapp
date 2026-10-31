@@ -14,8 +14,13 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const CATS = ["Staff wages", "Rent", "Electricity", "Water", "Internet and phone", "Food and drink stock", "Cafe and drinks supplies", "Shop stock", "Spa supplies",
   "Cleaning and laundry", "Repairs and maintenance", "Equipment", "Marketing and ads", "Software and subscriptions", "Bank and card fees", "Visa and government fees",
   "Transport and fuel", "Office and admin", "Professional fees", "Tax", "Insurance", "Other"];
-const DEPTS: Record<string, string[]> = { "Phuket King Gym": ["Gym", "Gym shop", "Spa", "Visa and DTV", "Office", "Marketing", "Maintenance", "Other"],
-  "Pangea Resort": ["Pangea Resort", "Pangea Cafe", "Housekeeping", "Maintenance", "Office", "Marketing", "Other"] };
+// the businesses and their departments come from the database (Accounts, Businesses and departments)
+async function businesses(): Promise<Record<string, string[]>> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "acc_structure").maybeSingle();
+  const out: Record<string, string[]> = {};
+  try { for (const b of (JSON.parse(data?.value ?? "{}").businesses ?? [])) if (b?.name) out[b.name] = (b.depts ?? []).filter((d: string) => !["Gym training", "Privates", "Rooms"].includes(d)); } catch { /* none */ }
+  return out;
+}
 
 async function manager(req: Request) {
   const user = createClient(URL_, ANON, { global: { headers: { Authorization: req.headers.get("authorization") ?? "" } }, auth: { persistSession: false } });
@@ -41,10 +46,12 @@ Deno.serve(async (req) => {
     const pdf = file.type === "application/pdf" || /\.pdf$/i.test(r.photo_path);
     const data = encodeBase64(new Uint8Array(await file.arrayBuffer()));
     const doc = pdf ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } } : { type: "image", source: { type: "base64", media_type: type, data } };
-    const prompt = `This is a receipt or bill for a business in Phuket, Thailand (a Muay Thai gym "Phuket King Gym", and "Pangea Resort" with bungalows and a cafe). It may be in Thai or English.
+    const DEPTS = await businesses();
+    if (r.business && !DEPTS[r.business]) DEPTS[r.business] = [r.department].filter(Boolean);
+    const prompt = `This is a receipt or bill for a business in Thailand. The businesses are: ${Object.keys(DEPTS).map((x) => `"${x}"`).join(", ")}. It may be in Thai or English.
 The staff member filed it under: business "${r.business}", department "${r.department}", paid by "${r.method}".
 Read it and reply with JSON only:
-{"supplier": "shop or company name, in English letters if possible", "day": "YYYY-MM-DD or empty if not shown (Thai Buddhist years: subtract 543)", "amount": total paid as a number in Thai baht (the grand total including VAT, not a subtotal), "method": "cash" | "transfer" | "card" | "" if not shown, "category": one of ${JSON.stringify(CATS)}, "business": "Phuket King Gym" or "Pangea Resort" (keep the staff choice unless the receipt clearly belongs to the other), "department": one of the departments for that business ${JSON.stringify(DEPTS)}, "note": "a few words on what was bought, in English"}
+{"supplier": "shop or company name, in English letters if possible", "day": "YYYY-MM-DD or empty if not shown (Thai Buddhist years: subtract 543)", "amount": total paid as a number in Thai baht (the grand total including VAT, not a subtotal), "method": "cash" | "transfer" | "card" | "" if not shown, "category": one of ${JSON.stringify(CATS)}, "business": one of ${JSON.stringify(Object.keys(DEPTS))} (keep the staff choice unless the receipt clearly belongs to another), "department": one of the departments for that business ${JSON.stringify(DEPTS)}, "note": "a few words on what was bought, in English"}
 If something cannot be read, leave it empty. Never guess an amount.`;
     const slot = await admin.rpc("ai_usage_take", { p_fn: "receipt" });
     if (slot.error) return json({ error: "Could not check the AI allowance. Try again." });
@@ -59,7 +66,7 @@ If something cannot be read, leave it empty. Never guess an amount.`;
     const out = String((j.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join(""));
     let o: Record<string, unknown> = {};
     try { o = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)); } catch { return json({ error: "The receipt could not be read. Try a clearer photo." }); }
-    const biz = o.business === "Pangea Resort" || o.business === "Phuket King Gym" ? String(o.business) : r.business;
+    const biz = DEPTS[String(o.business)] ? String(o.business) : r.business;
     const amt = Number(o.amount);
     return json({
       supplier: String(o.supplier ?? "").slice(0, 120),

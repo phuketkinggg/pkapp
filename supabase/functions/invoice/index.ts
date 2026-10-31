@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     if (!(amount >= 20)) return json({ error: "Card payments need at least 20 THB." });
     const tpl = data.template ?? {}, prefix = tpl.prefix || "INV-", pad = Number(tpl.pad) || 4;
     const no = prefix + String(inv.number).padStart(pad, "0");
-    const biz = (tpl.biz?.[inv.business]?.name) || (inv.business === "Pangea Resort" ? "Pangea Resort" : "Phuket King Muay Thai");
+    const biz = (tpl.biz?.[inv.business]?.name) || inv.business || "Invoice";
     const where = back(b.back);
     const p = new URLSearchParams();
     p.set("mode", "payment");
