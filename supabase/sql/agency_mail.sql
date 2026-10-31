@@ -95,7 +95,9 @@ begin
   begin d2 := nullif(p->>'end_date','')::date; exception when others then d2 := null; end;
   if v_kind not in ('class','private','stay') then v_kind := 'other'; end if;
   if src is not null then
-    select id into sid from public.booking_sources where lower(name) = lower(src) or lower(src) like '%' || lower(name) || '%' order by length(name) desc limit 1;
+    select id, name into sid, src from public.booking_sources where regexp_replace(lower(name),'[^a-z0-9]','','g') = regexp_replace(lower(src),'[^a-z0-9]','','g')
+      or regexp_replace(lower(src),'[^a-z0-9]','','g') like '%' || regexp_replace(lower(name),'[^a-z0-9]','','g') || '%' order by length(name) desc limit 1;
+    src := coalesce(src, nullif(btrim(coalesce(p->>'source','')),''));
     if sid is null and v_kind in ('class','private') then insert into public.booking_sources(name) values (left(src,60)) returning id into sid; end if;
   end if;
   if v_ref is not null then select * into b from public.agency_bookings ab where lower(ab.source_name) = lower(coalesce(src,'')) and ab.ref = v_ref; end if;
