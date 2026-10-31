@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=77"></script>
+<script src="changelog.js?v=78"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -823,6 +823,7 @@ var COLS=['packages','staff','customers','purchases','classes','checkin_days','p
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
 var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['emails','Emails'],['courses','Education'],['coaching','Coaching'],['settings','Settings']];
+var TAB0={}; ALLTABS.forEach(function(t){ TAB0[t[0]]=t[1]; }); /* the standard names, before spa names and Master control names */
 var TABS=[];
 /* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
    def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
@@ -834,17 +835,17 @@ var FEATURES=[
   {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
   {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
-  {k:'classes_block_privates',g:'Training',n:'Group classes block privates',d:'No private can be booked during a group class. Off: only classes ticked "Blocks privates" block them.'},
+  {k:'classes_block_privates',g:'Training',n:'Group classes block privates',d:'No private can be booked during a group class. Off: only classes ticked "Blocks privates" block them.',spa:false},
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
-  {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.'},
+  {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.',spa:false},
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
-  {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.'},
+  {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
@@ -855,7 +856,7 @@ var FEATURES=[
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
   {k:'email_log',g:'Messages',n:'Emails page',d:'One page with every email the app sends: emails written in the app, invoices and receipts, welcome emails, action group emails and outreach, with what was sent, what is waiting and what failed. Write a new email from here too.',tabs:['emails']},
   {k:'custview',g:'Customers',n:'Customer view',d:'Managers pick any customer and see their app exactly as they see it: home, packages, courses and coaching. View only.',tabs:['custview']},
-  {k:'coach_choose',g:'Training',n:'Coaching chosen per customer',d:'Coaching is only for the customers you turn it on for, and you choose which parts each gets: steps and habits, workouts, food diary, weight. Set it on the customer, Coaching options. Off: everyone has all of it.'},
+  {k:'coach_choose',g:'Training',n:'Coaching chosen per customer',d:'Coaching is only for the customers you turn it on for, and you choose which parts each gets: steps and habits, workouts, food diary, weight. Set it on the customer, Coaching options. Off: everyone has all of it.',spa:false},
   {k:'partners',g:'Marketing',n:'Partner programme',d:'A Partners page on your website where people apply to send you customers, at levels you set (for example Affiliate, Creator and Ambassador, each with its own share and perks). Applications come into Affiliates, where you approve them at a level.'},
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
   {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
@@ -884,7 +885,7 @@ var FEATURES=[
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
-function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
+function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(platLocked(k)) return platCfg().lock[k]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
 /* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
 var LANGED={q:'',th:null,my:null,fix:null};
 function langLoadAll(){ ['th','my'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
@@ -911,7 +912,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=35; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=36; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -952,16 +953,23 @@ function uiApply(){ var l=uiLang(); I18N.l=l; document.documentElement.lang=l; d
 function i18nFixLoad(){ if(!window.sb||!sb.rpc) return; sb.rpc('i18n_fixes').then(function(r){ if(r&&!r.error&&r.data&&typeof r.data==='object'){ I18N.fix=r.data; trBuild(); I18N.seen=new WeakMap(); trNode(document.body); } },function(){}); }
 function langPick(){ var ls=[['en','English']].concat(featOn('lang_th')?[['th','ไทย']]:[]).concat(featOn('lang_my')?[['my','မြန်မာ']]:[]); if(ls.length<2) return null;
   return h('select',{class:'navlang notr','aria-label':'Language',translate:'no',onchange:function(e){ setUiLang(e.target.value); }},ls.map(function(x){ return h('option',{value:x[0],selected:I18N.l===x[0]},x[1]); })); }
-function tabOn(t){ var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
+function tabOn(t){ if(platHidden(t)) return false; var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
 /* the online course offered with packages (Courses, Offer with packages) */
 var OFFER=null;
 function loadOffer(){ try{ sb.rpc('course_offer').then(function(r){ OFFER=r&&!r.error&&r.data&&r.data.id?r.data:null; }); }catch(e){} }
 function offerFits(pk,cid){ if(!OFFER||!featOn('course_offer')||!pk) return false; if(OFFER.with!=='all'&&(pk.covers||[]).indexOf('Muay Thai')<0) return false;
   if(OFFER.new_only&&cid&&S.purchases.some(function(p){ return p.customer_id===cid&&!p.stay_id&&!p.cancelled; })) return false; return true; }
+/* Master control: the app's owner fixes features, hides menu items and settings folders, and renames menu items, per business (private.platform) */
+var PLAT={cfg:{},owner:false}; (function(){ try{ var v=JSON.parse(localStorage.getItem('app_platform')||'null'); if(v&&v.cfg) PLAT=v; }catch(e){} })();
+function platCfg(){ return PLAT.cfg||{}; }
+function platLocked(k){ var l=platCfg().lock||{}; return typeof l[k]==='boolean'; }
+function platHidden(t){ return (platCfg().hide||[]).indexOf(t)>=0; }
+function tname(t){ return (platCfg().names||{})[t[0]]||t[1]; }
+function loadPlatform(){ return sb.rpc('app_platform').then(function(r){ if(r.error||!r.data) return; PLAT=r.data; try{ localStorage.setItem('app_platform',JSON.stringify(PLAT)); }catch(e){} schedule(); }); }
 function loadFeatures(){ return sb.rpc('app_features').then(function(r){ if(r.error||!r.data) return; FEAT=r.data; try{ localStorage.setItem('app_features',JSON.stringify(FEAT)); }catch(e){} schedule(); }); }
 /* spa and salon mode (Massage Mate builds set window.SHOP_TYPE='spa'): the bed board first, gym-only screens hidden */
 var SPA=window.SHOP_TYPE==='spa';
-if(SPA){ var SPA_HIDE=['today'], SPA_NAMES={privates:'Appointments',coach:'Therapist view',packages:'Packs and prices'};
+if(SPA){ var SPA_HIDE=['today'], SPA_NAMES={privates:'Appointments',coach:'Therapist view',packages:'Packs and prices',commission:'Therapist pay',staff:'Team',hours:'Team hours',customers:'Clients'};
   ALLTABS=[['board','Board'],['spasetup','Setup']].concat(ALLTABS.filter(function(t){ return SPA_HIDE.indexOf(t[0])<0; }).map(function(t){ return SPA_NAMES[t[0]]?[t[0],SPA_NAMES[t[0]]]:t; })); }
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var DISCIPLINES=['Muay Thai','Striking','MMA','Self-defence','Fitness','Yoga','Kids'];
@@ -1030,7 +1038,8 @@ function table(cols,rows,emptyMsg,foot){
     foot?h('tfoot',null,h('tr',null,foot.map(function(f,i){return h('td',{class:cols[i].num?'num':null},f);}))):null));
 }
 function section(title,action,body){ return h('section',{class:'sec'},h('div',{class:'sechead'},h('h2',null,title),action||null),body); }
-function pageHead(title,sub,action){ return h('div',{class:'head'},h('div',null,h('h1',null,title),sub?h('p',{class:'sub'},sub):null),action||null); }
+function pageHead(title,sub,action){ var dt=ALLTABS.concat(window.CTABS||[]).filter(function(x){ return x[0]===ui.tab; })[0];
+  if(dt&&(title===TAB0[ui.tab]||title===dt[1])) title=tname(dt); return h('div',{class:'head'},h('div',null,h('h1',null,title),sub?h('p',{class:'sub'},sub):null),action||null); }
 
 /* ---------- forms ---------- */
 function openForm(spec){
@@ -1191,7 +1200,7 @@ function editCustomer(c){ c=c||{};
     {key:'lead_source',label:'Where they found us',type:'select',options:[['','Not known']].concat(LEADSRC.map(function(x){ return [x,x]; }))},
     {key:'country',label:'Country'},
     {key:'ok_txt',label:'Newsletters by email',type:'select',options:[['yes','Gets newsletters'],['no','Unsubscribed, do not email']]},
-    {key:'is_fighter',label:'Fighter (fights for Muay Fight Gym)',type:'checkbox',onChange:function(v,set,get,so,show){ ['fighter_name','fight_weight','f_train'].forEach(function(k){ show(k,v); }); }},
+    {key:'is_fighter',hide:!featOn('fights'),label:'Fighter (fights for Muay Fight Gym)',type:'checkbox',onChange:function(v,set,get,so,show){ ['fighter_name','fight_weight','f_train'].forEach(function(k){ show(k,v); }); }},
     {key:'fighter_name',label:'Fighter name (ring name)',hide:!c.is_fighter,hint:'Shows on fights, the check in screen and their app.'},
     {key:'fight_weight',label:'Fight weight',hide:!c.is_fighter,hint:'For example: 67 kg.'},
     {key:'f_train',label:'Training',type:'select',hide:!c.is_fighter,options:[['free','Free (group classes and Fitness Zone, not recovery)'],['paid','Paid (they buy packages as normal)']],hint:'Only staff see this. Free: they check in like everyone else and nothing is charged.'}],
@@ -7843,7 +7852,7 @@ function editRenewMsg(){
 function renewSection(){ return section('Renewal reminder message',btn('Edit message',editRenewMsg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub'},'Sent on WhatsApp when you tap Remind on WhatsApp on the Customers page, under Package running out.'),h('p',{style:'white-space:pre-wrap'},renewText({name:'Alex'},{p:{package_name:'10 class pack'},why:'2 visits left'})))); }
 function renewAsk(c,r){ var ph=reviewPhone(c); if(!ph){ toast('No phone number on file. Add one with Edit first.'); return; }
   window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(renewText(c,r)),'_blank','noopener'); }
-var CSHOW=[['all','All customers'],['fighters','Fighters'],['active','Active members'],['newest','Newest members'],['oldest','Longest with us'],['spend','Highest spenders'],['visits','Most attendance'],['out','Package running out']];
+var CSHOW=[['all','All customers']].concat(SPA?[]:[['fighters','Fighters']]).concat([['active','Active members'],['newest','Newest members'],['oldest','Longest with us'],['spend','Highest spenders'],['visits','Most attendance'],['out','Package running out']]);
 /* new fighters can join a coaching group by themselves */
 var FGRP=null;
 function fighterGroupLine(){
@@ -8401,12 +8410,42 @@ function featCanSet(){ return !!me&&me.role==='manager'&&can('settings'); }
 function featToggle(k,on){ return sb.rpc('feature_set',{p_key:k,p_on:on}).then(must).then(function(d){ FEAT=d||FEAT; try{ localStorage.setItem('app_features',JSON.stringify(FEAT)); }catch(e){} toast(on?'Switched on for everyone.':'Switched off for everyone.'); schedule(); }).catch(function(e){ toast(errText(e)); schedule(); }); }
 function featSwitch(k){ var on=featOn(k), ok=featCanSet();
   return h('label',{class:'check featsw'},h('input',{type:'checkbox',checked:on?true:null,disabled:ok?null:true,onchange:function(ev){ featToggle(k,ev.target.checked); }}),h('span',null,on?'On':'Off')); }
+/* Master control (only for the owner of the app, private.platform_owners): fix features on or off and hide them,
+   hide menu items and settings folders, and rename menu items, for this business */
+var MDRAFT=null;
+function masterSection(){
+  var c=MDRAFT||(MDRAFT=JSON.parse(JSON.stringify(platCfg()))); c.lock=c.lock||{}; c.hide=c.hide||[]; c.hide_set=c.hide_set||[]; c.names=c.names||{};
+  var staffT=ALLTABS.filter(function(t){ return t[0]!=='settings'; }), custT=(window.CTABS||[]), setT=[['general','General'],['news',"What's new"],['menu','Menu'],['features','Features'],['look','Look'],['money','Money'],['messages','Messages'],['website','Website'],['rooms','Rooms and stays'],['privates','Privates']];
+  var err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function tog(arr,k,on){ var i=arr.indexOf(k); if(on&&i<0) arr.push(k); if(!on&&i>=0) arr.splice(i,1); }
+  function tabRow(t){ return h('div',{class:'featrow'},
+    h('label',{class:'check'},h('input',{type:'checkbox',checked:c.hide.indexOf(t[0])<0?true:null,onchange:function(e){ tog(c.hide,t[0],!e.target.checked); }}),h('span',null,'Show')),
+    h('input',{type:'text',class:'notr',value:c.names[t[0]]||'',placeholder:t[1],maxlength:'40','aria-label':'Name for '+t[1],style:'flex:1;min-width:0',oninput:function(e){ c.names[t[0]]=e.target.value; }})); }
+  function featRow(f){ var v=typeof c.lock[f.k]==='boolean'?(c.lock[f.k]?'on':'off'):'';
+    return h('div',{class:'featrow'},h('div',null,h('b',null,f.n),h('div',{class:'sub'},f.d||'')),
+      h('select',{'aria-label':f.n,onchange:function(e){ if(e.target.value==='') delete c.lock[f.k]; else c.lock[f.k]=e.target.value==='on'; }},
+        [['','Business chooses'],['on','Always on, hidden'],['off','Always off, hidden']].map(function(o){ return h('option',{value:o[0],selected:o[0]===v?'':null},o[1]); }))); }
+  function save(){ err.hidden=true;
+    Object.keys(c.names).forEach(function(k){ if(!String(c.names[k]||'').trim()) delete c.names[k]; });
+    sb.rpc('platform_save',{p:c}).then(must).then(function(d){ PLAT=d; MDRAFT=null; try{ localStorage.setItem('app_platform',JSON.stringify(PLAT)); }catch(e){} return loadFeatures(); })
+      .then(function(){ toast('Saved. Everyone sees it next time the app opens.'); schedule(); },function(e){ err.textContent=errText(e); err.hidden=false; }); }
+  var groups=[]; FEATURES.forEach(function(f){ if(groups.indexOf(f.g)<0) groups.push(f.g); });
+  return [section('Master control',btn('Save',save,'primary small'),h('div',null,
+      h('p',{class:'sub'},'Only you, as the owner of the app, see this folder. What you set here wins over the business: features you fix are hidden from their Features page, hidden menu items and folders disappear for everyone, and names replace the standard ones. Leave a name empty for the standard one.'),err)),
+    section('Menu, staff and managers',null,h('div',{class:'panel pad'},staffT.map(tabRow))),
+    custT.length?section('Menu, customer app',null,h('div',{class:'panel pad'},custT.map(tabRow))):null,
+    section('Settings folders',null,h('div',{class:'panel pad'},setT.map(function(t){ return h('div',{class:'featrow'},h('span',null,t[1]),
+      h('label',{class:'check'},h('input',{type:'checkbox',checked:c.hide_set.indexOf(t[0])<0?true:null,onchange:function(e){ tog(c.hide_set,t[0],!e.target.checked); }}),h('span',null,'Show'))); }))),
+    section('Features',null,h('div',null,groups.map(function(g){ return h('div',{class:'panel pad featgrp'},h('h3',{class:'billh'},g),FEATURES.filter(function(f){ return f.g===g; }).map(featRow)); }))),
+    h('div',{class:'row',style:'justify-content:flex-end;margin:12px 0 40px'},btn('Save',save,'primary'))];
+}
 function featuresSection(){
   var groups=[]; FEATURES.forEach(function(f){ if(groups.indexOf(f.g)<0) groups.push(f.g); });
   return section('Features',null,h('div',null,
     h('p',{class:'sub'},'Switch on what your business uses. Switched off parts disappear for everyone, staff and customers, and nothing is deleted: switch them back on any time.'+(featCanSet()?'':' Only the owner or an admin with settings can change these.')),
-    groups.map(function(g){ return h('div',{class:'panel pad featgrp'},h('h3',{class:'billh'},g),FEATURES.filter(function(f){ return f.g===g; }).map(function(f){
-      return h('div',{class:'featrow'},h('div',null,h('b',null,f.n),h('div',{class:'sub'},f.d||'')),featSwitch(f.k)); })); })));
+    groups.map(function(g){ var fs=FEATURES.filter(function(f){ return f.g===g&&(PLAT.owner||!platLocked(f.k)); }); if(!fs.length) return null;
+      return h('div',{class:'panel pad featgrp'},h('h3',{class:'billh'},g),fs.map(function(f){
+      return h('div',{class:'featrow'},h('div',null,h('b',null,f.n),h('div',{class:'sub'},f.d||'')),platLocked(f.k)?chip((featOn(f.k)?'On':'Off')+', fixed in Master control'):featSwitch(f.k)); })); })));
 }
 function clList(){ return (window.CHANGELOG||[]).slice().sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); }
 function clSeen(){ try{ return localStorage.getItem('cl_seen')||''; }catch(e){ return ''; } }
@@ -8459,7 +8498,7 @@ function navSection(){
 }
 function navEdit(){
   var tabs=TABS.filter(function(t){ return tabOn(t[0])&&t[0]!=='chat'; });
-  var list=navOrder(tabs).map(function(x){ return x.g?{g:x.g}:{k:x.t[0],n:x.t[1]}; });
+  var list=navOrder(tabs).map(function(x){ return x.g?{g:x.g}:{k:x.t[0],n:tname(x.t)}; });
   var box=h('div',{class:'navedit'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
   function mv(i,d){ var j=i+d; if(j<0||j>=list.length) return; var x=list[i]; list[i]=list[j]; list[j]=x; draw(); var b=box.querySelectorAll('.navrow')[j]; if(b){ var f=b.querySelector(d<0?'.up':'.down')||b.querySelector('.up,.down'); if(f&&!f.disabled) f.focus(); } }
   function draw(){
@@ -8501,7 +8540,8 @@ var SETT={tab:pref('pk_settab')||'home'};
 function setTabs(){ var mgr=me.role==='manager';
   return [['general','General','Clean up, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],['features','Features','Switch parts of the app on or off, languages'],
     mgr?['look','Look','App colours, desk mode screen']:null,mgr?['money','Money','PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
-    ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean); }
+    ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
+    .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
 function setGo(t){ SETT.tab=t; pref('pk_settab',t); schedule(); window.scrollTo(0,0); }
 function setHome(){ var tabs=setTabs(), l=clList(), on=FEATURES.filter(function(f){ return featOn(f.k); }).length;
   var langs=['English'].concat(featOn('lang_th')?['Thai']:[]).concat(featOn('lang_my')?['Myanmar']:[]);
@@ -8527,6 +8567,7 @@ function vSettings(){
   else if(t==='look') body=[themeSection(),promoSection()];
   else if(t==='money') body=[ppSettings(),pxSettings()];
   else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
+  else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
@@ -8593,7 +8634,7 @@ function renderNav(){
         /* a tap always closes an open group, also the one with the page you are on (it opens again when you go to another page in it) */
         if(isOpen){ if(i>=0) o.splice(i,1); ui.navShut=curG===x.g?x.g+'|'+ui.tab:null; } else { if(i<0) o.push(x.g); ui.navShut=null; }
         pref('pk_navopen',JSON.stringify(o)); renderNav(); }},h('span',null,x.g),h('span',{class:'navcar','aria-hidden':'true'},isOpen?'\u25BE':'\u25B8')); }
-    var t=x.t, hid=grp&&shut[grp]; return h('button',{type:'button',class:(t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):'')+(grp?' navin':'')+(hid?' shut':''),'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[1],t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
+    var t=x.t, hid=grp&&shut[grp]; return h('button',{type:'button',class:(t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):'')+(grp?' navin':'')+(hid?' shut':''),'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[0]==='chat'?t[1]:tname(t),t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
   var lp=langPick(); if(lp) $nav.appendChild(lp);
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
 }
@@ -9835,7 +9876,7 @@ function exitKiosk(){
   var email=me.email||currentEmail;
   function leave(){ pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk'); kWake(false);
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
-    TABS=staffTabs(me); ui.tab=SPA?'board':'today'; schedule(); }
+    TABS=staffTabs(me); loadPlatform().catch(function(){}); ui.tab=SPA?'board':'today'; schedule(); }
   if(window.DEMO_LOGINS){ leave(); toast('Desk mode off. In your own gym, staff type their password here.'); return; } // demo only: no password to leave desk mode
   openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
     {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:true}],
@@ -10249,7 +10290,7 @@ function enter(user){
     if(row.role==='coach'){ me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row.role==='admin'?Object.assign({},row,{role:'manager',admin:true}):row; db=makeDb();
     if(me.admin&&!can('edit')) $who.firstChild.appendChild(h('span',{class:'chip warn',style:'margin-left:6px'},'View only'));
-    TABS=staffTabs(row); if(SPA&&ui.tab==='today') ui.tab='board';
+    TABS=staffTabs(row); loadPlatform().catch(function(){}); if(SPA&&ui.tab==='today') ui.tab='board';
     if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
     if(!TABS.some(function(t){return t[0]===ui.tab;})&&!(ui.tab==='chat'&&ui.openChatId)) ui.tab=TABS[0][0];
     return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });
@@ -10278,7 +10319,7 @@ if(!window.supabase||!window.supabase.createClient){
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   uiApply().catch(function(){});
   loadTheme().catch(function(){});
-  loadFeatures().catch(function(){});
+  loadFeatures().catch(function(){}); loadPlatform().catch(function(){});
   loadOffer();
   if(READYTOKEN) readyClaim();
   sb.auth.onAuthStateChange(function(event,session){
