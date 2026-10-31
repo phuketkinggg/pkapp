@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=84"></script>
+<script src="changelog.js?v=85"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -912,7 +912,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=41; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=42; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4981,16 +4981,23 @@ function accStructDlg(){
     [['package','Packages',L.packages],['category','Shop categories',L.categories],['till','Tills',L.tills]].map(function(g){ return g[2].length?h('div',null,h('b',null,g[1]),h('div',{class:'panel scroll'},h('table',null,h('tbody',null,linkRows(g[0],g[2]))))):null; })):null;
   shopDlg(h('div',{class:'billbox'},h('h2',null,'Businesses and departments'),
     h('p',{class:'sub'},'Used in Accounts, receipts, invoices, monthly bills and places. Green departments fill by themselves from sales, so they stay.'),
-    BIZ.map(bizCard),h('div',{class:'row'},btn('Add a business',function(){ accBizEdit(null); },'small')),links,
+    BIZ.map(bizCard),h('div',{class:'row'},btn('Add a business',function(){ accBizEdit(null); },'small'),btn('Cafe and tours',accRolesDlg,'small')),links,
     h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); schedule(); },'primary'))));
 }
+/* which business gets cafe sales (meal plans, cafe extras, the cafe till) and which gets tours */
+function accRolesDlg(){ sb.rpc('acc_names').then(function(r){ var n=r.data||{}, opts=[['','Same as '+BIZ_STAY]].concat(BIZ.map(function(b){ return [b,b]; })), opts2=[['','Same as '+BIZ_MAIN]].concat(BIZ.map(function(b){ return [b,b]; }));
+  openForm({title:'Cafe and tours',note:'Choose the business that gets cafe sales (meal plans, protein and other cafe extras on room bookings, and the cafe till), and the one that gets tour sales. Past months are sorted again the same way.',
+    values:{cafe:n.cafe_business&&n.cafe_business!==BIZ_STAY?n.cafe_business:'',tours:n.tours_business&&n.tours_business!==BIZ_MAIN?n.tours_business:''},
+    fields:[{key:'cafe',label:'Cafe sales go to',type:'select',options:opts},{key:'tours',label:'Tour sales go to',type:'select',options:opts2}],
+    saveLabel:'Save',doneMsg:'Saved. Accounts are sorted again.',
+    onSave:function(v){ return sb.rpc('acc_roles_save',{p:{cafe_business:v.cafe||null,tours_business:v.tours||null}}).then(must).then(function(){ ACC.data=null; return loadAccStruct(); }).then(function(){ setTimeout(accStructDlg,60); }); }}); }); }
 function accBizEdit(b){
   var d=ACC_STRUCT||{}, isB=b&&(d.builtin||[]).indexOf(b)>=0, lk=(d.locked||{})[b]||[];
   openForm({title:b?'Edit '+b:'Add a business',values:{name:b||'',depts:b?(ACC_DEPTS[b]||[]).join('\n'):'Sales\nStaff\nOffice\nMarketing\nOther',fixed:b||''},
-    fields:[isB?{key:'fixed',label:'Name',type:'info'}:{key:'name',label:'Business name',required:true,hint:b?'Renaming moves everything already recorded to the new name.':'For example Spa Peptides.'},
+    fields:[{key:'name',label:'Business name',required:true,hint:b?'Renaming moves everything already recorded to the new name.':'For example Spa Peptides.'},
       {key:'depts',label:'Departments, one per line',type:'textarea',rows:9,hint:(lk.length?lk.join(', ')+' fill by themselves from sales, so they stay. ':'')+'Removing a department here keeps what is already recorded under it.'}],
     saveLabel:'Save',doneMsg:'Saved.',
-    onSave:function(v){ var name=isB?b:String(v.name||'').trim(); var deps=String(v.depts||'').split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+    onSave:function(v){ var name=String(v.name||'').trim(); var deps=String(v.depts||'').split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
       if(!name) return Promise.reject({plain:true,message:'Give the business a name.'});
       return sb.rpc('acc_business_save',{p:{old:b||null,name:name,depts:deps}}).then(must).then(function(){ ACC.data=null; if(ACC.biz===b) ACC.biz=name; return loadAccStruct(); }).then(function(){ setTimeout(accStructDlg,60); }); }});
 }
