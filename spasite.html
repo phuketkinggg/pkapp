@@ -91,7 +91,20 @@ input:focus,textarea:focus{outline:2px solid var(--acs);border-color:var(--ac)}
 .info small{display:block;color:var(--soft);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
 footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 .load{padding:80px 0;text-align:center;color:var(--soft)}
-@media (max-width:720px){.grid2{grid-template-columns:1fr}.brand b{font-size:18px}nav a{padding:7px 10px;font-size:13px}.hero{padding:30px 0 20px}}
+.hero.ph{display:grid;grid-template-columns:1fr 1.15fr;gap:34px;align-items:center;text-align:left;padding:34px 0 34px}
+.hero.ph .btns{justify-content:flex-start}
+.hero .logo{display:block;width:min(300px,70vw);height:auto;margin:0 auto 6px;border-radius:0;background:none;box-shadow:none}
+.hero.ph .logo{margin:0 0 6px}
+.hero .shot{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:22px;box-shadow:0 18px 50px rgba(46,36,27,.16);display:block;background:var(--line);height:auto}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:16px}
+.gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px;display:block;background:var(--line);cursor:zoom-in}
+.strip{display:flex;gap:10px;overflow-x:auto;margin:0 0 16px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.strip img{flex:none;height:150px;width:auto;border-radius:14px;display:block}
+.lb{position:fixed;inset:0;z-index:20;background:rgba(20,15,10,.9);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+.lb img{max-width:100%;max-height:100%;border-radius:12px}
+@media (max-width:720px){.hero.ph{grid-template-columns:1fr;gap:18px;text-align:center;padding:18px 0 24px}.hero.ph .shot{order:-1;aspect-ratio:5/4}.hero.ph .logo{margin:0 auto 6px;width:200px}.hero .logo{width:200px}.hero.ph .btns{justify-content:center}.grid2{grid-template-columns:1fr}.brand b{font-size:18px}nav a{padding:7px 10px;font-size:13px}.hero{padding:30px 0 20px}}
 @media (max-width:380px){.brand b{display:none}}
 </style>
 </head>
@@ -101,11 +114,13 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24
   <nav><a href="#book" data-p="book">Book</a><a href="#prices" data-p="prices">Prices</a><a href="#about" data-p="about">About</a></nav>
 </div></header>
 <main class="wrap">
-  <div class="hero">
-    <img src="../icons/icon-512.png" alt="">
-    <h1 id="hname"></h1>
-    <p id="htag"></p>
-    <div class="btns"><a class="btn" href="#book">Book now</a><a class="btn ghost" href="#prices">See prices</a></div>
+  <div class="hero" id="hero">
+    <div>
+      <img id="hlogo" class="logo" src="../icons/icon-512.png" alt="">
+      <h1 id="hname"></h1>
+      <p id="htag"></p>
+      <div class="btns"><a class="btn" href="#book">Book now</a><a class="btn ghost" href="#prices">See prices</a></div>
+    </div>
   </div>
   <div id="loading" class="load">Loading...</div>
   <section class="page" id="p-book"></section>
@@ -129,6 +144,9 @@ function dName(s,o){ return new Date(s+'T00:00:00Z').toLocaleDateString('en-GB',
 function svc(id){ return (D.services||[]).filter(function(s){ return s.id===id; })[0]; }
 function depts(){ var o=[]; (D.services||[]).forEach(function(s){ var k=s.department||'Treatments'; if(o.indexOf(k)<0) o.push(k); }); return o; }
 function site(){ return D.site||{}; }
+function photos(){ return (site().photos||[]).filter(function(u){ return typeof u==='string'&&u; }).slice(0,24); }
+document.addEventListener('click',function(e){ var u=e.target&&e.target.getAttribute&&e.target.getAttribute('data-big'); if(!u) return;
+  var lb=document.createElement('div'); lb.className='lb'; lb.innerHTML='<img src="'+esc(u)+'" alt="">'; lb.onclick=function(){ lb.remove(); }; document.body.appendChild(lb); });
 function wa(){ var w=String(site().whatsapp||'').replace(/\D/g,''); return w?'https://wa.me/'+w:''; }
 function map(){ return site().map_url||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(D.name+' '+(site().address||''))); }
 
@@ -193,7 +211,7 @@ function book(){ var err=document.getElementById('f-err');
 
 /* Prices */
 function drawPrices(){ var el=document.getElementById('p-prices');
-  el.innerHTML='<div class="card"><h2 style="font-size:34px">Prices</h2>'+(site().book_note?'<p class="muted" style="margin:6px 0 0">'+esc(site().book_note)+'</p>':'')+
+  el.innerHTML=(photos().length>1?'<div class="strip">'+photos().map(function(u){ return '<img src="'+esc(u)+'" alt="" loading="lazy" data-big="'+esc(u)+'">'; }).join('')+'</div>':'')+'<div class="card"><h2 style="font-size:34px">Prices</h2>'+(site().book_note?'<p class="muted" style="margin:6px 0 0">'+esc(site().book_note)+'</p>':'')+
     depts().map(function(d){ return '<div class="dept"><h3>'+esc(d)+'</h3>'+(D.services||[]).filter(function(x){ return (x.department||'Treatments')===d; }).map(function(x){
       return '<div class="prow"><div><div class="n">'+esc(x.name)+'</div>'+(from_(x).text?'<div class="d">'+esc(from_(x).text)+'</div>':'')+'</div><div class="r"><b>'+priceOf(x)+'</b><span class="muted">'+mins(x.minutes)+'</span>'+
         (D.booking?'<div style="margin-top:6px"><button class="btn small" data-bk="'+x.id+'">Book</button></div>':'')+'</div></div>'; }).join('')+'</div>'; }).join('')+'</div>';
@@ -210,6 +228,7 @@ function drawAbout(){ var el=document.getElementById('p-about'), s=site();
     ((s.points||[]).length?'<div class="points">'+s.points.map(function(p){ return '<span>'+esc(p)+'</span>'; }).join('')+'</div>':'')+'</div>'+
     '<div class="card info"><h2 style="font-size:28px;margin-bottom:6px">Visit</h2>'+info.map(function(i){ return '<div><small>'+i[0]+'</small>'+i[1]+'</div>'; }).join('')+
     '<div style="padding-top:14px"><a class="btn" href="#book">Book now</a></div></div></div>'+
+    (photos().length?'<div class="card" style="margin-top:16px"><h2 style="font-size:30px">Inside '+esc(D.name)+'</h2><div class="gallery">'+photos().map(function(u){ return '<img src="'+esc(u)+'" alt="" loading="lazy" data-big="'+esc(u)+'">'; }).join('')+'</div></div>':'')+
     ((D.team||[]).length?'<div class="card" style="margin-top:16px"><h2 style="font-size:30px">Our team</h2><div class="team">'+D.team.map(function(p){
       return '<div class="person"><div class="ph">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="" loading="lazy">':esc((p.name||'?').charAt(0)))+'</div><b>'+esc(p.name)+'</b>'+(p.text?'<div class="muted">'+esc(p.text)+'</div>':'')+'</div>'; }).join('')+'</div></div>':''); }
 
@@ -219,6 +238,9 @@ function start(){ rpc('spa_web').then(function(d){ D=d||{}; var s=site();
     document.title=D.name+(s.tagline?' | '+s.tagline:'');
     var md=document.querySelector('meta[name=description]'); md.content=(s.tagline||'')+(s.tagline?'. ':'')+'Book online, see prices and find '+D.name+(s.address?' in '+s.address:'')+'.';
     document.getElementById('bname').textContent=D.name; document.getElementById('hname').textContent=D.name; document.getElementById('htag').textContent=s.tagline||'';
+    var hl=document.getElementById('hlogo');
+    if(s.logo){ hl.src=s.logo; hl.alt=D.name; document.getElementById('hname').className='vh'; } else { hl.className=''; hl.style.cssText='width:96px;height:96px;border-radius:50%;background:#fff;object-fit:contain;box-shadow:0 6px 24px rgba(46,36,27,.08)'; }
+    if(s.hero){ var hr=document.getElementById('hero'); hr.classList.add('ph'); var im=document.createElement('img'); im.className='shot'; im.src=s.hero; im.alt=D.name; hr.appendChild(im); }
     document.getElementById('foot').innerHTML=esc(D.name)+(s.address?' · '+esc(s.address):'')+(s.hours?' · '+esc(s.hours):'');
     document.getElementById('loading').remove();
     drawBook(); drawPrices(); drawAbout(); page();
