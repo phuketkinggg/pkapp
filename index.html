@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=96"></script>
+<script src="changelog.js?v=97"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -921,7 +921,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=52; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=53; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2280,7 +2280,7 @@ function stayExFields(nights){
   var ex=((RATES&&RATES.extras)||[]).filter(function(e){ return e&&e.name; }), out=[];
   ex.forEach(function(e,i){ var k='sx_'+e.id, cat=exCatName(e.cat||'misc')+': ', hid=e.off?' (hidden on the booking page)':'';
     if(e.kind==='pick') out.push({key:k,label:cat+e.name+hid,type:'select',options:[['','None']].concat((e.options||[]).map(function(o){ return [o.id,o.name+', '+thb(o.price)]; })),def:'',hide:true,ex:1});
-    else if(e.kind==='day') out.push({key:k,label:cat+e.name+', days'+hid,type:'number',def:0,hide:true,ex:1,hint:(e.tiers&&e.tiers.length?e.tiers.map(function(t,j){ var lo=j?e.tiers[j-1].max+1:1; return (t.max>=999?lo+'+':lo+' to '+t.max)+' days '+thb(t.price); }).join(', ')+' a day':thb(e.price)+' a day')+(e.addon?'. With '+e.addon.name+' +'+thb(e.addon.price)+' a day: tick below.':'')+' 0 for none.'});
+    else if(e.kind==='day') out.push({key:k,label:cat+e.name+', days'+hid,type:'number',def:0,hide:true,ex:1,hint:'For the whole stay, type the number of nights (6 nights: 6). '+(e.tiers&&e.tiers.length?e.tiers.map(function(t,j){ var lo=j?e.tiers[j-1].max+1:1; return (t.max>=999?lo+'+':lo+' to '+t.max)+' days '+thb(t.price); }).join(', ')+' a day':thb(e.price)+' a day')+(e.addon?'. With '+e.addon.name+' +'+thb(e.addon.price)+' a day: tick below.':'')+' 0 for none.'});
     else out.push({key:k,label:cat+e.name+', how many'+hid,type:'number',def:0,hide:true,ex:1,hint:thb(e.price)+(e.unit?' '+e.unit:' each')+'. 0 for none.'});
     if(e.kind==='day'&&e.addon) out.push({key:k+'_add',label:'With '+e.addon.name,type:'checkbox',hide:true,ex:1}); });
   return out;
@@ -2291,7 +2291,7 @@ function stayExItems(v,from,to){
     if(e.kind==='pick'){ var o=(e.options||[]).filter(function(y){ return y.id===x; })[0]; if(o) out.push({name:e.name+', '+o.name,price:o.price,covers:covers,limit:o.limit||null,starts:from,expires:addDays(to,30)}); }
     else if(e.kind==='day'){ var days=Math.max(1,Math.min(nights,Math.round(Number(x)||0))); if(!(Number(x)>0)) return;
       var per=e.tiers&&e.tiers.length?(e.tiers.filter(function(t){ return days<=t.max; })[0]||e.tiers[e.tiers.length-1]).price:Number(e.price||0), add=v['sx_'+e.id+'_add']&&e.addon?e.addon.price:0;
-      out.push({name:e.name+(add?', '+e.addon.name:'')+', '+days+' day'+(days===1?'':'s'),price:(per+add)*days,covers:covers,limit:e.per_day?e.per_day*days:null,days:days,starts:from,expires:addDays(from,days-1)}); }
+      out.push({name:e.name+(add?', '+e.addon.name:'')+', '+days+' day'+(days===1?'':'s'),price:(per+add)*days,covers:covers,limit:e.per_day?e.per_day*days:null,days:days,starts:from,expires:days>=nights?to:addDays(from,days-1)}); }
     else { var q=Math.max(0,Math.min(e.max||10,Math.round(Number(x)||0))); if(q>0) out.push({name:e.name+(e.unit?' ('+e.unit+')':'')+(q>1?' x '+q:''),price:Number(e.price||0)*q,covers:covers,starts:from,expires:addDays(to,30)}); } });
   return out.filter(function(i){ return i.price>0; });
 }

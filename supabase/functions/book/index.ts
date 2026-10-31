@@ -136,7 +136,7 @@ function freeItem(R: Rates, p: Promo | null, from: string, to: string): Item | n
   if (!p || !p.free) return null; const e = (R.extras || []).find((x) => x.id === p.free); if (!e) return null;
   // only for the nights of the stay inside the offer dates
   const a = from > p.from ? from : p.from, z = to < addDays(p.to, 1) ? to : addDays(p.to, 1), nights = Math.round((Date.parse(z) - Date.parse(a)) / 864e5); if (nights < 1) return null;
-  return { name: `${e.name}, free with ${p.name || "the offer"}`, price: 0, covers: e.covers || [], limit: e.kind === "day" && e.per_day ? e.per_day * nights : null, days: e.kind === "day" ? nights : null, starts: a, expires: e.kind === "day" ? addDays(z, -1) : addDays(to, 30) };
+  return { name: `${e.name}, free with ${p.name || "the offer"}`, price: 0, covers: e.covers || [], limit: e.kind === "day" && e.per_day ? e.per_day * nights : null, days: e.kind === "day" ? nights : null, starts: a, expires: e.kind === "day" ? z : addDays(to, 30) };
 }
 const notFree = (picks: unknown, p: Promo | null) => Array.isArray(picks) && p?.free ? picks.filter((x: Record<string, unknown>) => x?.id !== p.free) : picks;
 // the % off for one night: a dated offer for that night (the biggest when several), else the book direct discount
@@ -237,11 +237,12 @@ function extraItems(R: Rates, picks: unknown, from: string, to: string): Item[] 
       const o = (e.options || []).find((x) => x.id === p.option); if (!o) continue;
       out.push({ name: `${e.name}, ${o.name}`, price: o.price, covers, limit: o.limit ?? null, starts: from, expires: addDays(to, 30) });
     } else if (e.kind === "day") {
+      // for the whole stay it runs to the leaving day, so meals can go from dinner on arrival to breakfast on the leaving day
       const days = Math.max(1, Math.min(nights, Math.round(Number(p.days) || nights)));
       const per = e.tiers?.length ? (e.tiers.find((t) => days <= t.max) ?? e.tiers[e.tiers.length - 1]).price : Number(e.price || 0);
       const add = p.addon && e.addon ? e.addon.price : 0;
       out.push({ name: `${e.name}${add ? ", " + e.addon!.name : ""}, ${days} day${days === 1 ? "" : "s"}`, price: (per + add) * days, covers,
-        limit: e.per_day ? e.per_day * days : null, days, starts: from, expires: addDays(from, days - 1) });
+        limit: e.per_day ? e.per_day * days : null, days, starts: from, expires: days >= nights ? to : addDays(from, days - 1) });
     } else {
       const q = Math.max(1, Math.min(e.max || 10, Math.round(Number(p.qty) || 1)));
       out.push({ name: `${e.name}${e.unit ? " (" + e.unit + ")" : ""}${q > 1 ? " x " + q : ""}`, price: Number(e.price || 0) * q, covers, starts: from, expires: addDays(to, 30) });
