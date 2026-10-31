@@ -1,5 +1,6 @@
 -- A simple website for a spa or salon (Massage Mate): Book, Prices and About, all from the app.
--- spa_web(): public info (name, colour, texts from app_settings spa_site, shops, treatments with prices, team on the website).
+-- spa_web(): public info (name, colour, texts from app_settings spa_site, shops, treatments with prices, team on the website,
+--   and the published pages made in Web pages: extra pages in the menu, or sections added to Book, Prices and About).
 -- spa_web_times(): free start times for a treatment on a day. spa_web_book(): a booking made on the website.
 -- Booking on the website is the feature switch web_booking (Settings, Features), off unless switched on. Needs the spa functions (spa_shops.sql):
 -- on a database without them this file does nothing.
@@ -31,7 +32,10 @@ begin
         from public.spa_services where active and price_thb > 0), '[]'),
       'team', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', coalesce(nullif(web_name,''), name), 'text', coalesce(nullif(web_about,''), bio, ''),
           'photo', photo_url) order by web_sort nulls last, name)
-        from public.staff where active and role = 'coach'), '[]'));
+        from public.staff where active and role = 'coach'), '[]'),
+      'pages', coalesce((select jsonb_agg(jsonb_build_object('slug', slug, 'title', title, 'description', coalesce(description,''), 'sections', coalesce(sections,'[]'::jsonb),
+          'menu', coalesce(in_footer,false), 'label', coalesce(nullif(footer_label,''), title)) order by title)
+        from public.site_pages where status = 'published' and not coalesce(removed,false)), '[]'));
   end $$;
   $f$;
 

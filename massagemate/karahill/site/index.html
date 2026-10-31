@@ -23,7 +23,7 @@ header.top{position:sticky;top:0;z-index:5;background:rgba(247,241,232,.92);back
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;min-width:0}
 .brand img{width:38px;height:38px;border-radius:50%;background:#fff;object-fit:contain}
 .brand b{font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-nav{margin-left:auto;display:flex;gap:4px}
+nav{margin-left:auto;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;min-width:0}nav::-webkit-scrollbar{display:none}nav a{white-space:nowrap}
 nav a{text-decoration:none;font-size:14px;font-weight:500;padding:8px 12px;border-radius:99px;color:var(--soft)}
 nav a.on{background:var(--ink);color:#fff}
 .hero{padding:46px 0 30px;text-align:center}
@@ -102,6 +102,22 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24
 .strip{display:flex;gap:10px;overflow-x:auto;margin:0 0 16px;scrollbar-width:none}
 .strip::-webkit-scrollbar{display:none}
 .strip img{flex:none;height:150px;width:auto;border-radius:14px;display:block}
+.xs{margin-top:16px;display:grid;gap:16px}
+.xs .card h2{font-size:32px;margin-bottom:6px}
+.xs .eb{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:6px}
+.xs .md p{margin:0 0 12px}.xs .md ul{margin:0 0 12px;padding-left:20px}
+.xs .xhero{position:relative;border-radius:22px;overflow:hidden;min-height:340px;display:flex;align-items:flex-end;background:var(--ink) center/cover no-repeat;color:#fff}
+.xs .xhero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.6))}
+.xs .xhero>div{position:relative;padding:28px}.xs .xhero h2{font-size:clamp(34px,6vw,52px);color:#fff}.xs .xhero p{color:#f3ece2;max-width:560px}
+.xs .xsplit{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center}.xs .xsplit img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:16px}
+.xs .xcards{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:12px}.xs .xcards>div{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.xs .xcards img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}.xs .xcards .in{padding:14px}
+.xs ol.xsteps{margin:8px 0 0;padding-left:22px}.xs ol.xsteps li{margin:0 0 10px}
+.xs blockquote{margin:0;font:500 clamp(22px,3vw,28px)/1.4 'Cormorant Garamond',serif;text-align:center}.xs blockquote cite{display:block;font:14px Inter,sans-serif;color:var(--soft);margin-top:10px}
+.xs details{border-bottom:1px dashed var(--line);padding:10px 0}.xs summary{cursor:pointer;font-weight:600}
+.xs .xvid{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;margin-top:12px}.xs .xvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.xs .xcta{text-align:center}.xs .acts{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}.xs .xcta .acts{justify-content:center}
+@media (max-width:720px){.xs .xsplit{grid-template-columns:1fr}}
 .lb{position:fixed;inset:0;z-index:20;background:rgba(20,15,10,.9);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
 .lb img{max-width:100%;max-height:100%;border-radius:12px}
 @media (max-width:720px){.hero.ph{grid-template-columns:1fr;gap:18px;text-align:center;padding:18px 0 24px}.hero.ph .shot{order:-1;aspect-ratio:5/4}.hero.ph .logo{margin:0 auto 6px;width:200px}.hero .logo{width:200px}.hero.ph .btns{justify-content:center}.grid2{grid-template-columns:1fr}.brand b{font-size:18px}nav a{padding:7px 10px;font-size:13px}.hero{padding:30px 0 20px}}
@@ -123,9 +139,10 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24
     </div>
   </div>
   <div id="loading" class="load">Loading...</div>
-  <section class="page" id="p-book"></section>
-  <section class="page" id="p-prices"></section>
-  <section class="page" id="p-about"></section>
+  <section class="page" id="p-book"><div id="d-book"></div><div id="x-book"></div></section>
+  <section class="page" id="p-prices"><div id="d-prices"></div><div id="x-prices"></div></section>
+  <section class="page" id="p-about"><div id="d-about"></div><div id="x-about"></div></section>
+  <section class="page" id="p-page"></section>
 </main>
 <footer><div class="wrap" id="foot"></div></footer>
 <script>
@@ -150,9 +167,47 @@ document.addEventListener('click',function(e){ var u=e.target&&e.target.getAttri
 function wa(){ var w=String(site().whatsapp||'').replace(/\D/g,''); return w?'https://wa.me/'+w:''; }
 function map(){ return site().map_url||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(D.name+' '+(site().address||''))); }
 
-function page(){ var p=(location.hash||'#book').slice(1); if(['book','prices','about'].indexOf(p)<0) p='book';
-  document.querySelectorAll('nav a').forEach(function(a){ a.classList.toggle('on',a.dataset.p===p); });
+var BUILT=['book','prices','about'], PREV=null;
+function pg(slug){ return (D.pages||[]).filter(function(x){ return x.slug===slug; })[0]; }
+function page(){ var h=(location.hash||'#book').slice(1), p=h, slug='';
+  if(/^p\//.test(h)){ slug=h.slice(2); p='page'; }
+  if(PREV){ p='page'; slug=PREV.slug; }
+  if(p!=='page'&&BUILT.indexOf(p)<0) p='book';
+  if(p==='page') drawPage(PREV||pg(slug));
+  document.querySelectorAll('nav a').forEach(function(a){ a.classList.toggle('on',p==='page'?a.dataset.p==='p/'+slug:a.dataset.p===p); });
   document.querySelectorAll('section.page').forEach(function(s){ s.classList.toggle('on',s.id==='p-'+p); }); }
+/* pages made in the app (Web pages): a page in the menu, or extra sections under Book, Prices and About (a page with that web address) */
+function okImg(u){ u=String(u||''); return /^https:\/\/[a-z0-9.-]+\.supabase\.co\/storage\/v1\/object\/public\//.test(u)||/^(\/|\.\.\/|\.\/|img\/)[\w\/.-]+$/.test(u)?u:''; }
+function md(t){ return String(t||'').split(/\n\s*\n/).map(function(b){ var L=b.split('\n');
+    if(L.every(function(l){ return /^\s*[-*] /.test(l); })) return '<ul>'+L.map(function(l){ return '<li>'+inl(l.replace(/^\s*[-*] /,''))+'</li>'; }).join('')+'</ul>';
+    return '<p>'+L.map(inl).join('<br>')+'</p>'; }).join(''); }
+function inl(t){ return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>'); }
+function xlink(u,txt){ u=String(u||'').trim(); if(!txt) return '';
+  if(u==='whatsapp'){ return wa()?'<a class="btn" href="'+esc(wa())+'" target="_blank" rel="noopener">'+esc(txt)+'</a>':''; }
+  if(/^#(book|prices|about|p\/[a-z0-9-]+)$/.test(u)) return '<a class="btn" href="'+esc(u)+'">'+esc(txt)+'</a>';
+  if(/^https:\/\/\S+$/.test(u)) return '<a class="btn" href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(txt)+'</a>';
+  return '<a class="btn" href="#book">'+esc(txt)+'</a>'; }
+function xhead(s){ return (s.eyebrow?'<div class="eb">'+esc(s.eyebrow)+'</div>':'')+(s.heading?'<h2>'+esc(s.heading)+'</h2>':''); }
+function yt(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
+function xsec(s,title){ var t=s.type, a='', im;
+  if(t==='hero'){ im=okImg(s.image); return '<div class="xhero"'+(im?' style="background-image:url(&quot;'+esc(im)+'&quot;)"':'')+'><div>'+(s.eyebrow?'<div class="eb" style="color:#f3ece2">'+esc(s.eyebrow)+'</div>':'')+'<h2>'+esc(s.heading||title||'')+'</h2>'+(s.text?'<p>'+esc(s.text)+'</p>':'')+((a=xlink(s.button_link,s.button_text))?'<div class="acts">'+a+'</div>':'')+'</div></div>'; }
+  if(t==='text') return '<div class="card">'+xhead(s)+'<div class="md">'+md(s.body)+'</div>'+((a=xlink(s.button_link,s.button_text))?'<div class="acts">'+a+'</div>':'')+'</div>';
+  if(t==='split'){ im=okImg(s.image); var ph=im?'<img src="'+esc(im)+'" alt="" loading="lazy" data-big="'+esc(im)+'">':'', tx='<div>'+xhead(s)+'<div class="md">'+md(s.body)+'</div>'+((a=xlink(s.button_link,s.button_text))?'<div class="acts">'+a+'</div>':'')+'</div>';
+    return '<div class="card xsplit">'+(s.image_side==='left'?ph+tx:tx+ph)+'</div>'; }
+  if(t==='cards') return '<div class="card">'+xhead(s)+(s.intro?'<div class="md">'+md(s.intro)+'</div>':'')+'<div class="xcards">'+(s.items||[]).map(function(i){ var m=okImg(i.image); return '<div>'+(m?'<img src="'+esc(m)+'" alt="" loading="lazy" data-big="'+esc(m)+'">':'')+'<div class="in"><b>'+esc(i.title)+'</b><div class="muted">'+esc(i.text)+'</div></div></div>'; }).join('')+'</div></div>';
+  if(t==='steps') return '<div class="card">'+xhead(s)+'<ol class="xsteps">'+(s.items||[]).map(function(i){ return '<li><b>'+esc(i.title)+'</b><br><span class="muted">'+esc(i.text)+'</span></li>'; }).join('')+'</ol></div>';
+  if(t==='gallery') return '<div class="card">'+xhead(s)+'<div class="gallery">'+(s.images||[]).map(function(u){ var m=okImg(u); return m?'<img src="'+esc(m)+'" alt="" loading="lazy" data-big="'+esc(m)+'">':''; }).join('')+'</div></div>';
+  if(t==='quote') return '<div class="card"><blockquote>\u201C'+esc(s.text)+'\u201D'+(s.name?'<cite>'+esc(s.name)+'</cite>':'')+'</blockquote></div>';
+  if(t==='faq') return '<div class="card">'+xhead(s)+(s.items||[]).map(function(i){ return '<details><summary>'+esc(i.q)+'</summary><div class="md" style="margin-top:8px">'+md(i.a)+'</div></details>'; }).join('')+'</div>';
+  if(t==='video'){ var id=yt(s.url); return id?'<div class="card">'+xhead(s)+'<div class="xvid"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div></div>':''; }
+  if(t==='cta') return '<div class="card xcta">'+(s.heading?'<h2>'+esc(s.heading)+'</h2>':'')+(s.text?'<p class="muted">'+esc(s.text)+'</p>':'')+((a=xlink(s.button_link,s.button_text))?'<div class="acts">'+a+'</div>':'')+'</div>';
+  return ''; }
+function xsecs(p){ return p&&(p.sections||[]).length?'<div class="xs">'+p.sections.map(function(x){ return xsec(x,p.title); }).join('')+'</div>':''; }
+function drawPage(p){ var el=document.getElementById('p-page');
+  el.innerHTML=p?(PREV?'<p class="muted" style="text-align:center">Preview'+(PREV.status==='published'?'':', not on the website yet')+'</p>':'')+(p.sections&&p.sections[0]&&p.sections[0].type==='hero'?'':'<h2 style="font-size:40px;margin:6px 0 4px">'+esc(p.title)+'</h2>')+xsecs(p):'<div class="card"><h2>Page not found</h2><p class="muted"><a href="#book">Book a treatment</a></p></div>';
+  if(p) document.title=p.title+' | '+D.name; }
+function navPages(){ var nav=document.querySelector('nav'); (D.pages||[]).filter(function(x){ return x.menu&&BUILT.indexOf(x.slug)<0; }).forEach(function(x){
+    var a=document.createElement('a'); a.href='#p/'+x.slug; a.dataset.p='p/'+x.slug; a.textContent=x.label||x.title; nav.appendChild(a); }); }
 window.addEventListener('hashchange',function(){ page(); var s=document.querySelector('section.page.on'); if(s&&window.scrollY>s.offsetTop) window.scrollTo({top:s.offsetTop-80,behavior:'smooth'}); });
 
 /* Book */
@@ -160,7 +215,7 @@ function loadTimes(){ B.times=null; B.time=null; drawBook(); if(!B.svc||!B.day) 
   var key=B.svc+B.day+B.staff;
   rpc('spa_web_times',{p_service:B.svc,p_date:B.day,p_staff:B.staff||null}).then(function(t){ if(key!==B.svc+B.day+B.staff) return; B.times=t||[]; drawBook(); },
     function(e){ B.times=[]; B.err=e.message; drawBook(); }); }
-function drawBook(){ var el=document.getElementById('p-book');
+function drawBook(){ var el=document.getElementById('d-book');
   if(!D.booking){ el.innerHTML='<div class="card done"><h2>Book with us</h2><p class="muted">Online booking is not open yet. '+(wa()?'<a href="'+wa()+'">Message us on WhatsApp</a> and we will find you a time.':'Please call in or message us.')+'</p></div>'; return; }
   if(B.done){ var r=B.done; el.innerHTML='<div class="card done"><div class="tick">&#10003;</div><h2>You are booked in</h2><div class="sum" style="justify-content:center">'+
       '<span>'+esc(r.service)+'</span><span>'+esc(dName(r.date,{weekday:'long',day:'numeric',month:'long'}))+'</span><span>'+esc(r.time)+'</span><span>'+esc(r.staff)+'</span><span>'+baht(r.price)+'</span></div>'+
@@ -210,7 +265,7 @@ function book(){ var err=document.getElementById('f-err');
     function(e){ B.busy=false; drawBook(); document.getElementById('f-err').textContent=e.message; if(/gone|not free/.test(e.message)) loadTimes(); }); }
 
 /* Prices */
-function drawPrices(){ var el=document.getElementById('p-prices');
+function drawPrices(){ var el=document.getElementById('d-prices');
   el.innerHTML=(photos().length>1?'<div class="strip">'+photos().map(function(u){ return '<img src="'+esc(u)+'" alt="" loading="lazy" data-big="'+esc(u)+'">'; }).join('')+'</div>':'')+'<div class="card"><h2 style="font-size:34px">Prices</h2>'+(site().book_note?'<p class="muted" style="margin:6px 0 0">'+esc(site().book_note)+'</p>':'')+
     depts().map(function(d){ return '<div class="dept"><h3>'+esc(d)+'</h3>'+(D.services||[]).filter(function(x){ return (x.department||'Treatments')===d; }).map(function(x){
       return '<div class="prow"><div><div class="n">'+esc(x.name)+'</div>'+(from_(x).text?'<div class="d">'+esc(from_(x).text)+'</div>':'')+'</div><div class="r"><b>'+priceOf(x)+'</b><span class="muted">'+mins(x.minutes)+'</span>'+
@@ -218,7 +273,7 @@ function drawPrices(){ var el=document.getElementById('p-prices');
   el.querySelectorAll('[data-bk]').forEach(function(b){ b.onclick=function(){ var s=svc(b.dataset.bk); B.done=null; B.svc=s.id; B.dept=s.department||'Treatments'; B.staff=''; B.day=B.day||today(); location.hash='#book'; loadTimes(); goTo('st2'); }; }); }
 
 /* About */
-function drawAbout(){ var el=document.getElementById('p-about'), s=site();
+function drawAbout(){ var el=document.getElementById('d-about'), s=site();
   var paras=String(s.about||'').split(/\n\s*\n/).filter(function(x){ return x.trim(); });
   var info=[s.hours?['Open',esc(s.hours)]:null, s.address?['Find us','<a href="'+esc(map())+'" target="_blank" rel="noopener">'+esc(s.address)+'</a>']:null,
     s.phone?['Phone','<a href="tel:'+esc(String(s.phone).replace(/[^\d+]/g,''))+'">'+esc(s.phone)+'</a>']:null, wa()?['WhatsApp','<a href="'+wa()+'" target="_blank" rel="noopener">Message us</a>']:null,
@@ -243,7 +298,10 @@ function start(){ rpc('spa_web').then(function(d){ D=d||{}; var s=site();
     if(s.hero){ var hr=document.getElementById('hero'); hr.classList.add('ph'); var im=document.createElement('img'); im.className='shot'; im.src=s.hero; im.alt=D.name; hr.appendChild(im); }
     document.getElementById('foot').innerHTML=esc(D.name)+(s.address?' · '+esc(s.address):'')+(s.hours?' · '+esc(s.hours):'');
     document.getElementById('loading').remove();
-    drawBook(); drawPrices(); drawAbout(); page();
+    navPages();
+    var q=new URLSearchParams(location.search), tok=q.get('preview'), ps=q.get('p');
+    var go=function(){ drawBook(); drawPrices(); drawAbout(); BUILT.forEach(function(b){ var x=pg(b); if(x&&!(PREV&&PREV.slug===b)){ document.getElementById('x-'+b).innerHTML=xsecs(x); } }); page(); };
+    if(tok&&ps) rpc('site_page_preview',{p_slug:ps,p_token:tok}).then(function(r){ PREV=r&&r.slug?r:(r&&r.title?Object.assign({slug:ps},r):null); go(); },go); else go();
   },function(e){ document.getElementById('loading').textContent='Could not load. Please refresh the page.'; }); }
 start();
 </script>

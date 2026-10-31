@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=80"></script>
+<script src="changelog.js?v=81"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -911,7 +911,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=37; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=38; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4615,7 +4615,10 @@ function wpgCall(body){ return sb.auth.getSession().then(function(r){ var t=r&&r
   .then(function(d){ if(d&&d.error) throw {plain:true,message:d.error}; return d; }); }
 function wpgLoad(){ WPG.busy=true; if(!window.PK_PHOTOS&&typeof loadWebPhotos==='function') loadWebPhotos().catch(function(){}); return sb.rpc('site_page_list').then(must).then(function(l){ WPG.busy=false; WPG.list=l; schedule(); }).catch(function(e){ WPG.busy=false; WPG.err=errText(e); schedule(); }); }
 function wpgLibrary(){ return (window.PK_PHOTOS||[]).map(function(p){ var cur=WEBP&&WEBP.photos&&WEBP.photos[p.id]; return {src:cur||p.src,label:p.page+': '+p.label}; }); }
-function wpgUrl(p,preview){ return SITE_URL+'/page?p='+encodeURIComponent(p.slug)+(preview&&p.preview_token?'&preview='+p.preview_token:''); }
+/* shop websites (spa apps with the website switched on): pages live at site/#p/address, a page called book, prices or about adds its sections to that page */
+function wpgSpa(){ return SPA&&featOn('web_booking'); }
+if(SPA) WPG_LINKS=[['','No button'],['whatsapp','WhatsApp us'],['#book','Book page'],['#prices','Prices page'],['#about','About page'],['custom','Another link']];
+function wpgUrl(p,preview){ if(wpgSpa()) return spaSiteUrl()+(preview&&p.preview_token?'?p='+encodeURIComponent(p.slug)+'&preview='+p.preview_token:'')+'#p/'+encodeURIComponent(p.slug); return SITE_URL+'/page?p='+encodeURIComponent(p.slug)+(preview&&p.preview_token?'&preview='+p.preview_token:''); }
 function wpgUpload(files,done){ var list=[].slice.call(files||[],0,8), out=[];
   return list.reduce(function(pr,f){ return pr.then(function(){ return shrinkPhoto(f,1800).then(function(b){ var path='site/pages/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.jpg';
     return sb.storage.from('promos').upload(path,b,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; out.push(sb.storage.from('promos').getPublicUrl(path).data.publicUrl); }); }); }); },Promise.resolve())
@@ -4801,7 +4804,7 @@ function vWebPages(){
   return [pageHead('Web pages','Make a new page for the website by describing it. The AI writes it in the website’s style, then you change any words or photos, by hand or by asking the AI.',
       h('div',{class:'row'},btn('Make a page with AI',wpgMake,'primary'),btn('Blank page',function(){ wpgOpen({title:'',slug:'',description:'',status:'draft',sections:[{id:'s'+cRand(),type:'hero',heading:'',text:'',image:'',button_text:'',button_link:''}]}); }))),
     table([{label:'Page',cell:function(p){ return linkBtn(p.title,function(){ wpgOpen(JSON.parse(JSON.stringify(p))); }); }},
-      {label:'Address',cell:function(p){ return h('small',null,'/page?p='+p.slug); }},
+      {label:'Address',cell:function(p){ return h('small',null,wpgSpa()?'#p/'+p.slug:'/page?p='+p.slug); }},
       {label:'',cell:function(p){ return h('span',{class:'row'},p.status==='published'?chip('On the website','ok'):chip('Draft'),p.in_footer&&p.status==='published'?chip('In the footer'):null); }},
       {label:'',cell:function(p){ return h('a',{class:'btn small',href:wpgUrl(p,p.status!=='published'),target:'_blank',rel:'noopener'},p.status==='published'?'View':'Preview'); }}],
       WPG.list,'No pages yet. Tap Make a page with AI.'),
@@ -4897,9 +4900,9 @@ function wpgEditor(){
     pageHead(p.id?'Edit page':'New page',p.id&&p.status==='published'?'Live at '+wpgUrl(p,false).replace(/^https:\/\//,''):'Not on the website yet.',h('div',{class:'row'},prev,save)),
     h('div',{class:'panel pad wpai'},h('b',null,'Change it with AI'),ask,askStrip,h('div',{class:'row'},btn('Add photos',function(){ wpgPickPhotos(true,function(u){ askPhotos=askPhotos.concat(u).slice(0,8); drawAsk(); }); },'small'),askB),
       h('small',{class:'sub'},'The AI rewrites the page as you ask and keeps the rest. Your unsaved hand changes are kept too.')),
-    h('div',{class:'panel pad'},h('div',{class:'row wp2'},fld('Page title',"wp-title",inp(p,'title','wp-title')),fld('Web address',"wp-slug",inp(p,'slug','wp-slug',{placeholder:'fight-camp'}),'Small letters, numbers and dashes. The page is at '+SITE_URL.replace(/^https:\/\//,'')+'/page?p=this')),
+    h('div',{class:'panel pad'},h('div',{class:'row wp2'},fld('Page title',"wp-title",inp(p,'title','wp-title')),fld('Web address',"wp-slug",inp(p,'slug','wp-slug',{placeholder:wpgSpa()?'nail-gallery':'fight-camp'}),wpgSpa()?'Small letters, numbers and dashes. Use book, prices or about to add these sections under that page of your website.':'Small letters, numbers and dashes. The page is at '+SITE_URL.replace(/^https:\/\//,'')+'/page?p=this')),
       fld('Description for Google',"wp-desc",inp(p,'description','wp-desc',{area:true,rows:2}),'One sentence, shown under the title in Google results.'),
-      h('div',{class:'row wp2'},fld('Status',"wp-status",status),h('div',{class:'field'},h('label',{class:'check',for:'wp-foot'},foot,h('span',null,'Link it in the website footer')),p.in_footer?inp(p,'footer_label','wp-fl',{placeholder:'Link words, for example Fight camp'}):null))),
+      h('div',{class:'row wp2'},fld('Status',"wp-status",status),h('div',{class:'field'},h('label',{class:'check',for:'wp-foot'},foot,h('span',null,wpgSpa()?'Show it in the website menu':'Link it in the website footer')),p.in_footer?inp(p,'footer_label','wp-fl',{placeholder:wpgSpa()?'Menu words, for example Nail gallery':'Link words, for example Fight camp'}):null))),
     S_.map(sec),
     h('div',{class:'panel pad row'},h('label',{for:'wp-add'},'Add a section'),addSel,btn('Add',function(){ var t=addSel.value, s={id:'s'+cRand(),type:t,bg:'dark'}; if(['cards','steps','faq'].indexOf(t)>=0) s.items=[]; if(t==='gallery') s.images=[]; S_.push(s); schedule(); },'small')),
     h('div',{class:'row'},prev,save,p.id?h('button',{type:'button',class:'btn danger',onclick:function(ev){ var b=ev.currentTarget; if(!b.dataset.armed){ b.dataset.armed='1'; b.textContent='Tap again to delete the page'; return; }
