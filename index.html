@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=93"></script>
+<script src="changelog.js?v=94"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -920,7 +920,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=49; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=50; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1738,13 +1738,25 @@ function ppSettings(){
 var stripeBusy=false;
 function stripePay(kind,id,label){
   if(stripeBusy) return; stripeBusy=true; toast('Opening the card payment page.');
-  var kiosk=document.body.classList.contains('kiosk');
-  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:location.origin+location.pathname,kiosk:kiosk}}).then(function(res){
+  var kiosk=document.body.classList.contains('kiosk'), store=!!(window.pkNative&&window.pkNative());
+  /* in the iPhone and Android apps the card page opens in the phone's browser (with its own way back), and comes back to a short "paid" page */
+  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:store?location.origin+'/paid.html':location.origin+location.pathname,kiosk:kiosk}}).then(function(res){
     stripeBusy=false;
     var d=res.data||{}; if(res.error||d.error||!d.url){ toast(d.error||'Card payment could not start. Try again.'); return; }
     if(me&&me.role!=='customer'&&!CU) return stripeLinkDlg(d.url,d.total||d.amount,label+(d.fee?', includes card fee '+thb(d.fee):''));
+    if(store){ window.open(d.url,'_blank'); stripeWaitDlg(d.url); return; }
     location.href=d.url;
   },function(){ stripeBusy=false; toast('Card payment could not start. Check the connection.'); });
+}
+/* store apps: the card page is open in the phone's browser; when they come back, refresh what they owe */
+function stripeWaitDlg(url){
+  function done(){ document.removeEventListener('visibilitychange',back); try{ $dlg.close(); }catch(e){} if(me&&me.role==='customer'){ loadCustomer().then(function(){ schedule(); },function(){}); } else Promise.all([reload('purchases'),reload('privates'),reload('stays')]).catch(function(){}); }
+  function back(){ if(document.visibilityState==='visible') setTimeout(function(){ toast('Welcome back. If you paid, it shows here within a minute.'); done(); },600); }
+  document.addEventListener('visibilitychange',back);
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Pay by card'),
+    h('p',null,'The card payment page is open in your phone\'s browser. Pay there, then come back to this app.'),
+    h('p',{class:'sub'},'Did it not open? Tap Open the card page.'),
+    h('div',{class:'factions'},btn('Open the card page',function(){ window.open(url,'_blank'); },'small'),btn('Done',done,'primary'))));
 }
 function stripeLinkDlg(url,amount,label){
   var qr=qrNode(url);

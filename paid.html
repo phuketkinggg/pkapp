@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Payment</title>
+<style>
+  :root{--bg:#f5f0e8;--card:#fff;--ink:#1c1b19;--sub:#6b665c;--ok:#2f6b3a;--bad:#8a3b2e;--line:#e5e1d8}
+  @media (prefers-color-scheme:dark){:root{--bg:#141311;--card:#1f1d1a;--ink:#f2efe7;--sub:#a8a296;--ok:#7fc38c;--bad:#e59a8b;--line:#34312c}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--ink);
+    font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:24px 16px calc(24px + env(safe-area-inset-bottom))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 24px;max-width:420px;width:100%;text-align:center}
+  .mark{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;background:var(--ok)}
+  .bad .mark{background:var(--bad)}
+  h1{font-size:24px;margin:0 0 8px}
+  p{margin:8px 0;color:var(--sub)}
+  .how{margin-top:18px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink)}
+  .th{font-size:15px}
+</style>
+</head>
+<body>
+<div class="card" id="c">
+  <div class="mark" id="m">✓</div>
+  <h1 id="t">Payment received</h1>
+  <p id="s">Thank you. It shows in the app within a minute.</p>
+  <p class="th" id="sth">ชำระเงินเรียบร้อย ขอบคุณ</p>
+  <div class="how">
+    <p><b>Go back to the app</b></p>
+    <p>Tap the app name at the top left of the screen, or open the app again. You can close this page.</p>
+    <p class="th">กลับไปที่แอป: แตะชื่อแอปที่มุมซ้ายบนของจอ หรือเปิดแอปอีกครั้ง</p>
+  </div>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get('paid') === '0') {
+    document.getElementById('c').className = 'card bad';
+    document.getElementById('m').textContent = '×';
+    document.getElementById('t').textContent = 'Payment cancelled';
+    document.getElementById('s').textContent = 'Nothing was charged.';
+    document.getElementById('sth').textContent = 'ยกเลิกการชำระเงินแล้ว ไม่มีการเรียกเก็บเงิน';
+    document.title = 'Payment cancelled';
+  }
+</script>
+</body>
+</html>
