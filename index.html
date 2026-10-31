@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=91"></script>
+<script src="changelog.js?v=92"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -886,6 +886,8 @@ var FEATURES=[
   {k:'webpages',g:'Website',n:'Web pages',d:'Make and change pages on your website.',tabs:['webpages']},
   {k:'sitestats',g:'Website',n:'Website numbers',d:'Visits and bookings from your website.',tabs:['sitestats']},
   {k:'reset_pw',g:'Customers',n:'Managers reset customer passwords',d:'A manager can give any customer a new starting password from App access, also when they already use the app, for example when they are locked out at the desk. Off: customers who already use the app reset it themselves with Forgot password.'},
+  {k:'chat_block',g:'Messages',n:'Block people in chats',d:'Customers can block anyone who writes to them in a chat. That person\'s messages are hidden from them in every chat, they get no phone notices from them, and managers and the front desk get a notice. They can unblock in their account (Blocked).'},
+  {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
@@ -918,7 +920,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=47; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=48; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3234,7 +3236,8 @@ function openChat(c){
         media.length?h('div',{class:'msgmedia'},media.map(function(x){ return x.type==='image'?h('a',{href:x.url,target:'_blank',rel:'noopener'},h('img',{src:x.url,alt:'Photo',loading:'lazy'})):h('a',{href:x.url,target:'_blank',rel:'noopener'},x.type==='video'?'Open the video':x.type==='audio'?'Play the voice message':'Open the file'); })):null,
         m.body&&!(media.length&&/^\[(Photo or file|Message)\]$/.test(m.body))?h('div',{class:'msgbody'},m.body):null,
         h('div',{class:'msgtime'},chatTime(m.at),m.status==='sending'?' · Sending':m.status==='sent'&&m.mine?' · Delivered to Meta':null,
-          !m.mine&&!m.staff&&['web','fb','ig'].indexOf(c.kind)<0&&featOn('chat_report')||!m.mine&&me.role==='customer'&&featOn('chat_report')?h('button',{type:'button',class:'link msgreport',onclick:function(){ chatReport(m); }},'Report'):null),
+          !m.mine&&!m.staff&&['web','fb','ig'].indexOf(c.kind)<0&&featOn('chat_report')||!m.mine&&me.role==='customer'&&featOn('chat_report')?h('button',{type:'button',class:'link msgreport',onclick:function(){ chatReport(m); }},'Report'):null,
+          !m.mine&&me.role==='customer'&&featOn('chat_block')?h('button',{type:'button',class:'link msgreport',onclick:function(){ chatBlock(m,function(){ msgs.replaceChildren(); last=null; pending={}; load(); }); }},'Block'):null),
         m.status==='failed'?h('div',{class:'msgfail'},m.error||'Not delivered.'):null);
       if(old) old.replaceWith(node); else msgs.appendChild(node);
       if(m.status==='sending') pending[m.id]=1; else delete pending[m.id];
@@ -3267,6 +3270,20 @@ function chatReport(m){
     fields:[{key:'reason',label:'What is wrong with it? (you can leave this empty)',type:'textarea',rows:3}],
     onSave:function(v){ return sb.rpc('chat_report',{p_message:m.id,p_reason:v.reason||null}).then(must); }});
 }
+/* block the person who wrote a message (feature chat_block): their messages are hidden from you everywhere */
+function chatBlock(m,after){
+  openForm({title:'Block '+(m.who||'this person'),note:'You will not see their messages in any chat, and you get no phone notices from them. The team is told so they can look at it. You can unblock them in your account, Blocked.',saveLabel:'Block',doneMsg:'Blocked.',
+    fields:[],onSave:function(){ return sb.rpc('chat_block',{p_message:m.id}).then(must).then(function(){ if(after) after(); }); }});
+}
+function blockedBtn(){ if(!featOn('chat_block')) return null; return h('button',{type:'button',class:'btn small',onclick:function(){
+  sb.rpc('chat_blocks_mine').then(must).then(function(list){
+    function draw(){ $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Blocked'),
+      list.length?h('div',{class:'hlist'},list.map(function(b){ return h('div',{class:'panel pad row',style:'justify-content:space-between'},h('b',{class:'notr'},b.name),
+        btn('Unblock',function(){ sb.rpc('chat_unblock',{p_id:b.id}).then(must).then(function(){ list=list.filter(function(x){ return x.id!==b.id; }); toast('Unblocked.'); draw(); }).catch(function(e){ toast(errText(e)); }); },'small')); })):
+        h('p',{class:'sub'},'You have not blocked anyone. To block someone, tap Block under one of their messages in a chat.'),
+      h('div',{class:'factions'},h('span'),btn('Done',function(){ $dlg.close(); },'primary')))); }
+    draw(); if(!$dlg.open) $dlg.showModal();
+  }).catch(function(e){ toast(errText(e)); }); }},'Blocked'); }
 function closeChat(){
   if(!CHAT.open) return;
   clearInterval(CHAT.poll); if(CHAT.open.wrap.parentNode) CHAT.open.wrap.parentNode.removeChild(CHAT.open.wrap);
@@ -3502,7 +3519,7 @@ function cofDetails(o){
 function cmNone(){
   if(!COF.list&&!COF.busy) cofLoad();
   if(featOn('courses')&&!CRS.list&&!CRS.busy) crsLoad();
-  var offers=COF.list||[], buy=(CRS.list||[]).filter(function(c){ return !c.open; });
+  var offers=COF.list||[], buy=noCrs()?[]:(CRS.list||[]).filter(function(c){ return !c.open; });
   var ask=btn('Chat with reception',function(){ cmAsk(''); },'primary');
   return [pageHead('Coaching',''),
     h('div',{class:'panel pad cmnone'},h('b',null,'No coaching added yet'),h('p',{class:'sub'},'With coaching you get a coach who follows you: weekly steps, workouts, food and weight, all in this tab.'),h('div',{class:'row'},ask)),
@@ -3521,7 +3538,8 @@ function vLearn(){
   var mgr=me&&me.role==='manager';
   if(CRS.view) return crsCourseView(false);
   if(TEC.view) return tecView();
-  if(CRS.sec==='tech'&&featOn('techniques')) return [pageHead('Learn','Technique videos from the coaches. Watch one before class, then practise it on the bags.'),eduTabs(),tecMember()];
+  if((CRS.sec==='tech'||noCrs())&&featOn('techniques')) return [pageHead('Learn','Technique videos from the coaches. Watch one before class, then practise it on the bags.'),eduTabs(),tecMember()];
+  if(noCrs()) return [pageHead('Learn',''),h('div',{class:'panel empty'},'Technique videos are coming soon.')];
   if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Learn',''),eduTabs(),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
   var list=CRS.list.filter(function(c){ return mgr||true; });
   return [pageHead('Learn','Video lessons and guides from the '+BIZ_MAIN+' coaches. Watch anywhere, then practise in class.'),eduTabs(),
@@ -3609,6 +3627,8 @@ function crsSteps(c,back){
 }
 function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
+/* store apps (feature store_courses_hide): customers see no courses, only the technique library */
+function noCrs(){ return featOn('store_courses_hide')&&!!(window.pkNative&&window.pkNative())&&!!me&&me.role==='customer'; }
 function crsLocked(c){
   /* in the store apps, courses are not sold inside the app (Google and Apple want their own billing for digital content): no price or buy link there */
   if(window.pkNative&&window.pkNative()) return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
@@ -3622,7 +3642,7 @@ function crsLocked(c){
 }
 
 /* manager: course builder */
-function eduTabs(){ if(!featOn('techniques')) return null;
+function eduTabs(){ if(!featOn('techniques')||noCrs()) return null;
   return h('div',{class:'ctabs'},[['courses','Courses'],['tech','Technique library']].map(function(t){ return h('button',{type:'button',class:'ctab pvok'+((CRS.sec||'courses')===t[0]?' on':''),onclick:function(){ CRS.sec=t[0]; schedule(); window.scrollTo(0,0); }},t[1]); })); }
 function vCourses(){
   if(CRS.edit) return crsEditView();
@@ -10458,7 +10478,7 @@ function enter(user){
     if(recovering){ currentUser=null; return; }
     var row=must(res), staff=!!(row&&row.active!==false), asMember=staff&&pref('pk_view')==='member';
     var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
-    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),!staff?deleteAccBtn():null,signOutBtn()));
+    $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),!staff?blockedBtn():null,!staff?deleteAccBtn():null,signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
     if(row.role!=='investor') loadAccStruct();
