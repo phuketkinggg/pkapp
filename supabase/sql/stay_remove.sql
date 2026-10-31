@@ -10,10 +10,11 @@ begin
   if coalesce(s.external_id,'') <> '' then raise exception 'This stay came from a booking site. Cancel it there, or set it to Cancelled here.'; end if;
   if coalesce(s.room_paid_thb,0) > 0 or coalesce(s.settled,false)
      or exists (select 1 from public.payments p where p.stay_id = s.id)
-     or exists (select 1 from public.purchases p where (p.for_stay = s.id or p.stay_id = s.id) and not p.cancelled and (p.paid or coalesce(p.paid_thb,0) > 0)) then
+     or exists (select 1 from public.purchases p where (p.for_stay = s.id or p.stay_id = s.id) and not p.cancelled and (coalesce(p.paid_thb,0) > 0 or (p.paid and coalesce(p.price_thb,0) > 0))) then
     raise exception 'Money was paid on this stay, so it is kept for the accounts. Set it to Cancelled instead.';
   end if;
-  update public.purchases set cancelled = true where (for_stay = s.id or stay_id = s.id) and not cancelled and not paid and coalesce(paid_thb,0) = 0;
+  -- what is on the stay with no money taken (unpaid extras, and the free training that comes with the room) is cancelled
+  update public.purchases set cancelled = true where (for_stay = s.id or stay_id = s.id) and not cancelled and coalesce(paid_thb,0) = 0 and not (paid and coalesce(price_thb,0) > 0);
   delete from public.food_plans where stay_id = s.id;
   delete from public.room_cleanings where stay_id = s.id;
   delete from public.room_requests where stay_id = s.id;
