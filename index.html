@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=94"></script>
+<script src="changelog.js?v=95"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -888,6 +888,7 @@ var FEATURES=[
   {k:'reset_pw',g:'Customers',n:'Managers reset customer passwords',d:'A manager can give any customer a new starting password from App access, also when they already use the app, for example when they are locked out at the desk. Off: customers who already use the app reset it themselves with Forgot password.'},
   {k:'chat_block',g:'Messages',n:'Block people in chats',d:'Customers can block anyone who writes to them in a chat. That person\'s messages are hidden from them in every chat, they get no phone notices from them, and managers and the front desk get a notice. They can unblock in their account (Blocked).'},
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
+  {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
@@ -920,7 +921,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=50; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=51; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2178,6 +2179,9 @@ function availability(pre){
 }
 function editStay(st){
   st=st||{}; var day=ymd(new Date());
+  /* the room prices and extras come first, so the form can price the stay and show the extras */
+  if(!RATES&&!st.id&&!st._noRates){ var st0=st; loadRates().then(function(){ editStay(st0); },function(){ editStay(Object.assign({},st0,{_noRates:1})); }); return; }
+  delete st._noRates;
   var rooms=S.rooms.filter(function(r){ return r.active!==false||r.id===st.room_id; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
   if(!rooms.length){ toast('Add your rooms first, in Settings.'); return; }
   var cs=sortBy(S.customers,'name'); needRates(); if(!AFF) affLoad();
@@ -2209,6 +2213,8 @@ function editStay(st){
     {key:'deal_privates',label:'Private sessions included',type:'number',hide:true},
     {key:'deal_priv_value',label:'Value of each private inside the deal (THB)',type:'number',hide:true,def:700,hint:'Used to pay the coach. This part of the deal shows as the private pack, the rest as the room.'},
     {key:'deal_other',label:'Anything else included',hide:true,hint:'For example: airport pick up. Shows on the bill and the welcome email.'});
+  var exF=!st.id&&featOn('stay_extras')?stayExFields():[];
+  if(exF.length) Array.prototype.splice.apply(fields,[fields.length-1,0,{key:'sx_on',label:'Add extras: meal plan, transport, training and more',type:'checkbox',hint:'From Settings, Booking page extras, at the same prices. They go on the bill, not paid yet.',onChange:function(v,set,get,o,show){ exF.forEach(function(x){ show(x.key,!!v); }); }}].concat(exF));
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
   openForm({title:st.id?'Edit stay':'Add a stay',values:st,fields:fields,
     onSave:function(v){
@@ -2263,8 +2269,42 @@ function editStay(st){
           if(v.deal_other) inc0(v.deal_other,[],null,sid);
           if(privN){ var pp={customer_id:cid0,package_name:'Privates in the deal, '+privN+' sessions',price_thb:privN*privV,price_group:'standard',paid:false,paid_thb:0,purchased_on:today,covers:['Privates'],class_limit:privN,classes_left:privN,starts_on:v.check_in,expires_on:addDays(v.check_out,30),duration_days:dN+30};
             dealJobs.push(sb.from('purchases').insert(toRow('purchases',pp,true)).then(must)); } }
+        if(!st.id&&v.sx_on){ var ns1=newStay(body), it1=stayExItems(v,v.check_in,v.check_out); if(ns1&&it1.length) dealJobs.push(stayExSave(it1,body.customer_id,ns1.id)); }
         if(!st.id) Promise.all(dealJobs).then(function(){ return reload('purchases'); }).then(function(){ setTimeout(function(){ var ns=newStay(body); if(ns) welcomeEmail(ns,true); },300); },function(e){ toast('The stay is saved, but some deal items were not: '+errText(e)); }); if(moved) return reload('stays').then(function(){ setTimeout(function(){ toast(note); },60); return r; }); return r; });
     }});
+}
+/* booking extras (Settings, Booking page extras: meal plans, transport, training, recovery) added to a stay by the team, priced like the booking page.
+   Each one is a purchase on the stay, not paid yet: it shows on the bill, and cafe extras start the guest's food plan by themselves. */
+function stayExFields(nights){
+  var ex=((RATES&&RATES.extras)||[]).filter(function(e){ return e&&e.name; }), out=[];
+  ex.forEach(function(e,i){ var k='sx_'+e.id, cat=exCatName(e.cat||'misc')+': ', hid=e.off?' (hidden on the booking page)':'';
+    if(e.kind==='pick') out.push({key:k,label:cat+e.name+hid,type:'select',options:[['','None']].concat((e.options||[]).map(function(o){ return [o.id,o.name+', '+thb(o.price)]; })),def:'',hide:true,ex:1});
+    else if(e.kind==='day') out.push({key:k,label:cat+e.name+', days'+hid,type:'number',def:0,hide:true,ex:1,hint:(e.tiers&&e.tiers.length?e.tiers.map(function(t,j){ var lo=j?e.tiers[j-1].max+1:1; return (t.max>=999?lo+'+':lo+' to '+t.max)+' days '+thb(t.price); }).join(', ')+' a day':thb(e.price)+' a day')+(e.addon?'. With '+e.addon.name+' +'+thb(e.addon.price)+' a day: tick below.':'')+' 0 for none.'});
+    else out.push({key:k,label:cat+e.name+', how many'+hid,type:'number',def:0,hide:true,ex:1,hint:thb(e.price)+(e.unit?' '+e.unit:' each')+'. 0 for none.'});
+    if(e.kind==='day'&&e.addon) out.push({key:k+'_add',label:'With '+e.addon.name,type:'checkbox',hide:true,ex:1}); });
+  return out;
+}
+function stayExItems(v,from,to){
+  var nights=Math.max(1,Math.round((parseYmd(to)-parseYmd(from))/864e5)), out=[];
+  ((RATES&&RATES.extras)||[]).forEach(function(e){ var x=v['sx_'+e.id]; if(x==null||x===''||x===0||x==='0') return; var covers=e.covers||[];
+    if(e.kind==='pick'){ var o=(e.options||[]).filter(function(y){ return y.id===x; })[0]; if(o) out.push({name:e.name+', '+o.name,price:o.price,covers:covers,limit:o.limit||null,starts:from,expires:addDays(to,30)}); }
+    else if(e.kind==='day'){ var days=Math.max(1,Math.min(nights,Math.round(Number(x)||0))); if(!(Number(x)>0)) return;
+      var per=e.tiers&&e.tiers.length?(e.tiers.filter(function(t){ return days<=t.max; })[0]||e.tiers[e.tiers.length-1]).price:Number(e.price||0), add=v['sx_'+e.id+'_add']&&e.addon?e.addon.price:0;
+      out.push({name:e.name+(add?', '+e.addon.name:'')+', '+days+' day'+(days===1?'':'s'),price:(per+add)*days,covers:covers,limit:e.per_day?e.per_day*days:null,days:days,starts:from,expires:addDays(from,days-1)}); }
+    else { var q=Math.max(0,Math.min(e.max||10,Math.round(Number(x)||0))); if(q>0) out.push({name:e.name+(e.unit?' ('+e.unit+')':'')+(q>1?' x '+q:''),price:Number(e.price||0)*q,covers:covers,starts:from,expires:addDays(to,30)}); } });
+  return out.filter(function(i){ return i.price>0; });
+}
+function stayExSave(items,cid,sid){ var today=ymd(new Date());
+  return Promise.all(items.map(function(i){ return sb.from('purchases').insert(toRow('purchases',{customer_id:cid,package_name:i.name.slice(0,120),price_thb:Math.round(i.price),price_group:'standard',paid:false,paid_thb:0,purchased_on:today,
+    covers:i.covers,class_limit:i.limit||null,classes_left:i.limit||null,duration_days:i.days||null,starts_on:i.starts,expires_on:i.expires,for_stay:sid},true)).then(must); })); }
+/* an existing stay: add extras from the stay */
+function stayExDlg(st,after){
+  if(!needRates()){ toast('Loading prices. Try again in a moment.'); return; }
+  var f=stayExFields().map(function(x){ var y=Object.assign({},x); y.hide=false; return y; });
+  if(!f.length){ toast('No booking extras yet. Add them in Settings, Booking page extras.'); return; }
+  openForm({title:'Add extras to the stay',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+'. They go on the bill, not paid yet.',fields:f,saveLabel:'Add',doneMsg:'Added to the stay.',
+    onSave:function(v){ var it=stayExItems(v,st.check_in,st.check_out); if(!it.length) return 'Choose at least one extra.';
+      return stayExSave(it,st.customer_id,st.id).then(function(){ return reload('purchases'); }).then(function(){ if(after) after(); }); }});
 }
 function newStay(b){ return (S.stays||[]).filter(function(x){ return x.customer_id===b.customer_id&&x.room_id===b.room_id&&x.check_in===b.check_in; }).sort(function(a,b2){ return String(b2.created_at||'').localeCompare(String(a.created_at||'')); })[0]||null; }
 function setStay(st,patch,msg){ if(guard()) run(db.doc('stays/'+st.id).update(patch),msg); }
@@ -2441,6 +2481,7 @@ function stayCard(st,day){
   if(st.status==='booked') acts.push(btn('Check in',function(){ setStay(st,{status:'in'},(g.name||'Guest')+' checked in.'); },'primary small'));
   if(meal&&st.status==='in') acts.push(btn('Meal served',function(){ mealServed(st,meal); },'primary small'));
   if(!st.settled) acts.push(btn('Add to bill',function(){ addCharge(st); },'small'));
+  if(!st.settled&&featOn('stay_extras')&&needRates()&&(RATES.extras||[]).length) acts.push(btn('Add extras',function(){ stayExDlg(st); },'small'));
   acts.push(btn('Bill',function(){ openBill(st); },'small'));
   if(st.status==='in') acts.push(btn('Check out',function(){ checkOutStay(st); },'small'));
   if(st.status==='booked'||st.status==='in') acts.push(btn('Extend',function(){ extendStay(st); },'small'));
