@@ -230,7 +230,7 @@ function load(){
     .catch(function(e){ var m=errText(e);
       if(/Sign in first/i.test(m)) $app.replaceChildren(h('div',{class:'auth center'},h('img',{class:'logo',src:'logo.svg',alt:''}),h('h2',null,'Almost there'),
         h('p',{class:'sub'},'Your account is not linked yet. Open the confirm email we sent you, then come back and sign in.'),
-        h('button',{class:'btn',onclick:function(){ sb.auth.signOut(); }},'Sign out')));
+        h('button',{class:'btn',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out')));
       else { toast(m); if(!S.data) $app.replaceChildren(h('div',{class:'auth center'},h('p',null,m),h('button',{class:'btn',onclick:load},'Try again'))); } });
 }
 function refresh(){ return rpc('pangea_home').then(function(d){ S.data=d; render(); signPaths(); }).catch(function(e){ toast(errText(e)); }); }
@@ -505,7 +505,7 @@ function meView(){
     h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('div',{class:'sub'},'Your level'),h('h3',null,lv[0])),h('span',{class:'pill gold'},'Member')),h('p',{class:'sub',style:'margin:6px 0 0'},lv[1])),
     h('div',{class:'card'},h('h3',null,'Phuket King'),h('p',{class:'sub'},'Check in, book privates, classes and your room in the Phuket King app. Same account.'),h('a',{class:'btn ghost small',href:'https://app.phuketking.com/',style:'display:inline-block;text-decoration:none;line-height:20px'},'Open Phuket King')),
     h('div',{class:'card'},h('p',{class:'sub',style:'margin-top:0'},'Add Pangea to your home screen: in Safari tap Share, then Add to Home Screen.'),
-      h('button',{class:'btn ghost small',onclick:function(){ sb.auth.signOut(); }},'Sign out')),
+      h('button',{class:'btn ghost small',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out')),
     h('p',{class:'sub center'},'Pangea Global Wellness · People | Places | Longer Lives'));
 }
 

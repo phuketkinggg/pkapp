@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=89"></script>
+<script src="changelog.js?v=90"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -917,7 +917,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=45; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=46; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10258,7 +10258,7 @@ function deleteAccBtn(){ return h('button',{type:'button',class:'btn small',oncl
     saveLabel:'Delete my account',fields:[{key:'confirm',label:'Type DELETE to confirm',required:true,autocomplete:'off'}],
     onSave:function(v){ if(String(v.confirm||'').trim().toUpperCase()!=='DELETE') return 'Type DELETE to confirm.';
       return sb.rpc('customer_delete_me',{p_confirm:'DELETE'}).then(must).then(function(){ setTimeout(function(){ toast('Your account is deleted.'); },100); return sb.auth.signOut(); }); }}); }},'Delete account'); }
-function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut(); }},'Sign out'); }
+function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out'); }
 function passwordBtn(){ return h('button',{type:'button',class:'btn small',onclick:setPassword},'Password'); }
 function setPassword(){
   if(!guard()) return;
@@ -10417,7 +10417,9 @@ function giveAccess(kind,row){
           btn('Copy message',function(){ ta.select(); try{ navigator.clipboard.writeText(msg).then(function(){ toast('Copied.'); },function(){ document.execCommand('copy'); toast('Copied.'); }); }catch(e){ document.execCommand('copy'); toast('Copied.'); } }),
           navigator.share?btn('Share',function(){ navigator.share({text:msg}).catch(function(){}); }):null,
           btn('Done',function(){ close(); reload(kind==='staff'?'staff':'customers'); },'primary')))));
-    }).catch(function(e){ go.disabled=false; err.textContent=errText(e); err.hidden=false; });
+    }).catch(function(e){ go.disabled=false;
+      if(/^Sign in first/.test(String(e&&e.message))){ err.textContent='Your sign in has ended. Sign in again, then try once more.'; err.hidden=false; setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); return; }
+      err.textContent=errText(e); err.hidden=false; });
   }
   go=btn(row.user_id?'Make a new starting password':'Give access',run1,'primary');
   $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access'),
