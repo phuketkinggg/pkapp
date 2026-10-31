@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=95"></script>
+<script src="changelog.js?v=96"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -922,7 +922,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=51; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=52; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2218,6 +2218,7 @@ function editStay(st){
   if(exF.length) Array.prototype.splice.apply(fields,[fields.length-1,0,{key:'sx_on',label:'Add extras: meal plan, transport, training and more',type:'checkbox',hint:'From Settings, Booking page extras, at the same prices. They go on the bill, not paid yet.',onChange:function(v,set,get,o,show){ exF.forEach(function(x){ show(x.key,!!v); }); }}].concat(exF));
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
   openForm({title:st.id?'Edit stay':'Add a stay',values:st,fields:fields,
+    onDelete:st.id&&me&&(me.role==='manager'||me.role==='admin')?function(){ return sb.rpc('stay_remove',{p_id:st.id}).then(must).then(function(){ setTimeout(function(){ toast('Stay deleted.'); },100); return Promise.all([reload('stays'),reload('purchases')]); }); }:null,
     onSave:function(v){
       if(v.check_out<=v.check_in) return 'The leaving date must be after the arrival date.';
       if(!v.customer_id&&!v.new_name) return 'Choose a guest or type a new guest name.';

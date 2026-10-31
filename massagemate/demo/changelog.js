@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-31', title: 'Delete a stay', what: 'Managers can delete a stay made by mistake: open the stay, tap Edit, then Delete. Unpaid extras on it are cancelled. A stay with money paid on it, or one from a booking site, is kept for the accounts: set it to Cancelled instead.'},
   {date: '2026-10-31', title: 'Extras when booking a stay at the desk', what: 'When you add a stay, tick Add extras to add anything from the booking page extras: meal plans, airport transfers, training, recovery and more, at the same prices as the website. Existing stays have an Add extras button too. Extras go on the bill as not paid yet, and meal plans start the guest\'s food plan for the kitchen.', feature: 'stay_extras'},
   {date: '2026-10-31', title: 'Card payments in the phone apps', what: 'In the iPhone and Android apps, the card payment page now opens in the phone\'s browser, which has its own way back, instead of inside the app with no way out. After paying or cancelling, a short page says how to go back, and the app updates what is owed when they return.'},
   {date: '2026-10-31', title: 'Sign up emails that reach the inbox', what: 'Confirm, sign in and reset password emails can now link straight to your app instead of the database address, which junk filters distrust. The app opens the link, signs the person in, or asks for a new password.'},
