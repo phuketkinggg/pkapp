@@ -204,7 +204,7 @@ function xsec(s,title){ var t=s.type, a='', im;
   return ''; }
 function xsecs(p){ return p&&(p.sections||[]).length?'<div class="xs">'+p.sections.map(function(x){ return xsec(x,p.title); }).join('')+'</div>':''; }
 function drawPage(p){ var el=document.getElementById('p-page');
-  el.innerHTML=p?(PREV?'<p class="muted" style="text-align:center">Preview'+(PREV.status==='published'?'':', not on the website yet')+'</p>':'')+(p.sections&&p.sections[0]&&p.sections[0].type==='hero'?'':'<h2 style="font-size:40px;margin:6px 0 4px">'+esc(p.title)+'</h2>')+xsecs(p):'<div class="card"><h2>Page not found</h2><p class="muted"><a href="#book">Book a treatment</a></p></div>';
+  el.innerHTML=p?(PREV?'<p class="muted" style="text-align:center">Preview'+(PREV.status==='published'?'':', not on the website yet')+'</p>':'')+(p.sections&&p.sections[0]&&(p.sections[0].type==='hero'||p.sections[0].heading)?'':'<h2 style="font-size:40px;margin:6px 0 4px">'+esc(p.title)+'</h2>')+xsecs(p):'<div class="card"><h2>Page not found</h2><p class="muted"><a href="#book">Book a treatment</a></p></div>';
   if(p) document.title=p.title+' | '+D.name; }
 function navPages(){ var nav=document.querySelector('nav'); (D.pages||[]).filter(function(x){ return x.menu&&BUILT.indexOf(x.slug)<0; }).forEach(function(x){
     var a=document.createElement('a'); a.href='#p/'+x.slug; a.dataset.p='p/'+x.slug; a.textContent=x.label||x.title; nav.appendChild(a); }); }
