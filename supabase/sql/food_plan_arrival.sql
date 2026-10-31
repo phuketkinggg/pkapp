@@ -7,7 +7,7 @@ create or replace function public.food_plans_stays(p_ids uuid[]) returns jsonb l
 begin
   if coalesce(private.staff_role(),'') not in ('manager','admin','front_desk','resort','kitchen') then return '[]'::jsonb; end if;
   return coalesce((select jsonb_agg(jsonb_build_object('stay_id', s.id, 'plans', x.plans)) from public.stays s
-    cross join lateral (select string_agg(f.name || coalesce(', ' || f.per_day || ' a day', ''), '; ' order by f.starts_on, f.name) plans
+    cross join lateral (select string_agg(distinct f.name || coalesce(', ' || f.per_day || ' a day', ''), '; ') plans
       from public.food_plans f where f.customer_id = s.customer_id and not f.removed
         and f.starts_on <= s.check_out and coalesce(f.ends_on, s.check_out) >= s.check_in) x
     where s.id = any(p_ids) and x.plans is not null), '[]'::jsonb);
@@ -23,7 +23,7 @@ begin
   if not private.feature('food_plans', true) then return null; end if;
   select * into s from public.stays where id = p_id;
   if s.id is null then return null; end if;
-  select string_agg(f.name || coalesce(', ' || f.per_day || ' a day', ''), '; ' order by f.starts_on, f.name) into plans
+  select string_agg(distinct f.name || coalesce(', ' || f.per_day || ' a day', ''), '; ') into plans
     from public.food_plans f where f.customer_id = s.customer_id and not f.removed and f.starts_on <= s.check_out and coalesce(f.ends_on, s.check_out) >= s.check_in;
   if plans is null then return null; end if;
   select name into who from public.customers where id = s.customer_id;
