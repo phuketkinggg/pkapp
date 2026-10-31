@@ -306,7 +306,7 @@ begin
     ('renew_message',''), ('kiosk_promos','[]'), ('shop_vat','{"rate":0,"included":true}'), ('app_theme','{"accent":"#9C7A55"}'),
     ('acc_names','{"main":"Karahill Nail and Beauty","stay":"Karahill Nail and Beauty","cafe":"Drinks"}'),
     ('features','{"web_booking":true}'),
-    ('spa_site','{"tagline": "Nails, lashes and beauty in Patong", "about": "Karahill Nail and Beauty is a friendly nail and beauty studio in Patong. We do gel and Korean premium gel, nail art, extensions, manicures and pedicures, eyelash extensions and lifting, head spa and waxing.\n\nOur team takes its time, uses quality products and keeps every tool clean. Walk in, or book online and your table will be ready when you arrive.", "points": ["Korean premium gel", "Nail art by hand", "Clean tools for every guest", "Walk ins welcome"], "address": "Patong, Phuket", "hours": "Every day 10:00 to 21:00", "instagram": "karahillnail_patong", "book_note": "Most prices are starting prices. Nail art and extras are added in the shop.", "logo": "/massagemate/brand/karahill/logo.png", "look": {"style": "marble", "texture": "marble", "font": "playfair", "accent": "#8e6b4a"}, "hero": "/massagemate/brand/karahill/nails-blue-art.jpg", "photos": ["/massagemate/brand/karahill/shop.jpg", "/massagemate/brand/karahill/pedicure-chairs.jpg", "/massagemate/brand/karahill/nails-gold-art.jpg", "/massagemate/brand/karahill/nails-french.jpg", "/massagemate/brand/karahill/spa-chair.jpg"]}');
+    ('spa_site','{"tagline": "Nails, lashes and beauty in Patong", "about": "Karahill Nail and Beauty is a friendly nail and beauty studio in Patong. We do gel and Korean premium gel, nail art, extensions, manicures and pedicures, eyelash extensions and lifting, head spa and waxing.\n\nOur team takes its time, uses quality products and keeps every tool clean. Walk in, or book online and your table will be ready when you arrive.", "points": ["Korean premium gel", "Nail art by hand", "Clean tools for every guest", "Walk ins welcome"], "address": "Patong, Phuket", "hours": "Every day 10:00 to 21:00", "instagram": "karahillnail_patong", "book_note": "Most prices are starting prices. Nail art and extras are added in the shop.", "logo": "/massagemate/brand/karahill/logo.png", "look": {"style": "marble", "texture": "marble", "font": "playfair", "accent": "#8e6b4a"}, "menu": [{"k": "about", "label": "Home"}, {"k": "book"}, {"k": "p/nail-gallery"}, {"k": "prices"}], "cta_title": "Your next set is waiting", "cta_text": "Pick your time online in under a minute, or walk in. Bring a photo of the design you love.", "hero": "/massagemate/brand/karahill/nails-blue-art.jpg", "photos": ["/massagemate/brand/karahill/shop.jpg", "/massagemate/brand/karahill/pedicure-chairs.jpg", "/massagemate/brand/karahill/nails-gold-art.jpg", "/massagemate/brand/karahill/nails-french.jpg", "/massagemate/brand/karahill/spa-chair.jpg"]}');
 
   insert into public.spa_shops(id,name,sort) values (sh,'Karahill Nail and Beauty',1);
 
@@ -375,6 +375,10 @@ begin
     ('Bikini Wax, Men','Waxing',30,1500,'other',array[s_pang],array[sh],null,83),
     ('Brazilian Wax, Women','Waxing',45,1500,'other',array[s_pang],array[sh],null,84),
     ('Brazilian Wax, Men','Waxing',45,2000,'other',array[s_pang],array[sh],null,85);
+
+  -- the website's Most popular treatments
+  update public.app_settings set value = (value::jsonb || jsonb_build_object('popular', (select jsonb_agg(id order by array_position(array['Korean Premium Gel Nail','Gel Polish','Eyelash Extension, Classic','Head Spa, 60 minutes','Pedicure C'], name))
+    from public.spa_services where name in ('Korean Premium Gel Nail','Gel Polish','Eyelash Extension, Classic','Head Spa, 60 minutes','Pedicure C'))))::text where key = 'spa_site';
 
   -- nail add-ons are added at the till, and a few products
   insert into public.shop_categories(id,name,sort,active) values (cat_a,'Nail add-ons',1,true),(cat_p,'Products and drinks',2,true);

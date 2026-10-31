@@ -122,6 +122,19 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24
 .xs .xvid{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;margin-top:12px}.xs .xvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .xs .xcta{text-align:center}.xs .acts{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}.xs .xcta .acts{justify-content:center}
 @media (max-width:720px){.xs .xsplit{grid-template-columns:1fr}}
+.pop{margin:0 0 18px}.pop .eb,.ctab .eb{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ac);font-weight:600;margin-bottom:6px}
+.pop h2{font-size:36px;margin-bottom:14px}
+.popg{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.popc{position:relative;background:color-mix(in srgb,var(--card) 94%,transparent);border:1px solid var(--line);border-radius:18px;padding:20px 18px 18px;display:flex;flex-direction:column;gap:6px;transition:transform .2s,box-shadow .2s}
+.popc:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(0,0,0,.08)}
+.popc b{font-family:var(--hf);font-size:22px;line-height:1.15}.popc .pr{font-weight:600;font-size:17px;margin:4px 0 8px}.popc .btn{align-self:flex-start}
+.popc.top{border:1.5px solid var(--ac);box-shadow:0 10px 30px var(--acs)}
+.badge{position:absolute;top:-11px;left:16px;background:var(--ac);color:#fff;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:99px}
+.tag{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:var(--acs);color:var(--ac);padding:2px 7px;border-radius:99px;vertical-align:2px}
+.ctab{margin-top:16px;border-radius:22px;padding:30px 28px;display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:#fff;
+  background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--ac) 70%,#fff) 0%,var(--ac) 45%,color-mix(in srgb,var(--ac) 60%,#000) 100%);box-shadow:0 18px 40px var(--acs)}
+.ctab h2{font-size:clamp(28px,4vw,40px);color:#fff}.ctab p{margin:6px 0 0;opacity:.92;max-width:520px}.ctab .acts{display:flex;gap:10px;flex-wrap:wrap}
+.btn.light{background:#fff;color:var(--ink)}.btn.line{background:transparent;color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.8)}
 .lb{position:fixed;inset:0;z-index:20;background:rgba(20,15,10,.9);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
 .lb img{max-width:100%;max-height:100%;border-radius:12px}
 @media (max-width:720px){.hero.ph{grid-template-columns:1fr;gap:18px;text-align:center;padding:18px 0 24px}.hero.ph .shot{order:-1;aspect-ratio:5/4}.hero.ph .logo{margin:0 auto 6px;width:200px}.hero .logo{width:200px}.hero.ph .btns{justify-content:center}.grid2{grid-template-columns:1fr}.brand b{font-size:18px}nav a{padding:7px 10px;font-size:13px}.hero{padding:30px 0 20px}}
@@ -131,7 +144,7 @@ footer{text-align:center;color:var(--soft);font-size:13px;padding:24px 0 calc(24
 <body>
 <header class="top"><div class="wrap bar">
   <a class="brand" href="#book"><img src="../icons/icon-192.png" alt=""><b id="bname"></b></a>
-  <nav><a href="#book" data-p="book">Book</a><a href="#prices" data-p="prices">Prices</a><a href="#about" data-p="about">About</a></nav>
+  <nav></nav>
 </div></header>
 <main class="wrap">
   <div class="hero" id="hero">
@@ -173,10 +186,19 @@ function map(){ return site().map_url||('https://www.google.com/maps/search/?api
 
 var BUILT=['book','prices','about'], PREV=null;
 function pg(slug){ return (D.pages||[]).filter(function(x){ return x.slug===slug; })[0]; }
-function page(){ var h=(location.hash||'#book').slice(1), p=h, slug='';
+/* the menu: order, names and which show, set in the app (Settings, Website, Your website, Menu). The first one is the home page */
+var BUILTN={book:'Book',prices:'Prices',about:'About'};
+function menu(){ var m=Array.isArray(site().menu)?site().menu.slice():[], have={}, out=[];
+  m.forEach(function(x){ if(x&&x.k&&!have[x.k]){ have[x.k]=1; out.push(x); } });
+  BUILT.forEach(function(k){ if(!have[k]) out.push({k:k}); });
+  (D.pages||[]).filter(function(x){ return x.menu&&BUILT.indexOf(x.slug)<0; }).forEach(function(x){ if(!have['p/'+x.slug]) out.push({k:'p/'+x.slug}); });
+  return out.filter(function(x){ if(x.hide) return false; if(/^p\//.test(x.k)){ var g=pg(x.k.slice(2)); return !!g; } return BUILT.indexOf(x.k)>=0; })
+    .map(function(x){ var g=/^p\//.test(x.k)?pg(x.k.slice(2)):null; return {k:x.k,label:x.label||(g?(g.label||g.title):BUILTN[x.k])}; }); }
+function home(){ var m=menu(); return m.length?m[0].k:'book'; }
+function page(){ var h=(location.hash||'#'+home()).slice(1), p=h, slug='';
   if(/^p\//.test(h)){ slug=h.slice(2); p='page'; }
   if(PREV){ p='page'; slug=PREV.slug; }
-  if(p!=='page'&&BUILT.indexOf(p)<0) p='book';
+  if(p!=='page'&&BUILT.indexOf(p)<0){ p=home(); if(/^p\//.test(p)){ slug=p.slice(2); p='page'; } }
   if(p==='page') drawPage(PREV||pg(slug));
   document.querySelectorAll('nav a').forEach(function(a){ a.classList.toggle('on',p==='page'?a.dataset.p==='p/'+slug:a.dataset.p===p); });
   document.querySelectorAll('section.page').forEach(function(s){ s.classList.toggle('on',s.id==='p-'+p); }); }
@@ -210,8 +232,17 @@ function xsecs(p){ return p&&(p.sections||[]).length?'<div class="xs">'+p.sectio
 function drawPage(p){ var el=document.getElementById('p-page');
   el.innerHTML=p?(PREV?'<p class="muted" style="text-align:center">Preview'+(PREV.status==='published'?'':', not on the website yet')+'</p>':'')+(p.sections&&p.sections[0]&&(p.sections[0].type==='hero'||p.sections[0].heading)?'':'<h2 style="font-size:40px;margin:6px 0 4px">'+esc(p.title)+'</h2>')+xsecs(p):'<div class="card"><h2>Page not found</h2><p class="muted"><a href="#book">Book a treatment</a></p></div>';
   if(p) document.title=p.title+' | '+D.name; }
-function navPages(){ var nav=document.querySelector('nav'); (D.pages||[]).filter(function(x){ return x.menu&&BUILT.indexOf(x.slug)<0; }).forEach(function(x){
-    var a=document.createElement('a'); a.href='#p/'+x.slug; a.dataset.p='p/'+x.slug; a.textContent=x.label||x.title; nav.appendChild(a); }); }
+function navPages(){ var nav=document.querySelector('nav'); nav.innerHTML=''; menu().forEach(function(x){
+    var a=document.createElement('a'); a.href='#'+x.k; a.dataset.p=x.k; a.textContent=x.label; nav.appendChild(a); }); }
+/* any Book button on a treatment opens booking with it chosen */
+document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-bk]'); if(!b) return; var s=svc(b.dataset.bk); if(!s) return; e.preventDefault();
+  B.done=null; B.svc=s.id; B.dept=s.department||'Treatments'; B.staff=''; B.day=B.day||today(); location.hash='#book'; loadTimes(); goTo('st2'); });
+function popular(){ return (site().popular||[]).map(svc).filter(Boolean).slice(0,6); }
+function popHtml(){ var ps=popular(); if(!ps.length) return '';
+  return '<div class="pop"><div class="eb">'+esc(site().popular_title||'Loved by our guests')+'</div><h2>'+esc(site().popular_heading||'Our favourites')+'</h2><div class="popg">'+ps.map(function(x,i){
+    return '<div class="popc'+(i===0?' top':'')+'">'+(i===0?'<span class="badge">Most popular</span>':'')+'<b>'+esc(x.name)+'</b><div class="muted">'+mins(x.minutes)+(from_(x).text?' · '+esc(from_(x).text):'')+'</div><div class="pr">'+priceOf(x)+'</div>'+
+      (D.booking?'<button class="btn small" data-bk="'+x.id+'">Book this</button>':'')+'</div>'; }).join('')+'</div></div>'; }
+function ctaHtml(){ var s=site(); return '<div class="ctab"><div><h2>'+esc(s.cta_title||'Treat yourself today')+'</h2><p>'+esc(s.cta_text||'Pick your time online in under a minute. Walk ins are welcome too.')+'</p></div><div class="acts"><a class="btn light" href="#book">Book now</a>'+(wa()?'<a class="btn line" href="'+esc(wa())+'" target="_blank" rel="noopener">WhatsApp us</a>':'')+'</div></div>'; }
 window.addEventListener('hashchange',function(){ page(); var s=document.querySelector('section.page.on'); if(s&&window.scrollY>s.offsetTop) window.scrollTo({top:s.offsetTop-80,behavior:'smooth'}); });
 
 /* Book */
@@ -230,7 +261,7 @@ function drawBook(){ var el=document.getElementById('d-book');
   var s=B.svc&&svc(B.svc), h='';
   h+='<div class="card step"><h2><i>1</i>Choose a treatment</h2><div class="chips">'+ds.map(function(d){ return '<button class="chip'+(d===B.dept?' on':'')+'" data-dept="'+esc(d)+'">'+esc(d)+'</button>'; }).join('')+'</div><div class="list">'+
     (D.services||[]).filter(function(x){ return (x.department||'Treatments')===B.dept; }).map(function(x){
-      return '<button class="svc'+(x.id===B.svc?' on':'')+'" data-svc="'+x.id+'"><div><div class="n">'+esc(x.name)+'</div><div class="m">'+mins(x.minutes)+(from_(x).text?' · '+esc(from_(x).text):'')+'</div></div><div class="p">'+priceOf(x)+'</div></button>'; }).join('')+'</div></div>';
+      return '<button class="svc'+(x.id===B.svc?' on':'')+'" data-svc="'+x.id+'"><div><div class="n">'+esc(x.name)+((site().popular||[]).indexOf(x.id)>=0?' <span class="tag">Popular</span>':'')+'</div><div class="m">'+mins(x.minutes)+(from_(x).text?' · '+esc(from_(x).text):'')+'</div></div><div class="p">'+priceOf(x)+'</div></button>'; }).join('')+'</div></div>';
   if(s){
     var staff=(D.team||[]).filter(function(p){ return !s.staff.length||s.staff.indexOf(p.id)>=0; });
     h+='<div class="card step" id="st2"><h2><i>2</i>Choose a day</h2><div class="days">';
@@ -274,7 +305,7 @@ function drawPrices(){ var el=document.getElementById('d-prices');
     depts().map(function(d){ return '<div class="dept"><h3>'+esc(d)+'</h3>'+(D.services||[]).filter(function(x){ return (x.department||'Treatments')===d; }).map(function(x){
       return '<div class="prow"><div><div class="n">'+esc(x.name)+'</div>'+(from_(x).text?'<div class="d">'+esc(from_(x).text)+'</div>':'')+'</div><div class="r"><b>'+priceOf(x)+'</b><span class="muted">'+mins(x.minutes)+'</span>'+
         (D.booking?'<div style="margin-top:6px"><button class="btn small" data-bk="'+x.id+'">Book</button></div>':'')+'</div></div>'; }).join('')+'</div>'; }).join('')+'</div>';
-  el.querySelectorAll('[data-bk]').forEach(function(b){ b.onclick=function(){ var s=svc(b.dataset.bk); B.done=null; B.svc=s.id; B.dept=s.department||'Treatments'; B.staff=''; B.day=B.day||today(); location.hash='#book'; loadTimes(); goTo('st2'); }; }); }
+}
 
 /* About */
 function drawAbout(){ var el=document.getElementById('d-about'), s=site();
@@ -283,13 +314,13 @@ function drawAbout(){ var el=document.getElementById('d-about'), s=site();
     s.phone?['Phone','<a href="tel:'+esc(String(s.phone).replace(/[^\d+]/g,''))+'">'+esc(s.phone)+'</a>']:null, wa()?['WhatsApp','<a href="'+wa()+'" target="_blank" rel="noopener">Message us</a>']:null,
     s.line?['LINE',esc(s.line)]:null, s.instagram?['Instagram','<a href="https://www.instagram.com/'+esc(String(s.instagram).replace(/^@/,''))+'" target="_blank" rel="noopener">@'+esc(String(s.instagram).replace(/^@/,''))+'</a>']:null,
     s.facebook?['Facebook','<a href="'+esc(/^https?:/.test(s.facebook)?s.facebook:'https://www.facebook.com/'+s.facebook)+'" target="_blank" rel="noopener">Facebook page</a>']:null].filter(Boolean);
-  el.innerHTML='<div class="grid2"><div class="card about"><h2 style="font-size:34px;margin-bottom:12px">About us</h2>'+(paras.length?paras.map(function(p){ return '<p>'+esc(p)+'</p>'; }).join(''):'<p class="muted">Welcome to '+esc(D.name)+'.</p>')+
+  el.innerHTML=popHtml()+'<div class="grid2"><div class="card about"><h2 style="font-size:34px;margin-bottom:12px">About us</h2>'+(paras.length?paras.map(function(p){ return '<p>'+esc(p)+'</p>'; }).join(''):'<p class="muted">Welcome to '+esc(D.name)+'.</p>')+
     ((s.points||[]).length?'<div class="points">'+s.points.map(function(p){ return '<span>'+esc(p)+'</span>'; }).join('')+'</div>':'')+'</div>'+
     '<div class="card info"><h2 style="font-size:28px;margin-bottom:6px">Visit</h2>'+info.map(function(i){ return '<div><small>'+i[0]+'</small>'+i[1]+'</div>'; }).join('')+
     '<div style="padding-top:14px"><a class="btn" href="#book">Book now</a></div></div></div>'+
     (photos().length?'<div class="card" style="margin-top:16px"><h2 style="font-size:30px">Inside '+esc(D.name)+'</h2><div class="gallery">'+photos().map(function(u){ return '<img src="'+esc(u)+'" alt="" loading="lazy" data-big="'+esc(u)+'">'; }).join('')+'</div></div>':'')+
     ((D.team||[]).length?'<div class="card" style="margin-top:16px"><h2 style="font-size:30px">Our team</h2><div class="team">'+D.team.map(function(p){
-      return '<div class="person"><div class="ph">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="" loading="lazy">':esc((p.name||'?').charAt(0)))+'</div><b>'+esc(p.name)+'</b>'+(p.text?'<div class="muted">'+esc(p.text)+'</div>':'')+'</div>'; }).join('')+'</div></div>':''); }
+      return '<div class="person"><div class="ph">'+(p.photo?'<img src="'+esc(p.photo)+'" alt="" loading="lazy">':esc((p.name||'?').charAt(0)))+'</div><b>'+esc(p.name)+'</b>'+(p.text?'<div class="muted">'+esc(p.text)+'</div>':'')+'</div>'; }).join('')+'</div></div>':'')+ctaHtml(); }
 
 /* the look: a style (colours), a background texture and a heading font, set in the app (Settings, Website, Your website, Look) */
 var STYLES={cream:{bg:'#F7F1E8',card:'#FFFDF9',card2:'#FFFFFF',ink:'#2E241B',soft:'#6F6255',line:'#E7DCCB',ac:'#9C7A55'},

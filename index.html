@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=83"></script>
+<script src="changelog.js?v=84"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -911,7 +911,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=40; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=41; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9694,7 +9694,7 @@ function webTextEdit(t){
 var SPASITE=null;
 function spaSiteUrl(){ return location.origin+location.pathname.replace(/[^/]*$/,'')+'site/'; }
 /* website logo, big photo and gallery: picked from the phone, kept in the promos bucket, saved in spa_site */
-function spaSiteSave(val){ var txt=JSON.stringify(val);
+function spaSiteSave(val){ val=Object.assign({},val); Object.keys(val).forEach(function(k){ if(k.charAt(0)==='_') delete val[k]; }); var txt=JSON.stringify(val);
   return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','spa_site').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'spa_site',value:txt}).then(must); }).then(function(){ SPASITE=val; schedule(); }); }
 function spaSiteUp(kind,done){
   var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return; toast('Uploading the photo.');
@@ -9733,10 +9733,50 @@ function spaSiteLook(o){ var t=o.look||{};
     onSave:function(v){ var look={style:v.style,texture:v.texture,font:v.font}; if(v.own&&/^#[0-9a-f]{6}$/i.test(v.accent||'')) look.accent=v.accent;
       return spaSiteSave(Object.assign({},o,{look:look})); }});
 }
+/* the website menu: order (the first is the home page), names, show or hide, the Most popular treatments and the call to action */
+function spaSiteMenu(o){
+  if(!SPKT){ sb.from('spa_services').select('id,name,department,minutes,price_thb').eq('active',true).order('sort').then(function(r){ SPKT=r.data||[]; spaSiteMenu(o); }); return; }
+  if(!o._pages){ sb.from('site_pages').select('slug,title,footer_label,in_footer,status,removed').eq('status','published').then(function(r){ o._pages=(r.data||[]).filter(function(x){ return !x.removed; }); spaSiteMenu(o); }); return; }
+  var std={book:'Book',prices:'Prices',about:'About'}, have={}, list=[];
+  (o.menu||[]).forEach(function(x){ if(x&&x.k&&!have[x.k]){ have[x.k]=1; list.push({k:x.k,label:x.label||'',hide:!!x.hide}); } });
+  ['book','prices','about'].forEach(function(k){ if(!have[k]) list.push({k:k,label:'',hide:false}); });
+  o._pages.filter(function(x){ return x.in_footer&&!std[x.slug]; }).forEach(function(x){ if(!have['p/'+x.slug]) list.push({k:'p/'+x.slug,label:'',hide:false}); });
+  list=list.filter(function(x){ return std[x.k]||o._pages.some(function(g){ return 'p/'+g.slug===x.k; }); });
+  function dflt(k){ if(std[k]) return std[k]; var g=o._pages.filter(function(x){ return 'p/'+x.slug===k; })[0]; return g?(g.footer_label||g.title):k; }
+  var pop=(o.popular||[]).slice(), box=h('div',{class:'navedit'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function mv(i,d){ var j=i+d; if(j<0||j>=list.length) return; var x=list[i]; list[i]=list[j]; list[j]=x; draw(); }
+  function draw(){ box.replaceChildren.apply(box,list.map(function(x,i){
+    return h('div',{class:'navrow'},h('span',{class:'navname',style:'gap:8px;flex-wrap:wrap'},
+        i===0?chip('Home','ok'):null,
+        h('input',{type:'text',class:'notr',value:x.label,placeholder:dflt(x.k),maxlength:'24','aria-label':'Name in the menu',style:'max-width:180px',oninput:function(e){ x.label=e.target.value; }}),
+        h('label',{class:'check'},h('input',{type:'checkbox',checked:x.hide?null:true,onchange:function(e){ x.hide=!e.target.checked; }}),h('span',null,'Show'))),
+      h('div',{class:'row'},h('button',{type:'button',class:'btn small','aria-label':'Move up',disabled:i===0?'':null,onclick:function(){ mv(i,-1); }},'↑'),
+        h('button',{type:'button',class:'btn small','aria-label':'Move down',disabled:i===list.length-1?'':null,onclick:function(){ mv(i,1); }},'↓'))); })); }
+  draw();
+  var popBox=h('div',{class:'setgrid',style:'grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px'},SPKT.map(function(x){
+    return h('label',{class:'check'},h('input',{type:'checkbox',checked:pop.indexOf(x.id)>=0?true:null,onchange:function(e){ var i=pop.indexOf(x.id); if(e.target.checked&&i<0) pop.push(x.id); if(!e.target.checked&&i>=0) pop.splice(i,1); }}),h('span',null,x.name)); }));
+  var ct=h('input',{type:'text',class:'notr',value:o.cta_title||'',placeholder:'Treat yourself today',maxlength:'60'}), cx=h('input',{type:'text',class:'notr',value:o.cta_text||'',placeholder:'Pick your time online in under a minute. Walk ins are welcome too.',maxlength:'140'});
+  function save(){ var v=Object.assign({},o); delete v._pages;
+    v.menu=list.map(function(x){ var r={k:x.k}; if(String(x.label||'').trim()) r.label=String(x.label).trim().slice(0,24); if(x.hide) r.hide=true; return r; });
+    if(v.menu.every(function(x){ return x.hide; })) { err.textContent='Show at least one page.'; err.hidden=false; return; }
+    v.popular=pop.slice(0,6); ['cta_title','cta_text'].forEach(function(k,i){ var t=String((i?cx:ct).value||'').trim(); if(t) v[k]=t; else delete v[k]; });
+    spaSiteSave(v).then(function(){ $dlg.close(); toast('Saved. Your website shows it now.'); },function(e){ err.textContent=errText(e); err.hidden=false; }); }
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Menu and home'),
+    h('p',{class:'sub'},'Put the pages in the order you want. The first one is the home page people land on. Rename or hide any of them. Pages you make in Web pages show here once they are ticked Show it in the website menu.'),
+    box,
+    h('h3',{class:'billh',style:'margin-top:18px'},'Most popular'),
+    h('p',{class:'sub'},'Tick up to 6 treatments. They show as cards at the top of About, with a Book this button, and get a Popular tag on the booking page. The first one gets the Most popular badge.'),
+    popBox,
+    h('h3',{class:'billh',style:'margin-top:18px'},'Call to action'),
+    h('p',{class:'sub'},'The big coloured box at the bottom of About. Leave empty for the words shown.'),
+    h('div',{class:'field'},h('label',null,'Heading'),ct),h('div',{class:'field'},h('label',null,'Words'),cx),
+    err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',save,'primary')))));
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+}
 function spaSiteSection(){
   if(SPASITE===null){ SPASITE=false; sb.from('app_settings').select('value').eq('key','spa_site').maybeSingle().then(function(res){ var v=must(res); try{ SPASITE=v?JSON.parse(v.value)||{}:{}; }catch(e){ SPASITE={}; } schedule(); }); }
   var o=SPASITE||{}, mgr=me&&me.role==='manager';
-  return section('Your website',mgr&&SPASITE?h('span',{class:'row'},btn('Look',function(){ spaSiteLook(o); },'small'),btn('Change',function(){
+  return section('Your website',mgr&&SPASITE?h('span',{class:'row'},btn('Menu and home',function(){ spaSiteMenu(o); },'small'),btn('Look',function(){ spaSiteLook(o); },'small'),btn('Change',function(){
     openForm({title:'Your website',note:'Treatments, prices and your team come from Setup. Here you set the words around them.',
       values:{tagline:o.tagline||'',about:o.about||'',points:(o.points||[]).join('\n'),hours:o.hours||'',address:o.address||'',map_url:o.map_url||'',phone:o.phone||'',whatsapp:o.whatsapp||'',line:o.line||'',instagram:o.instagram||'',facebook:o.facebook||'',book_note:o.book_note||''},
       fields:[{key:'tagline',label:'Line under your name',hint:'For example: Nails, lashes and beauty in Patong.'},
@@ -9748,7 +9788,7 @@ function spaSiteSection(){
         {key:'phone',label:'Phone'},{key:'whatsapp',label:'WhatsApp number',hint:'With the country code, for example +66 81 234 5678.'},
         {key:'line',label:'LINE ID'},{key:'instagram',label:'Instagram name'},{key:'facebook',label:'Facebook page'},
         {key:'book_note',label:'Note on prices and booking',hint:'For example: Most prices are starting prices.'}],
-      onSave:function(v){ var val={}; ['logo','hero','photos','look'].forEach(function(k){ if(o[k]) val[k]=o[k]; }); Object.keys(v).forEach(function(k){ var x=String(v[k]||'').trim(); if(k==='points') x=x.split('\n').map(function(y){ return y.trim(); }).filter(Boolean).slice(0,8); if(x&&x.length) val[k]=x; });
+      onSave:function(v){ var val={}; ['logo','hero','photos','look','menu','popular','popular_title','popular_heading','cta_title','cta_text'].forEach(function(k){ if(o[k]) val[k]=o[k]; }); Object.keys(v).forEach(function(k){ var x=String(v[k]||'').trim(); if(k==='points') x=x.split('\n').map(function(y){ return y.trim(); }).filter(Boolean).slice(0,8); if(x&&x.length) val[k]=x; });
         var txt=JSON.stringify(val);
         return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','spa_site').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'spa_site',value:txt}).then(must); }).then(function(){ SPASITE=val; }); },
       saveLabel:'Save',doneMsg:'Saved. Your website shows it now.'});
