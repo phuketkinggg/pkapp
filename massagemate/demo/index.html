@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=78"></script>
+<script src="changelog.js?v=79"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -216,11 +216,11 @@ body.kiosk .installbar,body.chatting .installbar,body.isheet-open .installbar,bo
 .fptix{font-weight:600;color:var(--gold-ink);margin-top:4px}
 .fptix .th{display:block;font-weight:400;font-size:13px}
 .fshow{display:flex;align-items:flex-end;padding-bottom:8px}
-.till{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin:14px 0}
-@media (max-width:860px){.till{grid-template-columns:1fr}.cartbox{position:static}}
+div.till{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin:14px 0}
+@media (max-width:860px){div.till{grid-template-columns:1fr}.cartbox{position:static}}
 .tillleft{display:flex;flex-direction:column;gap:10px;min-width:0}
 body.till #view{max-width:none}
-@media (min-width:1400px){.till{grid-template-columns:minmax(0,1fr) 400px}}
+@media (min-width:1400px){div.till{grid-template-columns:minmax(0,1fr) 400px}}
 .toprow{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));grid-template-rows:auto;grid-auto-rows:0;row-gap:0;column-gap:8px;overflow:hidden;padding-bottom:2px}
 .toprow .tillbtn{border-color:var(--gold,#C9A84C)}
 .toplabel{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin:2px 0 -4px}
