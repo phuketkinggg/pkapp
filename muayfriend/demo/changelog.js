@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-10-31', title: 'Sign up emails that reach the inbox', what: 'Confirm, sign in and reset password emails can now link straight to your app instead of the database address, which junk filters distrust. The app opens the link, signs the person in, or asks for a new password.'},
   {date: '2026-10-31', title: 'Block people in chats', what: 'Customers can tap Block under a message to block the person who wrote it. Their messages are hidden from that customer in every chat and they get no phone notices from them. Managers and the front desk get a notice. Customers see who they blocked, and can unblock, under Blocked in their account.', feature: 'chat_block'},
   {date: '2026-10-31', title: 'Hide courses in the store apps', what: 'In the iPhone and Android apps, customers now see only the technique library in Learn, with no courses or course prices, because Apple and Google want their own payment for digital courses. Courses still show on the website and when the app is opened in a browser.', feature: 'store_courses_hide'},
   {date: '2026-10-31', title: 'Reset a customer password at the desk', what: 'A manager can now give any customer a new starting password from App access, also when they already use the app. Their old password stops working straight away and they choose a new one when they sign in.', feature: 'reset_pw'},

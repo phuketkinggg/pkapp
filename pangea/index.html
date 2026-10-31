@@ -523,6 +523,15 @@ function render(){
 /* ---------- start ---------- */
 var recovery=/type=recovery/.test(location.hash);
 sb.auth.onAuthStateChange(function(ev,session){ setTimeout(function(){ onAuth(ev,session); },0); });
+/* email links that come to the app itself (token_hash): fewer emails go to junk */
+(function(){ var q=new URLSearchParams(location.search||''), th=q.get('token_hash'), tt=q.get('type');
+  if(!th||!/^(signup|email|magiclink|recovery|invite|email_change)$/.test(tt||'')) return;
+  try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){}
+  if(tt==='recovery') recovery=true;
+  sb.auth.verifyOtp({token_hash:th,type:tt==='magiclink'?'email':tt}).then(function(r){
+    if(r.error){ recovery=false; toast('That email link has expired or was already used. Ask for a new one.'); return; }
+    if(tt==='recovery') newPasswordView(); });
+})();
 function onAuth(ev,session){
   if(ev==='PASSWORD_RECOVERY'){ recovery=true; newPasswordView(); return; }
   var had=!!S.session; S.session=session;

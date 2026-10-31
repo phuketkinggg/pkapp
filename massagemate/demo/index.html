@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=4"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=92"></script>
+<script src="changelog.js?v=93"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -921,7 +921,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=48; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=49; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9314,7 +9314,7 @@ function cuHk(){
       btn('Something else',function(){ cuHkAsk('other'); },'small'))));
 }
 /* ---------- get ready for camp: guests start in the app before they arrive ---------- */
-var READY=null, RD=null, READYTOKEN=null;
+var READY=null, RD=null, READYTOKEN=null; var EMAILOTP=null;
 var RD_LEVELS=[['new','Never trained','This will be my first time'],['under6m','A little','Less than 6 months'],['6m2y','Some experience','6 months to 2 years'],['2y','Experienced','More than 2 years'],['fought','I have fought','Muay Thai, kickboxing or MMA fights']];
 var RD_MAIN=[['fight','Serious fight training'],['weight','Weight loss'],['fitness','Get fit'],['technique','Learn Muay Thai'],['reset','Reset and recharge'],['other','Something else']];
 var RD_OTHER=[['boxing','Boxing'],['kickboxing','Kickboxing'],['mma','MMA'],['bjj','BJJ'],['wrestling','Wrestling'],['weights','Gym and weights'],['running','Running'],['crossfit','CrossFit or HIIT'],['yoga','Yoga or pilates'],['team','Team sports'],['none','None yet']];
@@ -10512,6 +10512,8 @@ if(!window.supabase||!window.supabase.createClient){
       linkNote=code==='otp_expired'?'That email link has expired or was already used. Each link works once. Ask for a new one below.':'That email link did not work. Ask for a new one below.';
       try{ history.replaceState(null,'',location.pathname); }catch(e){}
     }
+    /* email links that come to the app itself (token_hash), not to the database address: fewer emails go to junk */
+    var th=qp.get('token_hash'), tt=qp.get('type'); if(th&&/^[A-Za-z0-9_-]{8,200}$/.test(th)&&/^(signup|email|magiclink|recovery|invite|email_change)$/.test(tt||'')){ EMAILOTP={h:th,t:tt==='magiclink'?'email':tt}; if(tt==='recovery') recovering=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     var rt=qp.get('ready'); if(rt&&/^[0-9a-f]{64}$/.test(rt)){ READYTOKEN=rt; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     var sc=qp.get('s'); if(sc&&/^[a-f0-9]{16,64}$/.test(sc)){ STAFFCODE={c:sc,t:Date.now()}; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
@@ -10522,6 +10524,11 @@ if(!window.supabase||!window.supabase.createClient){
   loadFeatures().catch(function(){}); loadPlatform().catch(function(){});
   loadOffer();
   if(READYTOKEN) readyClaim();
+  if(EMAILOTP) sb.auth.verifyOtp({token_hash:EMAILOTP.h,type:EMAILOTP.t}).then(function(res){
+    var t=EMAILOTP.t; EMAILOTP=null;
+    if(res.error){ recovering=false; toast('That email link has expired or was already used. Each link works once. Ask for a new one.'); showSignIn(); return; }
+    if(t==='recovery'&&res.data&&res.data.session){ recoveryToken=res.data.session.access_token; setTimeout(showNewPassword,0); }
+  });
   sb.auth.onAuthStateChange(function(event,session){
     if(event==='PASSWORD_RECOVERY'){ recovering=true; if(session&&session.access_token&&!recoveryToken) recoveryToken=session.access_token; setTimeout(showNewPassword,0); return; }
     if(recovering){ if(recoveryToken) setTimeout(showNewPassword,0); return; }
