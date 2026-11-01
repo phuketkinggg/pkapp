@@ -8870,10 +8870,10 @@ function navOrder(tabs){
   if(!NAVL) return tabs.map(function(t){ return {t:t}; });
   var by={}, used={}, out=[]; tabs.forEach(function(t){ by[t[0]]=t; });
   NAVL.items.forEach(function(x){ if(x.g) out.push({g:String(x.g)}); else if(x.k&&by[x.k]&&!used[x.k]){ used[x.k]=1; out.push({t:by[x.k]}); } });
-  /* not placed yet (for example something new in the app): at the top, outside the groups, so it is never hidden */
+  /* not placed yet (for example something new in the app): first in the menu, so it is easy to find */
   var fg=0; while(fg<out.length&&!out[fg].g) fg++;
   var extra=tabs.filter(function(t){ return !used[t[0]]; }).map(function(t){ return {t:t}; });
-  out=out.slice(0,fg).concat(extra,out.slice(fg));
+  out=extra.concat(out);
   return out.filter(function(x,i){ if(!x.g) return true; var n=out[i+1]; return n&&!n.g; });
 }
 function navOpen(){ try{ var v=JSON.parse(localStorage.getItem('pk_navopen')||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } }
