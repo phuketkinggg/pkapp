@@ -17,9 +17,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
 <script src="vendor/supabase-js-2.117.2.js"></script>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
-<script src="pk/privpick.js?v=4"></script>
+<script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=97"></script>
+<script src="changelog.js?v=98"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -888,6 +888,7 @@ var FEATURES=[
   {k:'reset_pw',g:'Customers',n:'Managers reset customer passwords',d:'A manager can give any customer a new starting password from App access, also when they already use the app, for example when they are locked out at the desk. Off: customers who already use the app reset it themselves with Forgot password.'},
   {k:'chat_block',g:'Messages',n:'Block people in chats',d:'Customers can block anyone who writes to them in a chat. That person\'s messages are hidden from them in every chat, they get no phone notices from them, and managers and the front desk get a notice. They can unblock in their account (Blocked).'},
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
+  {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
@@ -921,7 +922,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=53; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=54; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9578,7 +9579,7 @@ function requestPrivate(){
   var pack=cuPack(), price=CU.private_price!=null?thb(CU.private_price):null;
   var pays=[]; if(pack) pays.push(['pack','From my pack ('+classesLeft(pack)+' sessions left)']); if(CU.stay&&CU.stay.status!=='out') pays.push(['room','Charge to my room'+(price?', '+price:'')]); pays.push(['desk','Pay at the front desk or by card'+(price?', '+price:'')]);
   var pick=window.PrivPick({load:function(f,n){ return sb.rpc('private_book_slots',{p_from:f,p_days:n}).then(must); }});
-  openForm({title:'Book a private',note:'Choose your coach, the day and a free time. Your coach or the front desk confirms it, usually within 30 minutes during opening hours. It is booked when it shows Confirmed here.',saveLabel:'Send request',doneMsg:'Thank you for your booking. We will confirm it within 30 minutes.',fields:[
+  openForm({title:'Book a private',note:'Choose the day and a free time, with any free coach or the coach you pick. Your coach or the front desk confirms it, usually within 30 minutes during opening hours. It is booked when it shows Confirmed here.',saveLabel:'Send request',doneMsg:'Thank you for your booking. We will confirm it within 30 minutes.',fields:[
     {key:'pay',label:'How you pay',type:'select',options:pays,def:pays[0][0],hint:CU.stay?'Charge to my room works for days you are staying with us.':null},
     {key:'pick',label:'',type:'info'},
     {key:'note',label:'Anything we should know',type:'textarea'}],

@@ -1,5 +1,6 @@
 /* Private lesson picker, used on the website (buying a private or a pack) and in the app (requesting a private).
-   Pick the coach, the day and a free time. Then: is another coach OK if they cannot make it? If not, pick a backup
+   As standard the guest picks a day and a free time and a free coach is chosen for them (any_first from the database, feature private_any_coach);
+   they can tap Pick my coach to choose one. With their own coach: the day and a free time. Then: is another coach OK if they cannot make it? If not, pick a backup
    time with the same coach. Free times come from the database (private_book_slots): coach hours minus booked,
    waiting and closed times.
    var p = PrivPick({load: function(from, days){ return Promise of slots }, coach: optional id});
@@ -37,15 +38,20 @@ function vid(c){ var v=document.createElement('video'); v.muted=true; v.defaultM
   if(!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){ v.autoplay=true; v.setAttribute('autoplay',''); } return v; }
 window.PrivPick=function(opts){
   css();
-  var S={data:null,coach:opts.coach||null,date:null,time:null,any:null,alt_date:null,alt_time:null,loading:false,err:null,until:null};
+  var S={mode:opts.coach?'pick':null,data:null,coach:opts.coach||null,date:null,time:null,any:null,alt_date:null,alt_time:null,loading:false,err:null,until:null};
   var root=el('div',{class:'pp'});
   function coachOf(id){ return (S.data&&S.data.coaches||[]).filter(function(c){ return c.id===id; })[0]||null; }
-  function freeOn(d,id){ var day=(S.data.days||[]).filter(function(x){ return x.date===d; })[0]; return day&&day.free&&day.free[id]||[]; }
+  function freeOn(d,id){ var day=(S.data.days||[]).filter(function(x){ return x.date===d; })[0]; if(!day||!day.free) return [];
+    if(id!=='*') return day.free[id]||[]; var all={}; Object.keys(day.free).forEach(function(k){ (day.free[k]||[]).forEach(function(t){ all[t]=1; }); }); return Object.keys(all).sort(); }
+  /* any coach: one of the coaches free at that time, at random (a coach without their own higher rate first) */
+  function anyCoach(d,t){ var free=S.data.coaches.filter(function(c){ return freeOn(d,c.id).indexOf(t)>=0; }), plain=free.filter(function(c){ return !c.rate; }), l=plain.length?plain:free;
+    return l.length?l[Math.floor(Math.random()*l.length)].id:null; }
+  var anyOk=function(){ return S.data&&S.data.any_first!==false&&!opts.coach&&S.data.coaches.length>1; };
   function merge(x){ if(!S.data){ S.data=x; } else { var have={}; S.data.days.forEach(function(d){ have[d.date]=1; }); x.days.forEach(function(d){ if(!have[d.date]) S.data.days.push(d); }); }
     S.until=S.data.days.length?S.data.days[S.data.days.length-1].date:null; }
   function load(from){ S.loading=true; draw();
     return opts.load(from||null,14).then(function(x){ S.loading=false; S.err=null; merge(x);
-      if(S.coach&&!coachOf(S.coach)) S.coach=null; if(!S.coach&&S.data.coaches.length===1) S.coach=S.data.coaches[0].id; draw(); },
+      if(S.coach&&!coachOf(S.coach)) S.coach=null; if(!S.mode) S.mode=anyOk()?'any':'pick'; if(!S.coach&&S.data.coaches.length===1) S.coach=S.data.coaches[0].id; draw(); },
       function(e){ S.loading=false; S.err=(e&&e.message)||'The free times could not load. Check your connection and try again.'; draw(); }); }
   function more(){ if(S.until) load(plus(S.until,1)); }
   function days(id,sel,onPick,skip){
@@ -65,7 +71,16 @@ window.PrivPick=function(opts){
     if(S.err&&!S.data){ root.appendChild(el('p',{class:'pp-empty',text:S.err})); root.appendChild(el('button',{type:'button',class:'pp-more',onclick:function(){ load(); }},'Try again')); return; }
     if(!S.data){ root.appendChild(el('p',{class:'pp-empty',text:'Loading the free times.'})); return; }
     if(!S.data.coaches.length){ root.appendChild(el('p',{class:'pp-empty',text:'No coach is taking online bookings right now. Book your time later, or message us.'})); return; }
-    root.appendChild(el('div',null,el('h4',{text:'1. Choose your coach'}),el('div',{class:'pp-coaches'},S.data.coaches.map(function(c){
+    if(anyOk()) root.appendChild(el('div',null,el('h4',{text:'1. Your coach'}),el('div',{class:'pp-yn'},
+      el('button',{type:'button','aria-pressed':String(S.mode==='any'),onclick:function(){ if(S.mode!=='any'){ S.mode='any'; S.coach=null; S.time=null; S.any=null; S.alt_date=null; S.alt_time=null; } draw(); }},'Any free coach'),
+      el('button',{type:'button','aria-pressed':String(S.mode==='pick'),onclick:function(){ if(S.mode!=='pick'){ S.mode='pick'; S.coach=null; S.time=null; S.any=null; S.alt_date=null; S.alt_time=null; } draw(); }},'Pick my coach')),
+      el('p',{class:'pp-sub',text:S.mode==='any'?'Pick a day and time, and we give you a coach who is free then.':'Choose the coach you want below.'})));
+    if(S.mode==='any'){
+      root.appendChild(el('div',null,el('h4',{text:'2. Choose the day'}),days('*',S.date,function(d){ S.date=d; S.time=null; S.coach=null; draw(); })));
+      if(S.date) root.appendChild(el('div',null,el('h4',{text:'3. Choose the time'}),times('*',S.date,S.time,function(t){ S.time=t; S.coach=anyCoach(S.date,t); S.any=true; draw(); })));
+      if(S.time) root.appendChild(el('div',{class:'pp-pick'},longDay(S.date)+', '+S.time+', with a free coach'));
+      return; }
+    root.appendChild(el('div',null,el('h4',{text:anyOk()?'Choose your coach':'1. Choose your coach'}),el('div',{class:'pp-coaches'},S.data.coaches.map(function(c){
       return el('button',{type:'button',class:'pp-coach','aria-pressed':String(S.coach===c.id),onclick:function(){ if(S.coach!==c.id){ S.coach=c.id; S.time=null; S.alt_date=null; S.alt_time=null; if(S.date&&!freeOn(S.date,c.id).length) S.date=null; } draw(); }},
         c.video?vid(c):c.photo?el('img',{src:c.photo,alt:'',loading:'lazy'}):el('span',{class:'pp-ini','aria-hidden':'true',text:initials(c.name)}),
         el('span',null,el('b',{text:c.name}),c.bio?el('small',{text:c.bio}):null,c.rate?el('small',{class:'pp-rate',text:'Own rate: '+Number(c.rate).toLocaleString('en-US')+' THB'+(opts.rateNote?' '+opts.rateNote(c):'')}):null)); }))));
@@ -86,9 +101,9 @@ window.PrivPick=function(opts){
   }
   load();
   return {el:root,
-    check:function(){ if(S.data&&!S.data.coaches.length) return null; if(!S.coach) return 'Choose your coach.'; if(!S.date) return 'Choose the day.'; if(!S.time) return 'Choose the time.';
-      if(S.any==null) return 'Tell us if another coach is OK.'; if(S.any===false&&!(S.alt_date&&S.alt_time)) return 'Choose a backup time with '+coachOf(S.coach).name+'.'; return null; },
-    value:function(){ var c=coachOf(S.coach); return {coach:S.coach,coach_name:c?c.name:'',rate:c&&c.rate?Number(c.rate):null,date:S.date,time:S.time,any:S.any!==false,alt_date:S.any===false?S.alt_date:null,alt_time:S.any===false?S.alt_time:null}; },
+    check:function(){ if(S.data&&!S.data.coaches.length) return null; if(!S.coach&&S.mode!=='any') return 'Choose your coach.'; if(!S.date) return 'Choose the day.'; if(!S.time) return 'Choose the time.';
+      if(S.mode==='any') return S.coach?null:'That time was just taken. Choose another time.'; if(S.any==null) return 'Tell us if another coach is OK.'; if(S.any===false&&!(S.alt_date&&S.alt_time)) return 'Choose a backup time with '+coachOf(S.coach).name+'.'; return null; },
+    value:function(){ var c=coachOf(S.coach); return {coach:S.coach,coach_name:S.mode==='any'?'a free coach':c?c.name:'',picked:S.mode!=='any',rate:c&&c.rate&&S.mode!=='any'?Number(c.rate):null,date:S.date,time:S.time,any:S.any!==false,alt_date:S.any===false?S.alt_date:null,alt_time:S.any===false?S.alt_time:null}; },
     reload:function(){ S.data=null; return load(); },
     text:function(){ var v=this.value(); if(!v.time) return ''; return longDay(v.date)+', '+v.time+' with '+v.coach_name+(v.alt_date?'. Backup: '+longDay(v.alt_date)+', '+v.alt_time:''); }};
 };
