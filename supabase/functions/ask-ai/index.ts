@@ -95,15 +95,16 @@ Database tables (name: columns):
 ${Object.entries((schema ?? {}) as Record<string, string>).map(([t, c]) => `${t}: ${c}`).join("\n").slice(0, 60000)}`;
 }
 
-async function claude(sys: string, messages: unknown[]) {
+async function claude(sys: string, messages: unknown[], web: boolean) {
   const slot = await admin.rpc("ai_usage_take", { p_fn: "ask-ai" });
   if (slot.error || !slot.data) throw new Error("This month's AI allowance is used up.");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST", headers: { "x-api-key": KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 4000, system: sys, tools: TOOLS, messages }),
+    body: JSON.stringify({ model: MODEL, max_tokens: 4000, system: sys, tools: web ? [...TOOLS, { type: "web_search_20250305", name: "web_search", max_uses: 5 }] : TOOLS, messages }),
   });
   const j = await res.json().catch(() => ({}));
   await admin.from("ai_usage").update({ in_tokens: j?.usage?.input_tokens ?? null, out_tokens: j?.usage?.output_tokens ?? null, ok: res.ok }).eq("id", slot.data);
+  if (!res.ok && web && /web.?search/i.test(String(j?.error?.message ?? ""))) return claude(sys, messages, false);
   if (!res.ok) throw new Error("The AI said: " + (j?.error?.message ?? res.status));
   return j as { content: { type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }[]; stop_reason: string };
 }
@@ -144,14 +145,18 @@ Deno.serve(async (req) => {
       for (const f of b.files.slice(0, 5)) blocks.push(...fileBlocks(f));
       last.content = blocks;
     }
-    const sys = await system(who.user, who.staff?.name ?? "a team member");
+    // web search (feature ask_ai_web, on unless turned off): find places, prices and contacts on the internet
+    const { data: feats } = await admin.rpc("app_features");
+    const web = (feats as Record<string, unknown> | null)?.ask_ai_web !== false;
+    const sys = await system(who.user, who.staff?.name ?? "a team member") + (web ? "\nYou can search the web with web_search, for example to find nearby businesses, their websites and contact emails. Say where facts came from, and never invent an email address: if you cannot find one, say so." : "");
     const proposals: unknown[] = [];
     let reply = "";
     for (let i = 0; i < 8; i++) {
-      const r = await claude(sys, messages);
+      const r = await claude(sys, messages, web);
       messages.push({ role: "assistant", content: r.content });
       const uses = r.content.filter((c) => c.type === "tool_use");
       reply = r.content.filter((c) => c.type === "text").map((c) => c.text).join("\n").trim() || reply;
+      if (r.stop_reason === "pause_turn") continue;
       if (!uses.length || r.stop_reason !== "tool_use") break;
       const results = [];
       for (const u of uses) {
