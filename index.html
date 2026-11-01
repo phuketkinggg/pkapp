@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=98"></script>
+<script src="changelog.js?v=99"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -889,6 +889,7 @@ var FEATURES=[
   {k:'chat_block',g:'Messages',n:'Block people in chats',d:'Customers can block anyone who writes to them in a chat. That person\'s messages are hidden from them in every chat, they get no phone notices from them, and managers and the front desk get a notice. They can unblock in their account (Blocked).'},
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
   {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
+  {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
@@ -922,7 +923,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=54; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=55; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8054,6 +8055,20 @@ function emailOne(c,draft){ draft=draft||{};
 function emailOneSection(c){ var E=EMO[c.id]; if(!E){ emailOneLoad(c.id); return null; } if(!E.list||!E.list.length) return null;
   return section('Emails',null,table([{label:'When',cell:function(x){ return fmtDate(String(x.at).slice(0,10)); }},{label:'Subject',cell:function(x){ return h('span',null,x.subject||'(no subject)',h('div',{class:'sub'},'To '+x.to+(x.by?', by '+x.by:''))); }},
     {label:'',cell:function(x){ return x.status==='sent'?chip('Sent','ok'):x.status==='failed'?h('span',{class:'row'},chip('Not sent','warn'),btn('Try again',function(){ emailOne(c,x); },'small')):x.status==='sending'?chip('Sending'):h('span',{class:'row'},chip('Draft'),btn('Open',function(){ emailOne(c,x); },'small primary'),btn('Remove',function(){ sb.rpc('email_one_drop',{p_id:x.id}).then(must).then(function(){ emailOneLoad(c.id); }).catch(function(e){ toast(errText(e)); }); },'small')); }}],E.list,'')); }
+/* people who signed up in the app but are not customers yet (feature app_signups): not confirmed, or no name added. The desk can finish it. */
+var SIGNUPS=null, signupsAt=0;
+function signupsBox(){
+  if(!featOn('app_signups')||!me||['manager','admin','front_desk','resort'].indexOf(me.role)<0) return null;
+  if(Date.now()-signupsAt>60000){ signupsAt=Date.now(); sb.rpc('app_signups_pending').then(function(r){ if(!r.error){ var n=JSON.stringify(r.data||[]); if(n!==JSON.stringify(SIGNUPS||[])){ SIGNUPS=r.data||[]; schedule(); } else SIGNUPS=r.data||[]; } }); }
+  var l=SIGNUPS||[]; if(!l.length) return null;
+  return h('div',{class:'panel pad'},h('b',null,'Signed up in the app, not finished ('+l.length+')'),
+    h('p',{class:'sub'},'They made a login but did not confirm their email or add their name yet, so they are not customers yet. Tap Finish to add them now: their login works straight away.'),
+    h('div',{class:'hlist'},l.map(function(x){ return h('div',{class:'row',style:'justify-content:space-between;flex-wrap:wrap;gap:6px'},
+      h('span',null,h('b',{class:'notr'},x.email),' ',h('span',{class:'sub'},fmtDate(String(x.at).slice(0,10))+', '+(x.confirmed?'email confirmed, no name yet':'email not confirmed'))),
+      btn('Finish',function(){ openForm({title:'Add as a customer',note:x.email+'. Their email is confirmed and they can sign in straight away.',saveLabel:'Add',doneMsg:'Added to customers.',
+        fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone or WhatsApp',type:'tel'}],
+        onSave:function(v){ return sb.rpc('app_signup_finish',{p_user:x.id,p_name:v.name,p_phone:v.phone||null}).then(must).then(function(){ SIGNUPS=(SIGNUPS||[]).filter(function(y){ return y.id!==x.id; }); signupsAt=0; return reload('customers'); }); }}); },'small')); })));
+}
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
@@ -8160,6 +8175,7 @@ function vCustomers(){
   if(!staffish) cols=cols.filter(function(c){ return c.label!=='Last visit'; });
   return [
     pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
+    q?null:signupsBox(),
     outIds.length&&show!=='out'&&!q?h('div',{class:'panel pad row owebox'},h('b',null,outIds.length+' package'+(outIds.length===1?'':'s')+' running out'),h('span',{class:'sub'},'Ending within a week or 2 visits or fewer left, with nothing new lined up.'),btn('Show them',function(){ ui.cshow='out'; schedule(); },'primary small')):null,
     (function(){ var due=q?[]:reviewDue(); return due.length?h('div',{class:'panel pad'},h('b',null,'Ask for a Google review'),h('p',{class:'sub'},'These people are a week or two in, or just checked out. One tap opens WhatsApp with the review link ready to send.',me&&me.role==='manager'?[' ',linkBtn('Change the message',editReviewMsg)]:null),
       h('div',{class:'row',style:'flex-wrap:wrap'},due.map(function(d){ return btn(d.c.name+' ('+d.why+')',function(){ reviewAsk(d.c); },'small'); }))):null; })(),
