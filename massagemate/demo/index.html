@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=104"></script>
+<script src="changelog.js?v=105"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -928,7 +928,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=60; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=61; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7319,7 +7319,15 @@ function campSection(){ if(CAMP===null){ CAMP=false; sb.rpc('email_campaigns').t
       {label:'',cell:function(c){ return h('span',{class:'row'},c.queued?btn('Take one off',function(){ openForm({title:'Take an address off',note:'For someone who replied stop or not interested. Their email will not be sent.',fields:[{key:'email',label:'Email',type:'email',required:true}],
           onSave:function(v){ return sb.rpc('email_campaign_drop',{p_campaign:c.campaign,p_email:v.email}).then(must).then(function(n){ CAMP=null; if(!n) throw {plain:true,message:'That address is not waiting in this campaign.'}; }); }}); },'small'):null,
         c.queued?btn('Stop the rest',function(){ if(!window.confirm('Stop the '+c.queued+' emails still waiting?')) return; sb.rpc('email_campaign_stop',{p_campaign:c.campaign}).then(must).then(function(){ CAMP=null; schedule(); toast('Stopped.'); }).catch(function(e){ toast(errText(e)); }); },'small'):null); }}],CAMP,''),
-    h('p',{class:'sub'},'Sent from your name a few at a time so they do not land in spam. Replies come to hello@massagemate.app.'))); }
+    h('p',{class:'sub'},'Sent from your name a few at a time so they do not land in spam.'),
+    h('div',{class:'row'},btn('Sending address',senderDlg,'small')))); }
+/* the address outreach emails go from (app_settings email_sender). Your main domain lands in the inbox far more often than a new one */
+function senderDlg(){ sb.from('app_settings').select('value').eq('key','email_sender').maybeSingle().then(function(res){ var v={}; try{ v=JSON.parse((res.data&&res.data.value)||'{}')||{}; }catch(e){ v={}; }
+  openForm({title:'Sending address',note:'Emails from your main address land in the inbox far more often. Its domain must be added and verified in Resend (Domains) first. Until then they go from the app address, so nothing is lost.',
+    values:{email:v.email||'',name:v.name||'',reply_to:v.reply_to||''},fields:[{key:'email',label:'Send from',type:'email',hint:'For example hello@yourdomain.com. Leave empty to use the app address.'},
+      {key:'name',label:'Name',hint:'Shown after your own name, for example your business name.'},{key:'reply_to',label:'Replies go to',type:'email'}],
+    onSave:function(x){ var val=JSON.stringify({email:x.email||'',name:x.name||'',reply_to:x.reply_to||''});
+      return sb.from('app_settings').upsert({key:'email_sender',value:val,updated_at:new Date().toISOString()}).select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; toast('Saved.'); }); }}); }).catch(function(e){ toast(errText(e)); }); }
 function vContacts(){
   if(!CRM){ if(!ui.crmBusy) loadCrm(); return [pageHead('Contacts',''),h('div',{class:'panel empty'},ui.crmErr||'Loading.')]; }
   var list=crmFilter(), tags={}; CRM.forEach(function(x){ (x.tags||[]).forEach(function(t){ tags[t]=(tags[t]||0)+1; }); });
