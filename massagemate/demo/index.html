@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=99"></script>
+<script src="changelog.js?v=100"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -924,7 +924,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=55; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=56; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8080,7 +8080,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       custBills(c),
       me&&me.role==='manager'?emailOneSection(c):null,
       me&&(me.role==='manager'||me.role==='coach')?intakePanel(c.id,true):null,

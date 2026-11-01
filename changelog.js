@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-01', title: 'Message a customer from their page', what: 'Managers and the front desk have a Message button on each customer\'s page. It opens the chat with that customer straight away, without looking for them in a list.'},
   {date: '2026-11-01', title: 'See app sign-ups that are not finished', what: 'Someone who signs up in the app becomes a customer once they confirm their email and add their name. Until then they now show on Customers under Signed up in the app, not finished, and the front desk can tap Finish to add them with their name. Their login then works straight away.', feature: 'app_signups'},
   {date: '2026-11-01', title: 'Book a private with any free coach', what: 'Booking a private now starts with Any free coach: the customer picks a day and a time from all the free times, and a coach who is free then is chosen for them (one without their own higher rate first). They can tap Pick my coach to choose a coach, as before. Works in the app and on the website.', feature: 'private_any_coach'},
   {date: '2026-10-31', title: 'Meal plans run to the leaving day', what: 'A meal plan for the whole stay now runs from the arrival day to the leaving day, so guests can have dinner when they arrive and breakfast before they leave. The number of meals stays the same: 3 a day for 6 nights is 18 meals.'},
