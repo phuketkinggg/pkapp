@@ -18,7 +18,7 @@ const cut = (s: string, n: number) => (s.length > n ? s.slice(0, n) + "\n[cut, "
 
 // what the assistant may change, only after the person taps Confirm. Each runs with the person's own rights.
 const ACTIONS: Record<string, string> = {
-  shop_product_save: "Add or change a shop product. args {p: {id (empty for new), name, price, cost, category_id, sku, barcode, active, in_app, grp, ...}}",
+  shop_product_save: "Add or change a shop product. args {p: {id (empty for new), name, price (THB), cost (THB), category_id, sku, description, active, in_app, on_web, kitchen, track_stock, low_stock, locations (array of shop_locations ids), grp}}. To change an existing product, read it first and send all its current fields with your changes.",
   shop_stock_set: "Shop stock at a location. args {p_product, p_location, p_kind: delivery (adds) | count (sets the count) | waste (takes off), p_qty, p_note}",
   stock_item_save: "Add or change a store item (housekeeping or supplies store). args {p: {id, name, unit, min_qty, ...}}",
   stock_adjust: "Store item stock. args {p_item, p_mode: delivery | count | waste, p_qty, p_note}",
