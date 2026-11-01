@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=100"></script>
+<script src="changelog.js?v=101"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -891,6 +891,7 @@ var FEATURES=[
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
   {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
   {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
+  {k:'free_packages',g:'Selling',n:'Give packages free of charge',d:'When selling a package, managers and admins can choose Free of charge and a reason: promotional, sponsored, staff or team, gift or apology, competition prize or other. It works like a paid package, shows as 0 THB so it is not counted as money taken, and the reason is saved on it.'},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
@@ -924,7 +925,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=56; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=57; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1247,6 +1248,9 @@ function editCustomer(c){ c=c||{};
       delete body.tags_txt; delete body.ok_txt; return save('customers',c.id,body).then(function(r){ CRM=null; return r; }); },
     onDelete:c.id?function(){ return sb.rpc('customer_remove',{p_id:c.id}).then(must).then(function(r){ toast(r&&r.kept?'Deleted. Their past purchases and payments stay in the accounts as Deleted customer.':'Deleted.'); ui.customerId=null; return reload('customers'); }); }:null});
 }
+/* managers and admins can give a package free of charge (feature free_packages): 0 THB, with the reason saved on it */
+var FREEWHY=['Promotional','Sponsored','Staff or team','Gift or apology','Competition prize','Other'];
+function freeOk(){ return featOn('free_packages')&&!!me&&(me.role==='manager'||me.role==='admin'); }
 function sellPackage(c){
   var group=c.price_group||'standard';
   var list=sortBy(S.packages.filter(function(p){return p.active!==false&&canBuy(p,group);}),'name');
@@ -1270,21 +1274,25 @@ function sellPackage(c){
     {key:'course',label:OFFER?'Add the online course: '+OFFER.title+', +'+thb(OFFER.price)+(OFFER.new_only?' (new members)':''):'',type:'checkbox',hide:!offerFits(list[0],c.id),hint:OFFER&&OFFER.text?OFFER.text:'Unlocks in their app, in the Learn tab.',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(PAYOPTS,PAYLINK),hint:'Not paid yet: the package works straight away and the full price shows as owed until they pay with Take payment. Stripe card link and PromptPay QR show the payment straight after you tap Record sale.',
-      onChange:function(v,set,get,o,show){ px.method(v,set,get,show); show('paid_now',v!=='later'); set('paid_now',v==='later'?0:px.total(get)); }},
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(PAYOPTS,PAYLINK,freeOk()?[['free','Free of charge (promotional, sponsored, staff...)']]:[]),hint:'Not paid yet: the package works straight away and the full price shows as owed until they pay with Take payment. Stripe card link and PromptPay QR show the payment straight after you tap Record sale.',
+      onChange:function(v,set,get,o,show){ px.method(v,set,get,show); show('paid_now',v!=='later'&&v!=='free'); set('paid_now',v==='later'||v==='free'?0:px.total(get)); show('free_why',v==='free'); show('free_note',v==='free'); show('price_thb',v!=='free'); }},
+    {key:'free_why',label:'Why it is free',type:'select',hide:true,def:'Promotional',options:FREEWHY.map(function(x){ return [x,x]; }),hint:'Saved on the package. It shows as 0 THB, so it is not counted as money taken.'},
+    {key:'free_note',label:'Note (optional)',hide:true,hint:'For example: the sponsor or the campaign.'},
     {key:'paid_now',label:'Amount paid now (THB)',type:'number',hint:'If they pay part now, type what they paid. The rest shows as owed and they pay it later with Take payment.'}]),
     onSave:function(v){ var pk=byId('packages',v.package_id); if(!pk) return 'Choose a package.';
-      var x=pxOf(v), base=Math.round(Number(v.price_thb)||0); v.price_thb=base+x.fee+x.tax;
+      var free=v.method==='free'; if(free&&!freeOk()) return 'Only a manager or admin can give a package free.';
+      var x=free?{fee:0,tax:0}:pxOf(v), base=free?0:Math.round(Number(v.price_thb)||0); v.price_thb=base+x.fee+x.tax; if(free) v.paid_now=0;
       var paidNow=v.paid_now==null?Number(v.price_thb)||0:Math.round(v.paid_now); if(paidNow<0||paidNow>Number(v.price_thb)) return 'The amount paid now must be between 0 and the price.';
       var tt=tiersFor(pk,group), pp=perPriv(pk), q=tt||pp?Math.round(v.qty||0):null; if((tt||pp)&&(q<1||q>200)) return 'Type how many, 1 to 200.'; if(v.method==='later') paidNow=0;
       var byDay=tt&&pk.qty_unit==='days', lim=(tt&&!byDay)||pp?q:(byDay?null:pk.class_limit||null), nm=pp?(q===1?pk.name:'Private Muay Thai, '+q+' sessions'):pk.name+(tt?', '+q+(byDay?(q===1?' day':' days'):pk.covers&&pk.covers.indexOf('Privates')>=0?' sessions':' visits'):'');
       if(v.fz&&addonFor(pk,group)==null) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
       var covers=pk.covers?pk.covers.slice():null; if(v.fz&&covers) ['Fitness zone','Open gym'].forEach(function(f){ if(covers.indexOf(f)<0) covers.push(f); });
       var addCourse=!!v.course&&offerFits(pk,c.id), offer=OFFER;
-      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':'')+(addCourse?' + Course: '+offer.title:''),price_thb:v.price_thb,fee_thb:x.fee,tax_thb:x.tax,price_group:group,paid:false,paid_thb:paidNow,method:v.method==='later'?null:v.method,purchased_on:v.purchased_on,
+      var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':'')+(addCourse?' + Course: '+offer.title:'')+(free?' (Free: '+(v.free_why||'Promotional')+(v.free_note?', '+String(v.free_note).trim().slice(0,60):'')+')':''),price_thb:v.price_thb,fee_thb:x.fee,tax_thb:x.tax,price_group:group,paid:false,paid_thb:paidNow,method:v.method==='later'?null:v.method,purchased_on:v.purchased_on,
         covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:byDay?q:(pk.duration_days||null),
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
+      if(free){ p.paid=true; p.paid_thb=0; p.method=null; }
       var link=v.method==='stripe'||v.method==='qr', linkAmt=paidNow;
       if(link){ if(!(paidNow>0)) return 'Type the amount they pay now by '+(v.method==='stripe'?'card':'PromptPay')+'.'; if(v.method==='stripe'&&paidNow!==Number(v.price_thb)) return 'A Stripe link charges the full price. Set Amount paid now to '+thb(v.price_thb)+', or choose another way to pay.'; p.paid_thb=0; p.method=null; }
       return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must).then(function(d){
@@ -1292,6 +1300,7 @@ function sellPackage(c){
         .then(function(d){ return reload('purchases').then(function(){ return d.id; }); }).then(function(id){
         if(v.method==='stripe') return setTimeout(function(){ stripePay('purchase',id,nm); },300);
         if(v.method==='qr') return setTimeout(function(){ promptPayAmount(c,linkAmt,nm); },300);
+        if(free) return setTimeout(function(){ toast('Given free: '+nm+'.'); },50);
         var ow=customerOwes(c.id).total; if(ow) setTimeout(function(){ toast((v.method==='later'?'Added, not paid yet. ':'Sold. ')+c.name+' now owes '+thb(ow)+'.'); },50); }); }});
 }
 function editPurchase(p){
