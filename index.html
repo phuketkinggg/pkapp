@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=102"></script>
+<script src="changelog.js?v=103"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -926,7 +926,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=58; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=59; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -6614,6 +6614,7 @@ function productGroupDlg(name,catId){
   cat.value=(name?first.category_id:catId)||'';
   function cb(label,on){ var i=h('input',{type:'checkbox'}); i.checked=!!on; return {i:i,el:h('label',{class:'check'},i,h('span',null,label))}; }
   var kit=cb('Goes to the kitchen screen',name?first.kitchen:false), app=cb('Guests and members can order it in the app',name?first.in_app:false);
+  var trk=cb('Track stock for every option (each colour and size has its own count)',name?old.every(function(p){ return p.track_stock; }):false);
   // a modifier on every option is ticked, on some options it shows as part ticked; only a modifier you change is changed on every option
   var mcs=ms.map(function(m){ var n=old.filter(function(p){ return (p.mods||[]).indexOf(m.id)>=0; }).length, some=n>0&&n<old.length;
     var c=cb(m.name+' ('+(m.options||[]).map(function(o){ return o.name; }).join(', ')+')'+(some?', on some options':''),old.length>0&&n===old.length); c.id=m.id; c.was=c.i.checked; c.some=some;
@@ -6637,7 +6638,7 @@ function productGroupDlg(name,catId){
     if(!use.length){ err.textContent='Add at least one option, for example Latte 80.'; err.hidden=false; return; }
     function modsFor(p){ var cur=(p&&p.mods)||[]; return mcs.filter(function(c){ return c.some?cur.indexOf(c.id)>=0:c.i.checked; }).map(function(c){ return c.id; }); }
     var base=first.id?groupBase(first):{locations:[],on_web:false};
-    var jobs=use.map(function(r,k){ var v=r.p?groupBase(r.p):Object.assign({},base,{id:null,cost:null,description:'',sku:'',open_price:false,track_stock:false,low_stock:null});
+    var jobs=use.map(function(r,k){ var v=r.p?groupBase(r.p):Object.assign({},base,{id:null,cost:null,description:'',sku:'',open_price:false,track_stock:false,low_stock:null}); if(trk.i.checked) v.track_stock=true; else if(!r.p||trk.was) v.track_stock=false;
       return {v:Object.assign(v,{name:String(r.name).trim(),price:Math.round(Number(r.price)),active:!!r.on,grp:g,category_id:cat.value||'',kitchen:kit.i.checked,in_app:app.i.checked,sort:k}),mods:modsFor(r.p)}; });
     saveB.disabled=true;
     jobs.reduce(function(pr,j){ return pr.then(function(){ return sb.rpc('shop_product_save',{p:j.v}).then(must).then(function(id){ var pid=id||j.v.id;
@@ -6645,14 +6646,23 @@ function productGroupDlg(name,catId){
       .then(function(){ $dlg.close(); toast(g+' saved.'); return loadShop(); }).then(function(){ schedule(); })
       .catch(function(e){ saveB.disabled=false; err.textContent=errText(e); err.hidden=false; });
   }
+  trk.was=trk.i.checked;
+  /* every combination in one go: for example colours Black, White and sizes S, M, L make Black S, Black M ... White L */
+  var cA=h('input',{id:'pg-ca',placeholder:'For example Black, White, Red',class:'notr'}), cB=h('input',{id:'pg-cb',placeholder:'For example S, M, L, XL',class:'notr'}), cP=h('input',{id:'pg-cp',type:'number',inputmode:'numeric',placeholder:'Price'});
+  function combos(){ var a=cA.value.split(',').map(function(x){ return x.trim(); }).filter(Boolean), b=cB.value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+    if(!a.length){ err.textContent='Type at least one colour or style.'; err.hidden=false; return; } err.hidden=true;
+    var have={}; rows.forEach(function(r){ have[String(r.name).trim().toLowerCase()]=1; }); rows=rows.filter(function(r){ return r.p||String(r.name).trim(); });
+    a.forEach(function(x){ (b.length?b:['']).forEach(function(y){ var n=y?x+' '+y:x; if(!have[n.toLowerCase()]) rows.push({name:n,price:cP.value,on:true}); }); });
+    trk.i.checked=true; draw(); }
   var saveB=btn('Save group',save,'primary');
   shopDlg(h('div',{class:'billbox'},h('h2',null,name?'Group: '+name:'New product group'),
     h('p',{class:'sub'},'A group is one button on the till and in the app, for example Coffee. Tap it and staff or guests pick the option, for example Latte or Espresso, each with its own price. Then the modifiers are asked, for example milk or hot or iced.'),
     field('pg-name','Group name',nm),field('pg-cat','Category',cat),
+    h('details',{class:'ff'},h('summary',null,'Make every colour and size in one go'),h('p',{class:'sub'},'For clothes and gear. Each combination becomes its own option with its own stock count.'),field('pg-ca','Colours or styles',cA),field('pg-cb','Sizes (optional)',cB),field('pg-cp','Price for each',cP),btn('Add the combinations',combos,'small')),
     h('div',{class:'ff'},h('label',null,'Options and their prices'),list,h('div',{class:'row'},btn('Add option',function(){ rows.push({name:'',price:'',on:true}); draw(); var l=list.querySelectorAll('input:not([type=number]):not([type=checkbox])'); if(l.length) l[l.length-1].focus(); },'small'))),
     ms.length?h('div',{class:'ff'},h('label',null,'Modifiers for every option'),h('span',{class:'sub'},'Asked after the option, for example Milk or Hot or iced.'),mcs.map(function(c){ return c.el; })):
       featOn('shop_modifiers')?h('p',{class:'sub'},'No modifiers yet. Make them with Modifiers on the Products page, then tick them here.'):null,
-    kit.el,app.el,
+    kit.el,app.el,trk.el,
     old.length?h('p',{class:'sub'},'Photos, stock, cost and where it is sold: open an option from the products list.'):null,err,
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),saveB))));
   setTimeout(function(){ (name?list.querySelector('input'):nm).focus(); },40);
