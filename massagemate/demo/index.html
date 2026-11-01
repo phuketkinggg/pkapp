@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=101"></script>
+<script src="changelog.js?v=102"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -695,6 +695,7 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .ssbar{position:relative;display:flex;align-items:center;gap:8px;min-width:160px}.sstrack{display:block;width:140px;height:10px;border-radius:5px;background:var(--sunken);flex:none;overflow:hidden}.ssbar .ssfill{display:block;height:10px;border-radius:5px;background:var(--gold)}.ssbar b{font-variant-numeric:tabular-nums}
 .hrs{display:flex;flex-direction:column;gap:10px;margin:8px 0}.hrsday{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:6px}
 .hrsrow{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px;align-items:center}.hrsrow input{min-width:0;width:100%}.hrsrow input:disabled{opacity:.4}
+.ailog{display:flex;flex-direction:column;gap:10px;margin:8px 0 12px}.aimsg{display:flex}.aimsg.me{justify-content:flex-end}.aibub{max-width:min(680px,92%);padding:10px 14px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}.aimsg.ai .aibub{background:var(--surface);border:1px solid var(--line)}.aimsg.me .aibub{background:var(--sunken)}.aiprop{border-left:3px solid var(--gold)}.ailist{margin:8px 0;padding-left:18px}.ailist li{margin:3px 0}.aicompose textarea{width:100%;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -827,7 +828,7 @@ function moveReady(r){ return r.by==='coach'||!r.needs_coach||!!r.coach_agreed; 
 var COLS=['packages','staff','customers','purchases','classes','checkin_days','privates','sources','holidays','rooms','stays','charges','minibar'];
 var S={}; COLS.forEach(function(c){S[c]=[];});
 var db=null, allReady=false;
-var ALLTABS=[['today','Today'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['emails','Emails'],['courses','Education'],['coaching','Coaching'],['settings','Settings']];
+var ALLTABS=[['today','Today'],['askai','Ask AI'],['shop','Shop'],['kitchen','Kitchen'],['stays','Stays'],['housekeeping','Housekeeping'],['actions','Pending actions'],['work','Work log'],['receipts','Receipts'],['accounts','Accounts'],['customers','Customers'],['contacts','Contacts'],['email','Newsletters'],['social','Social media'],['affiliates','Affiliates'],['webpages','Web pages'],['sitestats','Website numbers'],['packages','Packages'],['timetable','Timetable'],['privates','Privates'],['fights','Fights'],['staff','Staff'],['hours','Staff hours'],['investor','Investor view'],['commission','Commission'],['coach','Coach view'],['custview','Customer view'],['emails','Emails'],['courses','Education'],['coaching','Coaching'],['settings','Settings']];
 var TAB0={}; ALLTABS.forEach(function(t){ TAB0[t[0]]=t[1]; }); /* the standard names, before spa names and Master control names */
 var TABS=[];
 /* ---------- feature switches: each business turns parts of the app on or off (Settings, Features) ----------
@@ -891,6 +892,7 @@ var FEATURES=[
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
   {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
   {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
+  {k:'ask_ai',g:'AI package',n:'Ask AI',d:'An assistant in the app for the owner, and for the staff the owner ticks Ask AI on (Staff, Edit). Ask about anything in the business, send PDFs, photos or spreadsheets (for example a delivery note to add to shop stock), or ask it to write and send an email. It reads with the person\'s own rights, and every change is shown first and only done when they tap Confirm.',tabs:['askai'],spa:true},
   {k:'free_packages',g:'Selling',n:'Give packages free of charge',d:'When selling a package, managers and admins can choose Free of charge and a reason: promotional, sponsored, staff or team, gift or apology, competition prize or other. It works like a paid package, shows as 0 THB so it is not counted as money taken, and the reason is saved on it.'},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
@@ -925,7 +927,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=57; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=58; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1175,13 +1177,14 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
 }
 function editStaff(s){ s=s||{}; var own=isOwner();
   if(!own&&(s.role==='manager'||s.role==='admin')){ toast('Only the owner can change owners and admins.'); return; }
-  var sv=Object.assign({},s,{x_areas:(s.access&&s.access.areas)||[],x_perms:(s.access&&s.access.perms)||(s.id?[]:['edit']),work_days:(s.work_days||[]).map(String),work_start:s.work_start?String(s.work_start).slice(0,5):'',work_end:s.work_end?String(s.work_end).slice(0,5):''});
+  var sv=Object.assign({},s,{x_ai:!!(s.access&&s.access.ai),x_areas:(s.access&&s.access.areas)||[],x_perms:(s.access&&s.access.perms)||(s.id?[]:['edit']),work_days:(s.work_days||[]).map(String),work_start:s.work_start?String(s.work_start).slice(0,5):'',work_end:s.work_end?String(s.work_end).slice(0,5):''});
   openForm({title:s.id?'Edit staff member':'New staff member',values:sv,fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
     {key:'role',onChange:function(v,set,get,o,show){ show('x_areas',own&&(v==='admin'||v==='front_desk')); show('x_perms',own&&v==='admin'); },label:'Role',type:'select',def:'coach',options:(own?[['manager','Owner: everything'],['admin','Admin: only the departments and rights you tick below']]:[]).concat([['coach','Coach'],['front_desk','Front desk: only the departments you tick below'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['maintenance','Maintenance: jobs to fix, check in and out'],['investor','Investor: sees the numbers only, for the parts you tick below']])},
     {key:'x_areas',label:'Departments',type:'checks',hide:!(own&&(s.role==='admin'||s.role==='front_desk')),options:[['gym','Gym: training, classes, privates, gym shop'],['spa','Spa'],['resort',BIZ_STAY+': rooms, stays, housekeeping'],['cafe',DEPT_CAFE]],hint:'What they look after. Tick none for all departments.'},
     {key:'x_perms',label:'What they can do',type:'checks',hide:!(own&&s.role==='admin'),options:[['edit','Change things (without this they can only look)'],['refunds','Refunds, discounts and fixing mistakes'],['money','Accounts, receipts, invoices and money reports'],['staff','Staff, hours, pay and commission'],['settings','Settings, packages, prices and website'],['marketing','Newsletters, social media and contacts']]},
+    {key:'x_ai',label:'Ask AI: they can use the AI assistant',type:'checkbox',hide:!own||!featOn('ask_ai')||s.role==='manager',hint:'Owners always have it. It reads with their own rights, and they confirm every change.'},
     {key:'investor_zones',label:'Investor can see',type:'checks',options:[['gym','Gym'],['spa','Spa'],['cafe','Cafe'],['resort','Resort']],hint:'Only for investors. They see totals and numbers, never customer names.'},
     {key:'also_coach',label:'Also a coach (teaches privates or classes)',type:'checkbox',hint:'For an owner, admin or front desk who also coaches. They keep their own screens and can be picked as a coach for privates, classes and online booking.'},
     {key:'commission_pct',label:'Coach share of privates (%)',type:'number',def:50,hint:'Only used for coaches. Set 100 for a coach who keeps the whole private (no gym commission).'},
@@ -1204,7 +1207,7 @@ function editStaff(s){ s=s||{}; var own=isOwner();
     onSave:function(v){ delete v.photo_btn; delete v.video_btn; v.video_url=v.video_url||null; v.web_name=v.web_name||null; v.web_title=v.web_title||null; v.web_about=v.web_about||null; v.web_sort=v.web_sort==null?100:Math.round(Number(v.web_sort)); v.web_show=!!v.web_show;
       if(v.video_url&&!/^https:\/\//.test(v.video_url)) return 'The video link must start with https://'; if(v.role==='coach') v.also_coach=false; v.private_rate_thb=v.private_rate_thb?Math.round(Number(v.private_rate_thb)):null; v.bio=v.bio||null; v.photo_url=v.photo_url||null; if(v.work_end&&!v.work_start) return 'Add the start time too.'; if(v.work_start&&v.work_end&&v.work_end<=v.work_start) return 'The finish time must be after the start time.';
       var b=Object.assign({},s,v); b.work_days=(v.work_days||[]).length?v.work_days.map(Number):null; b.work_start=v.work_start||null; b.work_end=v.work_end||null; delete b.work_days_s;
-      if(own){ b.access=v.role==='admin'||v.role==='front_desk'?{areas:v.x_areas||[],perms:v.role==='admin'?(v.x_perms||[]):[]}:null; if(v.role==='admin'&&!(v.x_perms||[]).length&&!confirm('No rights ticked: they can only look. Save?')) return 'Tick what they can do.'; } delete b.x_areas; delete b.x_perms; return save('staff',s.id,b); },
+      if(own){ b.access=v.role==='admin'||v.role==='front_desk'?{areas:v.x_areas||[],perms:v.role==='admin'?(v.x_perms||[]):[]}:null; if(v.x_ai&&v.role!=='manager') b.access=Object.assign(b.access||{},{ai:true}); if(v.role==='admin'&&!(v.x_perms||[]).length&&!confirm('No rights ticked: they can only look. Save?')) return 'Tick what they can do.'; } delete b.x_areas; delete b.x_perms; delete b.x_ai; return save('staff',s.id,b); },
     onDelete:s.id?function(){ return db.doc('staff/'+s.id).delete(); }:null});
   var pb=document.getElementById('f-photo_btn'); if(pb) pb.replaceChildren(btn('Add a photo',function(){ var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return; toast('Uploading the photo.');
     shrinkPhoto(f,600).then(function(blob){ var path='coaches/'+Date.now()+'.jpg'; return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); })
@@ -8079,6 +8082,54 @@ function signupsBox(){
         fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone or WhatsApp',type:'tel'}],
         onSave:function(v){ return sb.rpc('app_signup_finish',{p_user:x.id,p_name:v.name,p_phone:v.phone||null}).then(must).then(function(){ SIGNUPS=(SIGNUPS||[]).filter(function(y){ return y.id!==x.id; }); signupsAt=0; return reload('customers'); }); }}); },'small')); })));
 }
+/* Ask AI (feature ask_ai): a chat with the assistant. Files go with the message; changes come back as proposals to confirm. */
+var AI={msgs:[],items:[],files:[],busy:false,err:''};
+function aiCall(body){ return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
+  return fetch(SB_URL+'/functions/v1/ask-ai',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(t||'')},body:JSON.stringify(body)}).then(function(x){ return x.json(); }); })
+  .then(function(d){ if(d&&d.error) throw {plain:true,message:d.error}; return d; }); }
+function aiNote(text){ var l=AI.msgs[AI.msgs.length-1]; if(l&&l.role==='user'){ if(!Array.isArray(l.content)) l.content=[{type:'text',text:String(l.content||'')}]; l.content.push({type:'text',text:text}); } else AI.msgs.push({role:'user',content:[{type:'text',text:text}]}); }
+function aiSend(text){
+  text=String(text||'').trim(); if((!text&&!AI.files.length)||AI.busy) return;
+  var files=AI.files; AI.files=[]; AI.err=''; AI.draft='';
+  AI.items.push({who:'me',text:text,files:files.map(function(f){ return f.name; })});
+  aiNote(text||'Here is the file.'); AI.busy=true; schedule(); aiScroll();
+  aiCall({messages:AI.msgs,files:files}).then(function(d){
+    AI.msgs=d.messages||AI.msgs; if(d.reply) AI.items.push({who:'ai',text:d.reply});
+    (d.proposals||[]).forEach(function(p){ AI.items.push({who:'ai',prop:p,state:'open'}); });
+  }).catch(function(e){ AI.err=errText(e); AI.msgs.pop(); }).then(function(){ AI.busy=false; schedule(); aiScroll(); });
+}
+function aiScroll(){ setTimeout(function(){ var el=document.querySelector('.ailog'); if(el) el.scrollTop=el.scrollHeight; window.scrollTo(0,document.body.scrollHeight); },60); }
+function aiConfirm(it){
+  it.state='running'; schedule();
+  aiCall({mode:'run',actions:it.prop.actions||[]}).then(function(d){ it.results=d.results||[]; it.state='done';
+    var ok=it.results.filter(function(r){ return r.ok; }).length;
+    aiNote('I confirmed "'+(it.prop.summary||'the changes')+'". Done: '+ok+' of '+it.results.length+'. '+it.results.filter(function(r){ return !r.ok; }).map(function(r){ return r.label+': '+r.error; }).join('; '));
+    toast(ok===it.results.length?'Done.':'Done '+ok+' of '+it.results.length+'. See the lines marked not done.'); reload('purchases').catch(function(){}); SHOP=null; STOCK=null;
+  }).catch(function(e){ it.state='open'; toast(errText(e)); }).then(function(){ schedule(); });
+}
+function aiPick(){ var inp=h('input',{type:'file',multiple:true,accept:'.pdf,.xlsx,.xls,.csv,.txt,image/*',style:'display:none'});
+  inp.addEventListener('change',function(){ Array.prototype.slice.call(inp.files||[],0,5).forEach(function(f){
+    if(f.size>15*1024*1024){ toast(f.name+' is over 15 MB.'); return; }
+    var r=new FileReader(); r.onload=function(){ AI.files.push({name:f.name,type:f.type,data:String(r.result).split(',')[1]||''}); schedule(); }; r.readAsDataURL(f); }); });
+  document.body.appendChild(inp); inp.click(); setTimeout(function(){ inp.remove(); },60000); }
+function vAskAi(){
+  var box=h('textarea',{id:'ai-q',rows:'3',oninput:function(e){ AI.draft=e.target.value; },placeholder:'Ask anything, or attach a PDF, photo or spreadsheet. For example: add this delivery note to the shop stock.','aria-label':'Message'});
+  box.value=AI.draft||'';
+  box.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey&&!('ontouchstart' in window)){ e.preventDefault(); aiSend(box.value); } });
+  var log=AI.items.map(function(it){
+    if(it.prop){ var p=it.prop, acts=p.actions||[];
+      return h('div',{class:'panel pad aiprop'},h('b',null,p.summary||'Changes to confirm'),
+        h('ul',{class:'ailist notr'},acts.map(function(a,i){ var r=it.results&&it.results[i]; return h('li',null,(r?(r.ok?'✓ ':'✗ '):'')+(a.label||a.action),r&&!r.ok?h('span',{class:'sub'},' Not done: '+r.error):null); })),
+        it.state==='open'?h('div',{class:'row'},btn('Confirm',function(){ aiConfirm(it); },'primary small'),btn('Skip',function(){ it.state='skipped'; aiNote('I skipped "'+(p.summary||'the changes')+'".'); schedule(); },'small'))
+        :h('p',{class:'sub'},it.state==='running'?'Working on it.':it.state==='skipped'?'Skipped. Nothing changed.':'Done.')); }
+    return h('div',{class:'aimsg '+(it.who==='me'?'me':'ai')},h('div',{class:'aibub notr'},it.text||'',it.files&&it.files.length?h('div',{class:'sub'},'Attached: '+it.files.join(', ')):null)); });
+  return [pageHead('Ask AI','Ask about anything in the business, or send a file. Nothing changes until you tap Confirm.',AI.items.length?btn('New chat',function(){ AI.msgs=[]; AI.items=[]; AI.files=[]; AI.err=''; schedule(); },'small'):null),
+    h('div',{class:'ailog'},log.length?log:h('div',{class:'panel pad sub'},'Try: How many people checked in this week? Which shop items are low on stock? Or attach a supplier invoice and say: add this to the shop stock.'),
+      AI.busy?h('div',{class:'aimsg ai'},h('div',{class:'aibub sub'},'Thinking.')):null),
+    AI.err?h('p',{class:'ferr',role:'alert'},AI.err):null,
+    h('div',{class:'panel pad aicompose'},box,AI.files.length?h('div',{class:'row wrap'},AI.files.map(function(f,i){ return h('span',{class:'chip notr'},f.name,' ',h('button',{type:'button',class:'link','aria-label':'Remove '+f.name,onclick:function(){ AI.files.splice(i,1); schedule(); }},'×')); })):null,
+      h('div',{class:'row'},btn('Attach a file',aiPick,'small'),btn(AI.busy?'Thinking':'Send',function(){ aiSend(box.value); },'primary'+(AI.busy?' disabled':''))))];
+}
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
@@ -8785,7 +8836,7 @@ function vSettings(){
   else body=[cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
-var VIEWS={emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 /* Messages: a floating button on phones, and the first item in the menu on computers, with the unread count */
 var $fab=null;
@@ -10344,6 +10395,7 @@ function staffTabs(row){
       if(cp('staff')) keep.push('staff','hours'); if(cp('staff')&&has('gym')) keep.push('commission');
       if(cp('settings')) keep.push('settings','packages','webpages');
       if(cp('marketing')) keep.push('contacts','email','social','webpages','sitestats','affiliates'); } }
+  if(row.access&&row.access.ai) keep.push('askai');
   if(SPA) keep.push('board','privates'); if(SPA&&row.role==='admin'&&cp('settings')) keep.push('spasetup');
   return ALLTABS.filter(function(t){ return keep.indexOf(t[0])>=0; }).concat([['clock','Clock']]); }
 var currentEmail='', authUser=null;
