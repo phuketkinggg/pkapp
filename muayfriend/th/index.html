@@ -219,6 +219,24 @@ section.block{padding:96px 0}
 .faq details[open] summary::after{content:"\2212"}
 .faq details p{color:var(--ink2);padding-right:40px}
 
+/* pricing */
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:32px}
+.plan{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.plan.top{border-color:var(--blue);box-shadow:0 0 0 3px rgba(39,89,218,.15)}
+.plan h3{font-size:30px}
+.plan .was{color:var(--muted);text-decoration:line-through;font-size:17px;min-height:22px}
+.plan .now{font:800 44px/1 var(--display);color:var(--ink)}
+.plan .now small{font:500 15px var(--body);color:var(--muted)}
+.plan .lim{font-weight:600}
+.plan ul{list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:15px;color:var(--ink2)}
+.plan ul li{padding-left:22px;position:relative}
+.plan ul li::before{content:"";position:absolute;left:2px;top:6px;width:10px;height:6px;border-left:2.5px solid var(--blue);border-bottom:2.5px solid var(--blue);transform:rotate(-45deg)}
+.plan .btn{margin-top:auto}
+.promo{display:inline-block;margin-top:14px;padding:8px 16px;border-radius:999px;background:var(--red);color:#fff;font-weight:600}
+.addons{margin-top:24px;color:var(--ink2)}
+@media (max-width:1000px){.plans{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.plans{grid-template-columns:1fr}}
+
 /* start free */
 .free{background:var(--paper)}
 .free .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
@@ -281,6 +299,7 @@ h3{font-size:24px}
       <a href="#who">เหมาะกับใคร</a>
       <a href="#features">ทำอะไรได้บ้าง</a>
       <a href="#why">ทำไมต้อง Muay Friend</a>
+      <a href="#pricing">ราคา</a>
       <a href="#faq">คำถามที่พบบ่อย</a>
       <a href="../demo/">ลองเดโม</a>
     </nav>
@@ -526,6 +545,49 @@ h3{font-size:24px}
     </div>
   </section>
 
+  <section class="block" id="pricing">
+    <div class="wrap">
+      <div class="head"><h2>ราคา</h2></div>
+      <p class="lede">ราคารายเดือนแบบเข้าใจง่าย เป็นเงินบาท ราคาเปิดตัวสำหรับยิมกลุ่มแรกที่เข้าร่วม</p>
+      <p class="promo">โปรเปิดตัว: ลด 50% สองเดือนแรก</p>
+      <div class="plans">
+        <div class="plan">
+          <h3>Free</h3>
+          <p class="was"></p>
+          <p class="now">0 <small>ต่อเดือน</small></p>
+          <p class="lim">สมาชิก 15 คน พนักงาน 2 คน</p>
+          <ul><li>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย</li><li>ชื่อยิมของคุณ พร้อมโลโก้ Muay Friend เล็กๆ</li><li>ตั้งค่าด้วยตัวเอง</li></ul>
+          <a class="btn" href="#free">เริ่มใช้ฟรี</a>
+        </div>
+        <div class="plan">
+          <h3>Gym</h3>
+          <p class="was">2,290</p>
+          <p class="now">1,490 <small>ต่อเดือน</small></p>
+          <p class="lim">สมาชิก 30 คน พนักงาน 6 คน</p>
+          <ul><li>ทุกอย่างใน Free</li><li>ระบบขายหน้าร้านและคาเฟ่</li><li>งานแอดมิน บัญชี และใบเสร็จ</li><li>แบรนด์ของคุณเอง</li><li>เราตั้งค่าให้</li></ul>
+          <a class="btn ghost" href="#contact">เริ่มต้นใช้งาน</a>
+        </div>
+        <div class="plan top">
+          <h3>Camp</h3>
+          <p class="was">5,990</p>
+          <p class="now">3,990 <small>ต่อเดือน</small></p>
+          <p class="lim">สมาชิก 150 คน พนักงาน 15 คน</p>
+          <ul><li>ทุกอย่างใน Gym</li><li>สำหรับยิมและแคมป์ที่มีลูกค้าเยอะ</li><li>เราตั้งค่าให้</li></ul>
+          <a class="btn" href="#contact">เริ่มต้นใช้งาน</a>
+        </div>
+        <div class="plan">
+          <h3>Camp + Stay</h3>
+          <p class="was">11,990</p>
+          <p class="now">7,990 <small>ต่อเดือน</small></p>
+          <p class="lim">สมาชิก 150 คน พนักงานไม่จำกัด</p>
+          <ul><li>ทุกอย่างใน Camp</li><li>ห้องพัก การเข้าพัก และระบบจองออนไลน์</li><li>รวมเว็บไซต์ในตัวและเครื่องมือ AI</li><li>เราตั้งค่าให้</li></ul>
+          <a class="btn ghost" href="#contact">เริ่มต้นใช้งาน</a>
+        </div>
+      </div>
+      <p class="addons">ส่วนเสริมสำหรับทุกแพ็กเกจ: เว็บไซต์ในตัว และเครื่องมือ AI (เขียนโพสต์ อ่านใบเสร็จ สร้างหน้าเว็บ) รวมอยู่แล้วใน Camp + Stay</p>
+    </div>
+  </section>
+
   <section class="block" id="faq">
     <div class="wrap">
       <div class="head"><h2>คำถามที่พบบ่อย</h2></div>
@@ -537,7 +599,7 @@ h3{font-size:24px}
         <details><summary>ใช้แค่บางส่วนได้ไหม?</summary><p>ได้ เราปิดส่วนที่คุณไม่ใช้ให้ ยิมที่ไม่มีห้องพักจะไม่เห็นเมนูห้องพักหรือแม่บ้าน</p></details>
         <details><summary>ย้ายสมาชิกเดิมเข้ามาได้ไหม?</summary><p>ได้ ส่งรายชื่อปัจจุบันมาให้เรา แล้วเราจะย้ายสมาชิก แพ็กเกจ และจำนวนที่เหลือเข้ามาให้</p></details>
         <details><summary>รวม AI ด้วยไหม?</summary><p>เครื่องมือ AI เป็นส่วนเสริมที่เลือกได้: สร้างหน้าเว็บจากคำอธิบาย เขียนโพสต์โซเชียลจากรูปของคุณ และอ่านใบเสร็จ ส่วนอื่นทั้งหมดใช้งานได้โดยไม่ต้องมี AI และเพิ่มได้ทุกเมื่อ</p></details>
-        <details><summary>ราคาเท่าไหร่?</summary><p>ยิมเล็กเริ่มใช้ฟรีได้: เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย สำหรับสมาชิกสูงสุด 15 คนและพนักงาน 2 คน ยิมใหญ่และแคมป์จ่ายรายเดือนตามขนาดและสิ่งที่ใช้ บอกเราเกี่ยวกับยิมของคุณ แล้วเราจะส่งราคาที่ชัดเจนให้</p></details>
+        <details><summary>ราคาเท่าไหร่?</summary><p>ยิมเล็กเริ่มใช้ฟรีได้ แพ็กเกจแบบชำระเงินเริ่มต้น 1,490 บาทต่อเดือน ลด 50% สองเดือนแรกช่วงเปิดตัว ดู<a href="#pricing">ราคา</a></p></details>
         <details><summary>เวอร์ชันฟรีมีอะไรบ้าง?</summary><p>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย พร้อมชื่อยิมของคุณ สำหรับสมาชิกสูงสุด 15 คนและพนักงาน 2 คน มีโลโก้ Muay Friend เล็กๆ อัปเกรดเป็นแพ็กเกจแบบชำระเงินได้ทุกเมื่อ โดยข้อมูลยังอยู่ครบ</p></details>
       </div>
     </div>

@@ -218,6 +218,24 @@ section.block{padding:96px 0}
 .faq details[open] summary::after{content:"\2212"}
 .faq details p{color:var(--ink2);padding-right:40px}
 
+/* pricing */
+.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:32px}
+.plan{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.plan.top{border-color:var(--blue);box-shadow:0 0 0 3px rgba(39,89,218,.15)}
+.plan h3{font-size:30px}
+.plan .was{color:var(--muted);text-decoration:line-through;font-size:17px;min-height:22px}
+.plan .now{font:800 44px/1 var(--display);color:var(--ink)}
+.plan .now small{font:500 15px var(--body);color:var(--muted)}
+.plan .lim{font-weight:600}
+.plan ul{list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:15px;color:var(--ink2)}
+.plan ul li{padding-left:22px;position:relative}
+.plan ul li::before{content:"";position:absolute;left:2px;top:6px;width:10px;height:6px;border-left:2.5px solid var(--blue);border-bottom:2.5px solid var(--blue);transform:rotate(-45deg)}
+.plan .btn{margin-top:auto}
+.promo{display:inline-block;margin-top:14px;padding:8px 16px;border-radius:999px;background:var(--red);color:#fff;font-weight:600}
+.addons{margin-top:24px;color:var(--ink2)}
+@media (max-width:1000px){.plans{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.plans{grid-template-columns:1fr}}
+
 /* start free */
 .free{background:var(--paper)}
 .free .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
@@ -264,6 +282,7 @@ footer a{color:#C9CFDB}
       <a href="#who">Who it's for</a>
       <a href="#features">What it does</a>
       <a href="#why">Why Muay Friend</a>
+      <a href="#pricing">Prices</a>
       <a href="#faq">Questions</a>
       <a href="demo/">Live demo</a>
     </nav>
@@ -509,6 +528,49 @@ footer a{color:#C9CFDB}
     </div>
   </section>
 
+  <section class="block" id="pricing">
+    <div class="wrap">
+      <div class="head"><h2>Prices</h2></div>
+      <p class="lede">Simple monthly prices in Thai baht. Launch prices for the first gyms that join.</p>
+      <p class="promo">Launch offer: your first 2 months at 50% off</p>
+      <div class="plans">
+        <div class="plan">
+          <h3>Free</h3>
+          <p class="was"></p>
+          <p class="now">0 <small>a month</small></p>
+          <p class="lim">15 members, 2 staff</p>
+          <ul><li>Check-ins, packages, selling and appointments</li><li>Your gym name, with a small Muay Friend logo</li><li>Set it up yourself</li></ul>
+          <a class="btn" href="#free">Start free</a>
+        </div>
+        <div class="plan">
+          <h3>Gym</h3>
+          <p class="was">2,290</p>
+          <p class="now">1,490 <small>a month</small></p>
+          <p class="lim">30 members, 6 staff</p>
+          <ul><li>Everything in Free</li><li>Shop and cafe till</li><li>Admin, accounts and receipts</li><li>Your own branding</li><li>We set it up for you</li></ul>
+          <a class="btn ghost" href="#contact">Get started</a>
+        </div>
+        <div class="plan top">
+          <h3>Camp</h3>
+          <p class="was">5,990</p>
+          <p class="now">3,990 <small>a month</small></p>
+          <p class="lim">150 members, 15 staff</p>
+          <ul><li>Everything in Gym</li><li>For busy gyms and camps</li><li>We set it up for you</li></ul>
+          <a class="btn" href="#contact">Get started</a>
+        </div>
+        <div class="plan">
+          <h3>Camp + Stay</h3>
+          <p class="was">11,990</p>
+          <p class="now">7,990 <small>a month</small></p>
+          <p class="lim">150 members, unlimited staff</p>
+          <ul><li>Everything in Camp</li><li>Rooms, stays and online booking</li><li>Integrated website and AI tools included</li><li>We set it up for you</li></ul>
+          <a class="btn ghost" href="#contact">Get started</a>
+        </div>
+      </div>
+      <p class="addons">Add-ons for any plan: the integrated website and the AI tools (writing posts, reading receipts, making pages). Both are included in Camp + Stay.</p>
+    </div>
+  </section>
+
   <section class="block" id="faq">
     <div class="wrap">
       <div class="head"><h2>Questions</h2></div>
@@ -520,7 +582,7 @@ footer a{color:#C9CFDB}
         <details><summary>Can I use only some of it?</summary><p>Yes. We switch off what you don't need, so a gym without rooms won't see stays or housekeeping.</p></details>
         <details><summary>Can you move my existing members across?</summary><p>Yes. Send us your current list and we'll bring in your members, packages and what they have left.</p></details>
         <details><summary>Is the AI included?</summary><p>The AI tools are an optional add-on: making web pages from a description, writing social media posts from your photos, and reading receipts. Everything else works without them, and you can add them any time.</p></details>
-        <details><summary>How much does it cost?</summary><p>Small gyms can start free: check-ins, packages, selling and appointments for up to 15 members and 2 staff. Bigger gyms and camps pay a monthly price that depends on size and what you use. Tell us about your gym and we'll send you a clear price.</p></details>
+        <details><summary>How much does it cost?</summary><p>Small gyms can start free. Paid plans start at 1,490 baht a month, with 50% off your first 2 months at launch. See <a href="#pricing">Prices</a>.</p></details>
         <details><summary>What is in the free version?</summary><p>Check-ins, packages, selling and appointments, with your gym's name, for up to 15 members and 2 staff. It shows a small Muay Friend logo. You can move up to a paid plan any time and keep everything.</p></details>
       </div>
     </div>
