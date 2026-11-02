@@ -578,7 +578,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     <div class="wrap">
       <div class="head"><h2>เริ่มต้นอย่างไร</h2></div>
       <ol class="steps">
-        <li><h3>เริ่มใช้ฟรี หรือเล่าเรื่องยิมของคุณ</h3><p>ยิมเล็ก? <a href="#free">ลงชื่อรอเปิดตัวแบบฟรี</a> แล้วรับแอปทันทีที่เปิดให้ใช้ ยิมใหญ่หรือแคมป์? ส่งแบบฟอร์มด้านล่าง เราจะถามว่าตอนนี้คุณใช้อะไรอยู่ และอะไรที่ทำให้งานช้า</p></li>
+        <li><h3>เริ่มใช้ฟรี หรือเล่าเรื่องยิมของคุณ</h3><p>ยิมเล็ก? <a href="#free">เริ่มใช้ฟรี</a> แล้วแอปเปิดใช้ได้ทันที ยิมใหญ่หรือแคมป์? ส่งแบบฟอร์มด้านล่าง เราจะถามว่าตอนนี้คุณใช้อะไรอยู่ และอะไรที่ทำให้งานช้า</p></li>
         <li><h3>ลองใช้ด้วยตัวเอง</h3><p>เปิด<a href="../demo/">เดโม</a>ของ Muay Fight Gym ยิมสมมติ แล้วลองดูในฐานะเจ้าของ หน้าเคาน์เตอร์ ครู หรือสมาชิก จากนั้นเราจะสาธิตโดยใช้ข้อมูลยิมของคุณเอง</p></li>
         <li><h3>เราตั้งค่าให้</h3><p>เราย้ายข้อมูลสมาชิกและแพ็กเกจเข้ามา ตั้งค่าให้ตรงกับวิธีทำงานของคุณ และสอนทีมของคุณใช้งาน</p></li>
       </ol>
@@ -743,7 +743,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     <div class="wrap">
       <div>
         <h2>เริ่มใช้ฟรี</h2>
-        <p class="lede" style="margin-top:18px">สำหรับยิมเล็กที่เพิ่งเริ่มต้น สมัครได้เลย เวอร์ชันฟรีเปิดวันที่ 4 พฤศจิกายน จากนั้นแอปฟรีของคุณพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร</p>
+        <p class="lede" style="margin-top:18px">สำหรับยิมเล็กที่เพิ่งเริ่มต้น สมัครแล้วแอปยิมของคุณเปิดใช้ได้ทันทีในโทรศัพท์เครื่องนี้ พร้อมชื่อยิมของคุณ ไม่ต้องใช้บัตร</p>
         <ul class="incl">
           <li>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย</li>
           <li>สมาชิกสูงสุด 15 คน และพนักงาน 2 คน</li>
@@ -767,7 +767,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <label class="full">Instagram, Facebook หรือเว็บไซต์ <span>(ไม่บังคับ)</span><input name="social" maxlength="200"></label>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <p class="msg" id="free-msg" role="status" aria-live="polite"></p>
-        <button class="btn" type="submit">ลงชื่อรอเปิดตัว</button>
+        <button class="btn" type="submit">เริ่มใช้ฟรีเลย</button>
       </form>
     </div>
   </section>
@@ -840,28 +840,27 @@ fbq('init','1689705395897075');fbq('track','PageView');
 </script>
 <script>
 (function(){
-  var API='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead';
+  var API='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-signup', WAIT='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead', BTN='เริ่มใช้ฟรีเลย';
   var sp=document.getElementById('free-spots');
   fetch(API).then(function(r){ return r.json(); }).then(function(j){ var n=j&&j.free_left; if(typeof n!=='number') return; sp.textContent=n>0?('เหลือที่ว่างฟรีอีก '+n+' ที่'):'ที่ว่างฟรีเต็มแล้ว: ลงชื่อรอได้'; }).catch(function(){});
   var f=document.getElementById('freeform'), m=document.getElementById('free-msg'), b=f.querySelector('button');
+  function post(u,d){ return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+    .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!(j.ok||j.full)) throw new Error(j.error||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'); return j; }); }); }
+  function done(h,t){ f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>'; f.querySelector('.done').focus(); }
   f.addEventListener('submit',function(e){
     e.preventDefault(); m.className='msg'; m.textContent='';
     var d={}; new FormData(f).forEach(function(v,k){ d[k]=String(v).trim(); });
     var need=[['gym','กรุณาใส่ชื่อยิม'],['name','กรุณาใส่ชื่อของคุณ'],['phone','กรุณาใส่เบอร์โทรหรือ WhatsApp / LINE'],['country','กรุณาใส่ประเทศ']];
     for(var i=0;i<need.length;i++){ if(!d[need[i][0]]){ m.className='msg err'; m.textContent=need[i][1]; f[need[i][0]].focus(); return; } }
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='กรุณาตรวจสอบอีเมล'; f.email.focus(); return; }
-    d.plan='free'; d.lang='th'; d.source=location.href.slice(0,120);
-    b.disabled=true; b.textContent='กำลังส่ง';
-    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
-      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'); return j; }); })
-      .then(function(j){
-        if(window.fbq) fbq('track','Lead',{content_name:'free'});
-        var h=j.waitlist?'คุณอยู่ในรายชื่อรอแล้ว':'ลงชื่อเรียบร้อย';
-        var t=j.waitlist?'ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง':'เราจองที่ฟรีไว้ให้คุณแล้ว ทันทีที่เปิดให้ใช้ เราจะอีเมลลิงก์ให้ แล้วคุณเริ่มใช้แอปยิมได้เลย';
-        f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';
-        f.querySelector('.done').focus();
-      })
-      .catch(function(err){ m.className='msg err'; m.textContent=err.message||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'; b.disabled=false; b.textContent='ลงชื่อรอเปิดตัว'; });
+    d.lang='th'; d.source=location.href.slice(0,120);
+    b.disabled=true; b.textContent='กำลังสร้างแอป';
+    post(API,d).then(function(j){
+      if(window.fbq) fbq('track',j.full?'Lead':'CompleteRegistration',{content_name:'free'});
+      if(j.go){ b.textContent='กำลังเปิดแอปของคุณ'; setTimeout(function(){ location.href=j.go; },400); return; }
+      if(j.full){ d.plan='free'; return post(WAIT,d).then(function(){ done('คุณอยู่ในรายชื่อรอแล้ว','ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง'); }); }
+      done('ตรวจสอบอีเมลของคุณ','แอปยิมของคุณพร้อมแล้ว เราส่งลิงก์เข้าสู่ระบบไปที่อีเมลของคุณ แตะลิงก์เพื่อเปิดแอป อาจใช้เวลาสักครู่ และลองดูในโฟลเดอร์ขยะด้วย');
+    }).catch(function(err){ m.className='msg err'; m.textContent=err.message||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'; b.disabled=false; b.textContent=BTN; });
   });
 })();
 </script>

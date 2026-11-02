@@ -561,7 +561,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     <div class="wrap">
       <div class="head"><h2>How to get started</h2></div>
       <ol class="steps">
-        <li><h3>Start free, or tell us about your gym</h3><p>Small gym? <a href="#free">Join the free launch list</a> and get your app the moment it opens. Bigger gym or camp? Send the form below and we'll ask what you use today and what slows you down.</p></li>
+        <li><h3>Start free, or tell us about your gym</h3><p>Small gym? <a href="#free">Start free</a> and your app opens straight away. Bigger gym or camp? Send the form below and we'll ask what you use today and what slows you down.</p></li>
         <li><h3>Try it yourself</h3><p>Open the <a href="demo/">live demo</a> of Muay Fight Gym, a made up gym, and look around as the owner, the front desk, a coach or a member. Then we show you a demo with your own gym in it.</p></li>
         <li><h3>We set it up for you</h3><p>We bring in your members and packages, set it up the way you work, and show your team how to use it.</p></li>
       </ol>
@@ -726,7 +726,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     <div class="wrap">
       <div>
         <h2>Start free</h2>
-        <p class="lede" style="margin-top:18px">For small gyms getting started. Sign up now: free gyms open on 4 November, and from then on your free app is ready within 4 hours of signing up.</p>
+        <p class="lede" style="margin-top:18px">For small gyms getting started. Sign up and your gym app opens straight away, on this phone, with your gym's name on it. No card needed.</p>
         <ul class="incl">
           <li>Check-ins, packages, selling and appointments</li>
           <li>Up to 15 members and 2 staff</li>
@@ -750,7 +750,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <label class="full">Instagram or website <span>(optional)</span><input name="social" maxlength="200"></label>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <p class="msg" id="free-msg" role="status" aria-live="polite"></p>
-        <button class="btn" type="submit">Join the launch list</button>
+        <button class="btn" type="submit">Start free now</button>
       </form>
     </div>
   </section>
@@ -822,28 +822,27 @@ fbq('init','1689705395897075');fbq('track','PageView');
 </script>
 <script>
 (function(){
-  var API='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead';
+  var API='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-signup', WAIT='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead', BTN='Start free now';
   var sp=document.getElementById('free-spots');
   fetch(API).then(function(r){ return r.json(); }).then(function(j){ var n=j&&j.free_left; if(typeof n!=='number') return; sp.textContent=n>0?(n===1?'Only 1 free spot left':'Only '+n+' free spots left'):'Free spots are full: join the waiting list'; }).catch(function(){});
   var f=document.getElementById('freeform'), m=document.getElementById('free-msg'), b=f.querySelector('button');
+  function post(u,d){ return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+    .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!(j.ok||j.full)) throw new Error(j.error||'Not sent. Try again, or check your connection.'); return j; }); }); }
+  function done(h,t){ f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>'; f.querySelector('.done').focus(); }
   f.addEventListener('submit',function(e){
     e.preventDefault(); m.className='msg'; m.textContent='';
     var d={}; new FormData(f).forEach(function(v,k){ d[k]=String(v).trim(); });
     var need=[['gym','Add your gym name.'],['name','Add your name.'],['phone','Add your phone or WhatsApp.'],['country','Add your country.']];
     for(var i=0;i<need.length;i++){ if(!d[need[i][0]]){ m.className='msg err'; m.textContent=need[i][1]; f[need[i][0]].focus(); return; } }
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='Check your email address.'; f.email.focus(); return; }
-    d.plan='free'; d.lang=document.documentElement.lang==='th'?'th':'en'; d.source=location.href.slice(0,120);
-    b.disabled=true; b.textContent='Sending';
-    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
-      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'Not sent. Try again, or check your connection.'); return j; }); })
-      .then(function(j){
-        if(window.fbq) fbq('track','Lead',{content_name:'free'});
-        var h=j.waitlist?'You are on the waiting list':'You are on the launch list';
-        var t=j.waitlist?'All free spots are taken right now. We will email you as soon as one opens.':'Your free spot is saved. The moment it opens, we will email you a link and you can start using your gym app straight away.';
-        f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';
-        f.querySelector('.done').focus();
-      })
-      .catch(function(err){ m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent='Join the launch list'; });
+    d.lang=document.documentElement.lang==='th'?'th':'en'; d.source=location.href.slice(0,120);
+    b.disabled=true; b.textContent='Making your app';
+    post(API,d).then(function(j){
+      if(window.fbq) fbq('track',j.full?'Lead':'CompleteRegistration',{content_name:'free'});
+      if(j.go){ b.textContent='Opening your app'; setTimeout(function(){ location.href=j.go; },400); return; }
+      if(j.full){ d.plan='free'; return post(WAIT,d).then(function(){ done('You are on the waiting list','All free spots are taken right now. We will email you as soon as one opens.'); }); }
+      done('Check your email','Your gym app is ready. We sent a sign in link to your email: tap it to open your app. It can take a minute, and check junk too.');
+    }).catch(function(err){ m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent=BTN; });
   });
 })();
 </script>
