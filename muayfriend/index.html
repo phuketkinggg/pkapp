@@ -219,7 +219,7 @@ section.block{padding:96px 0}
 .faq details p{color:var(--ink2);padding-right:40px}
 
 /* pricing */
-.plans{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:32px}
+.plans{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:32px}
 .plan{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:12px}
 .plan.top{border-color:var(--blue);box-shadow:0 0 0 3px rgba(39,89,218,.15)}
 .plan h3{font-size:30px}
@@ -233,7 +233,7 @@ section.block{padding:96px 0}
 .plan .btn{margin-top:auto}
 .promo{display:inline-block;margin-top:14px;padding:8px 16px;border-radius:999px;background:var(--red);color:#fff;font-weight:600}
 .addons{margin-top:24px;color:var(--ink2)}
-@media (max-width:1000px){.plans{grid-template-columns:1fr 1fr}}
+@media (max-width:1150px){.plans{grid-template-columns:1fr 1fr 1fr}}@media (max-width:820px){.plans{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.plans{grid-template-columns:1fr}}
 
 .webpitch{margin-top:36px;background:var(--navy);color:#fff;border-radius:20px;padding:32px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
@@ -556,12 +556,20 @@ footer a{color:#C9CFDB}
           <ul><li>Everything in Free</li><li>Shop and cafe till</li><li>Admin, accounts and receipts</li><li>Your own branding</li><li>We set it up for you</li></ul>
           <a class="btn ghost" href="#contact">Get started</a>
         </div>
+        <div class="plan">
+          <h3>Gym Plus</h3>
+          <p class="was">4,990</p>
+          <p class="now">3,290 <small>a month</small></p>
+          <p class="lim">100 members, 10 staff</p>
+          <ul><li>Everything in Gym</li><li>Room for a growing gym</li><li>We set it up for you</li></ul>
+          <a class="btn ghost" href="#contact">Get started</a>
+        </div>
         <div class="plan top">
           <h3>Camp</h3>
           <p class="was">5,990</p>
           <p class="now">3,990 <small>a month</small></p>
           <p class="lim">150 members, 15 staff</p>
-          <ul><li>Everything in Gym</li><li>For busy gyms and camps</li><li>We set it up for you</li></ul>
+          <ul><li>Everything in Gym Plus</li><li>For busy gyms and camps</li><li>We set it up for you</li></ul>
           <a class="btn" href="#contact">Get started</a>
         </div>
         <div class="plan">
@@ -573,7 +581,7 @@ footer a{color:#C9CFDB}
           <a class="btn ghost" href="#contact">Get started</a>
         </div>
       </div>
-      <p class="addons">Add-ons: your own integrated website (up to 8 pages), available on every plan. The AI tools (writing posts, reading receipts, making pages) are an add-on on Free, Gym and Camp, and included in Camp + Stay.</p>
+      <p class="addons">Every paid plan can add members at 50 baht a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. Add-ons: your own integrated website (up to 8 pages), available on every plan. The AI tools (writing posts, reading receipts, making pages) are an add-on on Free, Gym, Gym Plus and Camp, and included in Camp + Stay.</p>
       <div class="webpitch">
         <div>
           <h3>Your website, built in</h3>
@@ -597,7 +605,7 @@ footer a{color:#C9CFDB}
         <details><summary>Will my coaches find it hard to learn?</summary><p>No. The screens are simple and each role only sees what it needs, so there's no big learning curve. Key staff screens also work in Thai and Burmese.</p></details>
         <details><summary>Does it work on phones?</summary><p>Yes. It works on any phone, tablet or computer. There's nothing to install from an app store: open the link and add it to the home screen.</p></details>
         <details><summary>Is my members' data private?</summary><p>Yes. Each gym gets its own private database, completely separate from every other gym. No other gym can see your members, prices or numbers, and we never share or sell your data. Inside your gym, staff only see what their role needs, and everything is backed up every night.</p></details>
-        <details><summary>Which payments can it take?</summary><p>Cash at the desk, card payment links, and PromptPay QR in Thailand. Members can also pay in their own app.</p></details>
+        <details><summary>Which payments can it take?</summary><p>Cash at the desk, PromptPay QR straight to your bank with no fees, and card payments through Stripe in the app and by link. More Thai payment options, including TrueMoney and Rabbit LINE Pay, are on the way.</p></details>
         <details><summary>Can I use only some of it?</summary><p>Yes. We switch off what you don't need, so a gym without rooms won't see stays or housekeeping.</p></details>
         <details><summary>Can you move my existing members across?</summary><p>Yes. Send us your current list and we'll bring in your members, packages and what they have left.</p></details>
         <details><summary>Is the AI included?</summary><p>The AI tools are an optional add-on: making web pages from a description, writing social media posts from your photos, and reading receipts. Everything else works without them, and you can add them any time.</p></details>
