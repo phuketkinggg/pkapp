@@ -97,6 +97,16 @@ PK.rest('site_pages?select=slug,title,footer_label&in_footer=eq.true&status=eq.p
   var base=blog.getAttribute('href').replace(/blog\.html$/,'page.html?p='), col=blog.parentNode;
   list.forEach(function(x){ if(!/^[a-z0-9-]{1,60}$/.test(x.slug)) return; var a=document.createElement('a'); a.href=PK.live?PK.pageUrl(x.slug):base+x.slug; a.textContent=x.footer_label||x.title; col.appendChild(a); });
 },function(){});
+/* Get it on Google Play / App Store: the business's store links (app Settings, Look, App in the stores), in the footer of every page */
+PK.rest('rpc/store_links').then(function(st){
+  if(!st||!(st.android||st.ios)) return; var logo=document.querySelector('footer .flogo'); if(!logo) return;
+  var box=document.createElement('div'); box.className='stores';
+  function badge(url,top,name,icon,label){ var a=document.createElement('a'); a.className='store'; a.href=url; a.target='_blank'; a.rel='noopener'; a.setAttribute('aria-label',label);
+    a.innerHTML=icon+'<span><small>'+top+'</small><b>'+name+'</b></span>'; box.appendChild(a); }
+  if(st.android) badge(st.android,'GET IT ON','Google Play','<svg viewBox="0 0 24 26" width="22" height="24" aria-hidden="true"><path d="M1 1.2 13.4 13 1 24.8c-.4-.2-.6-.7-.6-1.2V2.4c0-.5.2-1 .6-1.2z" fill="#00D7FE"/><path d="M17.5 8.9 13.4 13 1 1.2c.2-.1.5-.2.8-.2.3 0 .6.1.9.3l14.8 7.6z" fill="#00F076"/><path d="M17.5 17.1 2.7 24.7c-.3.2-.6.3-.9.3-.3 0-.6-.1-.8-.2L13.4 13l4.1 4.1z" fill="#FF3A44"/><path d="m22.1 11.6-4.6-2.7L13.4 13l4.1 4.1 4.6-2.7c.5-.3.8-.8.8-1.4s-.3-1.1-.8-1.4z" fill="#FFD500"/></svg>','Get it on Google Play');
+  if(st.ios) badge(st.ios,'Download on the','App Store','<svg viewBox="0 0 24 24" width="22" height="22" fill="#fff" aria-hidden="true"><path d="M16.4 12.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2.1-.9-3.4-.9-1.7 0-3.4 1-4.3 2.6-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.6-1-2.6-4.2zM13.9 4.9c.7-.9 1.2-2.1 1.1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>','Download on the App Store');
+  logo.parentNode.appendChild(box);
+},function(){});
 /* website numbers: small anonymous events (no names or emails), so the owner sees where visitors stop. See the app, Website numbers. */
 (function(){
   var REST='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/site_track', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';

@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=106"></script>
+<script src="changelog.js?v=107"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -943,7 +943,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=63; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=64; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8872,7 +8872,7 @@ function vSettings(){
   if(t==='news') body=[h('div',{id:'whatsnew'},whatsNewSection())];
   else if(t==='menu') body=[navSection()];
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
-  else if(t==='look') body=[themeSection(),promoSection()];
+  else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='money') body=[ppSettings(),pxSettings()];
   else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
@@ -9854,6 +9854,23 @@ function applyTheme(t){
   var m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content',side||bg||v.light.ink);
 }
 (function(){ try{ applyTheme(JSON.parse(pref('app_theme')||'null')); }catch(e){} })();
+/* the business's app in Google Play and the App Store (app_settings store_links): the install button sends phones there */
+function loadStore(){ return sb.rpc('store_links').then(function(res){ if(res.error) return; window.PK_STORE=res.data||{}; try{ localStorage.setItem('pk_store',JSON.stringify(window.PK_STORE)); }catch(e){} schedule(); }).catch(function(){}); }
+function storeSection(){ var s=window.PK_STORE||{};
+  return section('App in the stores',null,h('div',{class:'panel pad'},
+    h('p',{class:'sub'},'If your business has its own app in Google Play or the App Store, add the links here. Your website shows Get it on Google Play and Download on the App Store buttons, and the Install button in the app sends phones to the store.'),
+    h('p',null,'Google Play: ',s.android?h('a',{href:s.android,target:'_blank',rel:'noopener',class:'notr'},s.android):'not added'),
+    h('p',null,'App Store: ',s.ios?h('a',{href:s.ios,target:'_blank',rel:'noopener',class:'notr'},s.ios):'not added'),
+    h('div',{class:'row'},btn('Change',storeDlg,'small')))); }
+function storeDlg(){ var s=window.PK_STORE||{};
+  openForm({title:'App in the stores',values:{android:s.android||'',ios:s.ios||''},fields:[
+      {key:'android',label:'Google Play link',hint:'For example https://play.google.com/store/apps/details?id=com.yourbusiness.app. Leave empty if you have none.'},
+      {key:'ios',label:'App Store link',hint:'For example https://apps.apple.com/app/your-app/id123456789. Leave empty if you have none.'}],
+    onSave:function(v){ var a=String(v.android||'').trim(), i=String(v.ios||'').trim();
+      if(a&&!/^https:\/\/play\.google\.com\/store\/apps\/details\?id=[A-Za-z0-9._]+$/.test(a)) throw {plain:true,message:'The Google Play link should look like https://play.google.com/store/apps/details?id=com.yourbusiness.app'};
+      if(i&&!/^https:\/\/apps\.apple\.com\/[A-Za-z0-9\/._?=&-]+$/.test(i)) throw {plain:true,message:'The App Store link should start with https://apps.apple.com/'};
+      return sb.from('app_settings').upsert({key:'store_links',value:JSON.stringify({android:a,ios:i}),updated_at:new Date().toISOString()}).select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; return loadStore(); }); },
+    doneMsg:'Saved.'}); }
 function loadTheme(){ return sb.rpc('app_theme').then(function(res){ if(res.error) return; var t=res.data&&Object.keys(res.data).length?res.data:null; pref('app_theme',t?JSON.stringify(t):null); applyTheme(t); APPTHEME=t; schedule(); }); }
 var APPTHEME=null;
 // colours from a logo: the strongest few colours, ignoring white, black and grey
@@ -10715,7 +10732,7 @@ if(!window.supabase||!window.supabase.createClient){
   sb=window.supabase.createClient(SB_URL,SB_KEY,Object.assign({auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}},window.MF_GYM?{db:{schema:'g_'+window.MF_GYM}}:{}));
   uiApply().catch(function(){});
   loadTheme().catch(function(){});
-  loadFeatures().catch(function(){}); loadPlatform().catch(function(){});
+  loadFeatures().catch(function(){}); loadPlatform().catch(function(){}); loadStore();
   loadOffer();
   if(READYTOKEN) readyClaim();
   if(EMAILOTP) sb.auth.verifyOtp({token_hash:EMAILOTP.h,type:EMAILOTP.t}).then(function(res){
@@ -10762,6 +10779,9 @@ if(!window.supabase||!window.supabase.createClient){
   window.pkNative=function(){ return native||!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); };
   var standalone=native||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
   var deferred=null, bar=null, sheet=null;
+  /* the business's app in Google Play or the App Store (Settings, Look, App in the stores): phones go there instead */
+  function storeUrl(){ var s=window.PK_STORE; if(!s){ try{ s=JSON.parse(localStorage.getItem('pk_store')||'null'); }catch(e){ s=null; } } s=s||{};
+    return android&&s.android?s.android:ios&&s.ios?s.ios:null; }
   var appUrl=location.origin+location.pathname+(window.MF_GYM?'?g='+window.MF_GYM:'');
   /* LINE opens this link in the phone's real browser */
   if(line&&!/openExternalBrowser=1/.test(location.search)&&!sessionStorageGet('pk_ext')){ sessionStorageSet('pk_ext','1'); location.replace(appUrl+(location.search?location.search+'&':'?')+'openExternalBrowser=1'+location.hash); return; }
@@ -10780,6 +10800,7 @@ if(!window.supabase||!window.supabase.createClient){
   function copyLink(btnEl){ var done=function(){ btnEl.textContent='Link copied'; }; try{ navigator.clipboard.writeText(appUrl).then(done,function(){ prompt('Copy this link',appUrl); }); }catch(e){ prompt('Copy this link',appUrl); } }
   function closeSheet(){ if(sheet){ sheet.remove(); sheet=null; document.body.classList.remove('isheet-open'); } }
   function open(){
+    var su=storeUrl(); if(su&&!standalone){ location.href=su; return; }
     if(deferred){ var d=deferred; deferred=null; d.prompt(); (d.userChoice||Promise.resolve({})).then(function(r){ if(r&&r.outcome==='accepted') hideFor(3650); }); return; }
     closeSheet();
     sheet=el('div','isheet'); sheet.setAttribute('role','dialog'); sheet.setAttribute('aria-modal','true'); sheet.setAttribute('aria-label','Put the app on your phone');
@@ -10824,7 +10845,7 @@ if(!window.supabase||!window.supabase.createClient){
     bar=el('div','installbar'); bar.setAttribute('role','region'); bar.setAttribute('aria-label','Install the app');
     var img=el('img','installicon'); img.src='icons/icon-192.png'; img.alt='';
     var txt=el('div','installtxt'); txt.appendChild(el('b',null,'Get the Phuket King app')); txt.appendChild(el('span',null,'ติดตั้งแอปบนมือถือ'));
-    var action=el('button','btn primary small','Install'); action.type='button'; action.onclick=open;
+    var action=el('button','btn primary small',storeUrl()?(android?'Google Play':'App Store'):'Install'); action.type='button'; action.onclick=open;
     var close=el('button','installx','×'); close.type='button'; close.setAttribute('aria-label','Not now'); close.onclick=function(){ hideFor(7); };
     bar.appendChild(img); bar.appendChild(txt); bar.appendChild(action); bar.appendChild(close);
     document.body.appendChild(bar); document.body.classList.add('has-install');

@@ -19950,5 +19950,57 @@
 "Start free": [
 "เริ่มใช้ฟรี",
 "အခမဲ့ စတင်ပါ"
+],
+"App Store": [
+"App Store",
+"App Store"
+],
+"Google Play": [
+"Google Play",
+"Google Play"
+],
+"App Store link": [
+"ลิงก์ App Store",
+"App Store လင့်ခ်"
+],
+"Google Play link": [
+"ลิงก์ Google Play",
+"Google Play လင့်ခ်"
+],
+"App Store: ": [
+"App Store: ",
+"App Store: "
+],
+"Google Play: ": [
+"Google Play: ",
+"Google Play: "
+],
+"App in the stores": [
+"แอปใน Google Play และ App Store",
+"Google Play နှင့် App Store ရှိ အက်ပ်"
+],
+"not added": [
+"ยังไม่ได้ใส่",
+"မထည့်ရသေးပါ"
+],
+"If your business has its own app in Google Play or the App Store, add the links here. Your website shows Get it on Google Play and Download on the App Store buttons, and the Install button in the app sends phones to the store.": [
+"ถ้าธุรกิจของคุณมีแอปของตัวเองใน Google Play หรือ App Store ใส่ลิงก์ไว้ที่นี่ เว็บไซต์จะแสดงปุ่มดาวน์โหลดจาก Google Play และ App Store และปุ่มติดตั้งในแอปจะพาโทรศัพท์ไปที่สโตร์",
+"သင့်လုပ်ငန်းတွင် Google Play သို့မဟုတ် App Store ၌ ကိုယ်ပိုင်အက်ပ်ရှိပါက လင့်ခ်များကို ဤနေရာတွင် ထည့်ပါ။ ဝက်ဘ်ဆိုက်တွင် Google Play နှင့် App Store ခလုတ်များ ပြမည်ဖြစ်ပြီး အက်ပ်ရှိ ထည့်သွင်းရန်ခလုတ်က ဖုန်းများကို စတိုးသို့ ပို့ပေးပါမည်။"
+],
+"The App Store link should start with https://apps.apple.com/": [
+"ลิงก์ App Store ต้องขึ้นต้นด้วย https://apps.apple.com/",
+"App Store လင့်ခ်သည် https://apps.apple.com/ ဖြင့် စရပါမည်"
+],
+"The Google Play link should look like https://play.google.com/store/apps/details?id=com.yourbusiness.app": [
+"ลิงก์ Google Play ควรเป็นแบบ https://play.google.com/store/apps/details?id=com.yourbusiness.app",
+"Google Play လင့်ခ်သည် https://play.google.com/store/apps/details?id=com.yourbusiness.app ပုံစံ ဖြစ်ရပါမည်"
+],
+"For example https://play.google.com/store/apps/details?id=com.yourbusiness.app. Leave empty if you have none.": [
+"เช่น https://play.google.com/store/apps/details?id=com.yourbusiness.app เว้นว่างไว้ถ้าไม่มี",
+"ဥပမာ https://play.google.com/store/apps/details?id=com.yourbusiness.app မရှိပါက ဗလာထားပါ။"
+],
+"For example https://apps.apple.com/app/your-app/id123456789. Leave empty if you have none.": [
+"เช่น https://apps.apple.com/app/your-app/id123456789 เว้นว่างไว้ถ้าไม่มี",
+"ဥပမာ https://apps.apple.com/app/your-app/id123456789 မရှိပါက ဗလာထားပါ။"
 ]
 }

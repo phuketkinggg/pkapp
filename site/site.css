@@ -142,6 +142,11 @@ footer .cols{display:grid;gap:28px;grid-template-columns:repeat(auto-fit,minmax(
 footer h4{font:500 13px var(--font);letter-spacing:.2em;text-transform:uppercase;color:#fff;margin:0 0 12px}
 footer a{display:block;text-decoration:none;padding:3px 0;opacity:.8}footer a:hover{opacity:1;color:#fff}
 footer .flogo{width:72px;height:72px;border-radius:8px;margin-bottom:14px}
+footer .stores{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+footer a.store{display:inline-flex;align-items:center;gap:10px;padding:7px 14px 7px 11px;border:1px solid #5a5f69;border-radius:9px;background:#000;color:#fff;opacity:1;line-height:1.1}
+footer a.store:hover{border-color:#fff}
+footer a.store small{display:block;font-size:10px;letter-spacing:.04em}
+footer a.store b{display:block;font-size:17px;font-weight:600}
 footer .small{margin-top:36px;font-size:13px;opacity:.55}
 
 /* phone bar */
