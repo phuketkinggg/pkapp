@@ -497,6 +497,7 @@
     fetch('https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error('ส่งไม่สำเร็จ ลองอีกครั้ง หรือตรวจสอบการเชื่อมต่อ'); }); })
       .then(function(){
+        if(window.fbq) fbq('track','Lead',{content_name:'demo'});
         f.innerHTML='<div class="done" tabindex="-1"><h3>ส่งแล้ว ขอบคุณ</h3><p>เราได้รับข้อมูลของคุณแล้ว และจะอีเมลกลับไปเร็วๆ นี้ พร้อมรายละเอียดและเวลาสำหรับเดโม</p></div>';
         f.querySelector('.done').focus();
       })
@@ -521,6 +522,7 @@
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'); return j; }); })
       .then(function(j){
+        if(window.fbq) fbq('track','Lead',{content_name:'free'});
         var h=j.waitlist?'คุณอยู่ในรายชื่อรอแล้ว':'ลงชื่อเรียบร้อย';
         var t=j.waitlist?'ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง':'เราจองที่ฟรีไว้ให้คุณแล้ว ทันทีที่เปิดให้ใช้ เราจะอีเมลลิงก์ให้ แล้วคุณเริ่มใช้แอปยิมได้เลย';
         f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';

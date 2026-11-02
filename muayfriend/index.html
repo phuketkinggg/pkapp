@@ -307,6 +307,12 @@ footer .brand{color:#fff;font-size:20px}
 footer .brand .mark{color:#7FA0F0}
 footer a{color:#C9CFDB}
 </style>
+<!-- Meta Pixel (Muay Friend) -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','1689705395897075');fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1689705395897075&ev=PageView&noscript=1"></noscript>
 </head>
 <body>
 <header class="top">
@@ -806,6 +812,7 @@ footer a{color:#C9CFDB}
     fetch('https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'Not sent. Try again, or check your connection.'); }); })
       .then(function(){
+        if(window.fbq) fbq('track','Lead',{content_name:'demo'});
         f.innerHTML='<div class="done" tabindex="-1"><h3>Sent. Thank you.</h3><p>We have your details and will email you soon with more information and a time for your demo.</p></div>';
         f.querySelector('.done').focus();
       })
@@ -830,6 +837,7 @@ footer a{color:#C9CFDB}
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'Not sent. Try again, or check your connection.'); return j; }); })
       .then(function(j){
+        if(window.fbq) fbq('track','Lead',{content_name:'free'});
         var h=j.waitlist?'You are on the waiting list':'You are on the launch list';
         var t=j.waitlist?'All free spots are taken right now. We will email you as soon as one opens.':'Your free spot is saved. The moment it opens, we will email you a link and you can start using your gym app straight away.';
         f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';

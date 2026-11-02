@@ -324,6 +324,12 @@ h3{font-size:24px}
 .done h3{font-size:32px}
 .lede{max-width:38em}
 </style>
+<!-- Meta Pixel (Muay Friend) -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','1689705395897075');fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1689705395897075&ev=PageView&noscript=1"></noscript>
 </head>
 <body>
 <header class="top">
@@ -824,6 +830,7 @@ h3{font-size:24px}
     fetch('https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error('ส่งไม่สำเร็จ ลองอีกครั้ง หรือตรวจสอบการเชื่อมต่อ'); }); })
       .then(function(){
+        if(window.fbq) fbq('track','Lead',{content_name:'demo'});
         f.innerHTML='<div class="done" tabindex="-1"><h3>ส่งแล้ว ขอบคุณ</h3><p>เราได้รับข้อมูลของคุณแล้ว และจะอีเมลกลับไปเร็วๆ นี้ พร้อมรายละเอียดและเวลาสำหรับเดโม</p></div>';
         f.querySelector('.done').focus();
       })
@@ -848,6 +855,7 @@ h3{font-size:24px}
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'); return j; }); })
       .then(function(j){
+        if(window.fbq) fbq('track','Lead',{content_name:'free'});
         var h=j.waitlist?'คุณอยู่ในรายชื่อรอแล้ว':'ลงชื่อเรียบร้อย';
         var t=j.waitlist?'ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง':'เราจองที่ฟรีไว้ให้คุณแล้ว ทันทีที่เปิดให้ใช้ เราจะอีเมลลิงก์ให้ แล้วคุณเริ่มใช้แอปยิมได้เลย';
         f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';
