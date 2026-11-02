@@ -98,6 +98,11 @@ Deno.serve(async (req) => {
     const owns = (c.owns ?? []) as { slug: string; name: string }[];
     const log = (slug: string | null, result: string, info?: unknown) => admin.rpc("mf_signup_log", { p_ip: ip, p_email: email, p_gym: gym, p_slug: slug, p_result: result, p_info: info ?? null });
 
+    if ((c.ip_hour ?? 0) >= 3 || (c.all_hour ?? 0) >= 30) {
+      await log(null, "too many");
+      return json({ error: T("Too many sign-ups right now. Please try again in an hour, or email hello@muayfriend.com.", "มีการสมัครมากเกินไป กรุณาลองใหม่ในอีกหนึ่งชั่วโมง หรืออีเมลมาที่ hello@muayfriend.com") }, 429);
+    }
+
     // the same gym again (or the per-email limit): send them in to the gym they already have
     const same = owns.find((g) => g.name.toLowerCase() === gym.toLowerCase());
     if (same || owns.length >= (c.per_email ?? 3)) {
@@ -107,10 +112,6 @@ Deno.serve(async (req) => {
       const s = await resend({ from: FROM, to: [email], reply_to: TEAM, subject: m.subject, html: m.html, text: m.text });
       await log(g.slug, s.ok ? "again, link sent" : "again, email failed: " + s.err);
       return json({ ok: true, slug: g.slug, again: true, sent: s.ok });
-    }
-    if ((c.ip_hour ?? 0) >= 3 || (c.all_hour ?? 0) >= 30) {
-      await log(null, "too many");
-      return json({ error: T("Too many sign-ups right now. Please try again in an hour, or email hello@muayfriend.com.", "มีการสมัครมากเกินไป กรุณาลองใหม่ในอีกหนึ่งชั่วโมง หรืออีเมลมาที่ hello@muayfriend.com") }, 429);
     }
     if ((c.free_left ?? 0) <= 0) { await log(null, "full"); return json({ full: true }); }
 
