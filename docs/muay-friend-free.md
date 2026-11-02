@@ -23,7 +23,9 @@ The app picks the gym's schema with the supabase-js option `db: { schema: 'g_<sl
 3. Instant sign-up: muayfriend.com form -> provision -> owner gets a sign-in email and lands in their app.
 4. One app build for all free gyms (muayfriend.com/app/?g=<slug>), schema chosen from the address.
 5. Free limits in the database: 15 members, 2 staff, basic features only. Upgrade moves the gym to its own project.
-6. Shared logins: one auth user can be staff or member in more than one gym (each gym has its own staff and customers tables).
+6. Payments: Stripe stays the default (and runs our monthly billing with automatic best price); add Opn Payments
+   (Omise) as the Thai choice: PromptPay confirmed automatically, TrueMoney, Rabbit LINE Pay, cards.
+7. Shared logins: one auth user can be staff or member in more than one gym (each gym has its own staff and customers tables).
 
 ## Progress
 - 2 Nov: template made from live with tools/mf_template.sql (5,361 statements: 117 tables, 651 functions, policies,
