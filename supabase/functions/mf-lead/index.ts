@@ -44,7 +44,7 @@ function welcome(name: string, gym: string, waitlist: boolean, th: boolean) {
     `If you would rather start now, reply to this email and we will tell you about our paid plans.`,
   ] : [
     `Hi ${first},`,
-    `Welcome to Muay Friend. We are setting up ${gym} now, and your free gym app will be ready within 24 hours. We will email you the link and your login.`,
+    `Thanks for joining the Muay Friend launch list. Your free spot for ${gym} is saved. The moment it opens, within days, we will email you a link and you can start using your gym app straight away.`,
     `The free version includes check-ins, packages, selling and appointments, for up to 15 members and 2 staff.`,
     `While you wait, have a look around the live demo: https://muayfriend.com/demo/`,
     `Questions? Just reply to this email.`,
@@ -55,7 +55,7 @@ function welcome(name: string, gym: string, waitlist: boolean, th: boolean) {
     `หากต้องการเริ่มใช้เลย ตอบกลับอีเมลนี้ได้ แล้วเราจะแนะนำแพ็กเกจแบบชำระเงินให้`,
   ] : [
     `สวัสดีคุณ${first}`,
-    `ยินดีต้อนรับสู่ Muay Friend เรากำลังตั้งค่า ${gym} ให้คุณ แอปยิมฟรีของคุณจะพร้อมใช้งานภายใน 24 ชั่วโมง เราจะอีเมลลิงก์และข้อมูลเข้าสู่ระบบให้`,
+    `ขอบคุณที่ลงชื่อรอเปิดตัว Muay Friend เราจองที่ฟรีให้ ${gym} แล้ว ทันทีที่เปิดให้ใช้ ภายในไม่กี่วัน เราจะอีเมลลิงก์ให้ แล้วคุณเริ่มใช้แอปยิมได้เลย`,
     `เวอร์ชันฟรีมีเช็คอิน แพ็กเกจ งานขาย และการนัดหมาย สำหรับสมาชิกสูงสุด 15 คนและพนักงาน 2 คน`,
     `ระหว่างรอ ลองดูเดโมได้ที่ https://muayfriend.com/demo/`,
     `มีคำถาม ตอบกลับอีเมลนี้ได้เลย`,
@@ -65,7 +65,7 @@ function welcome(name: string, gym: string, waitlist: boolean, th: boolean) {
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#171B23">` +
     lines.map((l) => `<p style="margin:0 0 14px">${esc(l).replace(/https:\/\/muayfriend\.com\/demo\//, '<a href="https://muayfriend.com/demo/" style="color:#2F5BD3">muayfriend.com/demo</a>')}</p>`).join("") +
     `<p style="margin:0">${esc(sign)}<br><a href="https://muayfriend.com" style="color:#2F5BD3">muayfriend.com</a></p></div>`;
-  const subject = waitlist ? (th ? "คุณอยู่ในรายชื่อรอ Muay Friend" : "You are on the Muay Friend waiting list") : (th ? "ยินดีต้อนรับสู่ Muay Friend" : "Welcome to Muay Friend");
+  const subject = waitlist ? (th ? "คุณอยู่ในรายชื่อรอ Muay Friend" : "You are on the Muay Friend waiting list") : (th ? "คุณอยู่ในรายชื่อรอเปิดตัว Muay Friend" : "You are on the Muay Friend launch list");
   return { subject, text, html };
 }
 
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
     // to the owner
     const lines: [string, unknown][] = [["Name", row.name], ["Email", row.email], ["Gym", row.gym], ["Country", row.country], ["Members", row.members], ["Phone or WhatsApp", row.phone], ["Instagram or website", row.social], ["Message", row.message]];
-    const kind = free ? (waitlist ? "Free version, WAITING LIST" : "FREE VERSION sign-up: set up within 24 hours") : "New Muay Friend enquiry";
+    const kind = free ? (waitlist ? "Free version, WAITING LIST" : "FREE launch list sign-up") : "New Muay Friend enquiry";
     const html = `<h2 style="font-family:sans-serif">${kind}</h2><table style="font-family:sans-serif;font-size:15px">${lines.filter((l) => l[1]).map(([k, v]) => `<tr><td style="padding:4px 14px 4px 0;color:#666;vertical-align:top">${k}</td><td style="padding:4px 0;white-space:pre-wrap">${esc(String(v))}</td></tr>`).join("")}</table><p style="font-family:sans-serif;color:#666">Reply to this email to answer them directly.</p>`;
     const text = kind + "\n\n" + lines.filter((l) => l[1]).map(([k, v]) => `${k}: ${v}`).join("\n");
     const subj = free ? `${waitlist ? "Free waiting list" : "FREE sign-up"}: ${row.gym}` : `Muay Friend enquiry: ${row.gym || row.name}`;

@@ -245,7 +245,7 @@
     <div class="wrap">
       <div class="head"><h2>เริ่มต้นอย่างไร</h2></div>
       <ol class="steps">
-        <li><h3>เริ่มใช้ฟรี หรือเล่าเรื่องยิมของคุณ</h3><p>ยิมเล็ก? <a href="#free">เริ่มใช้ฟรี</a> แอปของคุณพร้อมภายใน 24 ชั่วโมง ยิมใหญ่หรือแคมป์? ส่งแบบฟอร์มด้านล่าง เราจะถามว่าตอนนี้คุณใช้อะไรอยู่ และอะไรที่ทำให้งานช้า</p></li>
+        <li><h3>เริ่มใช้ฟรี หรือเล่าเรื่องยิมของคุณ</h3><p>ยิมเล็ก? <a href="#free">ลงชื่อรอเปิดตัวแบบฟรี</a> แล้วรับแอปทันทีที่เปิดให้ใช้ ยิมใหญ่หรือแคมป์? ส่งแบบฟอร์มด้านล่าง เราจะถามว่าตอนนี้คุณใช้อะไรอยู่ และอะไรที่ทำให้งานช้า</p></li>
         <li><h3>ลองใช้ด้วยตัวเอง</h3><p>เปิด<a href="../demo/">เดโม</a>ของ Muay Fight Gym ยิมสมมติ แล้วลองดูในฐานะเจ้าของ หน้าเคาน์เตอร์ ครู หรือสมาชิก จากนั้นเราจะสาธิตโดยใช้ข้อมูลยิมของคุณเอง</p></li>
         <li><h3>เราตั้งค่าให้</h3><p>เราย้ายข้อมูลสมาชิกและแพ็กเกจเข้ามา ตั้งค่าให้ตรงกับวิธีทำงานของคุณ และสอนทีมของคุณใช้งาน</p></li>
       </ol>
@@ -316,7 +316,7 @@
     <div class="wrap">
       <div>
         <h2>เริ่มใช้ฟรี</h2>
-        <p class="lede" style="margin-top:18px">สำหรับยิมเล็กที่เพิ่งเริ่มต้น สมัครแล้วแอปยิมของคุณพร้อมใช้ภายใน 24 ชั่วโมง</p>
+        <p class="lede" style="margin-top:18px">สำหรับยิมเล็กที่เพิ่งเริ่มต้น ลงชื่อรอเปิดตัวตอนนี้ แล้วรับแอปยิมฟรีทันทีที่เปิดให้ใช้ ภายในไม่กี่วัน</p>
         <ul class="incl">
           <li>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย</li>
           <li>สมาชิกสูงสุด 15 คน และพนักงาน 2 คน</li>
@@ -340,7 +340,7 @@
         <label class="full">Instagram, Facebook หรือเว็บไซต์ <span>(ไม่บังคับ)</span><input name="social" maxlength="200"></label>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <p class="msg" id="free-msg" role="status" aria-live="polite"></p>
-        <button class="btn" type="submit">เริ่มใช้ฟรี</button>
+        <button class="btn" type="submit">ลงชื่อรอเปิดตัว</button>
       </form>
     </div>
   </section>
@@ -423,12 +423,12 @@
     fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'); return j; }); })
       .then(function(j){
-        var h=j.waitlist?'คุณอยู่ในรายชื่อรอแล้ว':'สมัครเรียบร้อย';
-        var t=j.waitlist?'ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง':'เรากำลังตั้งค่ายิมของคุณ แอปฟรีจะพร้อมภายใน 24 ชั่วโมง และเราจะอีเมลลิงก์และข้อมูลเข้าสู่ระบบให้';
+        var h=j.waitlist?'คุณอยู่ในรายชื่อรอแล้ว':'ลงชื่อเรียบร้อย';
+        var t=j.waitlist?'ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง':'เราจองที่ฟรีไว้ให้คุณแล้ว ทันทีที่เปิดให้ใช้ เราจะอีเมลลิงก์ให้ แล้วคุณเริ่มใช้แอปยิมได้เลย';
         f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';
         f.querySelector('.done').focus();
       })
-      .catch(function(err){ m.className='msg err'; m.textContent=err.message||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'; b.disabled=false; b.textContent='เริ่มใช้ฟรี'; });
+      .catch(function(err){ m.className='msg err'; m.textContent=err.message||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'; b.disabled=false; b.textContent='ลงชื่อรอเปิดตัว'; });
   });
 })();
 </script>
