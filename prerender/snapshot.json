@@ -1,5 +1,5 @@
 {
- "at": "2026-10-29T10:08:30Z",
+ "at": "2026-11-02T19:34:54Z",
  "classes": [
   {
    "day": 0,
@@ -779,6 +779,15 @@
    "image": "",
    "name": "Muay Thai Ticket, Patong Stadium",
    "price": 1500,
+   "sold_out": false
+  },
+  {
+   "description": "",
+   "group": "6",
+   "id": "909b5b8a-eb91-469f-8b5d-f88dad55cf57",
+   "image": "",
+   "name": "Training shirts",
+   "price": 490,
    "sold_out": false
   },
   {
@@ -1650,7 +1659,7 @@
    "group": "Training shirt",
    "id": "2b9a06f1-9604-4120-b24a-17736ca17b78",
    "image": "",
-   "name": "Training shirt, M Deepred New",
+   "name": "New Red  M",
    "price": 490,
    "sold_out": false
   },
@@ -2800,6 +2809,26 @@
    "slug": "teep-fake-teep-elbow",
    "title": "teep, fake teep elbow",
    "updated": "2026-10-29T07:06:06.850068+00:00"
+  },
+  {
+   "category": "clinch",
+   "description": "How to do Clinch position, Kneeing in the Clinch, Pull in the clinch in Muay Thai, from the Phuket King coaches.",
+   "embed": "https://www.youtube-nocookie.com/embed/hXALi6eBOT0",
+   "html": "<div class=\"cvid\"><iframe src=\"https://www.youtube-nocookie.com/embed/hXALi6eBOT0?rel=0\" title=\"Clinch position, Kneeing in the Clinch, Pull in the clinch\" allow=\"accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen\" allowfullscreen=\"\" loading=\"lazy\"></iframe></div>",
+   "image": "https://i.ytimg.com/vi/hXALi6eBOT0/hqdefault.jpg",
+   "slug": "clinch-position-kneeing-in-the-clinch-pull-in-the-clinch",
+   "title": "Clinch position, Kneeing in the Clinch, Pull in the clinch",
+   "updated": "2026-11-02T13:52:06.294746+00:00"
+  },
+  {
+   "category": "clinch",
+   "description": "How to do The basic clinch position in Muay Thai, from the Phuket King coaches.",
+   "embed": "",
+   "html": "<div class=\"cvid\" id=\"upv\" style=\"display:flex;align-items:center;justify-content:center;color:#fff;background:#000\">Loading the video</div>",
+   "image": "",
+   "slug": "the-basic-clinch-position",
+   "title": "The basic clinch position",
+   "updated": "2026-11-02T13:47:19.007698+00:00"
   },
   {
    "category": "elbow",
