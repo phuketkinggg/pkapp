@@ -537,7 +537,7 @@ footer a{color:#C9CFDB}
   <section class="block" id="pricing">
     <div class="wrap">
       <div class="head"><h2>Prices</h2></div>
-      <p class="lede">Simple monthly prices in Thai baht. Launch prices for the first gyms that join.</p>
+      <p class="lede">Simple monthly prices in Thai baht. Launch prices for the first gyms that join. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time). When many gyms join at once, there may be a short delay.</p>
       <p class="promo">Launch offer: your first 2 months at 50% off</p>
       <div class="plans">
         <div class="plan">
@@ -554,7 +554,7 @@ footer a{color:#C9CFDB}
           <p class="now">1,490 <small>a month</small></p>
           <p class="lim">30 members, 6 staff</p>
           <ul><li>Everything in Free</li><li>Shop and cafe till</li><li>Admin, accounts and receipts</li><li>Your own branding</li><li>We set it up for you</li></ul>
-          <a class="btn ghost" href="#contact">Get started</a>
+          <a class="btn ghost" href="#contact" data-plan="Gym">Get started</a>
         </div>
         <div class="plan">
           <h3>Gym Plus</h3>
@@ -562,7 +562,7 @@ footer a{color:#C9CFDB}
           <p class="now">3,290 <small>a month</small></p>
           <p class="lim">100 members, 10 staff</p>
           <ul><li>Everything in Gym</li><li>Room for a growing gym</li><li>We set it up for you</li></ul>
-          <a class="btn ghost" href="#contact">Get started</a>
+          <a class="btn ghost" href="#contact" data-plan="Gym Plus">Get started</a>
         </div>
         <div class="plan top">
           <h3>Camp</h3>
@@ -570,7 +570,7 @@ footer a{color:#C9CFDB}
           <p class="now">3,990 <small>a month</small></p>
           <p class="lim">150 members, 15 staff</p>
           <ul><li>Everything in Gym Plus</li><li>For busy gyms and camps</li><li>We set it up for you</li></ul>
-          <a class="btn" href="#contact">Get started</a>
+          <a class="btn" href="#contact" data-plan="Camp">Get started</a>
         </div>
         <div class="plan">
           <h3>Camp + Stay</h3>
@@ -578,7 +578,7 @@ footer a{color:#C9CFDB}
           <p class="now">7,990 <small>a month</small></p>
           <p class="lim">150 members, unlimited staff</p>
           <ul><li>Everything in Camp</li><li>Rooms, stays and online booking</li><li>AI tools included</li><li>We set it up for you</li></ul>
-          <a class="btn ghost" href="#contact">Get started</a>
+          <a class="btn ghost" href="#contact" data-plan="Camp + Stay">Get started</a>
         </div>
       </div>
       <p class="addons">Every paid plan can add members at 50 baht a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. Add-ons: your own integrated website (up to 8 pages), available on every plan. The AI tools (writing posts, reading receipts, making pages) are an add-on on Free, Gym, Gym Plus and Camp, and included in Camp + Stay.</p>
@@ -619,7 +619,7 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div>
         <h2>Start free</h2>
-        <p class="lede" style="margin-top:18px">For small gyms getting started. Join the launch list now and get your free gym app the moment it opens, within days.</p>
+        <p class="lede" style="margin-top:18px">For small gyms getting started. Sign up now: free gyms open on 4 November, and from then on your free app is ready within 4 hours of signing up.</p>
         <ul class="incl">
           <li>Check-ins, packages, selling and appointments</li>
           <li>Up to 15 members and 2 staff</li>
@@ -652,7 +652,7 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div>
         <h2>Get more info</h2>
-        <p class="lede" style="margin-top:18px">Tell us a little about your gym. We'll reply by email with more details and a time for your free demo.</p>
+        <p class="lede" style="margin-top:18px">Want a paid plan, or a demo first? Tell us about your gym. Paid plans are up and running within 4 hours (9am to 6pm Thai time), and on very busy days there may be a short delay.</p>
         <p class="note">Or email us at <a href="mailto:hello@muayfriend.com" style="color:#fff">hello@muayfriend.com</a>. We only use your details to reply to you.</p>
       </div>
       <form id="lead" novalidate>
@@ -667,6 +667,9 @@ footer a{color:#C9CFDB}
           </select>
         </label>
         <label>Phone or WhatsApp <span>(optional)</span><input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
+        <label>I would like
+          <select name="interest" id="lead-plan"><option>A demo first</option><option>Gym</option><option>Gym Plus</option><option>Camp</option><option>Camp + Stay</option></select>
+        </label>
         <label class="full">What would you like to know? <span>(optional)</span><textarea name="message" maxlength="3000"></textarea></label>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
         <p class="msg" id="lead-msg" role="status" aria-live="polite"></p>
@@ -690,13 +693,14 @@ footer a{color:#C9CFDB}
 
 <script>
 (function(){
+  document.querySelectorAll('[data-plan]').forEach(function(a){ a.addEventListener('click',function(){ var s=document.getElementById('lead-plan'); if(s) s.value=a.getAttribute('data-plan'); }); });
   var f=document.getElementById('lead'), m=document.getElementById('lead-msg'), b=f.querySelector('button');
   f.addEventListener('submit',function(e){
     e.preventDefault(); m.className='msg'; m.textContent='';
     var d={}; new FormData(f).forEach(function(v,k){ d[k]=String(v).trim(); });
     if(!d.name){ m.className='msg err'; m.textContent='Add your name.'; f.name.focus(); return; }
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='Check your email address.'; f.email.focus(); return; }
-    d.source=location.href.slice(0,120);
+    if(d.interest){ d.message=('Plan: '+d.interest+(d.message?'\n\n'+d.message:'')); } delete d.interest; d.source=location.href.slice(0,120);
     b.disabled=true; b.textContent='Sending';
     fetch('https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'Not sent. Try again, or check your connection.'); }); })
