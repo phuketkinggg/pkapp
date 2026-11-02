@@ -218,6 +218,17 @@ section.block{padding:96px 0}
 .faq details[open] summary::after{content:"\2212"}
 .faq details p{color:var(--ink2);padding-right:40px}
 
+/* start free */
+.free{background:var(--paper)}
+.free .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
+.free .incl{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:10px}
+.free .incl li{padding-left:30px;position:relative;font-size:17px}
+.free .incl li::before{content:"";position:absolute;left:4px;top:7px;width:14px;height:8px;border-left:3px solid var(--blue);border-bottom:3px solid var(--blue);transform:rotate(-45deg)}
+.free .spots{display:inline-block;margin-top:22px;padding:8px 16px;border-radius:999px;background:var(--red);color:#fff;font-weight:600}
+.free .spots:empty{display:none}
+.free form{background:#fff;border:1.5px solid var(--line)}
+@media (max-width:860px){.free .wrap{grid-template-columns:1fr;gap:32px}}
+
 /* form */
 .contact{background:var(--navy);color:#fff}
 .contact .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
@@ -257,7 +268,7 @@ footer a{color:#C9CFDB}
       <a href="demo/">Live demo</a>
     </nav>
     <a class="lang" href="th/" hreflang="th" lang="th">ไทย</a>
-    <a class="btn" href="#contact">Get more info</a>
+    <a class="btn" href="#free">Start free</a>
   </div>
 </header>
 
@@ -269,7 +280,8 @@ footer a{color:#C9CFDB}
         <h1><span>Run your</span><span>Muay Thai gym</span><span>from one app</span></h1>
         <p class="lede">Bookings, check-ins, sales, your cafe, coaching, accounts and your website, all in one clear place. Run it from your phone, and stop paying for ten different apps.</p>
         <div class="cta">
-          <a class="btn" href="#contact">Book a free demo</a>
+          <a class="btn" href="#free">Start free</a>
+          <a class="btn ghost" href="#contact">Book a free demo</a>
           <a class="btn ghost" href="demo/">Try the live demo</a>
         </div>
       </div>
@@ -490,7 +502,7 @@ footer a{color:#C9CFDB}
     <div class="wrap">
       <div class="head"><h2>How to get started</h2></div>
       <ol class="steps">
-        <li><h3>Tell us about your gym</h3><p>Send the form below. We'll ask what you use today and what slows you down.</p></li>
+        <li><h3>Start free, or tell us about your gym</h3><p>Small gym? <a href="#free">Start free</a> and your app is ready within 24 hours. Bigger gym or camp? Send the form below and we'll ask what you use today and what slows you down.</p></li>
         <li><h3>Try it yourself</h3><p>Open the <a href="demo/">live demo</a> of Muay Fight Gym, a made up gym, and look around as the owner, the front desk, a coach or a member. Then we show you a demo with your own gym in it.</p></li>
         <li><h3>We set it up for you</h3><p>We bring in your members and packages, set it up the way you work, and show your team how to use it.</p></li>
       </ol>
@@ -508,8 +520,42 @@ footer a{color:#C9CFDB}
         <details><summary>Can I use only some of it?</summary><p>Yes. We switch off what you don't need, so a gym without rooms won't see stays or housekeeping.</p></details>
         <details><summary>Can you move my existing members across?</summary><p>Yes. Send us your current list and we'll bring in your members, packages and what they have left.</p></details>
         <details><summary>Is the AI included?</summary><p>The AI tools are an optional add-on: making web pages from a description, writing social media posts from your photos, and reading receipts. Everything else works without them, and you can add them any time.</p></details>
-        <details><summary>How much does it cost?</summary><p>It depends on the size of your gym and what you use. Tell us about your gym and we'll send you a clear monthly price.</p></details>
+        <details><summary>How much does it cost?</summary><p>Small gyms can start free: check-ins, packages, selling and appointments for up to 15 members and 2 staff. Bigger gyms and camps pay a monthly price that depends on size and what you use. Tell us about your gym and we'll send you a clear price.</p></details>
+        <details><summary>What is in the free version?</summary><p>Check-ins, packages, selling and appointments, with your gym's name, for up to 15 members and 2 staff. It shows a small Muay Friend logo. You can move up to a paid plan any time and keep everything.</p></details>
       </div>
+    </div>
+  </section>
+
+  <section class="block free" id="free">
+    <div class="wrap">
+      <div>
+        <h2>Start free</h2>
+        <p class="lede" style="margin-top:18px">For small gyms getting started. Sign up and your gym app is ready within 24 hours.</p>
+        <ul class="incl">
+          <li>Check-ins, packages, selling and appointments</li>
+          <li>Up to 15 members and 2 staff</li>
+          <li>Your gym's name on the app</li>
+          <li>Move up to a paid plan any time and keep everything</li>
+        </ul>
+        <p class="spots" id="free-spots" aria-live="polite"></p>
+      </div>
+      <form id="freeform" novalidate>
+        <label>Gym name<input name="gym" autocomplete="organization" required maxlength="140"></label>
+        <label>Your name<input name="name" autocomplete="name" required maxlength="100"></label>
+        <label>Email<input name="email" type="email" autocomplete="email" required maxlength="160"></label>
+        <label>Phone or WhatsApp<input name="phone" type="tel" autocomplete="tel" required maxlength="40"></label>
+        <label>Country<input name="country" autocomplete="country-name" required maxlength="80"></label>
+        <label>Members right now
+          <select name="members">
+            <option value="">Choose</option>
+            <option>Under 15</option><option>15 to 50</option><option>50 to 150</option><option>Over 150</option>
+          </select>
+        </label>
+        <label class="full">Instagram or website <span>(optional)</span><input name="social" maxlength="200"></label>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p class="msg" id="free-msg" role="status" aria-live="polite"></p>
+        <button class="btn" type="submit">Start free</button>
+      </form>
     </div>
   </section>
 
@@ -548,6 +594,7 @@ footer a{color:#C9CFDB}
     <span>Made in Thailand, with gyms around the world.</span>
     <a href="th/" hreflang="th" lang="th">ภาษาไทย</a>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
+    <a href="#free">Start free</a>
     <a href="#contact">Get more info</a>
   </div>
 </footer>
@@ -569,6 +616,32 @@ footer a{color:#C9CFDB}
         f.querySelector('.done').focus();
       })
       .catch(function(err){ m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent='Send'; });
+  });
+})();
+</script>
+<script>
+(function(){
+  var API='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead';
+  var sp=document.getElementById('free-spots');
+  fetch(API).then(function(r){ return r.json(); }).then(function(j){ var n=j&&j.free_left; if(typeof n!=='number') return; sp.textContent=n>0?(n===1?'Only 1 free spot left':'Only '+n+' free spots left'):'Free spots are full: join the waiting list'; }).catch(function(){});
+  var f=document.getElementById('freeform'), m=document.getElementById('free-msg'), b=f.querySelector('button');
+  f.addEventListener('submit',function(e){
+    e.preventDefault(); m.className='msg'; m.textContent='';
+    var d={}; new FormData(f).forEach(function(v,k){ d[k]=String(v).trim(); });
+    var need=[['gym','Add your gym name.'],['name','Add your name.'],['phone','Add your phone or WhatsApp.'],['country','Add your country.']];
+    for(var i=0;i<need.length;i++){ if(!d[need[i][0]]){ m.className='msg err'; m.textContent=need[i][1]; f[need[i][0]].focus(); return; } }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='Check your email address.'; f.email.focus(); return; }
+    d.plan='free'; d.lang=document.documentElement.lang==='th'?'th':'en'; d.source=location.href.slice(0,120);
+    b.disabled=true; b.textContent='Sending';
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'Not sent. Try again, or check your connection.'); return j; }); })
+      .then(function(j){
+        var h=j.waitlist?'You are on the waiting list':'You are in';
+        var t=j.waitlist?'All free spots are taken right now. We will email you as soon as one opens.':'We are setting up your gym now. Your free app will be ready within 24 hours, and we will email you the link and your login.';
+        f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';
+        f.querySelector('.done').focus();
+      })
+      .catch(function(err){ m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent='Start free'; });
   });
 })();
 </script>

@@ -219,6 +219,17 @@ section.block{padding:96px 0}
 .faq details[open] summary::after{content:"\2212"}
 .faq details p{color:var(--ink2);padding-right:40px}
 
+/* start free */
+.free{background:var(--paper)}
+.free .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
+.free .incl{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:10px}
+.free .incl li{padding-left:30px;position:relative;font-size:17px}
+.free .incl li::before{content:"";position:absolute;left:4px;top:7px;width:14px;height:8px;border-left:3px solid var(--blue);border-bottom:3px solid var(--blue);transform:rotate(-45deg)}
+.free .spots{display:inline-block;margin-top:22px;padding:8px 16px;border-radius:999px;background:var(--red);color:#fff;font-weight:600}
+.free .spots:empty{display:none}
+.free form{background:#fff;border:1.5px solid var(--line)}
+@media (max-width:860px){.free .wrap{grid-template-columns:1fr;gap:32px}}
+
 /* form */
 .contact{background:var(--navy);color:#fff}
 .contact .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
@@ -274,7 +285,7 @@ h3{font-size:24px}
       <a href="../demo/">ลองเดโม</a>
     </nav>
     <a class="lang" href="../" hreflang="en" lang="en">EN</a>
-    <a class="btn" href="#contact">ขอข้อมูลเพิ่มเติม</a>
+    <a class="btn" href="#free">เริ่มใช้ฟรี</a>
   </div>
 </header>
 
@@ -286,7 +297,8 @@ h3{font-size:24px}
         <h1><span>บริหารยิมมวยไทย</span><span>ครบในแอปเดียว</span></h1>
         <p class="lede">การจอง เช็คอิน งานขาย คาเฟ่ การโค้ช บัญชี และเว็บไซต์ของคุณ รวมไว้ในที่เดียวที่ใช้งานง่าย สั่งงานได้จากมือถือ และเลิกจ่ายค่าแอปสิบตัวที่ไม่เชื่อมกัน</p>
         <div class="cta">
-          <a class="btn" href="#contact">นัดชมเดโมฟรี</a>
+          <a class="btn" href="#free">เริ่มใช้ฟรี</a>
+          <a class="btn ghost" href="#contact">นัดชมเดโมฟรี</a>
           <a class="btn ghost" href="../demo/">ลองเดโมด้วยตัวเอง</a>
         </div>
       </div>
@@ -507,7 +519,7 @@ h3{font-size:24px}
     <div class="wrap">
       <div class="head"><h2>เริ่มต้นอย่างไร</h2></div>
       <ol class="steps">
-        <li><h3>เล่าเรื่องยิมของคุณ</h3><p>ส่งแบบฟอร์มด้านล่าง เราจะถามว่าตอนนี้คุณใช้อะไรอยู่ และอะไรที่ทำให้งานช้า</p></li>
+        <li><h3>เริ่มใช้ฟรี หรือเล่าเรื่องยิมของคุณ</h3><p>ยิมเล็ก? <a href="#free">เริ่มใช้ฟรี</a> แอปของคุณพร้อมภายใน 24 ชั่วโมง ยิมใหญ่หรือแคมป์? ส่งแบบฟอร์มด้านล่าง เราจะถามว่าตอนนี้คุณใช้อะไรอยู่ และอะไรที่ทำให้งานช้า</p></li>
         <li><h3>ลองใช้ด้วยตัวเอง</h3><p>เปิด<a href="../demo/">เดโม</a>ของ Muay Fight Gym ยิมสมมติ แล้วลองดูในฐานะเจ้าของ หน้าเคาน์เตอร์ ครู หรือสมาชิก จากนั้นเราจะสาธิตโดยใช้ข้อมูลยิมของคุณเอง</p></li>
         <li><h3>เราตั้งค่าให้</h3><p>เราย้ายข้อมูลสมาชิกและแพ็กเกจเข้ามา ตั้งค่าให้ตรงกับวิธีทำงานของคุณ และสอนทีมของคุณใช้งาน</p></li>
       </ol>
@@ -525,8 +537,42 @@ h3{font-size:24px}
         <details><summary>ใช้แค่บางส่วนได้ไหม?</summary><p>ได้ เราปิดส่วนที่คุณไม่ใช้ให้ ยิมที่ไม่มีห้องพักจะไม่เห็นเมนูห้องพักหรือแม่บ้าน</p></details>
         <details><summary>ย้ายสมาชิกเดิมเข้ามาได้ไหม?</summary><p>ได้ ส่งรายชื่อปัจจุบันมาให้เรา แล้วเราจะย้ายสมาชิก แพ็กเกจ และจำนวนที่เหลือเข้ามาให้</p></details>
         <details><summary>รวม AI ด้วยไหม?</summary><p>เครื่องมือ AI เป็นส่วนเสริมที่เลือกได้: สร้างหน้าเว็บจากคำอธิบาย เขียนโพสต์โซเชียลจากรูปของคุณ และอ่านใบเสร็จ ส่วนอื่นทั้งหมดใช้งานได้โดยไม่ต้องมี AI และเพิ่มได้ทุกเมื่อ</p></details>
-        <details><summary>ราคาเท่าไหร่?</summary><p>ขึ้นอยู่กับขนาดยิมและสิ่งที่คุณใช้ บอกเราเกี่ยวกับยิมของคุณ แล้วเราจะส่งราคารายเดือนที่ชัดเจนให้</p></details>
+        <details><summary>ราคาเท่าไหร่?</summary><p>ยิมเล็กเริ่มใช้ฟรีได้: เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย สำหรับสมาชิกสูงสุด 15 คนและพนักงาน 2 คน ยิมใหญ่และแคมป์จ่ายรายเดือนตามขนาดและสิ่งที่ใช้ บอกเราเกี่ยวกับยิมของคุณ แล้วเราจะส่งราคาที่ชัดเจนให้</p></details>
+        <details><summary>เวอร์ชันฟรีมีอะไรบ้าง?</summary><p>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย พร้อมชื่อยิมของคุณ สำหรับสมาชิกสูงสุด 15 คนและพนักงาน 2 คน มีโลโก้ Muay Friend เล็กๆ อัปเกรดเป็นแพ็กเกจแบบชำระเงินได้ทุกเมื่อ โดยข้อมูลยังอยู่ครบ</p></details>
       </div>
+    </div>
+  </section>
+
+  <section class="block free" id="free">
+    <div class="wrap">
+      <div>
+        <h2>เริ่มใช้ฟรี</h2>
+        <p class="lede" style="margin-top:18px">สำหรับยิมเล็กที่เพิ่งเริ่มต้น สมัครแล้วแอปยิมของคุณพร้อมใช้ภายใน 24 ชั่วโมง</p>
+        <ul class="incl">
+          <li>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย</li>
+          <li>สมาชิกสูงสุด 15 คน และพนักงาน 2 คน</li>
+          <li>ชื่อยิมของคุณบนแอป</li>
+          <li>อัปเกรดเป็นแพ็กเกจแบบชำระเงินได้ทุกเมื่อ ข้อมูลยังอยู่ครบ</li>
+        </ul>
+        <p class="spots" id="free-spots" aria-live="polite"></p>
+      </div>
+      <form id="freeform" novalidate>
+        <label>ชื่อยิม<input name="gym" autocomplete="organization" required maxlength="140"></label>
+        <label>ชื่อของคุณ<input name="name" autocomplete="name" required maxlength="100"></label>
+        <label>อีเมล<input name="email" type="email" autocomplete="email" required maxlength="160"></label>
+        <label>โทรศัพท์หรือ WhatsApp / LINE<input name="phone" type="tel" autocomplete="tel" required maxlength="40"></label>
+        <label>ประเทศ<input name="country" autocomplete="country-name" required maxlength="80" value="ประเทศไทย"></label>
+        <label>จำนวนสมาชิกตอนนี้
+          <select name="members">
+            <option value="">เลือก</option>
+            <option>ต่ำกว่า 15</option><option>15 ถึง 50</option><option>50 ถึง 150</option><option>มากกว่า 150</option>
+          </select>
+        </label>
+        <label class="full">Instagram, Facebook หรือเว็บไซต์ <span>(ไม่บังคับ)</span><input name="social" maxlength="200"></label>
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p class="msg" id="free-msg" role="status" aria-live="polite"></p>
+        <button class="btn" type="submit">เริ่มใช้ฟรี</button>
+      </form>
     </div>
   </section>
 
@@ -565,6 +611,7 @@ h3{font-size:24px}
     <span>สร้างในประเทศไทย ร่วมกับยิมทั่วโลก</span>
     <a href="../" hreflang="en" lang="en">English</a>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
+    <a href="#free">เริ่มใช้ฟรี</a>
     <a href="#contact">ขอข้อมูลเพิ่มเติม</a>
   </div>
 </footer>
@@ -587,6 +634,32 @@ h3{font-size:24px}
         f.querySelector('.done').focus();
       })
       .catch(function(err){ m.className='msg err'; m.textContent=err.message; b.disabled=false; b.textContent='ส่ง'; });
+  });
+})();
+</script>
+<script>
+(function(){
+  var API='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead';
+  var sp=document.getElementById('free-spots');
+  fetch(API).then(function(r){ return r.json(); }).then(function(j){ var n=j&&j.free_left; if(typeof n!=='number') return; sp.textContent=n>0?('เหลือที่ว่างฟรีอีก '+n+' ที่'):'ที่ว่างฟรีเต็มแล้ว: ลงชื่อรอได้'; }).catch(function(){});
+  var f=document.getElementById('freeform'), m=document.getElementById('free-msg'), b=f.querySelector('button');
+  f.addEventListener('submit',function(e){
+    e.preventDefault(); m.className='msg'; m.textContent='';
+    var d={}; new FormData(f).forEach(function(v,k){ d[k]=String(v).trim(); });
+    var need=[['gym','กรุณาใส่ชื่อยิม'],['name','กรุณาใส่ชื่อของคุณ'],['phone','กรุณาใส่เบอร์โทรหรือ WhatsApp / LINE'],['country','กรุณาใส่ประเทศ']];
+    for(var i=0;i<need.length;i++){ if(!d[need[i][0]]){ m.className='msg err'; m.textContent=need[i][1]; f[need[i][0]].focus(); return; } }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='กรุณาตรวจสอบอีเมล'; f.email.focus(); return; }
+    d.plan='free'; d.lang='th'; d.source=location.href.slice(0,120);
+    b.disabled=true; b.textContent='กำลังส่ง';
+    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'); return j; }); })
+      .then(function(j){
+        var h=j.waitlist?'คุณอยู่ในรายชื่อรอแล้ว':'สมัครเรียบร้อย';
+        var t=j.waitlist?'ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง':'เรากำลังตั้งค่ายิมของคุณ แอปฟรีจะพร้อมภายใน 24 ชั่วโมง และเราจะอีเมลลิงก์และข้อมูลเข้าสู่ระบบให้';
+        f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>';
+        f.querySelector('.done').focus();
+      })
+      .catch(function(err){ m.className='msg err'; m.textContent=err.message||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'; b.disabled=false; b.textContent='เริ่มใช้ฟรี'; });
   });
 })();
 </script>
