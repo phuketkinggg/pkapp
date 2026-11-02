@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=107"></script>
+<script src="changelog.js?v=108"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -944,7 +944,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=64; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=65; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8848,7 +8848,7 @@ function navEdit(){
 var SETT={tab:pref('pk_settab')||'home'};
 function setTabs(){ var mgr=me.role==='manager';
   return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],['features','Features','Switch parts of the app on or off, languages'],
-    mgr?['look','Look','App colours, desk mode screen']:null,mgr?['money','Money','PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
+    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr?['money','Money','PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
     ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
     .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
 function setGo(t){ SETT.tab=t; pref('pk_settab',t); schedule(); window.scrollTo(0,0); }
@@ -8874,6 +8874,7 @@ function vSettings(){
   else if(t==='menu') body=[navSection()];
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
+  else if(t==='plan') body=[planSection()];
   else if(t==='money') body=[ppSettings(),pxSettings()];
   else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
@@ -9857,6 +9858,31 @@ function applyTheme(t){
 (function(){ try{ applyTheme(JSON.parse(pref('app_theme')||'null')); }catch(e){} })();
 /* the business's app in Google Play and the App Store (app_settings store_links): the install button sends phones there */
 function loadStore(){ return sb.rpc('store_links').then(function(res){ if(res.error) return; window.PK_STORE=res.data||{}; try{ localStorage.setItem('pk_store',JSON.stringify(window.PK_STORE)); }catch(e){} schedule(); }).catch(function(){}); }
+/* the shared app's own plans (window.MF_MULTI): see the plan, upgrade through the payment page, manage card and bills */
+var PLANS=[{k:'gym',n:'Gym',m:1490,d:'Card payments, shop and till, staff hours, accounts, coach commission, messages. 30 members, 6 staff.'},
+  {k:'gym_plus',n:'Gym Plus',m:3290,d:'Everything in Gym, for up to 100 members.'},
+  {k:'camp',n:'Camp',m:3990,d:'Everything in Gym Plus, plus cafe and kitchen, coaching, courses, fighters, contacts and newsletters, social media. 150 members, 15 staff.'},
+  {k:'master',n:'Master',m:7990,d:'Everything, including rooms and stays, online room booking, food plans and Ask AI. Unlimited staff.'}];
+var MYPLAN=null, PLANCYC='month';
+function loadMyPlan(){ return sb.from('app_settings').select('value').eq('key','plan').maybeSingle().then(function(r){ var v={}; try{ v=JSON.parse((r.data&&r.data.value)||'{}')||{}; }catch(e){ v={}; } MYPLAN=v; schedule(); }); }
+function billing(body){ return sb.auth.getSession().then(function(r){ var tok=r.data&&r.data.session&&r.data.session.access_token;
+  return fetch(SB_URL+'/functions/v1/mf-billing',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tok},body:JSON.stringify(Object.assign({g:window.MF_GYM,lang:uiLang()==='th'?'th':'en'},body))})
+    .then(function(x){ return x.json().then(function(j){ if(!x.ok||!j.url) throw {plain:true,message:j.error||'Could not open the payment page. Try again.'}; location.href=j.url; }); }); }); }
+function planSection(){
+  if(MYPLAN===null){ loadMyPlan().catch(function(){ MYPLAN={}; }); return h('div',{class:'panel empty'},'Loading.'); }
+  var cur=MYPLAN.name||'free', curP=PLANS.filter(function(p){ return p.k===cur; })[0], paid=!!curP;
+  var thb=function(n){ return Number(n).toLocaleString('en-US')+' THB'; };
+  var cyc=h('div',{class:'row'},[['month','Monthly'],['year','Yearly, 12 months for the price of 10']].map(function(c){ return btn(c[1],function(){ PLANCYC=c[0]; schedule(); },'small'+(PLANCYC===c[0]?' primary':'')); }));
+  return section('Your plan',null,h('div',null,
+    h('div',{class:'panel pad'},h('p',null,'You are on ',h('b',null,paid?curP.n:'Free'),paid&&MYPLAN.cycle?(MYPLAN.cycle==='year'?', paid yearly':', paid monthly'):null,'.'),
+      paid?h('p',{class:'sub'},'Change your card, see your bills, switch plan or cancel on the billing page.'):h('p',{class:'sub'},'Free is for up to 15 members and 2 staff. Move up any time and keep everything.'),
+      paid?h('div',{class:'row'},btn('Billing page',function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'portal'}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small')):null),
+    paid?null:h('div',{class:'panel pad'},cyc,
+      h('p',{class:'sub'},PLANCYC==='month'?'Launch offer: 50% off your first 2 months.':'Pay a year upfront: 12 months for the price of 10, and we copy your current website into the app free.'),
+      h('div',{class:'grid2'},PLANS.map(function(p){ var price=PLANCYC==='year'?p.m*10:p.m;
+        return h('div',{class:'panel pad'},h('h3',null,p.n),h('p',null,h('b',null,thb(price)),PLANCYC==='year'?' a year':' a month'),h('p',{class:'sub'},p.d),
+          h('div',{class:'row'},btn('Choose '+p.n,function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'checkout',plan:p.k,cycle:PLANCYC}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small'))); })),
+      h('p',{class:'sub'},'You pay on Stripe\'s secure page by card. Your plan switches on as soon as you have paid.')))); }
 function storeSection(){ var s=window.PK_STORE||{};
   return section('App in the stores',null,h('div',{class:'panel pad'},
     h('p',{class:'sub'},'If your business has its own app in Google Play or the App Store, add the links here. Your website shows Get it on Google Play and Download on the App Store buttons, and the Install button in the app sends phones to the store.'),
@@ -10724,6 +10750,7 @@ if(!window.supabase||!window.supabase.createClient){
     }
     /* email links that come to the app itself (token_hash), not to the database address: fewer emails go to junk */
     var th=qp.get('token_hash'), tt=qp.get('type'); if(th&&/^[A-Za-z0-9_-]{8,200}$/.test(th)&&/^(signup|email|magiclink|recovery|invite|email_change)$/.test(tt||'')){ EMAILOTP={h:th,t:tt==='magiclink'?'email':tt}; if(tt==='recovery') recovering=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
+    if(qp.get('paid')==='1'&&window.MF_MULTI){ setTimeout(function(){ toast('Thank you. Your plan is on. It can take a minute to show.'); MYPLAN=null; },1500); try{ history.replaceState(null,'',location.pathname+'?g='+window.MF_GYM); }catch(e){} }
     var rt=qp.get('ready'); if(rt&&/^[0-9a-f]{64}$/.test(rt)){ READYTOKEN=rt; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     var sc=qp.get('s'); if(sc&&/^[a-f0-9]{16,64}$/.test(sc)){ STAFFCODE={c:sc,t:Date.now()}; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
