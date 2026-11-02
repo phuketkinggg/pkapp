@@ -48,9 +48,20 @@ async function allowed(auth: string) {
   return { user, staff: s as { id: string; name: string; role: string } | null };
 }
 
-async function readTable(user: ReturnType<typeof createClient>, a: Record<string, unknown>) {
-  const t = String(a.table ?? ""); if (!/^[a-z_][a-z0-9_]{0,60}$/.test(t)) return "Unknown table.";
-  let q = user.from(t).select(String(a.select || "*").slice(0, 500));
+// Some tables are only read by the app through its own functions, so the person's login cannot read them directly.
+// Owners and admins see everything in the app anyway, so for them those tables are read with full rights.
+// Other staff with Ask AI may read only the product and course lists that way.
+const NEVER = new Set(["push_subs", "web_push_keys", "ai_usage"]);
+const CATALOG = new Set(["shop_products", "shop_categories", "shop_modifiers", "courses", "course_lessons", "techniques", "exercise_groups"]);
+async function readTable(user: ReturnType<typeof createClient>, a: Record<string, unknown>, role = "") {
+  const t = String(a.table ?? ""); if (!/^[a-z_][a-z0-9_]{0,60}$/.test(t) || NEVER.has(t)) return "Unknown table.";
+  const first = await readWith(user, t, a);
+  if (!/permission denied/i.test(first)) return first;
+  if (role === "manager" || role === "admin" || CATALOG.has(t)) return await readWith(admin, t, a);
+  return first;
+}
+async function readWith(client: ReturnType<typeof createClient>, t: string, a: Record<string, unknown>) {
+  let q = client.from(t).select(String(a.select || "*").slice(0, 500));
   for (const f of (Array.isArray(a.filters) ? a.filters : []).slice(0, 10) as { column: string; op: string; value: unknown }[]) {
     if (!/^[a-z_][a-z0-9_]{0,60}$/.test(String(f.column))) continue;
     if (f.op === "in") q = q.in(f.column, Array.isArray(f.value) ? f.value : [f.value]);
@@ -161,7 +172,7 @@ Deno.serve(async (req) => {
       const results = [];
       for (const u of uses) {
         let out = "";
-        if (u.name === "read_table") out = await readTable(who.user, u.input ?? {});
+        if (u.name === "read_table") out = await readTable(who.user, u.input ?? {}, who.staff?.role ?? "");
         else if (u.name === "propose_changes") { proposals.push({ id: u.id, summary: u.input?.summary, actions: u.input?.actions }); out = "Shown to the user with a Confirm button. Nothing has changed yet. Tell them briefly what is ready to confirm."; }
         else out = "Unknown tool.";
         results.push({ type: "tool_result", tool_use_id: u.id, content: out });
