@@ -78,3 +78,4 @@ create or replace function public.mf_billing_by_sub(p_sub text, p_customer text)
   select slug from mf.gyms where (p_sub is not null and stripe_sub = p_sub) or (p_customer is not null and stripe_customer = p_customer) order by stripe_sub = p_sub desc nulls last limit 1 $$;
 revoke all on function public.mf_billing_gym(text, uuid), public.mf_billing_set(text, text, jsonb), public.mf_billing_cfg(text), public.mf_billing_cfg_set(text, text), public.mf_billing_by_sub(text, text) from public, anon, authenticated;
 grant execute on function public.mf_billing_gym(text, uuid), public.mf_billing_set(text, text, jsonb), public.mf_billing_cfg(text), public.mf_billing_cfg_set(text, text), public.mf_billing_by_sub(text, text) to service_role;
+notify pgrst, 'reload schema';

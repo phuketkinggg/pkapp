@@ -46,3 +46,4 @@ create or replace function public.mf_invite_ok(p_key text) returns boolean langu
 $$;
 revoke all on function public.mf_invite_ok(text) from public, anon, authenticated;
 grant execute on function public.mf_invite_ok(text) to service_role;
+notify pgrst, 'reload schema';
