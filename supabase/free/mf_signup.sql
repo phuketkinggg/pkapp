@@ -38,3 +38,11 @@ returns void language sql security definer set search_path to '' as $$
 $$;
 revoke all on function public.mf_signup_log(text, text, text, text, text, jsonb) from public, anon, authenticated;
 grant execute on function public.mf_signup_log(text, text, text, text, text, jsonb) to service_role;
+
+-- invites from the Muay Friend team: a key kept only in the database (sent by SQL, never written anywhere else)
+insert into mf.cfg (key, value) values ('invite_key', to_jsonb(replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''))) on conflict (key) do nothing;
+create or replace function public.mf_invite_ok(p_key text) returns boolean language sql stable security definer set search_path to '' as $$
+  select coalesce(length(p_key) >= 32 and p_key = (select value #>> '{}' from mf.cfg where key = 'invite_key'), false)
+$$;
+revoke all on function public.mf_invite_ok(text) from public, anon, authenticated;
+grant execute on function public.mf_invite_ok(text) to service_role;

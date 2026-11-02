@@ -6,6 +6,7 @@
 //   Already owns a gym: emails a sign-in link to it: {ok, slug, again, sent}.
 //   No free spots left: {full:true} (the website then puts them on the waiting list).
 // GET -> {free_left}
+// Invites (launch list): add invite_key (mf.cfg invite_key, only readable in the database): the link is emailed, no visitor limit.
 // Public. Spam guards: honeypot, field checks, max 3 per hour per visitor, 30 per hour in total, 3 gyms per email.
 // Emails go from hello@muayfriend.com through Resend (RESEND_API_KEY in this project's secrets).
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -98,7 +99,10 @@ Deno.serve(async (req) => {
     const owns = (c.owns ?? []) as { slug: string; name: string }[];
     const log = (slug: string | null, result: string, info?: unknown) => admin.rpc("mf_signup_log", { p_ip: ip, p_email: email, p_gym: gym, p_slug: slug, p_result: result, p_info: info ?? null });
 
-    if ((c.ip_hour ?? 0) >= 3 || (c.all_hour ?? 0) >= 30) {
+    // invites from the Muay Friend team (people on the launch list): no visitor limit, the link always goes by email
+    const { data: ik } = await admin.rpc("mf_invite_ok", { p_key: clip(b.invite_key, 100) });
+    const invite = ik === true;
+    if (!invite && ((c.ip_hour ?? 0) >= 3 || (c.all_hour ?? 0) >= 30)) {
       await log(null, "too many");
       return json({ error: T("Too many sign-ups right now. Please try again in an hour, or email hello@muayfriend.com.", "มีการสมัครมากเกินไป กรุณาลองใหม่ในอีกหนึ่งชั่วโมง หรืออีเมลมาที่ hello@muayfriend.com") }, 429);
     }
@@ -129,16 +133,16 @@ Deno.serve(async (req) => {
     const link = await signInLink(email, slug);
 
     // emails: the gym (sign-in link only when it has to come from the inbox) and the Muay Friend team
-    const m = mail(th, first, gym, slug, isNew ? null : link);
+    const m = mail(th, first, gym, slug, isNew && !invite ? null : link);
     const s = await resend({ from: FROM, to: [email], reply_to: TEAM, subject: m.subject, html: m.html, text: m.text });
     const rows: [string, string][] = [["Gym", gym], ["App", APP + "?g=" + slug], ["Name", name], ["Email", email], ["Phone or WhatsApp", phone], ["Country", country],
       ["Members", clip(b.members, 40)], ["Instagram or website", clip(b.social, 200)], ["Language", th ? "Thai" : "English"], ["Welcome email", s.ok ? "sent" : "failed: " + s.err]];
     await resend({ from: FROM, to: [TEAM], reply_to: email, subject: `New free gym: ${gym}`,
       html: `<h2 style="font-family:sans-serif">New free gym, ready now</h2><table style="font-family:sans-serif;font-size:15px">${rows.filter((r) => r[1]).map(([k, v]) => `<tr><td style="padding:4px 14px 4px 0;color:#666">${k}</td><td style="padding:4px 0">${esc(v)}</td></tr>`).join("")}</table>`,
       text: rows.filter((r) => r[1]).map(([k, v]) => `${k}: ${v}`).join("\n") });
-    await log(slug, (isNew ? "made, signed in" : "made, link emailed") + (s.ok ? "" : "; welcome failed: " + s.err),
+    await log(slug, (invite ? "invited, link emailed" : isNew ? "made, signed in" : "made, link emailed") + (s.ok ? "" : "; welcome failed: " + s.err),
       { phone, country, members: clip(b.members, 40), social: clip(b.social, 200), lang: th ? "th" : "en" });
-    return isNew ? json({ ok: true, slug, go: link, sent: s.ok }) : json({ ok: true, slug, sent: s.ok });
+    return isNew && !invite ? json({ ok: true, slug, go: link, sent: s.ok }) : json({ ok: true, slug, sent: s.ok });
   } catch (e) {
     try { await admin.rpc("mf_signup_log", { p_ip: ip, p_email: email, p_gym: gym, p_slug: null, p_result: "error: " + String(e).slice(0, 250) }); } catch (_) { /* logging only */ }
     return json({ error: "Something went wrong. Please try again, or email hello@muayfriend.com." }, 500);
