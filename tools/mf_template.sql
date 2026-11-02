@@ -56,6 +56,12 @@ s as (
     from pg_class c join pg_namespace n on n.oid = c.relnamespace, aclexplode(c.relacl) x
     where n.nspname in ('public','private') and c.relkind in ('r','S') and c.relname not in ('mf_leads')
       and x.grantee <> c.relowner and (x.grantee = 0 or pg_get_userbyid(x.grantee) in ('anon','authenticated','service_role'))
+  -- 11 column grants (tables where only some columns may be read or changed, for example staff)
+  union all select 11, 'colgrant', n.nspname||'.'||c.relname||'.'||a.attname, format('grant %s (%I) on table %I.%I to %s;', x.privilege_type, a.attname, n.nspname, c.relname,
+      case when x.grantee = 0 then 'public' else quote_ident(pg_get_userbyid(x.grantee)) end)
+    from pg_attribute a join pg_class c on c.oid = a.attrelid join pg_namespace n on n.oid = c.relnamespace, aclexplode(a.attacl) x
+    where n.nspname in ('public','private') and c.relkind = 'r' and c.relname not in ('mf_leads') and a.attnum > 0 and not a.attisdropped and a.attacl is not null
+      and (x.grantee = 0 or pg_get_userbyid(x.grantee) in ('anon','authenticated','service_role'))
   -- 11 function rights: take away the default "everyone may run it", then give back what the app gives
   union all select 11, 'revoke', n.nspname||'.'||p.proname, format('revoke all on function %I.%I(%s) from public;', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid))
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('public','private') and p.prokind in ('f','p') and p.proacl is not null
