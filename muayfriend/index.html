@@ -242,6 +242,34 @@ section.block{padding:96px 0}
 .webpitch ul{margin:0;padding-left:20px;display:grid;gap:8px;color:#E3E7EF}
 .webpitch .offer{display:inline-block;margin-top:14px;padding:10px 18px;border-radius:12px;background:var(--red);color:#fff;font-weight:600}
 @media (max-width:860px){.webpitch{grid-template-columns:1fr;padding:24px}}
+/* pricing v2 */
+#pricing [hidden]{display:none!important}
+.billing{display:inline-flex;margin-top:22px;border:1.5px solid var(--ink);border-radius:999px;padding:4px;gap:4px;flex-wrap:wrap}
+.billing button{font:600 15px var(--body);border:0;background:transparent;color:var(--ink);padding:10px 18px;border-radius:999px;cursor:pointer}
+.billing button.on{background:var(--ink);color:#fff}
+.pickh{font-size:28px;margin-top:34px}
+.picks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.picks a{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;background:#fff;border:1.5px solid var(--line);color:var(--ink);text-decoration:none}
+.picks a:hover{border-color:var(--blue)}
+.picks span{color:var(--ink2);font-size:15px}
+.picks b{font:800 24px var(--display);color:var(--blue)}
+.plan{position:relative}
+.plan .badge{position:absolute;top:-13px;left:22px;margin:0;padding:4px 12px;border-radius:999px;background:var(--blue);color:#fff;font-size:13px;font-weight:600}
+.plan .for{color:var(--muted);font-size:15px;min-height:42px;margin:0}
+.plan .sub{color:var(--muted);font-size:14px;margin:0}
+.compare{margin-top:28px;background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:0 20px}
+.compare summary{cursor:pointer;padding:20px 0;font-weight:700;font-size:19px;color:var(--blue)}
+.ctable{overflow-x:auto;padding-bottom:20px}
+.compare table{border-collapse:collapse;width:100%;min-width:720px;font-size:15px}
+.compare th,.compare td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:center}
+.compare thead th{position:sticky;top:0;background:#fff;font:800 20px var(--display)}
+.compare th[scope=row]{text-align:left;font-weight:500;color:var(--ink2);width:40%}
+.compare thead th:first-child{text-align:left}
+.compare tr.grp th{text-align:left;background:var(--paper);font-weight:700;color:var(--ink);padding-top:14px}
+.compare .ok{display:inline-block;width:14px;height:8px;border-left:3px solid var(--blue);border-bottom:3px solid var(--blue);transform:rotate(-45deg)}
+.compare .no{display:inline-block;width:12px;height:2px;background:#C3C7BF}
+@media (max-width:900px){.picks{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.picks{grid-template-columns:1fr}}
 /* start free */
 .free{background:var(--paper)}
 .free .wrap{display:grid;grid-template-columns:.9fr 1.1fr;gap:56px}
@@ -537,51 +565,123 @@ footer a{color:#C9CFDB}
   <section class="block" id="pricing">
     <div class="wrap">
       <div class="head"><h2>Prices</h2></div>
-      <p class="lede">Simple monthly prices in Thai baht. Launch prices for the first gyms that join. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time). When many gyms join at once, there may be a short delay.</p>
-      <p class="promo">Launch offer: your first 2 months at 50% off</p>
+      <p class="lede">One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.</p>
+      <div class="billing" role="group"><button type="button" class="on" data-bill="m">Monthly</button><button type="button" data-bill="y">Yearly: 12 months for the price of 10</button></div>
+      <p class="promo" data-show="m">Launch offer: your first 2 months at 50% off</p><p class="promo" data-show="y" hidden>Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth 15,000 baht)</p>
+      <h3 class="pickh">Which plan is right for you?</h3>
+      <div class="picks"><a href="#plan-free"><span>Starting out, or a coach on your own</span><b>Free</b></a><a href="#plan-gym"><span>A small gym selling at the counter</span><b>Gym</b></a><a href="#plan-camp"><span>A busy gym or camp with coaching and a cafe</span><b>Camp</b></a><a href="#plan-master"><span>A camp with rooms, or you want everything</span><b>Master</b></a></div>
       <div class="plans">
-        <div class="plan">
+        <div class="plan" id="plan-free">
           <h3>Free</h3>
+          <p class="for">For a coach or a small gym starting out</p>
           <p class="was"></p>
           <p class="now">0 <small>a month</small></p>
           <p class="lim">15 members, 2 staff</p>
-          <ul><li>Check-ins, packages, selling and appointments</li><li>Your gym name, with a small Muay Friend logo</li><li>Set it up yourself</li></ul>
+          <ul><li>Member app with QR check-in</li><li>Packages, memberships and class passes</li><li>Timetable, privates and appointments</li><li>Cash and PromptPay QR</li><li>Set it up yourself</li></ul>
           <a class="btn" href="#free">Start free</a>
         </div>
-        <div class="plan">
+        <div class="plan" id="plan-gym">
           <h3>Gym</h3>
-          <p class="was">2,290</p>
-          <p class="now">1,490 <small>a month</small></p>
+          <p class="for">For a small gym that sells at the counter</p>
+          <p class="was" data-show="m">2,290</p><p class="was" data-show="y" hidden>27,480 a year</p>
+          <p class="now" data-show="m">1,490 <small>a month</small></p><p class="now" data-show="y" hidden>14,900 <small>a year</small></p><p class="sub" data-show="y" hidden>1,242 a month, paid yearly</p>
           <p class="lim">30 members, 6 staff</p>
-          <ul><li>Everything in Free</li><li>Shop and cafe till</li><li>Admin, accounts and receipts</li><li>Your own branding</li><li>We set it up for you</li></ul>
+          <ul><li>Everything in Free</li><li>Card payments in the app</li><li>Shop and cafe till with stock</li><li>Staff hours, commission, accounts and receipts</li><li>Messages with members</li><li>Website: 1 page with timetable, prices and courses to buy</li><li>Your own logo and colours</li><li>We set it up for you</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Gym">Get started</a>
         </div>
-        <div class="plan">
+        <div class="plan" id="plan-gymplus">
           <h3>Gym Plus</h3>
-          <p class="was">4,990</p>
-          <p class="now">3,290 <small>a month</small></p>
+          <p class="for">For a growing gym</p>
+          <p class="was" data-show="m">4,990</p><p class="was" data-show="y" hidden>59,880 a year</p>
+          <p class="now" data-show="m">3,290 <small>a month</small></p><p class="now" data-show="y" hidden>32,900 <small>a year</small></p><p class="sub" data-show="y" hidden>2,742 a month, paid yearly</p>
           <p class="lim">100 members, 10 staff</p>
-          <ul><li>Everything in Gym</li><li>Room for a growing gym</li><li>We set it up for you</li></ul>
+          <ul><li>Everything in Gym</li><li>100 members and 10 staff</li><li>Website: 1 page</li><li>We set it up for you</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Gym Plus">Get started</a>
         </div>
-        <div class="plan top">
+        <div class="plan top" id="plan-camp">
+          <p class="badge">Most popular</p>
           <h3>Camp</h3>
-          <p class="was">5,990</p>
-          <p class="now">3,990 <small>a month</small></p>
+          <p class="for">For a busy gym or camp</p>
+          <p class="was" data-show="m">5,990</p><p class="was" data-show="y" hidden>71,880 a year</p>
+          <p class="now" data-show="m">3,990 <small>a month</small></p><p class="now" data-show="y" hidden>39,900 <small>a year</small></p><p class="sub" data-show="y" hidden>3,325 a month, paid yearly</p>
           <p class="lim">150 members, 15 staff</p>
-          <ul><li>Everything in Gym Plus</li><li>For busy gyms and camps</li><li>We set it up for you</li></ul>
+          <ul><li>Everything in Gym Plus</li><li>Online coaching, courses and technique videos</li><li>Cafe menu and food orders</li><li>Newsletters and social media posting</li><li>Partners and affiliates</li><li>Fighters, jobs, maintenance and investor view</li><li>Website: 4 pages</li><li>We set it up for you</li></ul>
           <a class="btn" href="#contact" data-plan="Camp">Get started</a>
         </div>
-        <div class="plan">
-          <h3>Camp + Stay</h3>
-          <p class="was">11,990</p>
-          <p class="now">7,990 <small>a month</small></p>
+        <div class="plan" id="plan-master">
+          <h3>Master</h3>
+          <p class="for">Everything, for camps with rooms</p>
+          <p class="was" data-show="m">11,990</p><p class="was" data-show="y" hidden>143,880 a year</p>
+          <p class="now" data-show="m">7,990 <small>a month</small></p><p class="now" data-show="y" hidden>79,900 <small>a year</small></p><p class="sub" data-show="y" hidden>6,658 a month, paid yearly</p>
           <p class="lim">150 members, unlimited staff</p>
-          <ul><li>Everything in Camp</li><li>Rooms, stays and online booking</li><li>AI tools included</li><li>We set it up for you</li></ul>
-          <a class="btn ghost" href="#contact" data-plan="Camp + Stay">Get started</a>
+          <ul><li>Everything in Camp</li><li>Rooms, stays, room bills and housekeeping</li><li>Online room booking, Booking.com, Agoda and Airbnb calendars</li><li>Meal plans and welcome emails</li><li>Website: 8 pages, page, landing page and blog builder</li><li>AI tools included</li><li>Unlimited staff, priority support</li></ul>
+          <a class="btn ghost" href="#contact" data-plan="Master">Get started</a>
         </div>
       </div>
-      <p class="addons">Every paid plan can add members at 50 baht a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. Add-ons: your own integrated website (up to 8 pages), available on every plan. The AI tools (writing posts, reading receipts, making pages) are an add-on on Free, Gym, Gym Plus and Camp, and included in Camp + Stay.</p>
+      <p class="addons">Every paid plan can add members at 50 baht a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.</p>
+      <details class="compare" id="compare"><summary>Everything each plan includes: See the full list</summary><div class="ctable"><table>
+<thead><tr><th scope="col">Feature</th><th scope="col">Free</th><th scope="col">Gym</th><th scope="col">Gym Plus</th><th scope="col">Camp</th><th scope="col">Master</th></tr></thead><tbody>
+<tr class="grp"><th colspan="6" scope="colgroup">Members and team</th></tr>
+<tr><th scope="row">Active members</th><td>15</td><td>30</td><td>100</td><td>150</td><td>150</td></tr>
+<tr><th scope="row">Staff logins</th><td>2</td><td>6</td><td>10</td><td>15</td><td>Unlimited</td></tr>
+<tr><th scope="row">Extra members at 50 baht each, always the best price</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Roles and permissions for owner, admin, front desk and coaches</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Running the gym</th></tr>
+<tr><th scope="row">Member app with your gym name and QR check-in</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Customers, packages, memberships and class passes</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Class timetable and class check-ins</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Privates and appointments, online booking, any free coach or pick a coach</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Coach view for each coach</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Pay first or pay prompts at check-in</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Thai language for staff and members</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Nightly backups</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Package upgrades, free and promo packages</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Customer view: see the app as a member sees it</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Myanmar language for staff</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Selling and payments</th></tr>
+<tr><th scope="row">Cash and PromptPay QR straight to your bank, no fees</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Receipts by email</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Card payments in the app and by link (Stripe)</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Shop and till, stock, sizes and colours, extras</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Cafe menu, food orders from the app, kitchen screen</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Bookings from GetYourGuide, Viator and Klook read in by themselves</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Team and money</th></tr>
+<tr><th scope="row">Staff hours, clock in and out</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Coach commission and coach own private rates</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Expense receipts, accounts, monthly bills and invoices</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Messages and group chats with members</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Group privates with several coaches or people</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Jobs, maintenance and work log</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Investor view with totals only</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Coaching and learning</th></tr>
+<tr><th scope="row">Online coaching: programmes, habits, food diary, weight, check-ins</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Video courses and technique library</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Fighters and fight records</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Marketing</th></tr>
+<tr><th scope="row">Website chat into the app</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Contacts, lists and newsletters</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Posts, reels and stories to Facebook, Instagram, TikTok and YouTube</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Partner and affiliate programme with tracked links</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Your website</th></tr>
+<tr><th scope="row">Integrated website, edited from your phone</th><td class="n"><span class="no" aria-label="Not included"></span></td><td>1 page</td><td>1 page</td><td>4 pages</td><td>8 pages</td></tr>
+<tr><th scope="row">Timetable, prices and courses to buy on your website</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Website numbers: visits and bookings</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Team on your website from Staff, with videos</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Page, landing page and blog builder</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Rooms</th></tr>
+<tr><th scope="row">Rooms, stays, room bills and housekeeping</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Online room booking with extras</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Booking.com, Agoda and Airbnb calendars kept in step</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Meal plans and welcome emails before arrival</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">AI</th></tr>
+<tr><th scope="row">Ask AI, reading receipts, writing posts, clean up</th><td>Add-on</td><td>Add-on</td><td>Add-on</td><td>Add-on</td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">Your way</th></tr>
+<tr><th scope="row">Your logo, colours and app name</th><td>Small Muay Friend logo</td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Turn every feature on or off</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Your own private database</th><td>Shared, kept separate</td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Set up for you, members and packages brought in</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Support</th><td>Email</td><td>WhatsApp</td><td>WhatsApp</td><td>WhatsApp</td><td>Priority WhatsApp</td></tr>
+</tbody></table></div></details>
       <div class="webpitch">
         <div>
           <h3>Your website, built in</h3>
@@ -668,7 +768,7 @@ footer a{color:#C9CFDB}
         </label>
         <label>Phone or WhatsApp <span>(optional)</span><input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
         <label>I would like
-          <select name="interest" id="lead-plan"><option>A demo first</option><option>Gym</option><option>Gym Plus</option><option>Camp</option><option>Camp + Stay</option></select>
+          <select name="interest" id="lead-plan"><option>A demo first</option><option>Gym</option><option>Gym Plus</option><option>Camp</option><option>Master</option></select>
         </label>
         <label class="full">What would you like to know? <span>(optional)</span><textarea name="message" maxlength="3000"></textarea></label>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -736,6 +836,14 @@ footer a{color:#C9CFDB}
       })
       .catch(function(err){ m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent='Join the launch list'; });
   });
+})();
+</script>
+<script>
+(function(){
+  var bs=document.querySelectorAll('[data-bill]');
+  function set(m){ bs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-bill')===m); });
+    document.querySelectorAll('#pricing [data-show]').forEach(function(e){ e.hidden=e.getAttribute('data-show')!==m; }); }
+  bs.forEach(function(b){ b.addEventListener('click',function(){ set(b.getAttribute('data-bill')); }); });
 })();
 </script>
 </body>

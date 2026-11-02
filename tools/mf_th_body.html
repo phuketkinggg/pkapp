@@ -255,51 +255,123 @@
   <section class="block" id="pricing">
     <div class="wrap">
       <div class="head"><h2>ราคา</h2></div>
-      <p class="lede">ราคารายเดือนแบบเข้าใจง่าย เป็นเงินบาท ราคาเปิดตัวสำหรับยิมกลุ่มแรกที่เข้าร่วม แพ็กเกจแบบชำระเงินพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร (9.00 ถึง 18.00 น. เวลาไทย) ช่วงที่มียิมสมัครพร้อมกันจำนวนมาก อาจช้ากว่านี้เล็กน้อย</p>
-      <p class="promo">โปรเปิดตัว: ลด 50% สองเดือนแรก</p>
+      <p class="lede">แอปเดียวสำหรับทั้งธุรกิจ: สมาชิก งานขาย ทีมงาน การโค้ช การตลาด ห้องพัก และเว็บไซต์ของคุณ ราคาเป็นเงินบาท แพ็กเกจแบบชำระเงินพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร (9.00 ถึง 18.00 น. เวลาไทย) ช่วงที่มียิมสมัครพร้อมกันจำนวนมาก อาจช้ากว่านี้เล็กน้อย</p>
+      <div class="billing" role="group"><button type="button" class="on" data-bill="m">รายเดือน</button><button type="button" data-bill="y">รายปี: จ่าย 10 เดือน ใช้ 12 เดือน</button></div>
+      <p class="promo" data-show="m">โปรเปิดตัว: ลด 50% สองเดือนแรก</p><p class="promo" data-show="y" hidden>จ่ายรายปีล่วงหน้า: จ่าย 10 เดือน ใช้ 12 เดือน และเราย้ายเว็บไซต์ปัจจุบันของคุณเข้า Muay Friend ฟรี (มูลค่า 15,000 บาท)</p>
+      <h3 class="pickh">แพ็กเกจไหนเหมาะกับคุณ?</h3>
+      <div class="picks"><a href="#plan-free"><span>เพิ่งเริ่ม หรือเป็นโค้ชคนเดียว</span><b>Free</b></a><a href="#plan-gym"><span>ยิมเล็กที่ขายหน้าเคาน์เตอร์</span><b>Gym</b></a><a href="#plan-camp"><span>ยิมหรือแคมป์ที่มีโค้ชและคาเฟ่</span><b>Camp</b></a><a href="#plan-master"><span>แคมป์ที่มีห้องพัก หรืออยากได้ครบทุกอย่าง</span><b>Master</b></a></div>
       <div class="plans">
-        <div class="plan">
+        <div class="plan" id="plan-free">
           <h3>Free</h3>
+          <p class="for">สำหรับโค้ชหรือยิมเล็กที่เพิ่งเริ่ม</p>
           <p class="was"></p>
           <p class="now">0 <small>ต่อเดือน</small></p>
           <p class="lim">สมาชิก 15 คน พนักงาน 2 คน</p>
-          <ul><li>เช็คอิน แพ็กเกจ งานขาย และการนัดหมาย</li><li>ชื่อยิมของคุณ พร้อมโลโก้ Muay Friend เล็กๆ</li><li>ตั้งค่าด้วยตัวเอง</li></ul>
+          <ul><li>แอปสมาชิกพร้อมเช็คอินด้วย QR</li><li>แพ็กเกจ สมาชิกภาพ และบัตรคลาส</li><li>ตารางคลาส คลาสส่วนตัว และการนัดหมาย</li><li>เงินสดและ QR พร้อมเพย์</li><li>ตั้งค่าด้วยตัวเอง</li></ul>
           <a class="btn" href="#free">เริ่มใช้ฟรี</a>
         </div>
-        <div class="plan">
+        <div class="plan" id="plan-gym">
           <h3>Gym</h3>
-          <p class="was">2,290</p>
-          <p class="now">1,490 <small>ต่อเดือน</small></p>
+          <p class="for">สำหรับยิมเล็กที่ขายหน้าเคาน์เตอร์</p>
+          <p class="was" data-show="m">2,290</p><p class="was" data-show="y" hidden>27,480 ต่อปี</p>
+          <p class="now" data-show="m">1,490 <small>ต่อเดือน</small></p><p class="now" data-show="y" hidden>14,900 <small>ต่อปี</small></p><p class="sub" data-show="y" hidden>1,242 ต่อเดือน เมื่อจ่ายรายปี</p>
           <p class="lim">สมาชิก 30 คน พนักงาน 6 คน</p>
-          <ul><li>ทุกอย่างใน Free</li><li>ระบบขายหน้าร้านและคาเฟ่</li><li>งานแอดมิน บัญชี และใบเสร็จ</li><li>แบรนด์ของคุณเอง</li><li>เราตั้งค่าให้</li></ul>
+          <ul><li>ทุกอย่างใน Free</li><li>รับชำระด้วยบัตรในแอป</li><li>ระบบขายหน้าร้านและคาเฟ่ พร้อมสต็อก</li><li>เวลาทำงาน ค่าคอมมิชชั่น บัญชี และใบเสร็จ</li><li>แชทกับสมาชิก</li><li>เว็บไซต์ 1 หน้า: ตารางคลาส ราคา และคอร์สให้ซื้อ</li><li>โลโก้และสีของคุณเอง</li><li>เราตั้งค่าให้</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Gym">เริ่มต้นใช้งาน</a>
         </div>
-        <div class="plan">
+        <div class="plan" id="plan-gymplus">
           <h3>Gym Plus</h3>
-          <p class="was">4,990</p>
-          <p class="now">3,290 <small>ต่อเดือน</small></p>
+          <p class="for">สำหรับยิมที่กำลังโต</p>
+          <p class="was" data-show="m">4,990</p><p class="was" data-show="y" hidden>59,880 ต่อปี</p>
+          <p class="now" data-show="m">3,290 <small>ต่อเดือน</small></p><p class="now" data-show="y" hidden>32,900 <small>ต่อปี</small></p><p class="sub" data-show="y" hidden>2,742 ต่อเดือน เมื่อจ่ายรายปี</p>
           <p class="lim">สมาชิก 100 คน พนักงาน 10 คน</p>
-          <ul><li>ทุกอย่างใน Gym</li><li>สำหรับยิมที่กำลังโต</li><li>เราตั้งค่าให้</li></ul>
+          <ul><li>ทุกอย่างใน Gym</li><li>สมาชิก 100 คน พนักงาน 10 คน</li><li>เว็บไซต์ 1 หน้า</li><li>เราตั้งค่าให้</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Gym Plus">เริ่มต้นใช้งาน</a>
         </div>
-        <div class="plan top">
+        <div class="plan top" id="plan-camp">
+          <p class="badge">ยอดนิยม</p>
           <h3>Camp</h3>
-          <p class="was">5,990</p>
-          <p class="now">3,990 <small>ต่อเดือน</small></p>
+          <p class="for">สำหรับยิมหรือแคมป์ที่มีลูกค้าเยอะ</p>
+          <p class="was" data-show="m">5,990</p><p class="was" data-show="y" hidden>71,880 ต่อปี</p>
+          <p class="now" data-show="m">3,990 <small>ต่อเดือน</small></p><p class="now" data-show="y" hidden>39,900 <small>ต่อปี</small></p><p class="sub" data-show="y" hidden>3,325 ต่อเดือน เมื่อจ่ายรายปี</p>
           <p class="lim">สมาชิก 150 คน พนักงาน 15 คน</p>
-          <ul><li>ทุกอย่างใน Gym Plus</li><li>สำหรับยิมและแคมป์ที่มีลูกค้าเยอะ</li><li>เราตั้งค่าให้</li></ul>
+          <ul><li>ทุกอย่างใน Gym Plus</li><li>โค้ชออนไลน์ คอร์ส และวิดีโอเทคนิค</li><li>เมนูคาเฟ่และสั่งอาหาร</li><li>จดหมายข่าวและโพสต์โซเชียลมีเดีย</li><li>พาร์ทเนอร์และแอฟฟิลิเอต</li><li>นักชก งานซ่อมบำรุง และมุมมองนักลงทุน</li><li>เว็บไซต์ 4 หน้า</li><li>เราตั้งค่าให้</li></ul>
           <a class="btn" href="#contact" data-plan="Camp">เริ่มต้นใช้งาน</a>
         </div>
-        <div class="plan">
-          <h3>Camp + Stay</h3>
-          <p class="was">11,990</p>
-          <p class="now">7,990 <small>ต่อเดือน</small></p>
+        <div class="plan" id="plan-master">
+          <h3>Master</h3>
+          <p class="for">ครบทุกอย่าง สำหรับแคมป์ที่มีห้องพัก</p>
+          <p class="was" data-show="m">11,990</p><p class="was" data-show="y" hidden>143,880 ต่อปี</p>
+          <p class="now" data-show="m">7,990 <small>ต่อเดือน</small></p><p class="now" data-show="y" hidden>79,900 <small>ต่อปี</small></p><p class="sub" data-show="y" hidden>6,658 ต่อเดือน เมื่อจ่ายรายปี</p>
           <p class="lim">สมาชิก 150 คน พนักงานไม่จำกัด</p>
-          <ul><li>ทุกอย่างใน Camp</li><li>ห้องพัก การเข้าพัก และระบบจองออนไลน์</li><li>รวมเครื่องมือ AI</li><li>เราตั้งค่าให้</li></ul>
-          <a class="btn ghost" href="#contact" data-plan="Camp + Stay">เริ่มต้นใช้งาน</a>
+          <ul><li>ทุกอย่างใน Camp</li><li>ห้องพัก การเข้าพัก บิลห้อง และแม่บ้าน</li><li>จองห้องออนไลน์ และปฏิทิน Booking.com, Agoda, Airbnb</li><li>แผนอาหารและอีเมลต้อนรับ</li><li>เว็บไซต์ 8 หน้า พร้อมตัวสร้างหน้าเว็บ แลนดิ้งเพจ และบล็อก</li><li>รวมเครื่องมือ AI</li><li>พนักงานไม่จำกัด ซัพพอร์ตก่อนใคร</li></ul>
+          <a class="btn ghost" href="#contact" data-plan="Master">เริ่มต้นใช้งาน</a>
         </div>
       </div>
-      <p class="addons">ทุกแพ็กเกจแบบชำระเงินเพิ่มสมาชิกได้คนละ 50 บาทต่อเดือน และคุณจ่ายราคาที่คุ้มที่สุดเสมอ: เมื่อแพ็กเกจถัดไปถูกกว่าค่าสมาชิกเพิ่ม บิลจะย้ายไปแพ็กเกจนั้นเอง ส่วนเสริม: เว็บไซต์ในตัวของคุณเอง (สูงสุด 8 หน้า) เพิ่มได้ทุกแพ็กเกจ เครื่องมือ AI (เขียนโพสต์ อ่านใบเสร็จ สร้างหน้าเว็บ) เป็นส่วนเสริมใน Free, Gym, Gym Plus และ Camp และรวมอยู่แล้วใน Camp + Stay</p>
+      <p class="addons">ทุกแพ็กเกจแบบชำระเงินเพิ่มสมาชิกได้คนละ 50 บาทต่อเดือน และคุณจ่ายราคาที่คุ้มที่สุดเสมอ: เมื่อแพ็กเกจถัดไปถูกกว่าค่าสมาชิกเพิ่ม บิลจะย้ายไปแพ็กเกจนั้นเอง เครื่องมือ AI (Ask AI อ่านใบเสร็จ เขียนโพสต์) เป็นส่วนเสริมได้ทุกแพ็กเกจ และรวมอยู่ใน Master</p>
+      <details class="compare" id="compare"><summary>ทุกอย่างที่แต่ละแพ็กเกจมี: ดูรายการทั้งหมด</summary><div class="ctable"><table>
+<thead><tr><th scope="col">ฟีเจอร์</th><th scope="col">Free</th><th scope="col">Gym</th><th scope="col">Gym Plus</th><th scope="col">Camp</th><th scope="col">Master</th></tr></thead><tbody>
+<tr class="grp"><th colspan="6" scope="colgroup">สมาชิกและทีมงาน</th></tr>
+<tr><th scope="row">สมาชิกที่ใช้งานอยู่</th><td>15</td><td>30</td><td>100</td><td>150</td><td>150</td></tr>
+<tr><th scope="row">บัญชีพนักงาน</th><td>2</td><td>6</td><td>10</td><td>15</td><td>ไม่จำกัด</td></tr>
+<tr><th scope="row">เพิ่มสมาชิกคนละ 50 บาท ได้ราคาคุ้มที่สุดเสมอ</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">สิทธิ์ตามตำแหน่ง: เจ้าของ แอดมิน หน้าเคาน์เตอร์ และครู</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">บริหารยิม</th></tr>
+<tr><th scope="row">แอปสมาชิกชื่อยิมของคุณ เช็คอินด้วย QR</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ลูกค้า แพ็กเกจ สมาชิกภาพ และบัตรคลาส</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ตารางคลาสและเช็คอินคลาส</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">คลาสส่วนตัวและนัดหมาย จองออนไลน์ เลือกครูหรือครูที่ว่าง</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">หน้าจอของครูแต่ละคน</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ให้จ่ายก่อน หรือเตือนให้จ่ายตอนเช็คอิน</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ภาษาไทยสำหรับพนักงานและสมาชิก</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">สำรองข้อมูลทุกคืน</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">อัปเกรดแพ็กเกจ แพ็กเกจฟรีและโปรโมชัน</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ดูแอปแบบที่สมาชิกเห็น</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ภาษาพม่าสำหรับพนักงาน</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">งานขายและการชำระเงิน</th></tr>
+<tr><th scope="row">เงินสดและ QR พร้อมเพย์เข้าบัญชีโดยตรง ไม่มีค่าธรรมเนียม</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ส่งใบเสร็จทางอีเมล</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">รับชำระด้วยบัตรในแอปและผ่านลิงก์ (Stripe)</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ขายหน้าร้าน สต็อก ไซซ์และสี ตัวเลือกเสริม</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">เมนูคาเฟ่ สั่งอาหารผ่านแอป จอห้องครัว</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ดึงการจองจาก GetYourGuide, Viator และ Klook เข้ามาเอง</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">ทีมงานและการเงิน</th></tr>
+<tr><th scope="row">เวลาทำงาน ลงเวลาเข้าออก</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ค่าคอมมิชชั่นครูและราคาคลาสส่วนตัวของครู</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ใบเสร็จค่าใช้จ่าย บัญชี บิลรายเดือน และใบแจ้งหนี้</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">แชทและกลุ่มแชทกับสมาชิก</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">คลาสส่วนตัวแบบกลุ่ม หลายครูหรือหลายคน</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">งาน ซ่อมบำรุง และบันทึกงาน</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">มุมมองนักลงทุน แสดงเฉพาะยอดรวม</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">การโค้ชและการเรียนรู้</th></tr>
+<tr><th scope="row">โค้ชออนไลน์: โปรแกรม นิสัย บันทึกอาหาร น้ำหนัก เช็คอิน</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">คอร์สวิดีโอและคลังเทคนิค</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">นักชกและสถิติการชก</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">การตลาด</th></tr>
+<tr><th scope="row">แชทจากเว็บไซต์เข้าแอป</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">รายชื่อติดต่อ ลิสต์ และจดหมายข่าว</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">โพสต์ รีล และสตอรี่ ไป Facebook, Instagram, TikTok และ YouTube</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">โปรแกรมพาร์ทเนอร์และแอฟฟิลิเอต พร้อมลิงก์ติดตาม</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">เว็บไซต์ของคุณ</th></tr>
+<tr><th scope="row">เว็บไซต์ในตัว แก้ไขได้จากมือถือ</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td>1 หน้า</td><td>1 หน้า</td><td>4 หน้า</td><td>8 หน้า</td></tr>
+<tr><th scope="row">ตารางคลาส ราคา และคอร์สให้ซื้อบนเว็บไซต์</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">สถิติเว็บไซต์: ผู้เข้าชมและการจอง</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ทีมงานบนเว็บไซต์จากหน้าพนักงาน พร้อมวิดีโอ</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ตัวสร้างหน้าเว็บ แลนดิ้งเพจ และบล็อก</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">ห้องพัก</th></tr>
+<tr><th scope="row">ห้องพัก การเข้าพัก บิลห้อง และแม่บ้าน</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">จองห้องออนไลน์พร้อมบริการเสริม</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ปฏิทิน Booking.com, Agoda และ Airbnb ตรงกันเสมอ</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">แผนอาหารและอีเมลต้อนรับก่อนมาถึง</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">AI</th></tr>
+<tr><th scope="row">Ask AI อ่านใบเสร็จ เขียนโพสต์ จัดระเบียบข้อมูล</th><td>ส่วนเสริม</td><td>ส่วนเสริม</td><td>ส่วนเสริม</td><td>ส่วนเสริม</td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr class="grp"><th colspan="6" scope="colgroup">ปรับให้เป็นแบบของคุณ</th></tr>
+<tr><th scope="row">โลโก้ สี และชื่อแอปของคุณ</th><td>มีโลโก้ Muay Friend เล็กๆ</td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">เปิดหรือปิดได้ทุกฟีเจอร์</th><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ฐานข้อมูลส่วนตัวของคุณเอง</th><td>ใช้ร่วม แยกข้อมูลกัน</td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ตั้งค่าให้ และย้ายสมาชิกกับแพ็กเกจเข้ามาให้</th><td class="n"><span class="no" aria-label="ไม่มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td><td class="y"><span class="ok" aria-label="มี"></span></td></tr>
+<tr><th scope="row">ซัพพอร์ต</th><td>อีเมล</td><td>WhatsApp</td><td>WhatsApp</td><td>WhatsApp</td><td>WhatsApp ก่อนใคร</td></tr>
+</tbody></table></div></details>
       <div class="webpitch">
         <div>
           <h3>เว็บไซต์ในตัว</h3>
@@ -386,7 +458,7 @@
         </label>
         <label>เบอร์โทร, LINE หรือ WhatsApp <span>(ไม่บังคับ)</span><input name="phone" type="tel" autocomplete="tel" maxlength="40"></label>
         <label>ฉันสนใจ
-          <select name="interest" id="lead-plan"><option>ดูเดโมก่อน</option><option>Gym</option><option>Gym Plus</option><option>Camp</option><option>Camp + Stay</option></select>
+          <select name="interest" id="lead-plan"><option>ดูเดโมก่อน</option><option>Gym</option><option>Gym Plus</option><option>Camp</option><option>Master</option></select>
         </label>
         <label class="full">อยากรู้อะไรเพิ่มเติม? <span>(ไม่บังคับ)</span><textarea name="message" maxlength="3000"></textarea></label>
         <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -455,6 +527,14 @@
       })
       .catch(function(err){ m.className='msg err'; m.textContent=err.message||'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง'; b.disabled=false; b.textContent='ลงชื่อรอเปิดตัว'; });
   });
+})();
+</script>
+<script>
+(function(){
+  var bs=document.querySelectorAll('[data-bill]');
+  function set(m){ bs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-bill')===m); });
+    document.querySelectorAll('#pricing [data-show]').forEach(function(e){ e.hidden=e.getAttribute('data-show')!==m; }); }
+  bs.forEach(function(b){ b.addEventListener('click',function(){ set(b.getAttribute('data-bill')); }); });
 })();
 </script>
 </body>
