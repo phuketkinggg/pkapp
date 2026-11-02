@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=105"></script>
+<script src="changelog.js?v=106"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -750,7 +750,7 @@ function cardFixed(b){ var f=pxRate('card_fixed'); return f>0&&(Number(b)||0)<px
 function cardFee(b){ b=Number(b)||0; return b>0?Math.round(b*pxRate('card_pct')/100)+cardFixed(b):0; }
 function cardFeeText(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB':''); }
 function cardFeeLong(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB (no '+f+' THB on '+thb(pxRate('card_fixed_under'))+' or more)':''); }
-function netPrice(p){ return Math.max(0,(Number(p&&p.price_thb)||0)-(Number(p&&p.fee_thb)||0)-(Number(p&&p.tax_thb)||0)); }
+function netPrice(p){ return Math.max(0,(Number(p&&p.price_thb)||0)-(Number(p&&p.fee_thb)||0)-(Number(p&&p.tax_thb)||0)-(Number(p&&p.adds_thb)||0)); }
 function pxNote(p){ var f=Number(p&&p.fee_thb)||0, t=Number(p&&p.tax_thb)||0; return f||t?'incl. '+[f?'card fee '+thb(f):null,t?'tax '+thb(t):null].filter(Boolean).join(', '):''; }
 /* the tick boxes for a form: base is read from baseKey; after(set,get,show) runs when the total changes */
 function pxFields(baseKey,init,after,totalLabel){ init=init||{};
@@ -889,6 +889,7 @@ var FEATURES=[
   {k:'reset_pw',g:'Customers',n:'Managers reset customer passwords',d:'A manager can give any customer a new starting password from App access, also when they already use the app, for example when they are locked out at the desk. Off: customers who already use the app reset it themselves with Forgot password.'},
   {k:'chat_block',g:'Messages',n:'Block people in chats',d:'Customers can block anyone who writes to them in a chat. That person\'s messages are hidden from them in every chat, they get no phone notices from them, and managers and the front desk get a notice. They can unblock in their account (Blocked).'},
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
+  {k:'private_extras',g:'Training',n:'Extras on a private',d:'When booking a private, type the total received, the private amount (the coach share is worked out from this only) and any extras with their own amount and department, for example ice bath and sauna to the spa or a meal to the cafe. Accounts put each extra in its own department.'},
   {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
   {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
   {k:'ask_ai',g:'AI package',n:'Ask AI',d:'An assistant in the app for the owner, and for the staff the owner ticks Ask AI on (Staff, Edit). Ask about anything in the business, send PDFs, photos or spreadsheets (for example a delivery note to add to shop stock), or ask it to write and send an email. It reads with the person\'s own rights, and every change is shown first and only done when they tap Confirm.',tabs:['askai'],spa:true},
@@ -927,7 +928,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=61; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=62; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1389,6 +1390,24 @@ function pLead(p){ return p&&p.lead_id?(byId('privates',p.lead_id)||p):p; }
 function pPeople(p){ var l=pLead(p); return (l.also_customers||[]).map(function(id){ return nameOf('customers',id); }).filter(Boolean); }
 function pCoaches(p){ var l=pLead(p); return [l].concat(S.privates.filter(function(x){ return x.lead_id===l.id&&x.status!=='cancelled'; })).filter(function(x){ return x.coach_id; }); }
 /* more people on a private: type a name, pick it, tap a name to take it off */
+/* extras on a private (feature private_extras): name, amount and department per line */
+var ADD_NAMES=['Ice bath and sauna','Spa treatment','Gym meal','Cafe','Hand wraps','Photo package','Transport','Extra person'];
+function addDeptGuess(n){ n=String(n||'').toLowerCase(); if(/ice|sauna|spa|massage|steam/.test(n)) return 'Spa'; if(/meal|food|cafe|drink|lunch|breakfast|dinner|smoothie/.test(n)) return DEPT_CAFE; if(/wrap|shirt|short|glove|shop|vest/.test(n)) return 'Gym shop'; if(/transport|transfer|tour|taxi/.test(n)) return 'Tours'; return 'Other'; }
+function pAddsPicker(list0,onSum){
+  var rows=[], box=h('div'), dl='ad-'+Math.random().toString(36).slice(2), depts=[['Spa','Spa'],[DEPT_CAFE,DEPT_CAFE],['Gym shop','Gym shop'],['Tours','Tours'],['Other','Other']];
+  function sum(){ return rows.reduce(function(t,r){ return t+(Math.round(Number(r.a.value))||0); },0); }
+  function changed(){ if(onSum) onSum(sum()); }
+  function add(x){ x=x||{}; var r={};
+    r.n=h('input',{type:'text',list:dl,value:x.name||'',placeholder:'For example Ice bath and sauna','aria-label':'Extra',oninput:function(){ if(!r.touched) r.d.value=addDeptGuess(r.n.value); changed(); }});
+    r.a=h('input',{type:'number',min:'0',step:'any',inputmode:'decimal',value:x.thb!=null?String(x.thb):'',placeholder:'THB','aria-label':'Amount in THB',oninput:changed});
+    r.d=h('select',{'aria-label':'Department',onchange:function(){ r.touched=true; }},depts.map(function(o){ return h('option',{value:o[0]},o[1]); }));
+    r.d.value=x.dept||addDeptGuess(x.name); r.touched=!!x.dept;
+    r.el=h('div',{style:'display:grid;grid-template-columns:minmax(0,1fr) 84px minmax(0,120px) auto;gap:6px;align-items:center;margin-bottom:6px'},r.n,r.a,r.d,h('button',{type:'button',class:'btn small','aria-label':'Remove',onclick:function(){ rows=rows.filter(function(y){ return y!==r; }); r.el.remove(); changed(); }},'×'));
+    rows.push(r); box.appendChild(r.el); }
+  (list0||[]).forEach(add);
+  return {node:h('div',null,box,btn('Add an extra',function(){ add({}); },'small'),h('datalist',{id:dl},ADD_NAMES.map(function(k){ return h('option',{value:k}); })),h('small',{class:'sub',style:'display:block;margin-top:6px'},'For example ice bath and sauna to the spa, a meal to the cafe. The coach share is never worked out from extras.')),
+    list:function(){ return rows.map(function(r){ return {name:String(r.n.value||'').trim(),thb:Math.round(Number(r.a.value))||0,dept:r.d.value}; }).filter(function(x){ return x.name&&x.thb>0; }); },sum:sum};
+}
 function pPeoplePicker(ids0,list){
   var ids=(ids0||[]).slice(), dl='pp-'+Math.random().toString(36).slice(2), chips=h('div',{class:'row wrap'}), by={};
   list.forEach(function(c){ by[c.name+(c.phone?' ('+c.phone+')':'')]=c.id; });
@@ -1426,19 +1445,22 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
   function groupOf(cid){ var c=byId('customers',cid); return (c&&c.price_group)||'standard'; }
   function reprice(set,get,show){
     var rl=coachRateLine(get('coach_id'),get('purchase_id')); set('rate_note',rl); if(show) show('rate_note',!!rl);
-    var pack=byId('purchases',get('purchase_id')); if(pack){ set('price_thb',perSession(pack)); set('pack_note',packLine(pack)); set('x_fee',false); set('x_tax',false); set('fee_thb',null); set('tax_thb',null); if(show) pxHide(show,false); return; }
+    var pack=byId('purchases',get('purchase_id')); if(show&&exOn){ show('x_gross',!pack); show('x_adds',!pack); }
+    if(pack){ set('price_thb',perSession(pack)); set('pack_note',packLine(pack)); set('x_fee',false); set('x_tax',false); set('fee_thb',null); set('tax_thb',null); if(show) pxHide(show,false); return; }
     set('pack_note',''); if(show) pxHide(show,true);
     var sr=byId('sources',get('source_id')); if(!sr){ px.re(set,get,show); return; }
     var pr=srcPrice(sr,groupOf(get('customer_id'))); if(pr==null) pr=lastPrivatePrice(sr.id,p.id);
     var rc=byId('staff',get('coach_id')); if(rc&&rc.private_rate_thb&&/^direct$/i.test(sr.name||'')) pr=rc.private_rate_thb;
-    set('price_thb',pr); px.re(set,get,show);
+    set('price_thb',pr); px.re(set,get,show); if(exOn) set('x_gross',(Number(pr)||0)+adds.sum());
   }
   function packLine(k){ return thb(k.price_thb)+' for '+k.class_limit+' sessions = '+thb(perSession(k))+' each. The coach share comes from '+thb(perSession(k))+'.'; }
   function firstPack(cid){ var o=packOpts(cid,p); return o.length>1?o[1][0]:''; }
   var pk0=p.id?(p.purchase_id||''):firstPack(cid0), pack0=byId('purchases',pk0);
   if(!p.id&&pack0){ p=Object.assign({},p,{purchase_id:pk0,price_thb:perSession(pack0)}); }
   var px=pxFields('price_thb',{base:netPrice(p),fee:p.fee_thb,tax:p.tax_thb,hide:!!p.purchase_id});
-  var pv=Object.assign({},p,px.values); if(p.id&&(Number(p.fee_thb)||Number(p.tax_thb))) pv.price_thb=netPrice(p);
+  var pv=Object.assign({},p,px.values); if(p.id&&(Number(p.fee_thb)||Number(p.tax_thb)||Number(p.adds_thb))) pv.price_thb=netPrice(p);
+  var exOn=featOn('private_extras'), adds=pAddsPicker(p.adds||[],function(n){ var el=document.getElementById('f-x_adds_sum'); if(el){ el.value=String(n); el.dispatchEvent(new Event('input')); } });
+  pv.x_gross=(pv.price_thb!=null?Number(pv.price_thb)||0:(first?Number(srcPrice(first,groupOf(cid0)))||0:0))+(Number(p.adds_thb)||0); pv.x_adds_sum=Number(p.adds_thb)||0;
   function freeNow(v,set,get){ slotInfo(get('date'),get('time'),get('minutes'),get('coach_id'),p.id).then(function(t){ set('free_note',t); }); }
   pv.minutes=String(p.minutes||60); var rl0=coachRateLine(p.coach_id||p.preferred_coach_id||ch[0].id,pk0); pv.rate_note=rl0;
   var team0={coaches:p.id?S.privates.filter(function(x){ return x.lead_id===p.id; }).map(function(x){ return x.coach_id; }):[],share:null};
@@ -1462,7 +1484,10 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
     {key:'free_note',label:'Coach availability',type:'info'},
     {key:'purchase_id',label:'Paid with',type:'select',options:packOpts(cid0,p),def:'',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'source_id',label:'Where the booking came from',type:'select',options:opts(src,'Other'),def:first?first.id:'',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
-    {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first?srcPrice(first,groupOf(cid0)):null,hint:'After any agency fee. With a pack it is worked out for you: the pack price divided by its sessions. Coaches never see this, only their share.',onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
+    {key:'x_gross',label:'Total received (THB)',type:'number',hide:!exOn||!!p.purchase_id,hint:'Everything paid for this booking, after any agency fee. Type it, and the private amount is the total minus the extras.',onChange:function(v,set,get,o,show){ set('price_thb',Math.max(0,(Number(v)||0)-adds.sum())); px.re(set,get,show); }},
+    {key:'price_thb',label:exOn?'Private amount (THB)':'Price you receive (THB)',type:'number',required:true,def:first?srcPrice(first,groupOf(cid0)):null,hint:exOn?'The coach share is worked out from this only. With a pack it is the pack price divided by its sessions. Coaches never see this, only their share.':'After any agency fee. With a pack it is worked out for you: the pack price divided by its sessions. Coaches never see this, only their share.',onChange:function(v,set,get,o,show){ px.re(set,get,show); if(exOn) set('x_gross',(Number(v)||0)+adds.sum()); }},
+    {key:'x_adds',label:'Extras',type:'info',hide:!exOn||!!p.purchase_id,def:adds.node},
+    {key:'x_adds_sum',label:'',type:'number',hide:true,onChange:function(v,set,get){ set('x_gross',(Number(get('price_thb'))||0)+(Number(v)||0)); }}].concat(px.fields,[
     {key:'pack_note',label:'From the pack',readonly:true,def:pack0?packLine(pack0):''},
     {key:'coach_share_thb',label:'Coach gets (THB)',type:'number',hide:!featOn('private_share'),hint:'Leave empty for the coach\'s usual share. Set it when it is different, for example 2 people: the coach gets 600.'},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
@@ -1483,8 +1508,9 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
         if(!pack||pack.customer_id!==v.customer_id) return 'That pack belongs to a different customer.';
         if(v.status!=='cancelled'&&pack.class_limit-packUsed(pack,p.id)<=0) return 'That pack has no sessions left.';
         if(v.status!=='cancelled'&&pack.expires_on&&v.date>pack.expires_on) return 'That pack expired on '+fmtDate(pack.expires_on)+'. Book a date before then.'; }
-      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); body.coach_share_thb=v.coach_share_thb===''||v.coach_share_thb==null?null:Math.round(Number(v.coach_share_thb)); delete body.pack_note; delete body.free_note; delete body.rate_note; delete body.x_coaches; delete body.x_share; delete body.x_people; delete body.lead_id; if(xp) body.also_customers=xp; body.minutes=Number(v.minutes)||60;
+      var coach=byId('staff',v.coach_id), body=Object.assign({},p,v); body.coach_share_thb=v.coach_share_thb===''||v.coach_share_thb==null?null:Math.round(Number(v.coach_share_thb)); delete body.pack_note; delete body.free_note; delete body.rate_note; delete body.x_coaches; delete body.x_share; delete body.x_people; delete body.x_gross; delete body.x_adds; delete body.x_adds_sum; delete body.lead_id; if(xp) body.also_customers=xp; body.minutes=Number(v.minutes)||60;
       var x=v.purchase_id?{fee:0,tax:0}:pxOf(v); body.fee_thb=x.fee; body.tax_thb=x.tax; body.price_thb=Math.round(Number(v.price_thb)||0)+x.fee+x.tax;
+      var ad=exOn&&!v.purchase_id?adds.list():[]; body.adds=ad; body.price_thb+=ad.reduce(function(t,a){ return t+a.thb; },0);
       if(v.purchase_id){ body.paid=true; var pk=byId('purchases',v.purchase_id); if(pk) body.price_thb=perSession(pk); }
       else if(v.method==='room'){ if(!v.customer_id) return 'Charge to room needs a customer who is staying with us.'; body.paid=true; }
       body.guest_name=v.guest_name||null;
@@ -8960,7 +8986,7 @@ var MAP={
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
   classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
-  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','coach_share_thb','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb','also_customers'],clear:['reschedule']},
+  privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','coach_share_thb','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb','also_customers','adds'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
   rooms:{t:'rooms',r:{},w:['name','sort','active','ical_feeds']},
   stays:{t:'stays',r:{},w:['customer_id','room_id','check_in','check_out','status','source_id','notes','settled','settled_method','settled_on','guests','room_price_thb','room_paid_thb','room_price_manual','training_included','dates_locked','affiliate_id']},
