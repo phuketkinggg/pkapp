@@ -751,6 +751,21 @@ function cardFixed(b){ var f=pxRate('card_fixed'); return f>0&&(Number(b)||0)<px
 function cardFee(b){ b=Number(b)||0; return b>0?Math.round(b*pxRate('card_pct')/100)+cardFixed(b):0; }
 function cardFeeText(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB':''); }
 function cardFeeLong(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB (no '+f+' THB on '+thb(pxRate('card_fixed_under'))+' or more)':''); }
+function mfPicker(){
+  var api=function(fn,body,tok){ return fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY)},body:JSON.stringify(body||{})}).then(function(r){ return r.json(); }); };
+  var list=h('div',{class:'mfg-list'}), msg=h('p',{class:'sub',role:'status'});
+  function show(a){ list.replaceChildren.apply(list,(a||[]).map(function(g){ return h('a',{class:'btn',href:location.pathname+'?g='+g.slug,style:'display:block;margin:8px 0'},g.name); })); if(!a||!a.length) msg.textContent='No gym found with that name.'; else msg.textContent=''; }
+  var inp=h('input',{type:'search',placeholder:'Your gym name','aria-label':'Your gym name',style:'width:100%;padding:12px;font-size:16px;border-radius:10px;border:1.5px solid #ccc'});
+  var t=null; inp.addEventListener('input',function(){ clearTimeout(t); var q=inp.value.trim(); if(q.length<3){ list.replaceChildren(); msg.textContent=''; return; } t=setTimeout(function(){ api('mf_find_gym',{q:q}).then(show).catch(function(){ msg.textContent='Could not search. Check your connection.'; }); },300); });
+  var tok=null; try{ Object.keys(localStorage).forEach(function(k){ if(/^sb-.*-auth-token$/.test(k)){ var j=JSON.parse(localStorage.getItem(k)||'{}'); if(j&&j.access_token) tok=j.access_token; } }); }catch(e){}
+  if(tok) api('mf_my_gyms',{},tok).then(function(a){ if(Array.isArray(a)&&a.length===1){ location.replace(location.pathname+'?g='+a[0].slug); return; } if(Array.isArray(a)&&a.length) show(a); }).catch(function(){});
+  document.body.replaceChildren(h('main',{style:'max-width:440px;margin:12vh auto;padding:0 16px;font-family:system-ui,sans-serif'},
+    h('h1',{style:'font-size:28px;margin:0 0 8px'},'Open your gym'),
+    h('p',{class:'sub'},'Use the link your gym sent you, or find your gym by name.'),inp,msg,list,
+    h('p',{class:'sub',style:'margin-top:28px'},'Own a gym? ',h('a',{href:'https://muayfriend.com/#free'},'Start free'))));
+}
+function appHere(){ return location.origin+location.pathname+(window.MF_GYM?'?g='+window.MF_GYM:''); }
+function appQ(q){ return location.origin+location.pathname+'?'+(window.MF_GYM?'g='+window.MF_GYM+'&':'')+q; }
 function netPrice(p){ return Math.max(0,(Number(p&&p.price_thb)||0)-(Number(p&&p.fee_thb)||0)-(Number(p&&p.tax_thb)||0)-(Number(p&&p.adds_thb)||0)); }
 function pxNote(p){ var f=Number(p&&p.fee_thb)||0, t=Number(p&&p.tax_thb)||0; return f||t?'incl. '+[f?'card fee '+thb(f):null,t?'tax '+thb(t):null].filter(Boolean).join(', '):''; }
 /* the tick boxes for a form: base is read from baseKey; after(set,get,show) runs when the total changes */
@@ -929,7 +944,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=62; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=63; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1783,7 +1798,7 @@ function stripePay(kind,id,label){
   if(stripeBusy) return; stripeBusy=true; toast('Opening the card payment page.');
   var kiosk=document.body.classList.contains('kiosk'), store=!!(window.pkNative&&window.pkNative());
   /* in the iPhone and Android apps the card page opens in the phone's browser (with its own way back), and comes back to a short "paid" page */
-  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:store?location.origin+'/paid.html':location.origin+location.pathname,kiosk:kiosk}}).then(function(res){
+  sb.functions.invoke('stripe-pay',{body:{kind:kind,id:id,back:store?location.origin+'/paid.html':appHere(),kiosk:kiosk}}).then(function(res){
     stripeBusy=false;
     var d=res.data||{}; if(res.error||d.error||!d.url){ toast(d.error||'Card payment could not start. Try again.'); return; }
     if(me&&me.role!=='customer'&&!CU) return stripeLinkDlg(d.url,d.total||d.amount,label+(d.fee?', includes card fee '+thb(d.fee):''));
@@ -6072,7 +6087,7 @@ function editHours(e,pre){
 }
 var STAFFQR=null;
 function staffPoster(){
-  var url=STAFFQR?location.origin+location.pathname+'?s='+STAFFQR:null, qr=url?qrNode(url):null;
+  var url=STAFFQR?appQ('s='+STAFFQR):null, qr=url?qrNode(url):null;
   return h('section',{class:'sec posterwrap'},
     h('div',{class:'sechead noprint'},h('h2',null,'Staff QR code for the office'),h('div',{class:'row'},qr?btn('Print poster',printPoster,'primary small'):null,
       btn(ui.armStaffQR?'Tap again. The old poster stops working':'Make a new code',function(){ if(!ui.armStaffQR){ ui.armStaffQR=true; schedule(); return; } ui.armStaffQR=false;
@@ -8540,7 +8555,8 @@ function vCoach(){
 }
 var CODE=null;
 function loadCode(){ return sb.from('app_settings').select('value').eq('key','checkin_code').maybeSingle().then(function(res){ var d=must(res); CODE=d?d.value:null; schedule(); }); }
-function checkinUrl(){ return location.origin+location.pathname+'?c='+CODE; }
+/* the app's own address; on the shared Muay Friend free app it carries the gym (?g=) */
+function checkinUrl(){ return appQ('c='+CODE); }
 function qrNode(url){
   if(!window.qrcode) return null;
   try{ var q=window.qrcode(0,'M'); q.addData(url); q.make(); var d=h('div',{class:'qr'}); d.innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true}); return d; }catch(e){ return null; }
@@ -10519,16 +10535,16 @@ function showSignIn(){
     if(!v){ say('Enter your email first.'); email.focus(); return; }
     if((mode==='in'||mode==='up')&&!p){ say('Enter your password.'); pw.focus(); return; }
     if(mode==='up'&&p.length<8){ say('Use at least 8 characters for the password.'); pw.focus(); return; }
-    var back=location.origin+location.pathname, job;
+    var back=appHere(), job, gymData=window.MF_GYM?{gym:window.MF_GYM}:undefined;
     go.disabled=true; say(mode==='in'?'Signing in.':'Sending.');
     if(mode==='in') job=sb.auth.signInWithPassword({email:v,password:p}).then(function(res){ if(res.error) say(authText(res.error)); });
-    else if(mode==='up') job=sb.auth.signUp({email:v,password:p,options:{emailRedirectTo:back}}).then(function(res){
+    else if(mode==='up') job=sb.auth.signUp({email:v,password:p,options:{emailRedirectTo:back,data:gymData}}).then(function(res){
       if(res.error) return say(authText(res.error));
       if(res.data&&res.data.session) return;
       if(res.data&&res.data.user&&res.data.user.identities&&!res.data.user.identities.length) return say('That email already has an account. Sign in, or tap Forgot password to set a password.');
       say('Check your inbox and open the link to confirm your email. You only do this once. After that you sign in with your password.'); });
     else if(mode==='reset') job=sb.auth.resetPasswordForEmail(v,{redirectTo:back}).then(function(res){ say(res.error?authText(res.error):'If that email has an account, a reset link is on its way. Open it on this phone.'); });
-    else job=sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:back}}).then(function(res){ say(res.error?'That did not send. '+authText(res.error):'Check your inbox for the sign in link. It can take a minute.'); });
+    else job=sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:back,data:gymData}}).then(function(res){ say(res.error?'That did not send. '+authText(res.error):'Check your inbox for the sign in link. It can take a minute.'); });
     job.catch(function(){ say('No connection. Try again.'); }).then(function(){ go.disabled=false; });
   });
   $view.replaceChildren(form); email.focus();
@@ -10604,7 +10620,7 @@ function giveAccess(kind,row){
       if(d.error) throw {message:d.error};
       return d;
     }).then(function(d){
-      var link=location.origin+location.pathname+'?openExternalBrowser=1';
+      var link=appQ('openExternalBrowser=1');
       var msg='Karahill Nail and Beauty app\n'+link+'\nEmail: '+d.email+'\nStarting password: '+d.password+'\nYou choose your own password when you first sign in.\n\nแอป Karahill Nail and Beauty\n'+link+'\nอีเมล: '+d.email+'\nรหัสผ่านเริ่มต้น: '+d.password+'\nเมื่อเข้าสู่ระบบครั้งแรก ให้ตั้งรหัสผ่านของคุณเอง';
       var ta=h('textarea',{rows:'9',readonly:'',class:'accessmsg'}); ta.value=msg;
       $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access for '+d.name),
@@ -10695,7 +10711,9 @@ if(!window.supabase||!window.supabase.createClient){
     var sc=qp.get('s'); if(sc&&/^[a-f0-9]{16,64}$/.test(sc)){ STAFFCODE={c:sc,t:Date.now()}; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
   })();
-  sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  /* the shared Muay Friend free app (window.MF_MULTI): each gym is its own section of the database, chosen by ?g= */
+  if(window.MF_MULTI&&!window.MF_GYM){ mfPicker(); return; }
+  sb=window.supabase.createClient(SB_URL,SB_KEY,Object.assign({auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}},window.MF_GYM?{db:{schema:'g_'+window.MF_GYM}}:{}));
   uiApply().catch(function(){});
   loadTheme().catch(function(){});
   loadFeatures().catch(function(){}); loadPlatform().catch(function(){});
@@ -10745,7 +10763,7 @@ if(!window.supabase||!window.supabase.createClient){
   window.pkNative=function(){ return native||!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); };
   var standalone=native||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
   var deferred=null, bar=null, sheet=null;
-  var appUrl=location.origin+location.pathname;
+  var appUrl=location.origin+location.pathname+(window.MF_GYM?'?g='+window.MF_GYM:'');
   /* LINE opens this link in the phone's real browser */
   if(line&&!/openExternalBrowser=1/.test(location.search)&&!sessionStorageGet('pk_ext')){ sessionStorageSet('pk_ext','1'); location.replace(appUrl+(location.search?location.search+'&':'?')+'openExternalBrowser=1'+location.hash); return; }
   function sessionStorageGet(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }
