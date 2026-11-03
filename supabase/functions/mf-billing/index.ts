@@ -101,8 +101,11 @@ async function applySub(sub: Record<string, any>, slugHint?: string) {
   const live = ["active", "trialing", "past_due"].includes(sub.status);
   const plan = live ? (price.metadata?.plan ?? "free") : "free";
   const end = sub.items?.data?.[0]?.current_period_end ?? sub.current_period_end;
-  const r = await admin.rpc("mf_billing_set", { p_slug: slug, p_plan: plan, p_info: { cycle: price.metadata?.cycle ?? null, status: sub.status, customer: sub.customer, sub: sub.id,
-    paid_until: end ? new Date(end * 1000).toISOString() : null } });
+  const ending = live && (sub.cancel_at_period_end || sub.cancel_at);
+  const cd = sub.cancellation_details ?? {};
+  const reason = [cd.feedback ? String(cd.feedback).replace(/_/g, " ") : "", cd.comment ?? ""].filter(Boolean).join(": ").slice(0, 500);
+  const r = await admin.rpc("mf_billing_set", { p_slug: slug, p_plan: plan, p_info: { cycle: price.metadata?.cycle ?? null, status: ending ? "canceling" : sub.status, customer: sub.customer, sub: sub.id,
+    paid_until: end ? new Date(end * 1000).toISOString() : null, cancel_reason: reason || null } });
   if (r.error) throw new Error("set: " + r.error.message);
   return { slug, plan, status: sub.status };
 }
@@ -140,7 +143,7 @@ Deno.serve(async (req) => {
       await admin.rpc("mf_billing_cfg_set", { p_key: "stripe_whsec", p_value: hook.secret });
       await stripe("POST", "billing_portal/configurations", { business_profile: { headline: "Muay Friend: your plan" }, default_return_url: APP,
         features: { customer_update: { enabled: true, allowed_updates: ["email", "address", "tax_id"] }, invoice_history: { enabled: true },
-          payment_method_update: { enabled: true }, subscription_cancel: { enabled: true, mode: "at_period_end" } } }).catch(() => null);
+          payment_method_update: { enabled: true }, subscription_cancel: { enabled: true, mode: "at_period_end", cancellation_reason: { enabled: true, options: ["too_expensive", "missing_features", "switched_service", "unused", "customer_service", "too_complex", "low_quality", "other"] } } } }).catch(() => null);
       return json({ ok: true, live: /^(sk|rk)_live_/.test(SK), webhook: hook.id });
     }
 
@@ -162,7 +165,7 @@ Deno.serve(async (req) => {
     if (b.action === "checkout") {
       const plan = String(b.plan), cycle = b.cycle === "year" ? "year" : "month";
       if (!PLANS[plan]) return json({ error: "Choose a plan." }, 400);
-      if (g.sub && ["active", "trialing", "past_due"].includes(g.status)) {
+      if (g.sub && ["active", "trialing", "past_due", "canceling"].includes(g.status)) {
         const s = await stripe("POST", "billing_portal/sessions", { customer: g.customer, return_url: back });
         return json({ url: s.url, portal: true });
       }
