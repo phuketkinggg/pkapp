@@ -19,14 +19,14 @@ EXTRA = {'thb': '50 baht', 'usd': '$1.50', 'gbp': '£1.20'}
 
 T = {
  'en': dict(h='Prices', lede='One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in US dollars, British pounds or Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.',
-   monthly='Monthly', yearly='Yearly: 12 months for the price of 10', promo='Launch offer: your first 2 months at 50% off', yearpromo='Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth {SITE})',
-   per='a month', peryear='a year', permonth_y='a month, paid yearly', popular='Most popular', start='Start free', get='Get started',
+   monthly='Monthly', yearly='Yearly: save 2 months', promo='Launch offer: your first 2 months at 50% off', yearpromo='Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth {SITE})',
+   per='a month', peryear='a year', permonth_y='a month on a yearly plan', yearsub='a year, paid upfront. You save 2 months', popular='Most popular', start='Start free', get='Get started',
    pick='Which plan is right for you?', compare='Everything each plan includes', compare_open='See the full list',
    extra='Every paid plan can add members at {EXTRA} a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.',
    feature='Feature', yes='Included', no='Not included'),
  'th': dict(h='ราคา', lede='แอปเดียวสำหรับทั้งธุรกิจ: สมาชิก งานขาย ทีมงาน การโค้ช การตลาด ห้องพัก และเว็บไซต์ของคุณ ราคาเป็นเงินบาท แพ็กเกจแบบชำระเงินพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร (9.00 ถึง 18.00 น. เวลาไทย) ช่วงที่มียิมสมัครพร้อมกันจำนวนมาก อาจช้ากว่านี้เล็กน้อย',
-   monthly='รายเดือน', yearly='รายปี: จ่าย 10 เดือน ใช้ 12 เดือน', promo='โปรเปิดตัว: ลด 50% สองเดือนแรก', yearpromo='จ่ายรายปีล่วงหน้า: จ่าย 10 เดือน ใช้ 12 เดือน และเราย้ายเว็บไซต์ปัจจุบันของคุณเข้า Muay Friend ฟรี (มูลค่า 15,000 บาท)',
-   per='ต่อเดือน', peryear='ต่อปี', permonth_y='ต่อเดือน เมื่อจ่ายรายปี', popular='ยอดนิยม', start='เริ่มใช้ฟรี', get='เริ่มต้นใช้งาน',
+   monthly='รายเดือน', yearly='รายปี: ประหยัด 2 เดือน', promo='โปรเปิดตัว: ลด 50% สองเดือนแรก', yearpromo='จ่ายรายปีล่วงหน้า: จ่าย 10 เดือน ใช้ 12 เดือน และเราย้ายเว็บไซต์ปัจจุบันของคุณเข้า Muay Friend ฟรี (มูลค่า 15,000 บาท)',
+   per='ต่อเดือน', peryear='ต่อปี', permonth_y='ต่อเดือน เมื่อสมัครรายปี', yearsub='ต่อปี จ่ายล่วงหน้า ประหยัด 2 เดือน', popular='ยอดนิยม', start='เริ่มใช้ฟรี', get='เริ่มต้นใช้งาน',
    pick='แพ็กเกจไหนเหมาะกับคุณ?', compare='ทุกอย่างที่แต่ละแพ็กเกจมี', compare_open='ดูรายการทั้งหมด',
    extra='ทุกแพ็กเกจแบบชำระเงินเพิ่มสมาชิกได้คนละ 50 บาทต่อเดือน และคุณจ่ายราคาที่คุ้มที่สุดเสมอ: เมื่อแพ็กเกจถัดไปถูกกว่าค่าสมาชิกเพิ่ม บิลจะย้ายไปแพ็กเกจนั้นเอง เครื่องมือ AI (Ask AI อ่านใบเสร็จ เขียนโพสต์) เป็นส่วนเสริมได้ทุกแพ็กเกจ และรวมอยู่ใน Master',
    feature='ฟีเจอร์', yes='มี', no='ไม่มี'),
@@ -160,10 +160,10 @@ def section(lang):
         else:
             y = LAUNCH[k] * 10; uy = USD['launch'][k] * 10; gy = GBP['launch'][k] * 10
             o.append(f'          <p class="was" data-show="m">{amt(lang, REGULAR[k], USD["regular"][k], GBP["regular"][k])}</p>'
-                     f'<p class="was" data-show="y" hidden>{amt(lang, REGULAR[k] * 12, USD["regular"][k] * 12, GBP["regular"][k] * 12)} {t["peryear"]}</p>')
+                     f'<p class="was" data-show="y" hidden>{amt(lang, REGULAR[k], USD["regular"][k], GBP["regular"][k])}</p>')
             o.append(f'          <p class="now" data-show="m">{amt(lang, LAUNCH[k], USD["launch"][k], GBP["launch"][k])} <small>{t["per"]}</small></p>'
-                     f'<p class="now" data-show="y" hidden>{amt(lang, y, uy, gy)} <small>{t["peryear"]}</small></p>'
-                     f'<p class="sub" data-show="y" hidden>{amt(lang, round(y / 12), round(uy / 12), round(gy / 12))} {t["permonth_y"]}</p>')
+                     f'<p class="now" data-show="y" hidden>{amt(lang, round(y / 12), round(uy / 12), round(gy / 12))} <small>{t["permonth_y"]}</small></p>'
+                     f'<p class="sub" data-show="y" hidden>{amt(lang, y, uy, gy)} {t["yearsub"]}</p>')
         o.append(f'          <p class="lim">{LIMITS[lang][k]}</p>')
         o.append('          <ul>' + ''.join(f'<li>{x}</li>' for x in HIGHLIGHTS[lang][k]) + '</ul>')
         cls = '' if (top or free) else ' ghost'

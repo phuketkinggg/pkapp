@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-03', title: 'Yearly plan shown per month', what: 'Where gyms share one app, Settings, Your plan now shows the yearly option as the price per month on a yearly plan, with the yearly total and how much is saved (2 months free). It is still paid once a year, upfront.'},
   {date: '2026-11-03', title: 'Coaching documents', what: 'Coaching has a new Documents tab: upload PDFs, Word, Excel and PowerPoint files once and keep them in one library. Use them in action groups (Document step, From Documents) and in Education lessons (Learning materials, From Documents). The library shows where each document is used.', feature: 'coach_docs'},
   {date: '2026-11-03', title: 'Action groups people join by themselves', what: 'A manager can set an action group to add every new customer by themselves, or only customers with chosen tags, starting the day they join or get the tag. Add people still adds anyone you choose, from any start date.'},
   {date: '2026-11-03', title: 'Action groups open again', what: 'Coaching, Action groups showed an error instead of your groups, and New action group opened the wrong form. Both work again. Exercise groups (Legs, Core) in Exercises are unchanged.'},

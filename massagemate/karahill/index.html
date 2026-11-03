@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=113"></script>
+<script src="changelog.js?v=114"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -974,7 +974,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=68; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=69; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9961,18 +9961,19 @@ function billing(body){ return sb.auth.getSession().then(function(r){ var tok=r.
 function planSection(){
   if(MYPLAN===null){ loadMyPlan().catch(function(){ MYPLAN={}; }); return h('div',{class:'panel empty'},'Loading.'); }
   var cur=MYPLAN.name||'free', curP=PLANS.filter(function(p){ return p.k===cur; })[0], paid=!!curP;
-  var money=function(p,yr){ var n=(PLANCUR==='usd'?p.usd:PLANCUR==='gbp'?p.gbp:p.m)*(yr?10:1);
+  var money=function(p,yr,mul){ var b=PLANCUR==='usd'?p.usd:PLANCUR==='gbp'?p.gbp:p.m, n=mul!=null?Math.round(b*mul):b*(yr?10:1);
     return PLANCUR==='usd'?'$'+n.toLocaleString('en-US'):PLANCUR==='gbp'?'£'+n.toLocaleString('en-GB'):n.toLocaleString('en-US')+' THB'; };
   var curs=h('div',{class:'row'},[['thb','THB'],['usd','USD'],['gbp','GBP']].map(function(c){ return btn(c[1],function(){ PLANCUR=c[0]; try{ localStorage.setItem('mf_cur',c[0]); }catch(e){} schedule(); },'small notr'+(PLANCUR===c[0]?' primary':'')); }));
-  var cyc=h('div',{class:'row'},[['month','Monthly'],['year','Yearly, 12 months for the price of 10']].map(function(c){ return btn(c[1],function(){ PLANCYC=c[0]; schedule(); },'small'+(PLANCYC===c[0]?' primary':'')); }));
+  var cyc=h('div',{class:'row'},[['month','Monthly'],['year','Yearly, save 2 months']].map(function(c){ return btn(c[1],function(){ PLANCYC=c[0]; schedule(); },'small'+(PLANCYC===c[0]?' primary':'')); }));
   return section('Your plan',null,h('div',null,
     h('div',{class:'panel pad'},h('p',null,'You are on ',h('b',null,paid?curP.n:'Free'),paid&&MYPLAN.cycle?(MYPLAN.cycle==='year'?', paid yearly':', paid monthly'):null,'.'),
       paid?h('p',{class:'sub'},'Change your card, see your bills, switch plan or cancel on the billing page.'):h('p',{class:'sub'},'Free is for up to 15 members and 2 staff. Move up any time and keep everything.'),
       paid?h('div',{class:'row'},btn('Billing page',function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'portal'}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small')):null),
     paid?null:h('div',{class:'panel pad'},cyc,curs,
-      h('p',{class:'sub'},PLANCYC==='month'?'Launch offer: 50% off your first 2 months.':'Pay a year upfront: 12 months for the price of 10, and we copy your current website into the app free.'),
+      h('p',{class:'sub'},PLANCYC==='month'?'Launch offer: 50% off your first 2 months.':'Pay for a year upfront and save 2 months. We also copy your current website into the app free.'),
       h('div',{class:'grid2'},PLANS.map(function(p){ var price=PLANCYC==='year'?p.m*10:p.m;
-        return h('div',{class:'panel pad'},h('h3',null,p.n),h('p',null,h('b',{class:'notr'},money(p,PLANCYC==='year')),PLANCYC==='year'?' a year':' a month'),h('p',{class:'sub'},p.d),
+        return h('div',{class:'panel pad'},h('h3',null,p.n),PLANCYC==='year'?h('p',null,h('b',{class:'notr'},money(p,false,10/12)),' a month on a yearly plan'):h('p',null,h('b',{class:'notr'},money(p,false)),' a month'),
+          PLANCYC==='year'?h('p',{class:'sub'},h('span',{class:'notr'},money(p,true)),' a year, paid upfront. You save ',h('span',{class:'notr'},money(p,false,2)),'.'):null,h('p',{class:'sub'},p.d),
           h('div',{class:'row'},btn('Choose '+p.n,function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'checkout',plan:p.k,cycle:PLANCYC,currency:PLANCUR}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small'))); })),
       h('p',{class:'sub'},'You pay on Stripe\'s secure page by card. Your plan switches on as soon as you have paid.')))); }
 function storeSection(){ var s=window.PK_STORE||{};
