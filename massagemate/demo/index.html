@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=108"></script>
+<script src="changelog.js?v=109"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -58,6 +58,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 .brand{display:flex;flex-direction:column;gap:2px;padding:0 8px}
 .b1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.1em;color:var(--gold-ink);white-space:nowrap}
 .b2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.b3{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--sunken);color:var(--ink);font:600 12px/1.4 inherit;cursor:pointer;width:max-content}.b3:hover{border-color:var(--accent)}
 #nav{display:flex;flex-direction:column;gap:2px}
 #nav button{appearance:none;border:0;background:transparent;color:var(--ink);font:500 15px var(--body);text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:44px;white-space:nowrap}
 #nav button:hover{background:var(--surface)}
@@ -701,7 +702,7 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 <body>
 <div class="app">
   <aside class="side">
-    <div class="brand"><span class="b1">MASSAGE MATE</span><span class="b2" id="mode">Back office</span></div>
+    <div class="brand"><span class="b1">MASSAGE MATE</span><span class="b2" id="mode">Back office</span><button type="button" class="b3" id="planbadge" hidden></button></div>
     <nav id="nav" aria-label="Sections"></nav>
     <div class="who" id="who"></div>
   </aside>
@@ -944,7 +945,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=65; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=66; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9864,7 +9865,12 @@ var PLANS=[{k:'gym',n:'Gym',m:1490,d:'Card payments, shop and till, staff hours,
   {k:'camp',n:'Camp',m:3990,d:'Everything in Gym Plus, plus cafe and kitchen, coaching, courses, fighters, contacts and newsletters, social media. 150 members, 15 staff.'},
   {k:'master',n:'Master',m:7990,d:'Everything, including rooms and stays, online room booking, food plans and Ask AI. Unlimited staff.'}];
 var MYPLAN=null, PLANCYC='month';
-function loadMyPlan(){ return sb.from('app_settings').select('value').eq('key','plan').maybeSingle().then(function(r){ var v={}; try{ v=JSON.parse((r.data&&r.data.value)||'{}')||{}; }catch(e){ v={}; } MYPLAN=v; schedule(); }); }
+function loadMyPlan(){ return sb.from('app_settings').select('value').eq('key','plan').maybeSingle().then(function(r){ var v={}; try{ v=JSON.parse((r.data&&r.data.value)||'{}')||{}; }catch(e){ v={}; } MYPLAN=v; planBadge(); schedule(); }); }
+/* the plan under the app name, for staff in the shared app; the manager taps it to see plans */
+function planBadge(){ var b=document.getElementById('planbadge'); if(!b) return; var on=window.MF_MULTI&&me&&me.role&&me.role!=='customer'&&MYPLAN;
+  if(!on){ b.hidden=true; return; } var p=PLANS.filter(function(x){ return x.k===MYPLAN.name; })[0];
+  b.textContent=(p?p.n:'Free')+' plan'; b.hidden=false; b.disabled=me.role!=='manager'; b.title=me.role==='manager'?'See plans':'';
+  b.onclick=me.role==='manager'?function(){ ui.tab='settings'; setGo('plan'); }:null; }
 function billing(body){ return sb.auth.getSession().then(function(r){ var tok=r.data&&r.data.session&&r.data.session.access_token;
   return fetch(SB_URL+'/functions/v1/mf-billing',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+tok},body:JSON.stringify(Object.assign({g:window.MF_GYM,lang:uiLang()==='th'?'th':'en'},body))})
     .then(function(x){ return x.json().then(function(j){ if(!x.ok||!j.url) throw {plain:true,message:j.error||'Could not open the payment page. Try again.'}; location.href=j.url; }); }); }); }
@@ -10718,6 +10724,7 @@ function enter(user){
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),!staff?blockedBtn():null,!staff?deleteAccBtn():null,signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
     if(!staff||asMember) return enterCustomer();
+    if(window.MF_MULTI) setTimeout(function(){ loadMyPlan().catch(function(){}); },0);
     if(row.role!=='investor') loadAccStruct();
     if(row.role==='investor'){ document.getElementById('mode').textContent='Investors'; me=row; db=makeDb(); TABS=[['investor','Overview']]; ui.tab='investor'; allReady=true; schedule(); return; }
     if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen'],['clock','Clock']]; ui.tab=staffCodeOk()?'clock':'kitchen'; allReady=true; schedule(); return loadKitchen(); }
@@ -10750,7 +10757,7 @@ if(!window.supabase||!window.supabase.createClient){
     }
     /* email links that come to the app itself (token_hash), not to the database address: fewer emails go to junk */
     var th=qp.get('token_hash'), tt=qp.get('type'); if(th&&/^[A-Za-z0-9_-]{8,200}$/.test(th)&&/^(signup|email|magiclink|recovery|invite|email_change)$/.test(tt||'')){ EMAILOTP={h:th,t:tt==='magiclink'?'email':tt}; if(tt==='recovery') recovering=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
-    if(qp.get('paid')==='1'&&window.MF_MULTI){ setTimeout(function(){ toast('Thank you. Your plan is on. It can take a minute to show.'); MYPLAN=null; },1500); try{ history.replaceState(null,'',location.pathname+'?g='+window.MF_GYM); }catch(e){} }
+    if(qp.get('paid')==='1'&&window.MF_MULTI){ setTimeout(function(){ toast('Thank you. Your plan is on. It can take a minute to show.'); MYPLAN=null; },1500); setTimeout(function(){ if(sb) loadMyPlan().catch(function(){}); },8000); try{ history.replaceState(null,'',location.pathname+'?g='+window.MF_GYM); }catch(e){} }
     var rt=qp.get('ready'); if(rt&&/^[0-9a-f]{64}$/.test(rt)){ READYTOKEN=rt; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     var sc=qp.get('s'); if(sc&&/^[a-f0-9]{16,64}$/.test(sc)){ STAFFCODE={c:sc,t:Date.now()}; try{ history.replaceState(null,'',location.pathname); }catch(e){} }
     if(hp.get('type')==='recovery'&&hp.get('access_token')){ recovering=true; recoveryToken=hp.get('access_token'); }
