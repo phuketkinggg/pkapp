@@ -1,6 +1,6 @@
 // Muay Friend billing (free project bnglnfdgptvnmugntiom). Paid plans through Stripe Checkout, managed in Stripe's billing page.
 // From the app (signed in, gym manager): Authorization: Bearer <user token>
-//   POST {action:"checkout", g, plan:"gym"|"gym_plus"|"camp"|"master", cycle:"month"|"year"} -> {url}  (Stripe payment page)
+//   POST {action:"checkout", g, plan:"gym"|"gym_plus"|"camp"|"master", cycle:"month"|"year", currency?:"thb"|"usd"|"gbp"} -> {url}  (Stripe payment page)
 //   POST {action:"portal", g} -> {url}  (change card, switch plan, cancel)
 // From Stripe: the webhook (Stripe-Signature header) -> puts the gym on its plan, or back on Free when it ends.
 // Setup (once, and after switching to the live key): POST {action:"setup", key:<mf.cfg admin_key>} makes the prices,
@@ -17,11 +17,12 @@ const SELF = URL_ + "/functions/v1/mf-billing";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, apikey, x-client-info, authorization", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
-// prices in baht (Stripe takes satang). Yearly = 10 months for 12.
-const PLANS: Record<string, { name: string; month: number }> = {
-  gym: { name: "Muay Friend Gym", month: 1490 }, gym_plus: { name: "Muay Friend Gym Plus", month: 3290 },
-  camp: { name: "Muay Friend Camp", month: 3990 }, master: { name: "Muay Friend Master", month: 7990 },
+// monthly prices: baht, dollars and pounds (one Stripe price per plan and cycle, with all three currencies). Yearly = 10 months for 12.
+const PLANS: Record<string, { name: string; month: number; usd: number; gbp: number }> = {
+  gym: { name: "Muay Friend Gym", month: 1490, usd: 45, gbp: 35 }, gym_plus: { name: "Muay Friend Gym Plus", month: 3290, usd: 99, gbp: 79 },
+  camp: { name: "Muay Friend Camp", month: 3990, usd: 119, gbp: 95 }, master: { name: "Muay Friend Master", month: 7990, usd: 239, gbp: 189 },
 };
+const CURRENCIES = ["thb", "usd", "gbp"];
 const LAUNCH = "mf_launch_50"; // 50% off the first 2 months, monthly plans
 
 function form(o: Record<string, unknown>, pre = "", out: string[] = []): string[] {
@@ -46,15 +47,21 @@ const lookup = (plan: string, cycle: string) => `mf_${plan}_${cycle}`;
 
 async function ensurePrices() {
   const keys = Object.keys(PLANS).flatMap((p) => [lookup(p, "month"), lookup(p, "year")]);
-  const have = await stripe("GET", "prices?" + form({ lookup_keys: keys, limit: 20, active: true }).join("&"));
-  const got = new Set((have.data ?? []).map((p: { lookup_key: string }) => p.lookup_key));
+  const have = await stripe("GET", "prices?" + form({ lookup_keys: keys, limit: 20, active: true, expand: ["data.currency_options"] }).join("&"));
+  const byKey = new Map((have.data ?? []).map((p: Record<string, any>) => [p.lookup_key, p]));
   for (const [plan, p] of Object.entries(PLANS)) {
-    let product: string | null = null;
     for (const cycle of ["month", "year"]) {
-      if (got.has(lookup(plan, cycle))) continue;
-      if (!product) product = (await stripe("POST", "products", { name: p.name, metadata: { plan } })).id;
-      await stripe("POST", "prices", { product, currency: "thb", unit_amount: (cycle === "year" ? p.month * 10 : p.month) * 100,
-        recurring: { interval: cycle }, lookup_key: lookup(plan, cycle), metadata: { plan, cycle } });
+      const old = byKey.get(lookup(plan, cycle)) as Record<string, any> | undefined;
+      const n = cycle === "year" ? 10 : 1;
+      const amt = { thb: p.month * n * 100, usd: p.usd * n * 100, gbp: p.gbp * n * 100 } as Record<string, number>;
+      // already right: same amounts in every currency
+      if (old && old.currency === "thb" && old.unit_amount === amt.thb
+        && ["usd", "gbp"].every((c) => old.currency_options?.[c]?.unit_amount === amt[c])) continue;
+      const product = old?.product ?? (await stripe("POST", "products", { name: p.name, metadata: { plan } })).id;
+      await stripe("POST", "prices", { product, currency: "thb", unit_amount: amt.thb,
+        currency_options: { usd: { unit_amount: amt.usd }, gbp: { unit_amount: amt.gbp } },
+        recurring: { interval: cycle }, lookup_key: lookup(plan, cycle), transfer_lookup_key: true, metadata: { plan, cycle } });
+      if (old) await stripe("POST", "prices/" + old.id, { active: false });
     }
   }
   try { await stripe("GET", "coupons/" + LAUNCH); } catch (_) {
@@ -169,6 +176,7 @@ Deno.serve(async (req) => {
         line_items: [{ price: await priceId(plan, cycle), quantity: 1 }],
         discounts: cycle === "month" ? [{ coupon: LAUNCH }] : undefined,
         subscription_data: { metadata: { gym: slug } },
+        currency: CURRENCIES.includes(String(b.currency)) ? String(b.currency) : undefined,
         locale: b.lang === "th" ? "th" : "auto",
         success_url: `${back}&paid=1`, cancel_url: back,
       });

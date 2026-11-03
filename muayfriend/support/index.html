@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Muay Friend Support | How-to videos</title>
+<meta name="description" content="Short videos that show how to set up and run your gym in Muay Friend, in English and Thai.">
+<link rel="canonical" href="https://muayfriend.com/support/">
+<meta name="theme-color" content="#101A2E">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:800;font-display:swap;src:url(../fonts/big-shoulders-display-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/instrument-sans-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/instrument-sans-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Noto Sans Thai';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/noto-sans-thai-thai-400-normal.woff2) format('woff2');unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+@font-face{font-family:'Noto Sans Thai';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/noto-sans-thai-thai-600-normal.woff2) format('woff2');unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+:root{--canvas:#ECEDE8;--paper:#F7F7F4;--ink:#101A2E;--ink2:#3C4558;--muted:#5D6474;--red:#D7263D;--blue:#2759DA;--navy:#101A2E;--line:#CED2CA;
+  --display:'Big Shoulders Display','Noto Sans Thai','Arial Narrow',sans-serif;--body:'Instrument Sans','Noto Sans Thai',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink);font:400 17px/1.6 var(--body)}
+[lang=th] body,html[lang=th]{line-height:1.75}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:4px}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:1;margin:0}
+html[lang=th] h1,html[lang=th] h2,html[lang=th] h3{line-height:1.3}
+h1{font-size:clamp(44px,7vw,76px);text-transform:uppercase}
+h2{font-size:34px;margin:36px 0 14px}
+h3{font-size:24px;line-height:1.15}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:999px;font:600 15px var(--body);text-decoration:none;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+.btn:hover{background:var(--red);border-color:var(--red)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:#fff}
+.btn.small{min-height:36px;padding:0 14px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:default}
+.top{position:sticky;top:0;z-index:20;background:rgba(236,237,232,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 22px var(--body);color:#17213C;white-space:nowrap}
+.brand .mark{width:36px;height:28px;color:var(--blue)}
+.top .sp{margin-left:auto}
+.top .btn{white-space:nowrap}
+@media (max-width:420px){.top .btn{min-height:38px;padding:0 14px;font-size:14px}.brand{font-size:19px}.top .wrap{gap:12px}}
+.lang{font-weight:600;font-size:15px;color:var(--ink2);background:none;border:0;cursor:pointer;padding:8px 4px;font-family:var(--body)}
+.hero{padding:48px 0 12px}
+.hero p{color:var(--ink2);font-size:19px;max-width:36em}
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;align-items:center}
+.search{flex:1 1 260px;min-height:46px;border:1.5px solid var(--line);border-radius:999px;padding:0 18px;font:16px var(--body);background:#fff;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:600 14px var(--body);color:var(--ink2);cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.card .media{aspect-ratio:16/9;background:var(--navy)}
+.card .media video,.card .media iframe{width:100%;height:100%;display:block;border:0;background:var(--navy)}
+.card .media a{display:flex;align-items:center;justify-content:center;height:100%;color:#fff;font-weight:600;text-decoration:none}
+.card .txt{padding:16px 18px 18px;display:flex;flex-direction:column;gap:8px;flex:1}
+.card .txt p{margin:0;color:var(--ink2);font-size:15px;white-space:pre-line}
+.card .meta{font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.card .draft{color:var(--red)}
+.card .row{display:flex;gap:8px;margin-top:auto;padding-top:6px}
+.empty{background:#fff;border:1.5px dashed var(--line);border-radius:18px;padding:28px;color:var(--ink2)}
+.help{margin:44px 0;background:var(--navy);color:#fff;border-radius:20px;padding:28px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.help h3{color:#fff}
+.help p{margin:4px 0 0;color:#C9CFDB}
+.help .btn{background:#fff;color:var(--ink);border-color:#fff}
+.team{background:#fff;border:1.5px solid var(--blue);border-radius:18px;padding:20px;margin-top:22px}
+.team h3{margin-bottom:6px}
+form.vf{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+form.vf label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+form.vf .full{grid-column:1/-1}
+form.vf input,form.vf textarea,form.vf select{font:15px var(--body);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink)}
+form.vf textarea{min-height:76px;resize:vertical}
+form.vf .hint{font-weight:400;color:var(--muted);font-size:13px}
+form.vf .check{flex-direction:row;align-items:center;gap:8px}
+.bar{height:8px;background:var(--paper);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .2s}
+.msg{min-height:1.4em;font-size:14px;color:var(--ink2)}
+.msg.err{color:var(--red)}
+footer{background:var(--navy);color:#9AA3B5;padding:26px 0;font-size:15px;margin-top:20px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center}
+footer a{color:#C9CFDB}
+footer button{background:none;border:0;color:#9AA3B5;font:15px var(--body);text-decoration:underline;cursor:pointer;padding:0}
+@media (max-width:640px){form.vf{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.hero{padding-top:32px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="../" aria-label="Muay Friend home"><svg class="mark" viewBox="40 66 226 178" aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="8" stroke-linejoin="round"><path d="M55 95 L145 142 L148 229 L54 170 Z"/><path d="M168 119 L250 79 L251 117 L166 168 Z"/><path d="M172 179 L222 153 L220 195 L169 226 Z"/></g></svg>Muay Friend</a>
+    <span class="sp"></span>
+    <button class="lang" id="lang" type="button">ไทย</button>
+    <a class="btn" href="../app/" data-t="openapp">Open your app</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1 data-t="h1">Support</h1>
+    <p data-t="lede">Short videos that show you how to set up and run your gym in Muay Friend. Pick a topic, or search.</p>
+    <div class="tools">
+      <input class="search" id="q" type="search" data-tp="search" placeholder="Search the videos" aria-label="Search the videos">
+    </div>
+    <div class="chips" id="chips" style="margin-top:12px"></div>
+  </section>
+
+  <section id="team" class="team" hidden>
+    <h3 data-t="teamh">Add a video</h3>
+    <p class="msg" data-t="teamp">You are signed in as the Muay Friend team. Upload a video file (MP4 is best) or paste a YouTube link. English is needed, Thai is optional: Thai visitors see the English text when there is no Thai.</p>
+    <form class="vf" id="vf">
+      <input type="hidden" name="id">
+      <label>Title in English<input name="title_en" required maxlength="140"></label>
+      <label>Title in Thai <span class="hint">optional</span><input name="title_th" maxlength="140"></label>
+      <label>What it shows, in English <span class="hint">optional</span><textarea name="body_en" maxlength="1000"></textarea></label>
+      <label>What it shows, in Thai <span class="hint">optional</span><textarea name="body_th" maxlength="1000"></textarea></label>
+      <label>Topic<select name="topic" id="topicsel"></select></label>
+      <label>Order <span class="hint">lower numbers show first</span><input name="sort" type="number" value="100" min="0" max="9999"></label>
+      <label class="full">Video file <span class="hint">MP4, WebM or MOV. Large files take a while: keep this page open until it says Saved.</span><input name="file" type="file" accept="video/mp4,video/webm,video/quicktime"></label>
+      <label class="full">Or a link <span class="hint">YouTube, or any https link to a video</span><input name="video_url" type="url" placeholder="https://www.youtube.com/watch?v=..."></label>
+      <label class="check full"><input name="published" type="checkbox" checked> Show on the page (untick to keep it as a draft only the team sees)</label>
+      <div class="full bar" id="bar" hidden><i></i></div>
+      <p class="full msg" id="vmsg"></p>
+      <div class="full" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit" id="vsave">Save video</button><button class="btn ghost" type="button" id="vclear">Clear</button></div>
+    </form>
+  </section>
+
+  <div id="list"></div>
+
+  <section class="help">
+    <div><h3 data-t="helph">Still stuck?</h3><p data-t="helpp">Write to us and we will help, usually the same day.</p></div>
+    <a class="btn" href="mailto:hello@muayfriend.com" data-t="helpb">Email hello@muayfriend.com</a>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Muay Friend</span>
+    <a href="../" data-t="home">Home</a>
+    <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
+    <button type="button" id="teamin" data-t="teamin">Team sign in</button>
+  </div>
+</footer>
+
+<script src="../app/vendor/supabase-js-2.117.2.js"></script>
+<script>
+(function(){
+  var SB_URL='https://bnglnfdgptvnmugntiom.supabase.co', SB_KEY='sb_publishable_I2cEA2hEPelGTNMwf2zWwA_98_mxHT1', BUCKET='support';
+  var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  var TOPICS=[['start','Getting started','เริ่มต้นใช้งาน'],['members','Members and check-in','สมาชิกและเช็คอิน'],['classes','Classes and privates','คลาสและคลาสส่วนตัว'],
+    ['selling','Selling and payments','งานขายและการชำระเงิน'],['team','Team and money','ทีมงานและการเงิน'],['website','Your website','เว็บไซต์ของคุณ'],
+    ['marketing','Marketing','การตลาด'],['rooms','Rooms and stays','ห้องพักและการเข้าพัก'],['other','Other','อื่นๆ']];
+  var T={th:{h1:'ซัพพอร์ต',lede:'วิดีโอสั้นๆ สอนตั้งค่าและบริหารยิมด้วย Muay Friend เลือกหัวข้อ หรือค้นหา',search:'ค้นหาวิดีโอ',openapp:'เปิดแอปของคุณ',
+      helph:'ยังติดอยู่ใช่ไหม?',helpp:'เขียนมาหาเรา เราจะช่วยคุณ ส่วนใหญ่ภายในวันเดียวกัน',helpb:'อีเมล hello@muayfriend.com',home:'หน้าแรก',teamin:'ทีมงานเข้าสู่ระบบ',
+      all:'ทั้งหมด',none:'ยังไม่มีวิดีโอในหัวข้อนี้ เร็วๆ นี้',nores:'ไม่พบวิดีโอที่ตรงกับคำค้นหา',watch:'ดูวิดีโอ',coming:'วิดีโอแรกกำลังจะมา ระหว่างนี้ อีเมลหาเราได้ทุกเรื่อง'},
+    en:{search:'Search the videos',all:'All',none:'No videos in this topic yet. Coming soon.',nores:'No videos match your search.',watch:'Watch the video',coming:'The first videos are on their way. Until then, email us about anything.'}};
+  var EN={}; document.querySelectorAll('[data-t]').forEach(function(e){ EN[e.getAttribute('data-t')]=e.textContent; });
+  var lang=(function(){ var q=new URLSearchParams(location.search).get('lang'); if(q==='th'||q==='en') return q;
+      try{ var s=localStorage.getItem('mf_lang'); if(s) return s; }catch(e){} return /^th/i.test(navigator.language||'')?'th':'en'; })();
+  var vids=[], topic='all', team=false;
+  function t(k){ return lang==='th'&&T.th[k]?T.th[k]:(T.en[k]||EN[k]||k); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function tname(k){ var x=TOPICS.filter(function(r){ return r[0]===k; })[0]||TOPICS[TOPICS.length-1]; return lang==='th'?x[2]:x[1]; }
+  function setLang(l){ lang=l; try{ localStorage.setItem('mf_lang',l); }catch(e){}
+    document.documentElement.lang=l; document.getElementById('lang').textContent=l==='th'?'EN':'ไทย';
+    document.querySelectorAll('[data-t]').forEach(function(e){ e.textContent=t(e.getAttribute('data-t')); });
+    var q=document.getElementById('q'); q.placeholder=t('search'); q.setAttribute('aria-label',t('search'));
+    render(); }
+  function yt(u){ var m=String(u).match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/); return m?m[1]:null; }
+  function media(v){ var id=yt(v.video_url);
+    if(id) return '<iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/'+id+'" title="'+esc(v.title_en)+'" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+    if(/\.(mp4|webm|mov)(\?|$)/i.test(v.video_url)||v.video_url.indexOf('/storage/v1/object/public/')>0) return '<video controls preload="metadata" playsinline src="'+esc(v.video_url)+'#t=0.1"></video>';
+    return '<a href="'+esc(v.video_url)+'" target="_blank" rel="noopener">'+esc(t('watch'))+'</a>'; }
+  function render(){
+    var chips=document.getElementById('chips'), used={}; vids.forEach(function(v){ used[v.topic]=1; });
+    var list=[['all',t('all')]].concat(TOPICS.filter(function(r){ return used[r[0]]; }).map(function(r){ return [r[0],lang==='th'?r[2]:r[1]]; }));
+    chips.innerHTML=list.map(function(c){ return '<button type="button" class="chip'+(topic===c[0]?' on':'')+'" data-k="'+c[0]+'">'+esc(c[1])+'</button>'; }).join('');
+    var q=document.getElementById('q').value.trim().toLowerCase();
+    var show=vids.filter(function(v){ if(topic!=='all'&&v.topic!==topic) return false; if(!q) return true;
+      return [v.title_en,v.title_th,v.body_en,v.body_th,tname(v.topic)].join(' ').toLowerCase().indexOf(q)>=0; });
+    var out=document.getElementById('list');
+    chips.hidden=!vids.length;
+    if(!vids.length){ out.innerHTML='<div class="empty">'+esc(t('coming'))+'</div>'; return; }
+    if(!show.length){ out.innerHTML='<div class="empty">'+esc(q?t('nores'):t('none'))+'</div>'; return; }
+    var groups=[]; (topic==='all'?TOPICS.map(function(r){ return r[0]; }):[topic]).forEach(function(k){ var g=show.filter(function(v){ return (TOPICS.some(function(r){ return r[0]===v.topic; })?v.topic:'other')===k; }); if(g.length) groups.push([k,g]); });
+    out.innerHTML=groups.map(function(g){ return '<h2>'+esc(tname(g[0]))+'</h2><div class="grid">'+g[1].map(function(v){
+      var ti=lang==='th'&&v.title_th?v.title_th:v.title_en, bo=lang==='th'&&v.body_th?v.body_th:(v.body_en||'');
+      return '<article class="card"><div class="media">'+media(v)+'</div><div class="txt">'+(v.published?'':'<span class="meta draft">Draft</span>')+
+        '<h3>'+esc(ti)+'</h3>'+(bo?'<p>'+esc(bo)+'</p>':'')+
+        (team?'<div class="row"><button type="button" class="btn small ghost" data-edit="'+v.id+'">Edit</button><button type="button" class="btn small ghost" data-del="'+v.id+'">Remove</button></div>':'')+
+        '</div></article>'; }).join('')+'</div>'; }).join('');
+  }
+  function load(){ return sb.rpc('mf_support_list').then(function(r){ vids=(r.data||[]).map(function(v){ v.published=v.published!==false; return v; }); render(); }); }
+  document.getElementById('chips').addEventListener('click',function(e){ var b=e.target.closest('[data-k]'); if(!b) return; topic=b.getAttribute('data-k'); render(); });
+  document.getElementById('q').addEventListener('input',render);
+  document.getElementById('lang').addEventListener('click',function(){ setLang(lang==='th'?'en':'th'); });
+  document.getElementById('teamin').addEventListener('click',function(){
+    alert(lang==='th'?'ทีมงาน: เข้าสู่ระบบแอป Muay Friend บนเครื่องนี้ก่อน แล้วกลับมาที่หน้านี้ ปุ่มเพิ่มวิดีโอจะขึ้นมาเอง':'Team: sign in to the Muay Friend app on this device first, then come back to this page. The upload form shows by itself.'); });
+
+  /* the team: add, change and remove videos */
+  var f=document.getElementById('vf'), vmsg=document.getElementById('vmsg'), bar=document.getElementById('bar');
+  document.getElementById('topicsel').innerHTML=TOPICS.map(function(r){ return '<option value="'+r[0]+'">'+r[1]+'</option>'; }).join('');
+  function say(s,err){ vmsg.textContent=s||''; vmsg.className='full msg'+(err?' err':''); }
+  function clear(){ f.reset(); f.id.value=''; f.sort.value='100'; f.published.checked=true; say(''); document.getElementById('vsave').textContent='Save video'; }
+  document.getElementById('vclear').addEventListener('click',clear);
+  document.getElementById('list').addEventListener('click',function(e){
+    var ed=e.target.closest('[data-edit]'), del=e.target.closest('[data-del]');
+    if(ed){ var v=vids.filter(function(x){ return x.id===ed.getAttribute('data-edit'); })[0]; if(!v) return;
+      ['id','title_en','title_th','body_en','body_th','topic','sort','video_url'].forEach(function(k){ f[k].value=v[k]==null?'':v[k]; }); f.published.checked=v.published;
+      document.getElementById('vsave').textContent='Save changes'; say('Changing: '+v.title_en+'. Pick a new file only if you want to replace the video.');
+      document.getElementById('team').scrollIntoView({behavior:'smooth'}); }
+    if(del){ var w=vids.filter(function(x){ return x.id===del.getAttribute('data-del'); })[0]; if(!w) return;
+      if(del.getAttribute('data-sure')!=='1'){ del.setAttribute('data-sure','1'); del.textContent='Tap again to remove'; return; }
+      del.disabled=true;
+      sb.rpc('mf_support_delete',{p_id:w.id}).then(function(r){ if(r.error) throw r.error; var path=r.data; return path?sb.storage.from(BUCKET).remove([path]):null; })
+        .then(load).catch(function(err){ del.disabled=false; alert(err.message||'Could not remove it.'); }); }
+  });
+  function upload(file){
+    var ext=(file.name.split('.').pop()||'mp4').toLowerCase().replace(/[^a-z0-9]/g,'');
+    var path='videos/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+    bar.hidden=false; bar.firstChild.style.width='0';
+    return sb.auth.getSession().then(function(s){ var tok=s.data.session&&s.data.session.access_token;
+      return new Promise(function(ok,no){ var x=new XMLHttpRequest();
+        x.open('POST',SB_URL+'/storage/v1/object/'+BUCKET+'/'+path);
+        x.setRequestHeader('Authorization','Bearer '+tok); x.setRequestHeader('apikey',SB_KEY);
+        x.setRequestHeader('Content-Type',file.type||'video/mp4'); x.setRequestHeader('cache-control','max-age=31536000');
+        x.upload.onprogress=function(e){ if(e.lengthComputable){ bar.firstChild.style.width=Math.round(e.loaded/e.total*100)+'%'; say('Uploading: '+Math.round(e.loaded/e.total*100)+'%'); } };
+        x.onload=function(){ if(x.status>=200&&x.status<300) ok({path:path,url:SB_URL+'/storage/v1/object/public/'+BUCKET+'/'+path});
+          else { var m='Upload failed ('+x.status+').'; try{ m=JSON.parse(x.responseText).message||m; }catch(e){} if(x.status===413) m='That file is too big to upload here. Put it on YouTube (it can be unlisted) and paste the link.'; no(new Error(m)); } };
+        x.onerror=function(){ no(new Error('Upload stopped. Check your connection and try again.')); };
+        x.send(file); }); }); }
+  f.addEventListener('submit',function(e){ e.preventDefault();
+    var file=f.file.files[0], link=f.video_url.value.trim(), btn=document.getElementById('vsave'), old=f.id.value?vids.filter(function(x){ return x.id===f.id.value; })[0]:null;
+    if(!f.title_en.value.trim()){ say('Add a title in English.',true); f.title_en.focus(); return; }
+    if(!file&&!/^https:\/\//.test(link)){ say('Upload a video file or paste a link that starts with https://',true); return; }
+    btn.disabled=true;
+    (file?upload(file):Promise.resolve(null)).then(function(up){
+      var d={id:f.id.value||null,title_en:f.title_en.value,title_th:f.title_th.value,body_en:f.body_en.value,body_th:f.body_th.value,topic:f.topic.value,
+        sort:Number(f.sort.value)||100,published:f.published.checked,video_url:up?up.url:link};
+      if(up) d.file_path=up.path; else if(old&&link!==old.video_url) d.file_path='';
+      say('Saving.');
+      return sb.rpc('mf_support_save',{p:d}).then(function(r){ if(r.error) throw r.error; var gone=r.data&&r.data.old_file; return gone?sb.storage.from(BUCKET).remove([gone]):null; });
+    }).then(function(){ clear(); say('Saved.'); bar.hidden=true; btn.disabled=false; return load(); })
+      .catch(function(err){ btn.disabled=false; say(err.message||'Could not save. Try again.',true); });
+  });
+
+  sb.rpc('mf_support_team').then(function(r){ team=!!r.data; document.getElementById('team').hidden=!team; if(team) document.getElementById('teamin').hidden=true; return load(); })
+    .catch(function(){ load(); });
+  setLang(lang);
+})();
+</script>
+</body>
+</html>

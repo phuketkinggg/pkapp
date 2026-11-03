@@ -11,13 +11,18 @@ NAMES = {'free': 'Free', 'gym': 'Gym', 'gymplus': 'Gym Plus', 'camp': 'Camp', 'm
 REGULAR = {'gym': 2290, 'gymplus': 4990, 'camp': 5990, 'master': 11990}
 LAUNCH = {'free': 0, 'gym': 1490, 'gymplus': 3290, 'camp': 3990, 'master': 7990}
 TOP = 'camp'
+# the English page also shows dollars and pounds (the same prices are in Stripe, tools in supabase/functions/mf-billing)
+USD = {'regular': {'gym': 69, 'gymplus': 149, 'camp': 179, 'master': 359}, 'launch': {'gym': 45, 'gymplus': 99, 'camp': 119, 'master': 239}}
+GBP = {'regular': {'gym': 55, 'gymplus': 119, 'camp': 145, 'master': 289}, 'launch': {'gym': 35, 'gymplus': 79, 'camp': 95, 'master': 189}}
+SITE = {'thb': '15,000 baht', 'usd': '$450', 'gbp': '£350'}
+EXTRA = {'thb': '50 baht', 'usd': '$1.50', 'gbp': '£1.20'}
 
 T = {
- 'en': dict(h='Prices', lede='One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.',
-   monthly='Monthly', yearly='Yearly: 12 months for the price of 10', promo='Launch offer: your first 2 months at 50% off', yearpromo='Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth 15,000 baht)',
+ 'en': dict(h='Prices', lede='One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in US dollars, British pounds or Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.',
+   monthly='Monthly', yearly='Yearly: 12 months for the price of 10', promo='Launch offer: your first 2 months at 50% off', yearpromo='Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth {SITE})',
    per='a month', peryear='a year', permonth_y='a month, paid yearly', popular='Most popular', start='Start free', get='Get started',
    pick='Which plan is right for you?', compare='Everything each plan includes', compare_open='See the full list',
-   extra='Every paid plan can add members at 50 baht a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.',
+   extra='Every paid plan can add members at {EXTRA} a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.',
    feature='Feature', yes='Included', no='Not included'),
  'th': dict(h='ราคา', lede='แอปเดียวสำหรับทั้งธุรกิจ: สมาชิก งานขาย ทีมงาน การโค้ช การตลาด ห้องพัก และเว็บไซต์ของคุณ ราคาเป็นเงินบาท แพ็กเกจแบบชำระเงินพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร (9.00 ถึง 18.00 น. เวลาไทย) ช่วงที่มียิมสมัครพร้อมกันจำนวนมาก อาจช้ากว่านี้เล็กน้อย',
    monthly='รายเดือน', yearly='รายปี: จ่าย 10 เดือน ใช้ 12 เดือน', promo='โปรเปิดตัว: ลด 50% สองเดือนแรก', yearpromo='จ่ายรายปีล่วงหน้า: จ่าย 10 เดือน ใช้ 12 เดือน และเราย้ายเว็บไซต์ปัจจุบันของคุณเข้า Muay Friend ฟรี (มูลค่า 15,000 บาท)',
@@ -54,7 +59,7 @@ ROWS = [
  ('Members and team', 'สมาชิกและทีมงาน', None),
  ('Active members', 'สมาชิกที่ใช้งานอยู่', ['15', '30', '100', '150', '150']),
  ('Staff logins', 'บัญชีพนักงาน', ['2', '6', '10', '15', 'Unlimited|ไม่จำกัด']),
- ('Extra members at 50 baht each, always the best price', 'เพิ่มสมาชิกคนละ 50 บาท ได้ราคาคุ้มที่สุดเสมอ', G),
+ ('Extra members at {EXTRA} each, always the best price', 'เพิ่มสมาชิกคนละ 50 บาท ได้ราคาคุ้มที่สุดเสมอ', G),
  ('Roles and permissions for owner, admin, front desk and coaches', 'สิทธิ์ตามตำแหน่ง: เจ้าของ แอดมิน หน้าเคาน์เตอร์ และครู', A),
  ('Running the gym', 'บริหารยิม', None),
  ('Member app with your gym name and QR check-in', 'แอปสมาชิกชื่อยิมของคุณ เช็คอินด้วย QR', A),
@@ -115,6 +120,21 @@ ROWS = [
 
 def money(n): return f'{n:,}'
 
+def fmt(cur, n):
+    if cur == 'thb': return money(n)
+    sym = '$' if cur == 'usd' else '£'
+    return sym + (f'{n:,.2f}' if n != int(n) else f'{int(n):,}')
+
+def amt(lang, thb, usd, gbp, tail=''):
+    """A price: baht only on the Thai page; on the English page, all three, switched by the currency buttons."""
+    if lang == 'th': return money(thb) + tail
+    return (f'<span class="cur" data-thb="{money(thb)}{tail}" data-usd="{fmt("usd", usd)}{tail}" data-gbp="{fmt("gbp", gbp)}{tail}">'
+            f'{fmt("usd", usd)}{tail}</span>')
+
+def words(lang, d):
+    if lang == 'th': return d['thb']
+    return f'<span class="cur" data-thb="{d["thb"]}" data-usd="{d["usd"]}" data-gbp="{d["gbp"]}">{d["usd"]}</span>'
+
 def cell(v, lang):
     if v in (1, '1'): return '<td class="y"><span class="ok" aria-label="%s"></span></td>' % T[lang]['yes']
     if v in (0, '0'): return '<td class="n"><span class="no" aria-label="%s"></span></td>' % T[lang]['no']
@@ -124,8 +144,10 @@ def section(lang):
     t = T[lang]; o = []
     o.append('  <section class="block" id="pricing">\n    <div class="wrap">')
     o.append(f'      <div class="head"><h2>{t["h"]}</h2></div>\n      <p class="lede">{t["lede"]}</p>')
-    o.append(f'      <div class="billing" role="group"><button type="button" class="on" data-bill="m">{t["monthly"]}</button><button type="button" data-bill="y">{t["yearly"]}</button></div>')
-    o.append(f'      <p class="promo" data-show="m">{t["promo"]}</p><p class="promo" data-show="y" hidden>{t["yearpromo"]}</p>')
+    cur = '' if lang == 'th' else ('<div class="billing curs" role="group" aria-label="Currency"><button type="button" class="on" data-cur="usd">US $</button>'
+                                   '<button type="button" data-cur="gbp">UK £</button><button type="button" data-cur="thb">Thai baht</button></div>')
+    o.append(f'      <div class="billing" role="group"><button type="button" class="on" data-bill="m">{t["monthly"]}</button><button type="button" data-bill="y">{t["yearly"]}</button></div>{cur}')
+    o.append(f'      <p class="promo" data-show="m">{t["promo"]}</p><p class="promo" data-show="y" hidden>{t["yearpromo"].replace("{SITE}", words(lang, SITE))}</p>')
     o.append(f'      <h3 class="pickh">{t["pick"]}</h3>\n      <div class="picks">' + ''.join(f'<a href="#plan-{k}"><span>{q}</span><b>{NAMES[k]}</b></a>' for q, k in PICKS[lang]) + '</div>')
     o.append('      <div class="plans">')
     for k in PLANS:
@@ -136,11 +158,12 @@ def section(lang):
         if free:
             o.append(f'          <p class="was"></p>\n          <p class="now">0 <small>{t["per"]}</small></p>')
         else:
-            y = LAUNCH[k] * 10
-            o.append(f'          <p class="was" data-show="m">{money(REGULAR[k])}</p><p class="was" data-show="y" hidden>{money(REGULAR[k] * 12)} {t["peryear"]}</p>')
-            o.append(f'          <p class="now" data-show="m">{money(LAUNCH[k])} <small>{t["per"]}</small></p>'
-                     f'<p class="now" data-show="y" hidden>{money(y)} <small>{t["peryear"]}</small></p>'
-                     f'<p class="sub" data-show="y" hidden>{money(round(y / 12))} {t["permonth_y"]}</p>')
+            y = LAUNCH[k] * 10; uy = USD['launch'][k] * 10; gy = GBP['launch'][k] * 10
+            o.append(f'          <p class="was" data-show="m">{amt(lang, REGULAR[k], USD["regular"][k], GBP["regular"][k])}</p>'
+                     f'<p class="was" data-show="y" hidden>{amt(lang, REGULAR[k] * 12, USD["regular"][k] * 12, GBP["regular"][k] * 12)} {t["peryear"]}</p>')
+            o.append(f'          <p class="now" data-show="m">{amt(lang, LAUNCH[k], USD["launch"][k], GBP["launch"][k])} <small>{t["per"]}</small></p>'
+                     f'<p class="now" data-show="y" hidden>{amt(lang, y, uy, gy)} <small>{t["peryear"]}</small></p>'
+                     f'<p class="sub" data-show="y" hidden>{amt(lang, round(y / 12), round(uy / 12), round(gy / 12))} {t["permonth_y"]}</p>')
         o.append(f'          <p class="lim">{LIMITS[lang][k]}</p>')
         o.append('          <ul>' + ''.join(f'<li>{x}</li>' for x in HIGHLIGHTS[lang][k]) + '</ul>')
         cls = '' if (top or free) else ' ghost'
@@ -148,11 +171,11 @@ def section(lang):
         dp = '' if free else f' data-plan="{NAMES[k]}"'
         o.append(f'          <a class="btn{cls}" href="{href}"{dp}>{cta}</a>\n        </div>')
     o.append('      </div>')
-    o.append(f'      <p class="addons">{t["extra"]}</p>')
+    o.append(f'      <p class="addons">{t["extra"].replace("{EXTRA}", words(lang, EXTRA))}</p>')
     o.append(f'      <details class="compare" id="compare"><summary>{t["compare"]}: {t["compare_open"]}</summary><div class="ctable"><table>')
     o.append('<thead><tr><th scope="col">%s</th>%s</tr></thead><tbody>' % (t['feature'], ''.join(f'<th scope="col">{NAMES[k]}</th>' for k in PLANS)))
     for en, th, v in ROWS:
-        name = th if lang == 'th' else en
+        name = th if lang == 'th' else en.replace('{EXTRA}', words(lang, EXTRA))
         if v is None: o.append(f'<tr class="grp"><th colspan="6" scope="colgroup">{name}</th></tr>')
         else: o.append(f'<tr><th scope="row">{name}</th>' + ''.join(cell(x, lang) for x in v) + '</tr>')
     o.append('</tbody></table></div></details>')
@@ -163,6 +186,8 @@ CSS = """/* pricing v2 */
 .billing{display:inline-flex;margin-top:22px;border:1.5px solid var(--ink);border-radius:999px;padding:4px;gap:4px;flex-wrap:wrap}
 .billing button{font:600 15px var(--body);border:0;background:transparent;color:var(--ink);padding:10px 18px;border-radius:999px;cursor:pointer}
 .billing button.on{background:var(--ink);color:#fff}
+.billing.curs{margin-left:10px}
+@media (max-width:640px){.billing.curs{margin-left:0;margin-top:10px}}
 .pickh{font-size:28px;margin-top:34px}
 .picks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
 .picks a{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;background:#fff;border:1.5px solid var(--line);color:var(--ink);text-decoration:none}
@@ -193,6 +218,17 @@ JS = """<script>
   function set(m){ bs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-bill')===m); });
     document.querySelectorAll('#pricing [data-show]').forEach(function(e){ e.hidden=e.getAttribute('data-show')!==m; }); }
   bs.forEach(function(b){ b.addEventListener('click',function(){ set(b.getAttribute('data-bill')); }); });
+  /* currency: the visitor's own (Thailand baht, UK pounds, else dollars), or what they picked */
+  var cs=document.querySelectorAll('[data-cur]'); if(!cs.length) return;
+  function cur(c){ cs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-cur')===c); });
+    document.querySelectorAll('.cur').forEach(function(e){ var v=e.getAttribute('data-'+c); if(v) e.textContent=v; });
+    try{ localStorage.setItem('mf_cur',c); }catch(e){} }
+  var c=null; try{ c=localStorage.getItem('mf_cur'); }catch(e){}
+  if(!c){ var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+    var l=(navigator.language||'').toLowerCase();
+    c=tz==='Asia/Bangkok'||/^th/.test(l)?'thb':(tz==='Europe/London'||l==='en-gb')?'gbp':'usd'; }
+  cs.forEach(function(b){ b.addEventListener('click',function(){ cur(b.getAttribute('data-cur')); }); });
+  cur(c);
 })();
 </script>
 """
@@ -207,8 +243,8 @@ def apply(path, lang):
             s = re.sub(r'/\* pricing v2 \*/.*?(?=/\* start free \*/)', CSS, s, flags=re.S)
         else:
             s = s.replace('/* start free */', CSS + '/* start free */', 1)
-    if "querySelectorAll('[data-bill]')" not in s:
-        s = s.replace('</body>', JS + '</body>', 1)
+    s = re.sub(r"<script>\n\(function\(\)\{\n  var bs=document.querySelectorAll\('\[data-bill\]'\);.*?</script>\n", '', s, flags=re.S)
+    s = s.replace('</body>', JS + '</body>', 1)
     s = s.replace('Camp + Stay', 'Master')
     open(path, 'w', encoding='utf-8').write(s)
 

@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=109"></script>
+<script src="changelog.js?v=110"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -9859,11 +9859,13 @@ function applyTheme(t){
 /* the business's app in Google Play and the App Store (app_settings store_links): the install button sends phones there */
 function loadStore(){ return sb.rpc('store_links').then(function(res){ if(res.error) return; window.PK_STORE=res.data||{}; try{ localStorage.setItem('pk_store',JSON.stringify(window.PK_STORE)); }catch(e){} schedule(); }).catch(function(){}); }
 /* the shared app's own plans (window.MF_MULTI): see the plan, upgrade through the payment page, manage card and bills */
-var PLANS=[{k:'gym',n:'Gym',m:1490,d:'Card payments, shop and till, staff hours, accounts, coach commission, messages. 30 members, 6 staff.'},
-  {k:'gym_plus',n:'Gym Plus',m:3290,d:'Everything in Gym, for up to 100 members.'},
-  {k:'camp',n:'Camp',m:3990,d:'Everything in Gym Plus, plus cafe and kitchen, coaching, courses, fighters, contacts and newsletters, social media. 150 members, 15 staff.'},
-  {k:'master',n:'Master',m:7990,d:'Everything, including rooms and stays, online room booking, food plans and Ask AI. Unlimited staff.'}];
-var MYPLAN=null, PLANCYC='month';
+var PLANS=[{k:'gym',n:'Gym',m:1490,usd:45,gbp:35,d:'Card payments, shop and till, staff hours, accounts, coach commission, messages. 30 members, 6 staff.'},
+  {k:'gym_plus',n:'Gym Plus',m:3290,usd:99,gbp:79,d:'Everything in Gym, for up to 100 members.'},
+  {k:'camp',n:'Camp',m:3990,usd:119,gbp:95,d:'Everything in Gym Plus, plus cafe and kitchen, coaching, courses, fighters, contacts and newsletters, social media. 150 members, 15 staff.'},
+  {k:'master',n:'Master',m:7990,usd:239,gbp:189,d:'Everything, including rooms and stays, online room booking, food plans and Ask AI. Unlimited staff.'}];
+var MYPLAN=null, PLANCYC='month', PLANCUR=(function(){ try{ var c=localStorage.getItem('mf_cur'); if(c) return c; }catch(e){}
+  var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+  return tz==='Asia/Bangkok'?'thb':tz==='Europe/London'?'gbp':'usd'; })();
 function loadMyPlan(){ return sb.from('app_settings').select('value').eq('key','plan').maybeSingle().then(function(r){ var v={}; try{ v=JSON.parse((r.data&&r.data.value)||'{}')||{}; }catch(e){ v={}; } MYPLAN=v; planBadge(); schedule(); }); }
 /* the plan under the app name, for staff in the shared app; the manager taps it to see plans */
 function planBadge(){ var b=document.getElementById('planbadge'); if(!b) return; var on=window.MF_MULTI&&me&&me.role&&me.role!=='customer'&&MYPLAN;
@@ -9876,17 +9878,19 @@ function billing(body){ return sb.auth.getSession().then(function(r){ var tok=r.
 function planSection(){
   if(MYPLAN===null){ loadMyPlan().catch(function(){ MYPLAN={}; }); return h('div',{class:'panel empty'},'Loading.'); }
   var cur=MYPLAN.name||'free', curP=PLANS.filter(function(p){ return p.k===cur; })[0], paid=!!curP;
-  var thb=function(n){ return Number(n).toLocaleString('en-US')+' THB'; };
+  var money=function(p,yr){ var n=(PLANCUR==='usd'?p.usd:PLANCUR==='gbp'?p.gbp:p.m)*(yr?10:1);
+    return PLANCUR==='usd'?'$'+n.toLocaleString('en-US'):PLANCUR==='gbp'?'£'+n.toLocaleString('en-GB'):n.toLocaleString('en-US')+' THB'; };
+  var curs=h('div',{class:'row'},[['thb','THB'],['usd','USD'],['gbp','GBP']].map(function(c){ return btn(c[1],function(){ PLANCUR=c[0]; try{ localStorage.setItem('mf_cur',c[0]); }catch(e){} schedule(); },'small notr'+(PLANCUR===c[0]?' primary':'')); }));
   var cyc=h('div',{class:'row'},[['month','Monthly'],['year','Yearly, 12 months for the price of 10']].map(function(c){ return btn(c[1],function(){ PLANCYC=c[0]; schedule(); },'small'+(PLANCYC===c[0]?' primary':'')); }));
   return section('Your plan',null,h('div',null,
     h('div',{class:'panel pad'},h('p',null,'You are on ',h('b',null,paid?curP.n:'Free'),paid&&MYPLAN.cycle?(MYPLAN.cycle==='year'?', paid yearly':', paid monthly'):null,'.'),
       paid?h('p',{class:'sub'},'Change your card, see your bills, switch plan or cancel on the billing page.'):h('p',{class:'sub'},'Free is for up to 15 members and 2 staff. Move up any time and keep everything.'),
       paid?h('div',{class:'row'},btn('Billing page',function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'portal'}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small')):null),
-    paid?null:h('div',{class:'panel pad'},cyc,
+    paid?null:h('div',{class:'panel pad'},cyc,curs,
       h('p',{class:'sub'},PLANCYC==='month'?'Launch offer: 50% off your first 2 months.':'Pay a year upfront: 12 months for the price of 10, and we copy your current website into the app free.'),
       h('div',{class:'grid2'},PLANS.map(function(p){ var price=PLANCYC==='year'?p.m*10:p.m;
-        return h('div',{class:'panel pad'},h('h3',null,p.n),h('p',null,h('b',null,thb(price)),PLANCYC==='year'?' a year':' a month'),h('p',{class:'sub'},p.d),
-          h('div',{class:'row'},btn('Choose '+p.n,function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'checkout',plan:p.k,cycle:PLANCYC}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small'))); })),
+        return h('div',{class:'panel pad'},h('h3',null,p.n),h('p',null,h('b',{class:'notr'},money(p,PLANCYC==='year')),PLANCYC==='year'?' a year':' a month'),h('p',{class:'sub'},p.d),
+          h('div',{class:'row'},btn('Choose '+p.n,function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'checkout',plan:p.k,cycle:PLANCYC,currency:PLANCUR}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small'))); })),
       h('p',{class:'sub'},'You pay on Stripe\'s secure page by card. Your plan switches on as soon as you have paid.')))); }
 function storeSection(){ var s=window.PK_STORE||{};
   return section('App in the stores',null,h('div',{class:'panel pad'},

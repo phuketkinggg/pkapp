@@ -8,6 +8,7 @@
       <a href="#why">ทำไมต้อง Muay Friend</a>
       <a href="#pricing">ราคา</a>
       <a href="#faq">คำถามที่พบบ่อย</a>
+      <a href="../support/?lang=th">ซัพพอร์ต</a>
       <a href="../demo/">ลองเดโม</a>
     </nav>
     <a class="lang" href="../" hreflang="en" lang="en">EN</a>
@@ -476,6 +477,7 @@
     <span>แอปสำหรับยิมและแคมป์มวยไทย</span>
     <span>สร้างในประเทศไทย ร่วมกับยิมทั่วโลก</span>
     <a href="../" hreflang="en" lang="en">English</a>
+    <a href="../support/?lang=th">วิดีโอสอนใช้งาน</a>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
     <a href="#free">เริ่มใช้ฟรี</a>
     <a href="#contact">ขอข้อมูลเพิ่มเติม</a>
@@ -537,6 +539,17 @@
   function set(m){ bs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-bill')===m); });
     document.querySelectorAll('#pricing [data-show]').forEach(function(e){ e.hidden=e.getAttribute('data-show')!==m; }); }
   bs.forEach(function(b){ b.addEventListener('click',function(){ set(b.getAttribute('data-bill')); }); });
+  /* currency: the visitor's own (Thailand baht, UK pounds, else dollars), or what they picked */
+  var cs=document.querySelectorAll('[data-cur]'); if(!cs.length) return;
+  function cur(c){ cs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-cur')===c); });
+    document.querySelectorAll('.cur').forEach(function(e){ var v=e.getAttribute('data-'+c); if(v) e.textContent=v; });
+    try{ localStorage.setItem('mf_cur',c); }catch(e){} }
+  var c=null; try{ c=localStorage.getItem('mf_cur'); }catch(e){}
+  if(!c){ var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+    var l=(navigator.language||'').toLowerCase();
+    c=tz==='Asia/Bangkok'||/^th/.test(l)?'thb':(tz==='Europe/London'||l==='en-gb')?'gbp':'usd'; }
+  cs.forEach(function(b){ b.addEventListener('click',function(){ cur(b.getAttribute('data-cur')); }); });
+  cur(c);
 })();
 </script>
 </body>

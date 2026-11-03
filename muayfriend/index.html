@@ -247,6 +247,8 @@ section.block{padding:96px 0}
 .billing{display:inline-flex;margin-top:22px;border:1.5px solid var(--ink);border-radius:999px;padding:4px;gap:4px;flex-wrap:wrap}
 .billing button{font:600 15px var(--body);border:0;background:transparent;color:var(--ink);padding:10px 18px;border-radius:999px;cursor:pointer}
 .billing button.on{background:var(--ink);color:#fff}
+.billing.curs{margin-left:10px}
+@media (max-width:640px){.billing.curs{margin-left:0;margin-top:10px}}
 .pickh{font-size:28px;margin-top:34px}
 .picks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
 .picks a{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;background:#fff;border:1.5px solid var(--line);color:var(--ink);text-decoration:none}
@@ -324,6 +326,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
       <a href="#why">Why Muay Friend</a>
       <a href="#pricing">Prices</a>
       <a href="#faq">Questions</a>
+      <a href="support/">Support</a>
       <a href="demo/">Live demo</a>
     </nav>
     <a class="lang" href="th/" hreflang="th" lang="th">ไทย</a>
@@ -571,9 +574,9 @@ fbq('init','1689705395897075');fbq('track','PageView');
   <section class="block" id="pricing">
     <div class="wrap">
       <div class="head"><h2>Prices</h2></div>
-      <p class="lede">One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.</p>
-      <div class="billing" role="group"><button type="button" class="on" data-bill="m">Monthly</button><button type="button" data-bill="y">Yearly: 12 months for the price of 10</button></div>
-      <p class="promo" data-show="m">Launch offer: your first 2 months at 50% off</p><p class="promo" data-show="y" hidden>Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth 15,000 baht)</p>
+      <p class="lede">One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in US dollars, British pounds or Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.</p>
+      <div class="billing" role="group"><button type="button" class="on" data-bill="m">Monthly</button><button type="button" data-bill="y">Yearly: 12 months for the price of 10</button></div><div class="billing curs" role="group" aria-label="Currency"><button type="button" class="on" data-cur="usd">US $</button><button type="button" data-cur="gbp">UK £</button><button type="button" data-cur="thb">Thai baht</button></div>
+      <p class="promo" data-show="m">Launch offer: your first 2 months at 50% off</p><p class="promo" data-show="y" hidden>Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth <span class="cur" data-thb="15,000 baht" data-usd="$450" data-gbp="£350">$450</span>)</p>
       <h3 class="pickh">Which plan is right for you?</h3>
       <div class="picks"><a href="#plan-free"><span>Starting out, or a coach on your own</span><b>Free</b></a><a href="#plan-gym"><span>A small gym selling at the counter</span><b>Gym</b></a><a href="#plan-camp"><span>A busy gym or camp with coaching and a cafe</span><b>Camp</b></a><a href="#plan-master"><span>A camp with rooms, or you want everything</span><b>Master</b></a></div>
       <div class="plans">
@@ -589,8 +592,8 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <div class="plan" id="plan-gym">
           <h3>Gym</h3>
           <p class="for">For a small gym that sells at the counter</p>
-          <p class="was" data-show="m">2,290</p><p class="was" data-show="y" hidden>27,480 a year</p>
-          <p class="now" data-show="m">1,490 <small>a month</small></p><p class="now" data-show="y" hidden>14,900 <small>a year</small></p><p class="sub" data-show="y" hidden>1,242 a month, paid yearly</p>
+          <p class="was" data-show="m"><span class="cur" data-thb="2,290" data-usd="$69" data-gbp="£55">$69</span></p><p class="was" data-show="y" hidden><span class="cur" data-thb="27,480" data-usd="$828" data-gbp="£660">$828</span> a year</p>
+          <p class="now" data-show="m"><span class="cur" data-thb="1,490" data-usd="$45" data-gbp="£35">$45</span> <small>a month</small></p><p class="now" data-show="y" hidden><span class="cur" data-thb="14,900" data-usd="$450" data-gbp="£350">$450</span> <small>a year</small></p><p class="sub" data-show="y" hidden><span class="cur" data-thb="1,242" data-usd="$38" data-gbp="£29">$38</span> a month, paid yearly</p>
           <p class="lim">30 members, 6 staff</p>
           <ul><li>Everything in Free</li><li>Card payments in the app</li><li>Shop and cafe till with stock</li><li>Staff hours, commission, accounts and receipts</li><li>Messages with members</li><li>Website: 1 page with timetable, prices and courses to buy</li><li>Your own logo and colours</li><li>We set it up for you</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Gym">Get started</a>
@@ -598,8 +601,8 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <div class="plan" id="plan-gymplus">
           <h3>Gym Plus</h3>
           <p class="for">For a growing gym</p>
-          <p class="was" data-show="m">4,990</p><p class="was" data-show="y" hidden>59,880 a year</p>
-          <p class="now" data-show="m">3,290 <small>a month</small></p><p class="now" data-show="y" hidden>32,900 <small>a year</small></p><p class="sub" data-show="y" hidden>2,742 a month, paid yearly</p>
+          <p class="was" data-show="m"><span class="cur" data-thb="4,990" data-usd="$149" data-gbp="£119">$149</span></p><p class="was" data-show="y" hidden><span class="cur" data-thb="59,880" data-usd="$1,788" data-gbp="£1,428">$1,788</span> a year</p>
+          <p class="now" data-show="m"><span class="cur" data-thb="3,290" data-usd="$99" data-gbp="£79">$99</span> <small>a month</small></p><p class="now" data-show="y" hidden><span class="cur" data-thb="32,900" data-usd="$990" data-gbp="£790">$990</span> <small>a year</small></p><p class="sub" data-show="y" hidden><span class="cur" data-thb="2,742" data-usd="$82" data-gbp="£66">$82</span> a month, paid yearly</p>
           <p class="lim">100 members, 10 staff</p>
           <ul><li>Everything in Gym</li><li>100 members and 10 staff</li><li>Website: 1 page</li><li>We set it up for you</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Gym Plus">Get started</a>
@@ -608,8 +611,8 @@ fbq('init','1689705395897075');fbq('track','PageView');
           <p class="badge">Most popular</p>
           <h3>Camp</h3>
           <p class="for">For a busy gym or camp</p>
-          <p class="was" data-show="m">5,990</p><p class="was" data-show="y" hidden>71,880 a year</p>
-          <p class="now" data-show="m">3,990 <small>a month</small></p><p class="now" data-show="y" hidden>39,900 <small>a year</small></p><p class="sub" data-show="y" hidden>3,325 a month, paid yearly</p>
+          <p class="was" data-show="m"><span class="cur" data-thb="5,990" data-usd="$179" data-gbp="£145">$179</span></p><p class="was" data-show="y" hidden><span class="cur" data-thb="71,880" data-usd="$2,148" data-gbp="£1,740">$2,148</span> a year</p>
+          <p class="now" data-show="m"><span class="cur" data-thb="3,990" data-usd="$119" data-gbp="£95">$119</span> <small>a month</small></p><p class="now" data-show="y" hidden><span class="cur" data-thb="39,900" data-usd="$1,190" data-gbp="£950">$1,190</span> <small>a year</small></p><p class="sub" data-show="y" hidden><span class="cur" data-thb="3,325" data-usd="$99" data-gbp="£79">$99</span> a month, paid yearly</p>
           <p class="lim">150 members, 15 staff</p>
           <ul><li>Everything in Gym Plus</li><li>Online coaching, courses and technique videos</li><li>Cafe menu and food orders</li><li>Newsletters and social media posting</li><li>Partners and affiliates</li><li>Fighters, jobs, maintenance and investor view</li><li>Website: 4 pages</li><li>We set it up for you</li></ul>
           <a class="btn" href="#contact" data-plan="Camp">Get started</a>
@@ -617,20 +620,20 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <div class="plan" id="plan-master">
           <h3>Master</h3>
           <p class="for">Everything, for camps with rooms</p>
-          <p class="was" data-show="m">11,990</p><p class="was" data-show="y" hidden>143,880 a year</p>
-          <p class="now" data-show="m">7,990 <small>a month</small></p><p class="now" data-show="y" hidden>79,900 <small>a year</small></p><p class="sub" data-show="y" hidden>6,658 a month, paid yearly</p>
+          <p class="was" data-show="m"><span class="cur" data-thb="11,990" data-usd="$359" data-gbp="£289">$359</span></p><p class="was" data-show="y" hidden><span class="cur" data-thb="143,880" data-usd="$4,308" data-gbp="£3,468">$4,308</span> a year</p>
+          <p class="now" data-show="m"><span class="cur" data-thb="7,990" data-usd="$239" data-gbp="£189">$239</span> <small>a month</small></p><p class="now" data-show="y" hidden><span class="cur" data-thb="79,900" data-usd="$2,390" data-gbp="£1,890">$2,390</span> <small>a year</small></p><p class="sub" data-show="y" hidden><span class="cur" data-thb="6,658" data-usd="$199" data-gbp="£158">$199</span> a month, paid yearly</p>
           <p class="lim">150 members, unlimited staff</p>
           <ul><li>Everything in Camp</li><li>Rooms, stays, room bills and housekeeping</li><li>Online room booking, Booking.com, Agoda and Airbnb calendars</li><li>Meal plans and welcome emails</li><li>Website: 8 pages, page, landing page and blog builder</li><li>AI tools included</li><li>Unlimited staff, priority support</li></ul>
           <a class="btn ghost" href="#contact" data-plan="Master">Get started</a>
         </div>
       </div>
-      <p class="addons">Every paid plan can add members at 50 baht a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.</p>
+      <p class="addons">Every paid plan can add members at <span class="cur" data-thb="50 baht" data-usd="$1.50" data-gbp="£1.20">$1.50</span> a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.</p>
       <details class="compare" id="compare"><summary>Everything each plan includes: See the full list</summary><div class="ctable"><table>
 <thead><tr><th scope="col">Feature</th><th scope="col">Free</th><th scope="col">Gym</th><th scope="col">Gym Plus</th><th scope="col">Camp</th><th scope="col">Master</th></tr></thead><tbody>
 <tr class="grp"><th colspan="6" scope="colgroup">Members and team</th></tr>
 <tr><th scope="row">Active members</th><td>15</td><td>30</td><td>100</td><td>150</td><td>150</td></tr>
 <tr><th scope="row">Staff logins</th><td>2</td><td>6</td><td>10</td><td>15</td><td>Unlimited</td></tr>
-<tr><th scope="row">Extra members at 50 baht each, always the best price</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
+<tr><th scope="row">Extra members at <span class="cur" data-thb="50 baht" data-usd="$1.50" data-gbp="£1.20">$1.50</span> each, always the best price</th><td class="n"><span class="no" aria-label="Not included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
 <tr><th scope="row">Roles and permissions for owner, admin, front desk and coaches</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
 <tr class="grp"><th colspan="6" scope="colgroup">Running the gym</th></tr>
 <tr><th scope="row">Member app with your gym name and QR check-in</th><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td><td class="y"><span class="ok" aria-label="Included"></span></td></tr>
@@ -692,7 +695,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <div>
           <h3>Your website, built in</h3>
           <p>Your website runs on the same system as your app. Change prices, the timetable, photos or a page from your phone, and bookings and payments work on every page. No separate hosting, plugins or webmaster.</p>
-          <p class="offer">We copy your current website into Muay Friend for 15,000 baht. Free when you pay a year upfront.</p>
+          <p class="offer">We copy your current website into Muay Friend for <span class="cur" data-thb="15,000 baht" data-usd="$450" data-gbp="£350">$450</span>. Free when you pay a year upfront.</p>
         </div>
         <ul>
           <li>Same pages, words, photos and look as your site today</li>
@@ -716,7 +719,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <details><summary>Can I use only some of it?</summary><p>Yes. We switch off what you don't need, so a gym without rooms won't see stays or housekeeping.</p></details>
         <details><summary>Can you move my existing members across?</summary><p>Yes. Send us your current list and we'll bring in your members, packages and what they have left.</p></details>
         <details><summary>Is the AI included?</summary><p>The AI tools are an optional add-on: making web pages from a description, writing social media posts from your photos, and reading receipts. Everything else works without them, and you can add them any time.</p></details>
-        <details><summary>How much does it cost?</summary><p>Small gyms can start free. Paid plans start at 1,490 baht a month, with 50% off your first 2 months at launch. See <a href="#pricing">Prices</a>.</p></details>
+        <details><summary>How much does it cost?</summary><p>Small gyms can start free. Paid plans start at <span class="cur" data-thb="1,490 baht" data-usd="$45" data-gbp="£35">$45</span> a month, with 50% off your first 2 months at launch. See <a href="#pricing">Prices</a>.</p></details>
         <details><summary>What is in the free version?</summary><p>Check-ins, packages, selling and appointments, with your gym's name, for up to 15 members and 2 staff. It shows a small Muay Friend logo. You can move up to a paid plan any time and keep everything.</p></details>
       </div>
     </div>
@@ -792,6 +795,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     <span>The app for Muay Thai gyms and camps.</span>
     <span>Made in Thailand, with gyms around the world.</span>
     <a href="th/" hreflang="th" lang="th">ภาษาไทย</a>
+    <a href="support/">Support videos</a>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
     <a href="#free">Start free</a>
     <a href="#contact">Get more info</a>
@@ -852,6 +856,17 @@ fbq('init','1689705395897075');fbq('track','PageView');
   function set(m){ bs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-bill')===m); });
     document.querySelectorAll('#pricing [data-show]').forEach(function(e){ e.hidden=e.getAttribute('data-show')!==m; }); }
   bs.forEach(function(b){ b.addEventListener('click',function(){ set(b.getAttribute('data-bill')); }); });
+  /* currency: the visitor's own (Thailand baht, UK pounds, else dollars), or what they picked */
+  var cs=document.querySelectorAll('[data-cur]'); if(!cs.length) return;
+  function cur(c){ cs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-cur')===c); });
+    document.querySelectorAll('.cur').forEach(function(e){ var v=e.getAttribute('data-'+c); if(v) e.textContent=v; });
+    try{ localStorage.setItem('mf_cur',c); }catch(e){} }
+  var c=null; try{ c=localStorage.getItem('mf_cur'); }catch(e){}
+  if(!c){ var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+    var l=(navigator.language||'').toLowerCase();
+    c=tz==='Asia/Bangkok'||/^th/.test(l)?'thb':(tz==='Europe/London'||l==='en-gb')?'gbp':'usd'; }
+  cs.forEach(function(b){ b.addEventListener('click',function(){ cur(b.getAttribute('data-cur')); }); });
+  cur(c);
 })();
 </script>
 </body>

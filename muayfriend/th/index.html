@@ -248,6 +248,8 @@ section.block{padding:96px 0}
 .billing{display:inline-flex;margin-top:22px;border:1.5px solid var(--ink);border-radius:999px;padding:4px;gap:4px;flex-wrap:wrap}
 .billing button{font:600 15px var(--body);border:0;background:transparent;color:var(--ink);padding:10px 18px;border-radius:999px;cursor:pointer}
 .billing button.on{background:var(--ink);color:#fff}
+.billing.curs{margin-left:10px}
+@media (max-width:640px){.billing.curs{margin-left:0;margin-top:10px}}
 .pickh{font-size:28px;margin-top:34px}
 .picks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
 .picks a{display:flex;flex-direction:column;gap:6px;padding:16px 18px;border-radius:16px;background:#fff;border:1.5px solid var(--line);color:var(--ink);text-decoration:none}
@@ -341,6 +343,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
       <a href="#why">ทำไมต้อง Muay Friend</a>
       <a href="#pricing">ราคา</a>
       <a href="#faq">คำถามที่พบบ่อย</a>
+      <a href="../support/?lang=th">ซัพพอร์ต</a>
       <a href="../demo/">ลองเดโม</a>
     </nav>
     <a class="lang" href="../" hreflang="en" lang="en">EN</a>
@@ -809,6 +812,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     <span>แอปสำหรับยิมและแคมป์มวยไทย</span>
     <span>สร้างในประเทศไทย ร่วมกับยิมทั่วโลก</span>
     <a href="../" hreflang="en" lang="en">English</a>
+    <a href="../support/?lang=th">วิดีโอสอนใช้งาน</a>
     <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
     <a href="#free">เริ่มใช้ฟรี</a>
     <a href="#contact">ขอข้อมูลเพิ่มเติม</a>
@@ -870,6 +874,17 @@ fbq('init','1689705395897075');fbq('track','PageView');
   function set(m){ bs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-bill')===m); });
     document.querySelectorAll('#pricing [data-show]').forEach(function(e){ e.hidden=e.getAttribute('data-show')!==m; }); }
   bs.forEach(function(b){ b.addEventListener('click',function(){ set(b.getAttribute('data-bill')); }); });
+  /* currency: the visitor's own (Thailand baht, UK pounds, else dollars), or what they picked */
+  var cs=document.querySelectorAll('[data-cur]'); if(!cs.length) return;
+  function cur(c){ cs.forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-cur')===c); });
+    document.querySelectorAll('.cur').forEach(function(e){ var v=e.getAttribute('data-'+c); if(v) e.textContent=v; });
+    try{ localStorage.setItem('mf_cur',c); }catch(e){} }
+  var c=null; try{ c=localStorage.getItem('mf_cur'); }catch(e){}
+  if(!c){ var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+    var l=(navigator.language||'').toLowerCase();
+    c=tz==='Asia/Bangkok'||/^th/.test(l)?'thb':(tz==='Europe/London'||l==='en-gb')?'gbp':'usd'; }
+  cs.forEach(function(b){ b.addEventListener('click',function(){ cur(b.getAttribute('data-cur')); }); });
+  cur(c);
 })();
 </script>
 </body>

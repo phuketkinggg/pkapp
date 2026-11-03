@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-03', title: 'Plans in dollars, pounds or baht', what: 'Where gyms share one app, the manager can see the plans in US dollars, British pounds or Thai baht in Settings, Your plan, and pays in that currency. It starts with the currency of where they are and remembers their choice.'},
   {date: '2026-11-03', title: 'Your plan under the app name', what: 'Where gyms share one app, staff see the plan the gym is on under the app name, for example Gym Plus plan. The manager taps it to see the plans.'},
   {date: '2026-11-02', title: 'Your plan', what: 'Where gyms share one app, the manager sees their plan in Settings, Your plan, and can move up to a paid plan (monthly, or yearly at 12 months for the price of 10) on a secure card payment page. The plan switches on as soon as it is paid, and the billing page is where they change card, see bills, switch plan or cancel.'},
   {date: '2026-11-02', title: 'Your app in Google Play and the App Store', what: 'If your business has its own app in Google Play or the App Store, add the links in Settings, Look, App in the stores. Your website then shows Get it on Google Play and Download on the App Store buttons, and the Install button in the app sends Android phones and iPhones straight to the store.'},
