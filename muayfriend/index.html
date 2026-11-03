@@ -315,6 +315,7 @@ footer a{color:#C9CFDB}
 fbq('init','1689705395897075');fbq('track','PageView');
 </script>
 <noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id=1689705395897075&ev=PageView&noscript=1"></noscript>
+<script src="/stats.js" defer></script>
 </head>
 <body>
 <header class="top">
@@ -813,10 +814,10 @@ fbq('init','1689705395897075');fbq('track','PageView');
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='Check your email address.'; f.email.focus(); return; }
     if(d.interest){ d.message=('Plan: '+d.interest+(d.message?'\n\n'+d.message:'')); } delete d.interest; d.source=location.href.slice(0,120);
     b.disabled=true; b.textContent='Sending';
-    fetch('https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+    fetch('https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error(j.error||'Not sent. Try again, or check your connection.'); }); })
       .then(function(){
-        if(window.fbq) fbq('track','Lead',{content_name:'demo'});
+        if(window.fbq) fbq('track','Lead',{content_name:'demo'}); if(window.mfT) mfT('lead_ok');
         f.innerHTML='<div class="done" tabindex="-1"><h3>Sent. Thank you.</h3><p>We have your details and will email you soon with more information and a time for your demo.</p></div>';
         f.querySelector('.done').focus();
       })
@@ -826,7 +827,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
 </script>
 <script>
 (function(){
-  var API='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-signup', WAIT='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead', BTN='Start free now';
+  var API='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-signup', WAIT='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-lead', BTN='Start free now';
   var sp=document.getElementById('free-spots');
   fetch(API).then(function(r){ return r.json(); }).then(function(j){ var n=j&&j.free_left; if(typeof n!=='number') return; sp.textContent=n>0?(n===1?'Only 1 free spot left':'Only '+n+' free spots left'):'Free spots are full: join the waiting list'; }).catch(function(){});
   var f=document.getElementById('freeform'), m=document.getElementById('free-msg'), b=f.querySelector('button');
@@ -842,7 +843,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
     d.lang=document.documentElement.lang==='th'?'th':'en'; d.source=location.href.slice(0,120);
     b.disabled=true; b.textContent='Making your app';
     post(API,d).then(function(j){
-      if(window.fbq) fbq('track',j.full?'Lead':'CompleteRegistration',{content_name:'free'});
+      if(window.fbq) fbq('track',j.full?'Lead':'CompleteRegistration',{content_name:'free'}); if(window.mfT) mfT(j.full?'waitlist_ok':'signup_ok');
       if(j.go){ b.textContent='Opening your app'; setTimeout(function(){ location.href=j.go; },400); return; }
       if(j.full){ d.plan='free'; return post(WAIT,d).then(function(){ done('You are on the waiting list','All free spots are taken right now. We will email you as soon as one opens.'); }); }
       done('Check your email','Your gym app is ready. We sent a sign in link to your email: tap it to open your app. It can take a minute, and check junk too.');

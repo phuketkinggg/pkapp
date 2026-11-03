@@ -1,7 +1,7 @@
-// Muay Friend website forms. Saves the enquiry and emails it to the owner.
+// Muay Friend website forms (free project bnglnfdgptvnmugntiom, table public.mf_leads). Saves the enquiry and emails it to the owner.
 // POST {name, email, gym?, country?, members?, phone?, message?, website (honeypot)}  ->  {ok:true}            "Get more info"
 // POST {plan:"free", name, email, gym, country, phone, members?, social?, message?, lang?}  ->  {ok:true, waitlist}  "Start free"
-//   The free version has a set number of spots (app_settings mf_free_cap, default 50). When they are taken, sign-ups go on
+//   The free version has a set number of spots (mf.free_left(), shared with mf-signup). When they are taken, sign-ups go on
 //   a waiting list. The gym gets a welcome email from Muay Friend (only from hello@muayfriend.com, never another brand).
 // GET  ->  {free_left}  how many free spots are left, for the website.
 // Public (no login). Spam guards: honeypot, field checks, max 5 per hour per visitor, 60 per hour in total.
@@ -21,10 +21,8 @@ async function hash(s: string) {
 }
 
 async function freeLeft() {
-  const { data } = await admin.from("app_settings").select("value").eq("key", "mf_free_cap").maybeSingle();
-  const cap = Math.max(0, parseInt(String(data?.value ?? "50"), 10) || 0);
-  const { count } = await admin.from("mf_leads").select("id", { count: "exact", head: true }).eq("plan", "free").neq("status", "rejected");
-  return Math.max(0, cap - (count ?? 0));
+  const { data } = await admin.rpc("mf_free_left");
+  return typeof data === "number" ? data : 1; // if the count fails, do not turn people away
 }
 
 async function resend(msg: Record<string, unknown>) {
@@ -107,7 +105,7 @@ Deno.serve(async (req) => {
     const html = `<h2 style="font-family:sans-serif">${kind}</h2><table style="font-family:sans-serif;font-size:15px">${lines.filter((l) => l[1]).map(([k, v]) => `<tr><td style="padding:4px 14px 4px 0;color:#666;vertical-align:top">${k}</td><td style="padding:4px 0;white-space:pre-wrap">${esc(String(v))}</td></tr>`).join("")}</table><p style="font-family:sans-serif;color:#666">Reply to this email to answer them directly.</p>`;
     const text = kind + "\n\n" + lines.filter((l) => l[1]).map(([k, v]) => `${k}: ${v}`).join("\n");
     const subj = free ? `${waitlist ? "Free waiting list" : "FREE sign-up"}: ${row.gym}` : `Muay Friend enquiry: ${row.gym || row.name}`;
-    const o = await resend({ from: "Muay Friend <hello@app.phuketking.com>", to: [TO], reply_to: row.email, subject: subj, html, text });
+    const o = await resend({ from: "Muay Friend <hello@muayfriend.com>", to: [TO], reply_to: row.email, subject: subj, html, text });
     const upd: Record<string, unknown> = { emailed: o.ok, email_error: o.ok ? null : o.err };
 
     // to the gym, only from the Muay Friend address

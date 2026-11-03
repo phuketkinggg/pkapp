@@ -496,10 +496,10 @@
     if(d.interest){ d.message=('Plan: '+d.interest+(d.message?'\n\n'+d.message:'')); } delete d.interest; d.source=location.href.slice(0,120);
     if(d.message) d.message='[Thai site] '+d.message; else d.message='[Thai site]';
     b.disabled=true; b.textContent='กำลังส่ง';
-    fetch('https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+    fetch('https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!j.ok) throw new Error('ส่งไม่สำเร็จ ลองอีกครั้ง หรือตรวจสอบการเชื่อมต่อ'); }); })
       .then(function(){
-        if(window.fbq) fbq('track','Lead',{content_name:'demo'});
+        if(window.fbq) fbq('track','Lead',{content_name:'demo'}); if(window.mfT) mfT('lead_ok');
         f.innerHTML='<div class="done" tabindex="-1"><h3>ส่งแล้ว ขอบคุณ</h3><p>เราได้รับข้อมูลของคุณแล้ว และจะอีเมลกลับไปเร็วๆ นี้ พร้อมรายละเอียดและเวลาสำหรับเดโม</p></div>';
         f.querySelector('.done').focus();
       })
@@ -509,7 +509,7 @@
 </script>
 <script>
 (function(){
-  var API='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-signup', WAIT='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/mf-lead', BTN='เริ่มใช้ฟรีเลย';
+  var API='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-signup', WAIT='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/mf-lead', BTN='เริ่มใช้ฟรีเลย';
   var sp=document.getElementById('free-spots');
   fetch(API).then(function(r){ return r.json(); }).then(function(j){ var n=j&&j.free_left; if(typeof n!=='number') return; sp.textContent=n>0?('เหลือที่ว่างฟรีอีก '+n+' ที่'):'ที่ว่างฟรีเต็มแล้ว: ลงชื่อรอได้'; }).catch(function(){});
   var f=document.getElementById('freeform'), m=document.getElementById('free-msg'), b=f.querySelector('button');
@@ -525,7 +525,7 @@
     d.lang='th'; d.source=location.href.slice(0,120);
     b.disabled=true; b.textContent='กำลังสร้างแอป';
     post(API,d).then(function(j){
-      if(window.fbq) fbq('track',j.full?'Lead':'CompleteRegistration',{content_name:'free'});
+      if(window.fbq) fbq('track',j.full?'Lead':'CompleteRegistration',{content_name:'free'}); if(window.mfT) mfT(j.full?'waitlist_ok':'signup_ok');
       if(j.go){ b.textContent='กำลังเปิดแอปของคุณ'; setTimeout(function(){ location.href=j.go; },400); return; }
       if(j.full){ d.plan='free'; return post(WAIT,d).then(function(){ done('คุณอยู่ในรายชื่อรอแล้ว','ตอนนี้ที่ว่างฟรีเต็มแล้ว เราจะอีเมลแจ้งทันทีที่มีที่ว่าง'); }); }
       done('ตรวจสอบอีเมลของคุณ','แอปยิมของคุณพร้อมแล้ว เราส่งลิงก์เข้าสู่ระบบไปที่อีเมลของคุณ แตะลิงก์เพื่อเปิดแอป อาจใช้เวลาสักครู่ และลองดูในโฟลเดอร์ขยะด้วย');
