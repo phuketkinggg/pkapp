@@ -78,6 +78,37 @@
     var rt; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { build(); if (calm) draw(20); }, 150); });
   }
 
+  /* ---------- the logo film: gold on black made see-through. The file holds the picture on top and its see-through mask below;
+     WebGL puts them together, so it works in every browser. Plays once, stays on the logo, tap to play again. ---------- */
+  var la = document.querySelector('.logoanim');
+  if (la) (function () {
+    function still() { if (la.querySelector('img')) return; var i = new Image(); i.src = 'media/pangea-logo.webp'; i.alt = ''; la.appendChild(i); var c = la.querySelector('canvas'); if (c) c.remove(); }
+    if (calm) { still(); return; }
+    var cv = document.createElement('canvas'), gl = cv.getContext('webgl', { premultipliedAlpha: true, alpha: true });
+    if (!gl) { still(); return; }
+    var vid = document.createElement('video'); vid.muted = true; vid.defaultMuted = true; vid.playsInline = true; vid.setAttribute('playsinline', ''); vid.setAttribute('muted', ''); vid.preload = 'auto'; vid.src = la.getAttribute('data-video');
+    var vs = 'attribute vec2 p;varying vec2 u;void main(){u=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0.,1.);}';
+    var fs = 'precision mediump float;varying vec2 u;uniform sampler2D t;void main(){vec3 c=texture2D(t,vec2(u.x,u.y*.5)).rgb;float a=texture2D(t,vec2(u.x,u.y*.5+.5)).r;gl_FragColor=vec4(c*a,a);}';
+    function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; }
+    var pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(pr); gl.useProgram(pr);
+    var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    var tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+    [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach(function (k) { gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE); });
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    function size() { var r = la.getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); gl.viewport(0, 0, cv.width, cv.height); }
+    function frame() { if (vid.readyState < 2) return; gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, vid); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); }
+    var raf = 0; function tick() { frame(); if (!vid.paused && !vid.ended) raf = requestAnimationFrame(tick); }
+    la.appendChild(cv); size(); window.addEventListener('resize', function () { size(); frame(); });
+    vid.addEventListener('play', function () { cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); });
+    vid.addEventListener('ended', function () { frame(); });
+    vid.addEventListener('error', still);
+    var started = false;
+    function go() { if (started) return; started = true; var r = vid.play(); if (r && r.catch) r.catch(still); setTimeout(function () { if (vid.paused && vid.currentTime === 0) still(); }, 4000); }
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { if (es[0].isIntersecting) go(); }, { threshold: 0.2 }).observe(la); else go();
+    la.addEventListener('click', function () { if (!la.querySelector('canvas')) return; vid.currentTime = 0; var r = vid.play(); if (r && r.catch) r.catch(function () {}); });
+  })();
+
   /* ---------- the four parts of you ---------- */
   var ART = {
     mind: function (v, t) { // brainwaves: alpha, theta and a slow delta, layered

@@ -74,11 +74,15 @@ section{padding:clamp(80px,11vw,150px) 0;position:relative}
 /* hero: the land coming back together */
 .hero{min-height:calc(100vh - 76px);min-height:calc(100svh - 76px);display:grid;align-items:center;padding:40px 0 80px;overflow:hidden;background:radial-gradient(110% 90% at 75% 45%,#EEF3EE 0%,var(--stone) 62%)}
 .hero canvas#land{position:absolute;inset:0;width:100%;height:100%}
+.logoanim{position:absolute;right:max(28px,calc((100% - 1200px)/2 + 10px));top:50%;transform:translateY(-52%);width:min(40vw,560px);aspect-ratio:900/586;cursor:pointer}
+.logoanim canvas,.logoanim img{position:absolute;inset:0;width:100%;height:100%}
+.logoanim img{object-fit:contain}
+@media (max-width:760px){.logoanim{left:50%;right:auto;top:26px;transform:translateX(-50%);width:min(86vw,420px)}}
 .hero .wrap{position:relative;z-index:1;width:100%}
-.hero h1{max-width:9.5em}
+.hero h1{max-width:8.5em}
 .hero .lead{margin-top:30px;max-width:30em}
 .hero .motto{position:absolute;left:0;right:0;bottom:30px;z-index:1;max-width:1200px;margin:0 auto;padding:0 28px;font:400 15px/1 var(--sans);letter-spacing:.32em;color:var(--gold-deep)}
-@media (max-width:760px){.hero{min-height:auto;padding:calc(76vw + 10px) 0 110px;align-items:end}.hero .motto{letter-spacing:.18em;font-size:13px}}
+@media (max-width:760px){.hero{min-height:auto;padding:calc(58vw + 60px) 0 110px;align-items:end}.hero .motto{letter-spacing:.18em;font-size:13px}}
 
 /* the timescale of human history */
 .scale{margin-top:70px}
