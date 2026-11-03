@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-03', title: 'Action groups open again', what: 'Coaching, Action groups showed an error instead of your groups, and New action group opened the wrong form. Both work again. Exercise groups (Legs, Core) in Exercises are unchanged.'},
   {date: '2026-11-03', title: 'Pause a package', what: 'The owner can pause a member\'s package from the customer page, for example for an injury or a trip home: tap Pause, choose the dates (or leave the end open), say why and who authorised it, and type your password. While it is paused it cannot be used to check in, and the days it was paused are added to the end date, so the member loses nothing. Turn back on works the same way, and every pause is kept on the package.', feature: 'package_pause'},
   {date: '2026-11-03', title: 'Plans in dollars, pounds or baht', what: 'Where gyms share one app, the manager can see the plans in US dollars, British pounds or Thai baht in Settings, Your plan, and pays in that currency. It starts with the currency of where they are and remembers their choice.'},
   {date: '2026-11-03', title: 'Your plan under the app name', what: 'Where gyms share one app, staff see the plan the gym is on under the app name, for example Gym Plus plan. The manager taps it to see the plans.'},

@@ -13,6 +13,11 @@ def check(path):
     r = subprocess.run(['node', '--check', name], capture_output=True, text=True); os.unlink(name)
     if r.returncode:
         print('BROKEN JavaScript in', path); print(r.stderr[:1500]); return False
+    # two top-level functions with the same name: the later one silently replaces the earlier (this once broke Action groups)
+    names = re.findall(r'^function ([A-Za-z0-9_$]+)\s*\(', code, re.M)
+    dup = sorted(set(n for n in names if names.count(n) > 1))
+    if dup:
+        print('Same function name used twice in', path + ':', ', '.join(dup)); return False
     return True
 
 if __name__ == '__main__':

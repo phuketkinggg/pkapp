@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=111"></script>
+<script src="changelog.js?v=112"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -4373,11 +4373,11 @@ function coOpen(cid){ COACH.cid=cid; COACH.view='client'; return sb.rpc('coach_c
   .catch(function(e){ toast(errText(e)); COACH.view='clients'; COACH.cid=null; schedule(); }); }
 function coReload(){ return COACH.cid?coOpen(COACH.cid):coLoad(); }
 function coTpl(){ return sb.rpc('program_templates').then(must).then(function(l){ COACH.tpl=l; schedule(); return l; }); }
-function coEx(){ coGroups(); return sb.rpc('exercise_list').then(must).then(function(l){ COACH.ex=l; schedule(); return l; }); }
+function coEx(){ coExGroups(); return sb.rpc('exercise_list').then(must).then(function(l){ COACH.ex=l; schedule(); return l; }); }
 /* exercise groups: your own groups (Legs, Core...), an exercise can be in several */
-function coGroups(){ return sb.rpc('exercise_groups_list').then(function(r){ COACH.groups=r.error?[]:(r.data||[]); schedule(); return COACH.groups; },function(){ COACH.groups=COACH.groups||[]; }); }
+function coExGroups(){ return sb.rpc('exercise_groups_list').then(function(r){ COACH.groups=r.error?[]:(r.data||[]); schedule(); return COACH.groups; },function(){ COACH.groups=COACH.groups||[]; }); }
 function coGroupName(id){ var g=(COACH.groups||[]).filter(function(x){ return x.id===id; })[0]; return g?g.name:''; }
-function coEditGroup(g){ g=g||{};
+function coExEditGroup(g){ g=g||{};
   openForm({title:g.id?'Rename group':'New group',values:{name:g.name||''},fields:[{key:'name',label:'Group name',required:true,hint:'For example Legs, Core, Shoulders, Mobility.'}],
     onDelete:g.id?function(){ return sb.rpc('exercise_group_remove',{p_id:g.id}).then(must).then(function(){ COACH.exGroup=null; return coEx(); }); }:null,
     onSave:function(v){ return sb.rpc('exercise_group_save',{p:{id:g.id||null,name:v.name}}).then(must).then(function(id){ COACH.exGroup=id; return coEx(); }); }}); }
@@ -4710,8 +4710,8 @@ function coExercises(){
   return h('div',null,
     h('div',{class:'row exgroups',style:'margin-bottom:8px'},btn('All ('+COACH.ex.length+')',function(){ COACH.exGroup=null; schedule(); },'small'+(sel?'':' primary')),
       gs.map(function(g){ return btn(g.name+' ('+g.count+')',function(){ COACH.exGroup=g.id; schedule(); },'small'+(sel&&sel.id===g.id?' primary':'')); }),
-      btn('+ New group',function(){ coEditGroup(); },'small')),
-    sel?h('div',{class:'row',style:'margin-bottom:8px'},h('b',null,sel.name),btn('Choose exercises',function(){ coGroupPick(sel); },'primary small'),btn('New exercise in '+sel.name,function(){ coEditEx(null,sel.id); },'small'),btn('Rename or remove',function(){ coEditGroup(sel); },'small')):null,
+      btn('+ New group',function(){ coExEditGroup(); },'small')),
+    sel?h('div',{class:'row',style:'margin-bottom:8px'},h('b',null,sel.name),btn('Choose exercises',function(){ coGroupPick(sel); },'primary small'),btn('New exercise in '+sel.name,function(){ coEditEx(null,sel.id); },'small'),btn('Rename or remove',function(){ coExEditGroup(sel); },'small')):null,
     h('div',{class:'row'},search),
     table([{label:'Exercise',cell:function(x){ return linkBtn(x.name,function(){ coEditEx(x); }); }},
       {label:'Groups',cell:function(x){ return h('span',{class:'wrap'},(x.groups||[]).map(function(id){ return chip(coGroupName(id)); })); }},
