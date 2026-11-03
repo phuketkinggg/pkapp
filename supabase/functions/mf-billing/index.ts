@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     if (b.action === "setup") {
       const ak = (await admin.rpc("mf_billing_cfg", { p_key: "admin_key" })).data;
       if (!ak || b.key !== ak) return json({ error: "no" }, 403);
-      await ensurePrices();
+      try { await ensurePrices(); } catch (e) { return json({ error: "prices: " + String(e) }, 500); }
       const hooks = await stripe("GET", "webhook_endpoints?limit=100");
       for (const h of hooks.data ?? []) if (h.url === SELF) await stripe("DELETE", "webhook_endpoints/" + h.id);
       const hook = await stripe("POST", "webhook_endpoints", { url: SELF, description: "Muay Friend plans",
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       await stripe("POST", "billing_portal/configurations", { business_profile: { headline: "Muay Friend: your plan" }, default_return_url: APP,
         features: { customer_update: { enabled: true, allowed_updates: ["email", "address", "tax_id"] }, invoice_history: { enabled: true },
           payment_method_update: { enabled: true }, subscription_cancel: { enabled: true, mode: "at_period_end" } } }).catch(() => null);
-      return json({ ok: true, live: SK.startsWith("sk_live_"), webhook: hook.id });
+      return json({ ok: true, live: /^(sk|rk)_live_/.test(SK), webhook: hook.id });
     }
 
     // from the app: the signed-in manager of the gym
