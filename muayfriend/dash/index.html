@@ -271,7 +271,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       .concat((m.ending||[]).map(function(x){ return '<li><span><b>'+esc(x.name)+'</b>: cancelled, ends '+(x.paid_until?new Date(x.paid_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'soon')+(x.reason?'<br>'+esc(x.reason):'')+'<br><a href="mailto:'+esc(x.email)+'">'+esc(x.email)+'</a></span><b></b></li>'; }));
     $('risk').innerHTML=risk.length?'<ul class="list">'+risk.join('')+'</ul>':'<p class="empty">No failing cards or plans ending. Good.</p>';
     var rs=m.reasons||[]; $('reasons').innerHTML=rs.length?'<ul class="list">'+rs.map(function(x){ return '<li><span>'+esc(x.reason)+'<br><span class="s">'+esc(x.slug)+', '+when(x.at)+'</span></span><b></b></li>'; }).join('')+'</ul>':'<p class="empty">No cancellations with a reason in this period.</p>';
-    var lg=m.log||[]; $('plog').innerHTML=lg.length?lg.map(function(x){ return '<tr><td>'+when(x.at)+'</td><td>'+esc(x.name||x.slug)+'</td><td>'+esc(PLAN[x.from]||x.from)+'</td><td>'+esc(PLAN[x.to]||x.to)+(x.cycle==='year'?', yearly':'')+'</td><td>'+esc(x.status||'')+'</td></tr>'; }).join('')
+    var lg=m.log||[]; $('plog').innerHTML=lg.length?lg.map(function(x){ return '<tr><td>'+when(x.at)+'</td><td>'+esc(x.name||x.slug)+'</td><td>'+esc(PLAN[x.from]||x.from)+'</td><td>'+esc(PLAN[x.to]||x.to)+(x.cycle==='year'?', yearly':'')+'</td><td>'+esc(pay(x.status))+'</td></tr>'; }).join('')
       :'<tr><td colspan="5" class="empty">No plan changes in this period.</td></tr>';
   }
   function load(){
