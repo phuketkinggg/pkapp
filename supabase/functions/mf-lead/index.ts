@@ -108,6 +108,23 @@ Deno.serve(async (req) => {
     const o = await resend({ from: "Muay Friend <hello@muayfriend.com>", to: [TO], reply_to: row.email, subject: subj, html, text });
     const upd: Record<string, unknown> = { emailed: o.ok, email_error: o.ok ? null : o.err };
 
+    // the leak calculator: the gym gets its numbers by email, from Muay Friend
+    if (!free && row.source === "leak calculator" && row.message) {
+      const first = name.split(/\s+/)[0] || name;
+      const body = th
+        ? [`สวัสดีคุณ${first}`, `นี่คือตัวเลขจากเครื่องคำนวณรอยรั่วของ ${gym || "ยิมของคุณ"}:`, String(row.message),
+           `Muay Friend อุดรอยรั่วเหล่านี้: เช็คอินแสดงทันทีเมื่อแพ็กเกจหมด รายชื่อคนที่ใกล้หมดให้ชวนต่ออายุทันเวลา และทุกการขายมีบันทึก นับเงินตอนปิดกะเทียบกับยอดที่ควรมี`,
+           `เริ่มใช้ฟรี: https://muayfriend.com/th/#free`, `มีคำถาม ตอบกลับอีเมลนี้ได้เลย`]
+        : [`Hi ${first},`, `Here are the numbers from the leak calculator for ${gym || "your gym"}:`, String(row.message),
+           `How Muay Friend plugs these leaks: check-in shows straight away when a package has ended, a list of who runs out this week lets you ask on time, and every sale is logged with the shift count checked against what it should be.`,
+           `Start free: https://muayfriend.com/#free`, `Questions? Just reply to this email.`];
+      const sign = th ? "ทีม Muay Friend" : "The Muay Friend team";
+      const text = body.join("\n\n") + "\n\n" + sign + "\nhttps://muayfriend.com";
+      const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#171B23">` + body.map((l) => `<p style="margin:0 0 14px">${esc(l)}</p>`).join("") + `<p style="margin:0">${esc(sign)}</p></div>`;
+      const g = await resend({ from: "Muay Friend <hello@muayfriend.com>", to: [email], reply_to: TO, subject: th ? "ตัวเลขรอยรั่วของยิมคุณ" : "Your gym's money leak, in numbers", html, text });
+      upd.welcomed = g.ok; upd.welcome_error = g.ok ? null : g.err;
+    }
+
     // to the gym, only from the Muay Friend address
     if (free) {
       const w = welcome(name, String(row.gym), waitlist, th);
