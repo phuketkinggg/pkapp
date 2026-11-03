@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=110"></script>
+<script src="changelog.js?v=111"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -726,6 +726,7 @@ function weekStart(s){ var d=parseYmd(s); d.setDate(d.getDate()-((d.getDay()+6)%
 function classesLeft(p){ return p.class_limit ? (p.classes_left==null ? p.class_limit : p.classes_left) : null; }
 function purchaseState(p,today,usedThisWeek){
   if(p.cancelled) return {ok:false,status:'cancelled',label:'Cancelled'};
+  if(isPaused(p,today)) return {ok:false,status:'paused',label:p.paused_until?'Paused until '+fmtDate(p.paused_until):'Paused'};
   if(p.class_limit && classesLeft(p)<=0) return {ok:false,status:'used_up',label:'All visits used'};
   if(p.stay_id&&p.starts_on&&today<p.starts_on) return {ok:false,status:'not_yet',label:'Starts '+fmtDate(p.starts_on)};
   if(p.stay_id&&p.expires_on===today) return {ok:true,status:'active',label:'Leaving day, morning class only'};
@@ -736,6 +737,32 @@ function purchaseState(p,today,usedThisWeek){
   if(p.expires_on && today>p.expires_on) return {ok:false,status:'expired',label:'Expired'};
   if(p.per_week_limit && usedThisWeek>=p.per_week_limit) return {ok:false,status:'week_limit',label:'Weekly limit reached'};
   return {ok:true,status:'active',label:'Active'};
+}
+/* a package the owner paused (feature package_pause): no check in on those days */
+function isPaused(p,day){ return !!(p&&p.paused_from&&day>=p.paused_from&&(!p.paused_until||day<=p.paused_until)); }
+function pauseSet(p){ var d=ymd(new Date()); return !!(p&&p.paused_from&&(!p.paused_until||p.paused_until>=d)); }
+function pauseDlg(c,p){
+  var email=me.email||currentEmail, td=ymd(new Date());
+  openForm({title:'Pause '+p.package_name,note:'For '+c.name+'. While it is paused it cannot be used to check in, and the days it is paused are added to the end date, so nothing is lost. Only the owner can do this.',
+    saveLabel:'Pause package',doneMsg:'Package paused.',values:{from:td,until:'',ok_by:me.name||''},fields:[
+    {key:'from',label:'Paused from',type:'date',required:true},
+    {key:'until',label:'Paused until',type:'date',hint:'Optional. Leave empty to pause until you turn it back on.'},
+    {key:'reason',label:'Reason',required:true,hint:'For example: injury, family emergency, travelling.'},
+    {key:'ok_by',label:'Authorised by',required:true},
+    {key:'pw',label:'Your password',type:'password',autocomplete:'current-password',required:true,hint:'The password for '+email+'.'}],
+    onSave:function(v){ if(v.until&&v.until<v.from) return 'The end date is before the start date.';
+      return sb.auth.signInWithPassword({email:email,password:v.pw}).then(function(res){
+        if(res.error) throw {plain:true,message:/invalid/i.test(res.error.message)?'That password is wrong.':authText(res.error)};
+        return sb.rpc('package_pause',{p_id:p.id,p_from:v.from,p_until:v.until||null,p_reason:v.reason,p_ok_by:v.ok_by}).then(must); }).then(reloadMoney); }});
+}
+function resumeDlg(c,p){
+  var email=me.email||currentEmail;
+  openForm({title:'Turn back on: '+p.package_name,note:'For '+c.name+'. Paused from '+fmtDate(p.paused_from)+(p.paused_until?' until '+fmtDate(p.paused_until):'')+'. Reason: '+(p.pause_reason||'')+'. Authorised by '+(p.pause_ok_by||'')+'. The end date moves by the days it was really paused.',
+    saveLabel:'Turn back on',doneMsg:'Package is back on.',fields:[
+    {key:'pw',label:'Your password',type:'password',autocomplete:'current-password',required:true,hint:'The password for '+email+'.'}],
+    onSave:function(v){ return sb.auth.signInWithPassword({email:email,password:v.pw}).then(function(res){
+        if(res.error) throw {plain:true,message:/invalid/i.test(res.error.message)?'That password is wrong.':authText(res.error)};
+        return sb.rpc('package_resume',{p_id:p.id}).then(must); }).then(reloadMoney); }});
 }
 function startPurchase(p,day){ var o={starts_on:day}; if(p.duration_days) o.expires_on=addDays(day,p.duration_days-1); return o; }
 function coachShare(price,pct){ return Math.round((Number(price)||0)*(pct==null?50:Number(pct))/100); }
@@ -873,6 +900,7 @@ var FEATURES=[
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
   {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
+  {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
@@ -945,7 +973,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=66; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=67; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8232,6 +8260,7 @@ function vCustomers(){
         {label:'Status',cell:function(p){return p.refunded_at?chip('Refunded'+(p.refund_thb?' '+thb(p.refund_thb):''),'bad'):p.covers&&!p.covers.length?(p.cancelled?chip('Cancelled','bad'):chip('Extra')):stateChip(stateOf(p,day));}},
         {label:'',cell:function(p){ var stayTr=p.stay_id&&p.package_name==='Stay: group Muay Thai included';
           return h('div',{class:'row'},owedOf(p)&&p.ordered_in_app&&!Number(p.paid_thb)?btn('Take payment',function(){ takePayment(p); },'primary small'):null,featOn('receipt_send')&&Number(p.paid_thb)>0&&!stayTr?btn('Receipt',function(){ sendReceipt('purchase',p.id,p.package_name); },'small'):null,btn('Edit',function(){ editPurchase(p); },'small'),
+            featOn('package_pause')&&isOwner()&&!p.cancelled&&!p.refunded_at&&!stayTr&&!(p.covers&&!p.covers.length)?(pauseSet(p)?btn('Turn back on',function(){ resumeDlg(c,p); },'small'):btn('Pause',function(){ pauseDlg(c,p); },'small')):null,
             !p.refunded_at&&!stayTr?btn('Refund',function(){ refundTab('purchase',p); },'small'):null,me&&me.role==='manager'&&!stayTr?btn('Delete (mistake)',function(){ deletePurchase(p); },'small'):null);}}],ps,'No packages yet. Use Sell a package to record the first one.')),
       (function(){ var pv=S.privates.filter(function(x){ return !x.lead_id&&(x.customer_id===c.id||(x.also_customers||[]).indexOf(c.id)>=0); }).sort(function(a,b){ return (a.date+(a.time||''))<(b.date+(b.time||''))?1:-1; }); return pv.length?section('Privates',null,table([
         {label:'When',cell:function(x){ return linkBtn(fmtDate(x.date)+' '+pSpan(x),function(){ editPrivate(x); }); }},
