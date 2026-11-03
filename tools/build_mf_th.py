@@ -18,7 +18,7 @@ def rep(a, b):
     head = head.replace(a, b)
 
 TITLE = 'Muay Friend | แอปบริหารยิมมวยไทย ครบในแอปเดียว'
-DESC = 'แอปเดียวสำหรับบริหารยิมมวยไทย: การจอง เช็คอิน งานขาย คาเฟ่ การโค้ช บัญชี และเว็บไซต์ของคุณ สร้างร่วมกับยิมกว่า 30 แห่งทั่วโลก'
+DESC = 'แอปเดียวสำหรับบริหารยิมมวยไทย: การจอง เช็คอิน งานขาย คาเฟ่ การโค้ช และบัญชี พร้อมเว็บไซต์เป็นตัวเลือกเสริม สร้างร่วมกับยิมกว่า 30 แห่งทั่วโลก'
 rep('<html lang="en">', '<html lang="th">')
 head = re.sub(r'<title>.*?</title>', '<title>' + TITLE + '</title>', head)
 head = re.sub(r'<meta name="description" content="[^"]*">', '<meta name="description" content="' + DESC + '">', head)

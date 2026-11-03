@@ -18,17 +18,17 @@ SITE = {'thb': '15,000 baht', 'usd': '$450', 'gbp': '£350'}
 EXTRA = {'thb': '50 baht', 'usd': '$1.50', 'gbp': '£1.20'}
 
 T = {
- 'en': dict(h='Prices', lede='One app for your whole business: members, selling, your team, coaching, marketing, rooms and your website. Prices in US dollars, British pounds or Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.',
+ 'en': dict(h='Prices', lede='One app for your whole business: members, selling, your team, coaching, marketing and rooms. Prices in US dollars, British pounds or Thai baht. Paid plans are up and running within 4 hours of signing up (9am to 6pm Thai time); when many gyms join at once, there may be a short delay.',
    monthly='Monthly', yearly='Yearly: save 2 months', promo='Launch offer: your first 2 months at 50% off', yearpromo='Pay a year upfront: 12 months for the price of 10, and we copy your current website into Muay Friend free (worth {SITE})',
    per='a month', peryear='a year', permonth_y='a month on a yearly plan', yearsub='a year, paid upfront. You save 2 months', popular='Most popular', start='Start free', get='Get started',
    pick='Which plan is right for you?', compare='Everything each plan includes', compare_open='See the full list',
-   extra='Every paid plan can add members at {EXTRA} a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master.',
+   extra='Every paid plan can add members at {EXTRA} a month each, and you always pay the best price: when the next plan costs less than the extras, your bill moves to it by itself. AI tools (Ask AI, reading receipts, writing posts) are an add-on on every plan and included in Master. A website is not included in any plan: it is an option, built for you for {SITE} one-off, and free when you pay yearly.',
    feature='Feature', yes='Included', no='Not included'),
- 'th': dict(h='ราคา', lede='แอปเดียวสำหรับทั้งธุรกิจ: สมาชิก งานขาย ทีมงาน การโค้ช การตลาด ห้องพัก และเว็บไซต์ของคุณ ราคาเป็นเงินบาท แพ็กเกจแบบชำระเงินพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร (9.00 ถึง 18.00 น. เวลาไทย) ช่วงที่มียิมสมัครพร้อมกันจำนวนมาก อาจช้ากว่านี้เล็กน้อย',
+ 'th': dict(h='ราคา', lede='แอปเดียวสำหรับทั้งธุรกิจ: สมาชิก งานขาย ทีมงาน การโค้ช การตลาด และห้องพัก ราคาเป็นเงินบาท แพ็กเกจแบบชำระเงินพร้อมใช้ภายใน 4 ชั่วโมงหลังสมัคร (9.00 ถึง 18.00 น. เวลาไทย) ช่วงที่มียิมสมัครพร้อมกันจำนวนมาก อาจช้ากว่านี้เล็กน้อย',
    monthly='รายเดือน', yearly='รายปี: ประหยัด 2 เดือน', promo='โปรเปิดตัว: ลด 50% สองเดือนแรก', yearpromo='จ่ายรายปีล่วงหน้า: จ่าย 10 เดือน ใช้ 12 เดือน และเราย้ายเว็บไซต์ปัจจุบันของคุณเข้า Muay Friend ฟรี (มูลค่า 15,000 บาท)',
    per='ต่อเดือน', peryear='ต่อปี', permonth_y='ต่อเดือน เมื่อสมัครรายปี', yearsub='ต่อปี จ่ายล่วงหน้า ประหยัด 2 เดือน', popular='ยอดนิยม', start='เริ่มใช้ฟรี', get='เริ่มต้นใช้งาน',
    pick='แพ็กเกจไหนเหมาะกับคุณ?', compare='ทุกอย่างที่แต่ละแพ็กเกจมี', compare_open='ดูรายการทั้งหมด',
-   extra='ทุกแพ็กเกจแบบชำระเงินเพิ่มสมาชิกได้คนละ 50 บาทต่อเดือน และคุณจ่ายราคาที่คุ้มที่สุดเสมอ: เมื่อแพ็กเกจถัดไปถูกกว่าค่าสมาชิกเพิ่ม บิลจะย้ายไปแพ็กเกจนั้นเอง เครื่องมือ AI (Ask AI อ่านใบเสร็จ เขียนโพสต์) เป็นส่วนเสริมได้ทุกแพ็กเกจ และรวมอยู่ใน Master',
+   extra='ทุกแพ็กเกจแบบชำระเงินเพิ่มสมาชิกได้คนละ 50 บาทต่อเดือน และคุณจ่ายราคาที่คุ้มที่สุดเสมอ: เมื่อแพ็กเกจถัดไปถูกกว่าค่าสมาชิกเพิ่ม บิลจะย้ายไปแพ็กเกจนั้นเอง เครื่องมือ AI (Ask AI อ่านใบเสร็จ เขียนโพสต์) เป็นส่วนเสริมได้ทุกแพ็กเกจ และรวมอยู่ใน Master ส่วนเว็บไซต์ไม่รวมในแพ็กเกจใด เป็นตัวเลือกเสริม เราทำให้ในราคา 15,000 บาท จ่ายครั้งเดียว และฟรีเมื่อจ่ายรายปี',
    feature='ฟีเจอร์', yes='มี', no='ไม่มี'),
 }
 
@@ -38,15 +38,15 @@ FOR = {'en': {'free': 'For a coach or a small gym starting out', 'gym': 'For a s
        'th': {'free': 'สำหรับโค้ชหรือยิมเล็กที่เพิ่งเริ่ม', 'gym': 'สำหรับยิมเล็กที่ขายหน้าเคาน์เตอร์', 'gymplus': 'สำหรับยิมที่กำลังโต', 'camp': 'สำหรับยิมหรือแคมป์ที่มีลูกค้าเยอะ', 'master': 'ครบทุกอย่าง สำหรับแคมป์ที่มีห้องพัก'}}
 HIGHLIGHTS = {
  'en': {'free': ['Member app with QR check-in', 'Packages, memberships and class passes', 'Timetable, privates and appointments', 'Cash and PromptPay QR', 'Set it up yourself'],
-        'gym': ['Everything in Free', 'Card payments in the app', 'Shop and cafe till with stock', 'Staff hours, commission, accounts and receipts', 'Messages with members', 'Website: 1 page with timetable, prices and courses to buy', 'Your own logo and colours', 'We set it up for you'],
-        'gymplus': ['Everything in Gym', '100 members and 10 staff', 'Website: 1 page', 'We set it up for you'],
-        'camp': ['Everything in Gym Plus', 'Online coaching, courses and technique videos', 'Cafe menu and food orders', 'Newsletters and social media posting', 'Partners and affiliates', 'Fighters, jobs, maintenance and investor view', 'Website: 4 pages', 'We set it up for you'],
-        'master': ['Everything in Camp', 'Rooms, stays, room bills and housekeeping', 'Online room booking, Booking.com, Agoda and Airbnb calendars', 'Meal plans and welcome emails', 'Website: 8 pages, plus a landing page and blog builder', 'AI tools included', 'Unlimited staff, priority support']},
+        'gym': ['Everything in Free', 'Card payments in the app', 'Shop and cafe till with stock', 'Staff hours, commission, accounts and receipts', 'Messages with members', 'Your own logo and colours', 'We set it up for you'],
+        'gymplus': ['Everything in Gym', '100 members and 10 staff', 'We set it up for you'],
+        'camp': ['Everything in Gym Plus', 'Online coaching, courses and technique videos', 'Cafe menu and food orders', 'Newsletters and social media posting', 'Partners and affiliates', 'Fighters, jobs, maintenance and investor view', 'We set it up for you'],
+        'master': ['Everything in Camp', 'Rooms, stays, room bills and housekeeping', 'Online room booking, Booking.com, Agoda and Airbnb calendars', 'Meal plans and welcome emails', 'AI tools included', 'Unlimited staff, priority support']},
  'th': {'free': ['แอปสมาชิกพร้อมเช็คอินด้วย QR', 'แพ็กเกจ สมาชิกภาพ และบัตรคลาส', 'ตารางคลาส คลาสส่วนตัว และการนัดหมาย', 'เงินสดและ QR พร้อมเพย์', 'ตั้งค่าด้วยตัวเอง'],
-        'gym': ['ทุกอย่างใน Free', 'รับชำระด้วยบัตรในแอป', 'ระบบขายหน้าร้านและคาเฟ่ พร้อมสต็อก', 'เวลาทำงาน ค่าคอมมิชชั่น บัญชี และใบเสร็จ', 'แชทกับสมาชิก', 'เว็บไซต์ 1 หน้า: ตารางคลาส ราคา และคอร์สให้ซื้อ', 'โลโก้และสีของคุณเอง', 'เราตั้งค่าให้'],
-        'gymplus': ['ทุกอย่างใน Gym', 'สมาชิก 100 คน พนักงาน 10 คน', 'เว็บไซต์ 1 หน้า', 'เราตั้งค่าให้'],
-        'camp': ['ทุกอย่างใน Gym Plus', 'โค้ชออนไลน์ คอร์ส และวิดีโอเทคนิค', 'เมนูคาเฟ่และสั่งอาหาร', 'จดหมายข่าวและโพสต์โซเชียลมีเดีย', 'พาร์ทเนอร์และแอฟฟิลิเอต', 'นักชก งานซ่อมบำรุง และมุมมองนักลงทุน', 'เว็บไซต์ 4 หน้า', 'เราตั้งค่าให้'],
-        'master': ['ทุกอย่างใน Camp', 'ห้องพัก การเข้าพัก บิลห้อง และแม่บ้าน', 'จองห้องออนไลน์ และปฏิทิน Booking.com, Agoda, Airbnb', 'แผนอาหารและอีเมลต้อนรับ', 'เว็บไซต์ 8 หน้า พร้อมตัวสร้างหน้าเว็บ แลนดิ้งเพจ และบล็อก', 'รวมเครื่องมือ AI', 'พนักงานไม่จำกัด ซัพพอร์ตก่อนใคร']},
+        'gym': ['ทุกอย่างใน Free', 'รับชำระด้วยบัตรในแอป', 'ระบบขายหน้าร้านและคาเฟ่ พร้อมสต็อก', 'เวลาทำงาน ค่าคอมมิชชั่น บัญชี และใบเสร็จ', 'แชทกับสมาชิก', 'โลโก้และสีของคุณเอง', 'เราตั้งค่าให้'],
+        'gymplus': ['ทุกอย่างใน Gym', 'สมาชิก 100 คน พนักงาน 10 คน', 'เราตั้งค่าให้'],
+        'camp': ['ทุกอย่างใน Gym Plus', 'โค้ชออนไลน์ คอร์ส และวิดีโอเทคนิค', 'เมนูคาเฟ่และสั่งอาหาร', 'จดหมายข่าวและโพสต์โซเชียลมีเดีย', 'พาร์ทเนอร์และแอฟฟิลิเอต', 'นักชก งานซ่อมบำรุง และมุมมองนักลงทุน', 'เราตั้งค่าให้'],
+        'master': ['ทุกอย่างใน Camp', 'ห้องพัก การเข้าพัก บิลห้อง และแม่บ้าน', 'จองห้องออนไลน์ และปฏิทิน Booking.com, Agoda, Airbnb', 'แผนอาหารและอีเมลต้อนรับ', 'รวมเครื่องมือ AI', 'พนักงานไม่จำกัด ซัพพอร์ตก่อนใคร']},
 }
 PICKS = {
  'en': [('Starting out, or a coach on your own', 'free'), ('A small gym selling at the counter', 'gym'), ('A busy gym or camp with coaching and a cafe', 'camp'), ('A camp with rooms, or you want everything', 'master')],
@@ -97,8 +97,8 @@ ROWS = [
  ('Contacts, lists and newsletters', 'รายชื่อติดต่อ ลิสต์ และจดหมายข่าว', C),
  ('Posts, reels and stories to Facebook, Instagram, TikTok and YouTube', 'โพสต์ รีล และสตอรี่ ไป Facebook, Instagram, TikTok และ YouTube', C),
  ('Partner and affiliate programme with tracked links', 'โปรแกรมพาร์ทเนอร์และแอฟฟิลิเอต พร้อมลิงก์ติดตาม', C),
- ('Your website', 'เว็บไซต์ของคุณ', None),
- ('Integrated website, edited from your phone', 'เว็บไซต์ในตัว แก้ไขได้จากมือถือ', ['0', '1 page|1 หน้า', '1 page|1 หน้า', '4 pages|4 หน้า', '8 pages|8 หน้า']),
+ ('Your website: an option for any paid plan, one-off price', 'เว็บไซต์ของคุณ: ตัวเลือกเสริมสำหรับแพ็กเกจแบบชำระเงิน จ่ายครั้งเดียว', None),
+ ('Integrated website, edited from your phone', 'เว็บไซต์ในตัว แก้ไขได้จากมือถือ', ['0', 'Option, 1 page|ตัวเลือก 1 หน้า', 'Option, 1 page|ตัวเลือก 1 หน้า', 'Option, 4 pages|ตัวเลือก 4 หน้า', 'Option, 8 pages|ตัวเลือก 8 หน้า']),
  ('Timetable, prices and courses to buy on your website', 'ตารางคลาส ราคา และคอร์สให้ซื้อบนเว็บไซต์', G),
  ('Website numbers: visits and bookings', 'สถิติเว็บไซต์: ผู้เข้าชมและการจอง', C),
  ('Team on your website from Staff, with videos', 'ทีมงานบนเว็บไซต์จากหน้าพนักงาน พร้อมวิดีโอ', C),
@@ -172,7 +172,7 @@ def section(lang):
         dp = '' if free else f' data-plan="{NAMES[k]}"'
         o.append(f'          <a class="btn{cls}" href="{href}"{dp}>{cta}</a>\n        </div>')
     o.append('      </div>')
-    o.append(f'      <p class="addons">{t["extra"].replace("{EXTRA}", words(lang, EXTRA))}</p>')
+    o.append(f'      <p class="addons">{t["extra"].replace("{EXTRA}", words(lang, EXTRA)).replace("{SITE}", words(lang, SITE))}</p>')
     o.append(f'      <details class="compare" id="compare"><summary>{t["compare"]}: {t["compare_open"]}</summary><div class="ctable"><table>')
     o.append('<thead><tr><th scope="col">%s</th>%s</tr></thead><tbody>' % (t['feature'], ''.join(f'<th scope="col">{NAMES[k]}</th>' for k in PLANS)))
     for en, th, v in ROWS:
