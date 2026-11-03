@@ -148,6 +148,7 @@ def section(lang):
                                    '<button type="button" data-cur="gbp">UK £</button><button type="button" data-cur="thb">Thai baht</button></div>')
     o.append(f'      <div class="billing" role="group"><button type="button" class="on" data-bill="m">{t["monthly"]}</button><button type="button" data-bill="y">{t["yearly"]}</button></div>{cur}')
     o.append(f'      <p class="promo" data-show="m">{t["promo"]}</p><p class="promo" data-show="y" hidden>{t["yearpromo"].replace("{SITE}", words(lang, SITE))}</p>')
+    o.append('      <div class="launch" id="launch" hidden></div>')
     o.append(f'      <h3 class="pickh">{t["pick"]}</h3>\n      <div class="picks">' + ''.join(f'<a href="#plan-{k}"><span>{q}</span><b>{NAMES[k]}</b></a>' for q, k in PICKS[lang]) + '</div>')
     o.append('      <div class="plans">')
     for k in PLANS:
