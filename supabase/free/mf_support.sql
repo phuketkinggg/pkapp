@@ -59,6 +59,7 @@ end $$;
 revoke all on function public.mf_support_list(), public.mf_support_team(), public.mf_support_save(jsonb), public.mf_support_delete(uuid) from public;
 grant execute on function public.mf_support_list(), public.mf_support_team() to anon, authenticated;
 grant execute on function public.mf_support_save(jsonb), public.mf_support_delete(uuid) to authenticated;
+revoke execute on function public.mf_support_save(jsonb), public.mf_support_delete(uuid) from anon;
 
 -- the video files: anyone can watch, only the team can upload or remove
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
