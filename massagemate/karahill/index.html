@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=112"></script>
+<script src="changelog.js?v=113"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -900,6 +900,7 @@ var FEATURES=[
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
   {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
+  {k:'coach_docs',g:'Training',n:'Coaching documents',d:'A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.'},
   {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
@@ -973,7 +974,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=67; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=68; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3873,7 +3874,8 @@ function editLesson(c,l){ l=l||{}; if(featOn('techniques')&&!TEC.list&&!TEC.busy
           .catch(function(e){ toast(errText(e)); }).then(function(){ busy--; draw(); }); }); },Promise.resolve()); }});
     document.body.appendChild(inp); inp.click(); }
   draw();
-  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Learning materials (PDFs, worksheets, photos)'),list,h('div',{class:'row'},addB),h('small',null,'Up to 20 files, 25 MB each (PDF, Word, Excel, PowerPoint, photos). Only people who can open the lesson see them.')),anchor.parentNode.nextSibling);
+  var fromDocs=featOn('coach_docs')&&tabOn('coaching')?btn('From Documents',function(){ coDocPick(function(d){ if(files.length>=20||files.some(function(x){ return x.url===d.url; })) return; files.push({name:d.title,url:d.url}); draw(); }); },'small'):null;
+  anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Learning materials (PDFs, worksheets, photos)'),list,h('div',{class:'row'},addB,fromDocs),h('small',null,'Up to 20 files, 25 MB each (PDF, Word, Excel, PowerPoint, photos). Only people who can open the lesson see them.')),anchor.parentNode.nextSibling);
 }
 
 
@@ -4131,7 +4133,54 @@ function coOpenGroup(id){
   try{ history.replaceState(null,'','#coaching'); }catch(e){}
   if(!COACH.grp) coGrpLoad().catch(function(){});
   schedule(); window.scrollTo(0,0); }
-function coGrpLoad(){ return sb.rpc('group_list').then(must).then(function(l){ COACH.grp=l; schedule(); return l; }); }
+function coGrpLoad(){ sb.rpc('group_auto_get').then(function(r){ COACH.gauto=r.error?{}:(r.data||{}); schedule(); },function(){}); return sb.rpc('group_list').then(must).then(function(l){ COACH.grp=l; schedule(); return l; }); }
+/* coaching documents (feature coach_docs): a library of files, used in action groups and Education lessons */
+var DOCTYPES='.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt';
+function coDocsLoad(){ COACH.docsBusy=true; return sb.rpc('coach_docs_list').then(must).then(function(l){ COACH.docs=l||[]; COACH.docsBusy=false; schedule(); return COACH.docs; })
+  .catch(function(e){ COACH.docsBusy=false; COACH.docsErr=errText(e); schedule(); return []; }); }
+function docKind(d){ var m=String(d.url||'').match(/\.([a-z0-9]{2,5})(\?|$)/i), e=m?m[1].toLowerCase():''; return e==='pdf'?'PDF':/docx?$/.test(e)?'Word':/xlsx?$/.test(e)?'Excel':/pptx?$/.test(e)?'PowerPoint':e?e.toUpperCase():'File'; }
+function docSize(kb){ kb=Number(kb)||0; return !kb?'':kb>=1024?(kb/1024).toFixed(1)+' MB':kb+' KB'; }
+function coDocsView(){
+  if(!COACH.docs){ if(!COACH.docsBusy) coDocsLoad(); return h('div',{class:'panel empty'},COACH.docsErr||'Loading.'); }
+  return table([{label:'Document',cell:function(d){ return h('div',null,h('a',{href:d.url,target:'_blank',rel:'noopener',class:'notr'},d.title),d.notes?h('small',{class:'sub',style:'display:block'},d.notes):null); }},
+    {label:'Type',cell:function(d){ return docKind(d)+(d.size_kb?', '+docSize(d.size_kb):''); }},
+    {label:'Used in',cell:function(d){ var u=(d.groups||[]).slice(); if(d.lessons) u.push(d.lessons+' lesson'+(d.lessons===1?'':'s')); return u.length?h('span',{class:'notr'},u.join(', ')):h('span',{class:'sub'},'Not used yet'); }},
+    {label:'',cell:function(d){ return h('div',{class:'row'},btn('Edit',function(){ coDocEdit(d); },'small'),btn('Copy link',function(){ try{ navigator.clipboard.writeText(d.url); toast('Link copied.'); }catch(e){ toast(d.url); } },'small')); }}],
+    COACH.docs,'No documents yet. Tap Upload documents to add PDFs, worksheets or guides.'); }
+function coDocUpload(done){
+  var inp=h('input',{type:'file',multiple:true,accept:DOCTYPES,hidden:true,onchange:function(){ var fs=[].slice.call(inp.files||[],0,20); inp.remove(); if(!fs.length) return; var made=[];
+    toast('Uploading '+fs.length+' file'+(fs.length===1?'':'s')+'...');
+    fs.reduce(function(pr,f){ return pr.then(function(){ if(f.size>50*1024*1024){ toast(f.name+' is over 50 MB.'); return; }
+      var safe=f.name.toLowerCase().replace(/[^a-z0-9.]+/g,'-').replace(/^-+/,'').slice(-60)||'file', path='docs/'+cRand()+'-'+safe;
+      return sb.storage.from('coach-media').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error;
+        var url=sb.storage.from('coach-media').getPublicUrl(path).data.publicUrl, title=f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' ').slice(0,140);
+        return sb.rpc('coach_doc_save',{p:{title:title,url:url,path:path,size_kb:Math.round(f.size/1024),mime:f.type||''}}).then(must).then(function(id){ made.push({id:id,title:title,url:url}); }); })
+        .catch(function(e){ toast(f.name+': '+errText(e)); }); }); },Promise.resolve())
+      .then(function(){ if(made.length) toast(made.length===1?'Uploaded.':made.length+' documents uploaded.'); return coDocsLoad(); }).then(function(){ if(done&&made.length) done(made); }); }});
+  document.body.appendChild(inp); inp.click(); }
+function coDocEdit(d){
+  openForm({title:'Edit document',values:{title:d.title,notes:d.notes||''},fields:[{key:'title',label:'Name',required:true},{key:'notes',label:'What it is for',type:'textarea',rows:3,hint:'Optional. Only coaches and managers see this.'}],
+    saveLabel:'Save',doneMsg:'Saved.',
+    onSave:function(v){ return sb.rpc('coach_doc_save',{p:{id:d.id,title:v.title,notes:v.notes}}).then(must).then(coDocsLoad); },
+    onDelete:function(){ var used=(d.groups||[]).length||d.lessons;
+      return sb.rpc('coach_doc_remove',{p_id:d.id}).then(must).then(function(path){ if(path&&!used) sb.storage.from('coach-media').remove([path]).catch(function(){}); if(used) toast('Removed from the library. Groups and lessons that use it still show it.'); return coDocsLoad(); }); }}); }
+/* pick a document from the library; done(doc) */
+function coDocPick(done){
+  (COACH.docs?Promise.resolve(COACH.docs):coDocsLoad()).then(function(l){
+    if(!l.length){ toast('No documents yet. Upload some in Coaching, Documents.'); return; }
+    openForm({title:'Choose a document',values:{d:l[0].id},fields:[{key:'d',label:'Document',type:'select',options:l.map(function(d){ return [d.id,d.title+' ('+docKind(d)+')']; })}],saveLabel:'Use this document',
+      onSave:function(v){ var d=l.filter(function(x){ return x.id===v.d; })[0]; if(d) done(d); }}); }); }
+/* an action group can add new customers by themselves: everyone, or people with chosen tags */
+function grpAutoText(a){ return !a||!a.mode?'Off. People join when you add them.':a.mode==='all'?'Every new customer joins by themselves, starting the day they join.':'New customers, and customers given the tag '+(a.tags||[]).join(' or ')+', join by themselves from that day.'; }
+function grpAutoEdit(g){ var a=(COACH.gauto||{})[g.id]||{};
+  var tagCount={}; (S.customers||[]).forEach(function(c){ (c.tags||[]).forEach(function(t){ tagCount[t]=(tagCount[t]||0)+1; }); });
+  var tags=Object.keys(tagCount).sort();
+  openForm({title:'Who joins by themselves',note:'People you add yourself (Add people) are not affected. Steps start from the day each person joins.',values:{mode:a.mode||'',tags:a.tags||[]},
+    fields:[{key:'mode',label:'Add new customers by themselves',type:'select',options:[['','No, only people I add'],['all','Yes, every new customer']].concat(tags.length?[['tags','Yes, customers with a tag']]:[]),onChange:function(v,set,get,o,show){ show('tags',v==='tags'); }},
+      {key:'tags',label:'Tags',type:'checks',options:tags.map(function(t){ return [t,t+' ('+tagCount[t]+')']; }),hide:a.mode!=='tags'}],
+    saveLabel:'Save',doneMsg:'Saved.',
+    onSave:function(v){ if(v.mode==='tags'&&!(v.tags||[]).length) return 'Pick one or more tags.';
+      return sb.rpc('group_auto_set',{p_group:g.id,p_mode:v.mode||null,p_tags:v.mode==='tags'?v.tags:null}).then(must).then(coGrpLoad); }}); }
 function coGroups(){
   if(COACH.gopen&&COACH.grp){ var g=COACH.grp.filter(function(x){ return x.id===COACH.gopen; })[0]; if(g) return coGroupPage(g); COACH.gopen=null; }
   if(!COACH.grp){ coGrpLoad().catch(function(e){ COACH.grpErr=errText(e); schedule(); }); return h('div',{class:'panel empty'},COACH.grpErr||'Loading.'); }
@@ -4144,6 +4193,8 @@ function coGroupPage(g){ var t=ymd(new Date());
     pageHead(g.name,g.notes||'',h('div',{class:'row'},btn('Edit steps',function(){ coEditGroup(JSON.parse(JSON.stringify(g))); },'primary'),btn('Add people',function(){ coGroupAddPeople(g); }),(g.members||[]).length?btn('Update people already in it',function(){ coGroupSyncAsk(g); }):null)),
     section('Steps',null,steps.length?h('div',{class:'panel'},steps.map(function(it){ return h('div',{class:'lrow static'},h('span',{class:'gwhen'},gWhen(it)),h('div',{class:'hmain'},h('b',null,it.title||gKind(it.kind)),h('small',{class:'sub'},gKind(it.kind)+(it.kind==='habit'&&it.habit?', '+hFreq({freq:it.habit.freq||'daily',days:(it.habit.days||[]).map(Number),times:it.habit.times||1})+(it.habit.weeks?', for '+it.habit.weeks+' weeks':''):'')))); }))
       :h('div',{class:'panel empty'},'No steps yet. Tap Edit steps.')),
+    section('Who joins',me&&me.role==='manager'?btn('Change',function(){ grpAutoEdit(g); },'small'):null,h('div',{class:'panel pad'},h('p',{style:'margin:0'},grpAutoText((COACH.gauto||{})[g.id])),
+      h('p',{class:'sub',style:'margin:6px 0 0'},'Add people yourself with Add people: one person, people with tags, all customers or everyone on a course, from any start date you choose.'))),
     section('People in this group',null,table([{label:'Name',cell:function(m){ return m.can?linkBtn(m.name,function(){ COACH.sub='groups'; coOpen(m.customer_id); }):m.name; }},
       {label:'Started',cell:function(m){ return fmtDate(m.start_on); }},{label:'Now',cell:function(m){ var w=gWeekOf(m,t); return w<1?'Starts soon':'Week '+w; }},
       {label:'Steps done',num:true,cell:function(m){ return m.done+' of '+steps.length; }},
@@ -4191,7 +4242,8 @@ function coGroupEditor(){
     return h('div',{class:'panel pad gedit'},whenBox,
       h('div',{class:'field'},h('label',{for:'gti-'+it.id},it.kind==='habit'?'Habit':it.kind==='email'?'Subject':'Title'),inp(it,'title','gti-'+it.id,{placeholder:it.kind==='habit'?'For example: 10 minutes stretching':it.kind==='food'?'For example: Start your food diary':it.kind==='weight'?'For example: Weekly weigh-in':'Title'})),
       h('div',{class:'field'},h('label',{for:'gtx-'+it.id},it.kind==='habit'?'How to do it':'Message'),inp(it,'text','gtx-'+it.id,{area:true,rows:it.kind==='email'?8:3,placeholder:it.kind==='email'?'Hi {first},\n\nWrite your email here.':null})),
-      it.kind!=='program'&&it.kind!=='lesson'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'))):null,
+      it.kind!=='program'&&it.kind!=='lesson'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'),
+        it.kind==='doc'&&featOn('coach_docs')?btn('From Documents',function(){ coDocPick(function(d){ it.url=d.url; if(!it.title) it.title=d.title; schedule(); }); },'small'):null)):null,
       extra); });
   var save=btn('Save',function(){ save.disabled=true; var items=g.items.slice().sort(function(a,b){ return gKey(a)<gKey(b)?-1:gKey(a)>gKey(b)?1:0; });
     sb.rpc('group_save',{p:{id:g.id||null,name:g.name,notes:g.notes,items:items}}).then(must).then(function(id){ if(g._course&&id) crsLinkGroup(g._course,id); COACH.gedit=null; COACH.gopen=id; coGrpLoad().then(function(l){ var gg=l.filter(function(x){ return x.id===id; })[0]; if(gg&&(gg.members||[]).length) coGroupSyncAsk(gg); else toast('Saved.'); }); })
@@ -4447,11 +4499,12 @@ function vCoaching(){
   if(COACH.prog) return coProgEditor();
   if(COACH.gedit) return coGroupEditor();
   if(COACH.view==='client'&&COACH.cid) return coClient();
-  var top=h('div',{class:'ctabs'},[['clients','Clients'],['arriving','Arriving soon'],['groups','Action groups'],['templates','Program templates'],['exercises','Exercises']].concat(featOn('coach_choose')&&me&&me.role==='manager'?[['offers','Offers']]:[]).map(function(t){ return h('button',{type:'button',class:'ctab'+(COACH.view===t[0]?' on':''),onclick:function(){ COACH.view=t[0]; schedule(); }},t[1]); }));
+  var top=h('div',{class:'ctabs'},[['clients','Clients'],['arriving','Arriving soon'],['groups','Action groups'],['templates','Program templates'],['exercises','Exercises']].concat(featOn('coach_docs')?[['docs','Documents']]:[]).concat(featOn('coach_choose')&&me&&me.role==='manager'?[['offers','Offers']]:[]).map(function(t){ return h('button',{type:'button',class:'ctab'+(COACH.view===t[0]?' on':''),onclick:function(){ COACH.view=t[0]; schedule(); }},t[1]); }));
   if(COACH.view==='offers') return [pageHead('Coaching','Offers: what customers without coaching see when they open the Coaching tab in their app. For example a weight loss course, a fight camp or a promotion.',btn('Add an offer',function(){ cofEdit(); },'primary')),top,cofAdmin()];
   if(COACH.view==='arriving') return [pageHead('Coaching','Guests arriving soon. They get an email up to 14 days before, open the app in one tap and tell you their level, goals, weight and injuries.'),top,paSettings(),paList()];
   if(COACH.view==='groups') return COACH.gopen?coGroups():[pageHead('Coaching','Action groups: a series of steps that unlock week by week from each person\u2019s start date. For example Fight camp or Weight loss.',btn('New action group',function(){ coEditGroup({name:'',notes:'',items:[coNewStep()]}); },'primary')),top,coGroups()];
   if(COACH.view==='templates') return [pageHead('Coaching','Program templates: build once, add to any client. Each client gets their own copy to adjust.',btn('New template',function(){ coEditProg({name:'',notes:'',routines:[coNewRoutine()]},'templates'); },'primary')),top,coTemplates()];
+  if(COACH.view==='docs') return [pageHead('Coaching','Documents: upload PDFs, Word, Excel and PowerPoint files once, then use them in action groups (a Document step) and in Education lessons.',btn('Upload documents',function(){ coDocUpload(); },'primary')),top,coDocsView()];
   if(COACH.view==='exercises') return [pageHead('Coaching','Exercise library: name, demo video and coaching points, sorted into your own groups. Use them in programs.',btn('New exercise',function(){ coEditEx(); },'primary')),top,coExercises()];
   if(!COACH.list){ if(!COACH.busy) coLoad(); return [pageHead('Coaching',''),top,h('div',{class:'panel empty'},COACH.err||'Loading.')]; }
   var mgr=me&&me.role==='manager';

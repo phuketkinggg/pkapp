@@ -20158,5 +20158,121 @@
 "Turn back on: ": [
 "เปิดใช้อีกครั้ง: ",
 "ပြန်ဖွင့်ရန် - "
+],
+"Documents": [
+"เอกสาร",
+"စာရွက်စာတမ်းများ"
+],
+"Upload documents": [
+"อัปโหลดเอกสาร",
+"စာရွက်စာတမ်း တင်ရန်"
+],
+"Documents: upload PDFs, Word, Excel and PowerPoint files once, then use them in action groups (a Document step) and in Education lessons.": [
+"เอกสาร: อัปโหลดไฟล์ PDF, Word, Excel และ PowerPoint ครั้งเดียว แล้วใช้ในกลุ่มแอ็กชัน (ขั้นตอนเอกสาร) และในบทเรียนของหน้าการศึกษา",
+"စာရွက်စာတမ်းများ - PDF, Word, Excel နှင့် PowerPoint ဖိုင်များကို တစ်ကြိမ်တင်ပြီး action group များ (Document အဆင့်) နှင့် Education သင်ခန်းစာများတွင် အသုံးပြုပါ။"
+],
+"Used in": [
+"ใช้ใน",
+"အသုံးပြုထားသည့်နေရာ"
+],
+"Not used yet": [
+"ยังไม่ได้ใช้",
+"မသုံးရသေးပါ"
+],
+"No documents yet. Tap Upload documents to add PDFs, worksheets or guides.": [
+"ยังไม่มีเอกสาร แตะอัปโหลดเอกสารเพื่อเพิ่ม PDF ใบงาน หรือคู่มือ",
+"စာရွက်စာတမ်း မရှိသေးပါ။ PDF၊ worksheet သို့မဟုတ် လမ်းညွှန်များ ထည့်ရန် စာရွက်စာတမ်း တင်ရန် ကိုနှိပ်ပါ။"
+],
+" documents uploaded.": [
+" เอกสารอัปโหลดแล้ว",
+" စာရွက်စာတမ်း တင်ပြီးပါပြီ။"
+],
+"Uploaded.": [
+"อัปโหลดแล้ว",
+"တင်ပြီးပါပြီ။"
+],
+"Edit document": [
+"แก้ไขเอกสาร",
+"စာရွက်စာတမ်း ပြင်ရန်"
+],
+"Optional. Only coaches and managers see this.": [
+"ไม่บังคับ เฉพาะโค้ชและผู้จัดการเท่านั้นที่เห็น",
+"မဖြစ်မနေမဟုတ်ပါ။ နည်းပြနှင့် မန်နေဂျာများသာ မြင်ရသည်။"
+],
+"Removed from the library. Groups and lessons that use it still show it.": [
+"ลบออกจากคลังแล้ว กลุ่มและบทเรียนที่ใช้อยู่ยังแสดงเอกสารนี้",
+"စာကြည့်တိုက်မှ ဖယ်ရှားပြီးပါပြီ။ ၎င်းကိုသုံးထားသော group နှင့် သင်ခန်းစာများတွင် ဆက်ပြနေမည်။"
+],
+"No documents yet. Upload some in Coaching, Documents.": [
+"ยังไม่มีเอกสาร อัปโหลดได้ที่ การโค้ช > เอกสาร",
+"စာရွက်စာတမ်း မရှိသေးပါ။ Coaching > Documents တွင် တင်ပါ။"
+],
+"Choose a document": [
+"เลือกเอกสาร",
+"စာရွက်စာတမ်း ရွေးရန်"
+],
+"Use this document": [
+"ใช้เอกสารนี้",
+"ဤစာရွက်စာတမ်းကို သုံးရန်"
+],
+"Off. People join when you add them.": [
+"ปิด คนจะเข้ากลุ่มเมื่อคุณเพิ่มเท่านั้น",
+"ပိတ်ထားသည်။ သင်ထည့်မှသာ ပါဝင်မည်။"
+],
+"Every new customer joins by themselves, starting the day they join.": [
+"ลูกค้าใหม่ทุกคนเข้ากลุ่มเอง โดยเริ่มนับจากวันที่สมัคร",
+"ဖောက်သည်အသစ်တိုင်း ကိုယ်တိုင်ပါဝင်ပြီး ဝင်သည့်နေ့မှ စတင်မည်။"
+],
+"New customers, and customers given the tag ": [
+"ลูกค้าใหม่ และลูกค้าที่ได้แท็ก ",
+"ဖောက်သည်အသစ်များနှင့် tag ရရှိသော ဖောက်သည်များ - "
+],
+", join by themselves from that day.": [
+" จะเข้ากลุ่มเองตั้งแต่วันนั้น",
+" ထိုနေ့မှစ၍ ကိုယ်တိုင်ပါဝင်မည်။"
+],
+"Who joins by themselves": [
+"ใครเข้ากลุ่มเองได้",
+"ဘယ်သူတွေ ကိုယ်တိုင်ပါဝင်မလဲ"
+],
+"People you add yourself (Add people) are not affected. Steps start from the day each person joins.": [
+"คนที่คุณเพิ่มเอง (เพิ่มคน) ไม่ได้รับผลกระทบ ขั้นตอนเริ่มนับจากวันที่แต่ละคนเข้ากลุ่ม",
+"သင်ကိုယ်တိုင်ထည့်သူများ (Add people) မထိခိုက်ပါ။ အဆင့်များသည် လူတစ်ဦးချင်း ပါဝင်သည့်နေ့မှ စတင်သည်။"
+],
+"Add new customers by themselves": [
+"เพิ่มลูกค้าใหม่เข้ากลุ่มอัตโนมัติ",
+"ဖောက်သည်အသစ်များကို အလိုအလျောက် ထည့်ရန်"
+],
+"No, only people I add": [
+"ไม่ เฉพาะคนที่ฉันเพิ่ม",
+"မဟုတ်ပါ၊ ကျွန်ုပ်ထည့်သူများသာ"
+],
+"Yes, every new customer": [
+"ใช่ ลูกค้าใหม่ทุกคน",
+"ဟုတ်ကဲ့၊ ဖောက်သည်အသစ်တိုင်း"
+],
+"Yes, customers with a tag": [
+"ใช่ ลูกค้าที่มีแท็ก",
+"ဟုတ်ကဲ့၊ tag ရှိသော ဖောက်သည်များ"
+],
+"Who joins": [
+"ใครเข้ากลุ่ม",
+"ဘယ်သူတွေ ပါဝင်မလဲ"
+],
+"Add people yourself with Add people: one person, people with tags, all customers or everyone on a course, from any start date you choose.": [
+"เพิ่มคนเองได้ที่ เพิ่มคน: ทีละคน ตามแท็ก ลูกค้าทั้งหมด หรือทุกคนในคอร์ส โดยเลือกวันเริ่มได้ตามต้องการ",
+"Add people ဖြင့် ကိုယ်တိုင်ထည့်ပါ - တစ်ဦးချင်း၊ tag အလိုက်၊ ဖောက်သည်အားလုံး သို့မဟုတ် သင်တန်းတစ်ခုရှိ လူအားလုံး၊ သင်ရွေးသော စတင်ရက်မှ။"
+],
+"From Documents": [
+"จากเอกสาร",
+"Documents မှ"
+],
+"Coaching documents": [
+"เอกสารการโค้ช",
+"နည်းပြ စာရွက်စာတမ်းများ"
+],
+"A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.": [
+"คลังเอกสารในการโค้ชสำหรับไฟล์ PDF, Word, Excel และ PowerPoint อัปโหลดครั้งเดียว แล้วใช้ในกลุ่มแอ็กชันและบทเรียน",
+"Coaching ထဲရှိ PDF၊ Word၊ Excel နှင့် PowerPoint ဖိုင်များအတွက် စာကြည့်တိုက်။ တစ်ကြိမ်တင်ပြီး action group နှင့် သင်ခန်းစာများတွင် သုံးပါ။"
 ]
 }
