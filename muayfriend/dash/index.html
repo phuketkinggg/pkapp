@@ -76,6 +76,12 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
 .note{font-size:13px;color:var(--muted);margin:22px 0 40px}
 .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:99px;padding:2px 8px;background:var(--paper);color:var(--ink2)}
 .pill.paid{background:#E3F2EA;color:var(--green)}
+.pill.h-active{background:#E3F2EA;color:var(--green)}.pill.h-new{background:#E6ECFB;color:var(--blue)}
+.pill.h-stuck,.pill.h-quiet,.pill.h-broken{background:#FBE6E8;color:var(--red)}.pill.h-near_limit,.pill.h-at_limit{background:#FFF1D6;color:#8A5A00}
+.dots{display:inline-flex;gap:3px;vertical-align:middle}.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--green)}
+.tabs2{display:flex;gap:6px;flex-wrap:wrap;margin:26px 0 0}
+.feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.feat div{background:var(--paper);border-radius:12px;padding:10px 12px}.feat b{font:800 26px var(--display);display:block}.feat span{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -128,6 +134,24 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       <div class="box"><h2>Phone or computer, language</h2><ul class="list" id="devices"></ul></div>
     </div>
 
+    <h1 style="margin-top:34px;font-size:clamp(30px,5vw,44px)">Gyms in the app</h1>
+    <div class="tiles sec" id="htiles"></div>
+    <div class="box">
+      <h2>Every gym</h2>
+      <p class="sub" style="margin:-4px 0 10px;color:var(--muted);font-size:14px">Getting started is 5 steps: members, packages, classes, a first sale and a first check-in. Call the gyms marked Stuck or Quiet, and offer an upgrade to the ones near their limit.</p>
+      <div class="scroll"><table><thead><tr><th>Gym</th><th>Status</th><th>Getting started</th><th>Members</th><th>Last 7 days</th><th>Last active</th><th>Plan</th></tr></thead><tbody id="health"></tbody></table></div>
+    </div>
+    <div class="box"><h2>What gyms use</h2><div class="feat" id="feat"></div></div>
+
+    <h1 style="margin-top:34px;font-size:clamp(30px,5vw,44px)">Money</h1>
+    <div class="tiles sec" id="mtiles"></div>
+    <div class="cols sec">
+      <div class="box"><h2>Card failing or plan ending</h2><div id="risk"></div></div>
+      <div class="box"><h2>Why they cancel</h2><div id="reasons"></div></div>
+    </div>
+    <div class="box"><h2>Plan changes</h2><div class="scroll"><table><thead><tr><th>When</th><th>Gym</th><th>From</th><th>To</th><th>Payment</th></tr></thead><tbody id="plog"></tbody></table></div></div>
+
+    <h1 style="margin-top:34px;font-size:clamp(30px,5vw,44px)">Sales leads</h1>
     <div class="box">
       <h2>Enquiries and waiting list</h2>
       <div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Gym</th><th>Message</th><th>Status</th></tr></thead><tbody id="leads"></tbody></table></div>
@@ -149,7 +173,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
 (function(){
   var SB_URL='https://bnglnfdgptvnmugntiom.supabase.co', SB_KEY='sb_publishable_I2cEA2hEPelGTNMwf2zWwA_98_mxHT1';
   var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-  var days=30, D=null, timer=null;
+  var days=30, D=null, H=null, M=null, timer=null;
   var $=function(id){ return document.getElementById(id); };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function n(x){ return Number(x||0).toLocaleString('en-US'); }
@@ -175,8 +199,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       tile('Start free clicks',n(t.start),n(t.demo)+' opened the demo')+
       tile('New gyms',n((d.signups||[]).length),n(d.signup_tries)+' sign-up attempts')+
       tile('Enquiries',n(leads.length),n(t.contact)+' contact clicks')+
-      tile('Paying gyms',n(g.paid),n(g.total)+' gyms in total')+
-      tile('Monthly income',n(g.mrr_thb)+' ฿','from paid plans, before Stripe fees');
+      tile('Paying gyms',n(g.paid),n(g.total)+' gyms in total');
     var bd=d.by_day||[], max=bd.reduce(function(m,r){ return Math.max(m,r.visitors); },0)||1, every=Math.ceil(bd.length/(innerWidth<600?5:10));
     $('chart').innerHTML=bd.map(function(r,i){ var dt=new Date(r.day+'T00:00:00'), lab=dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
       return '<div class="c"><div class="tip">'+lab+': '+n(r.visitors)+' visitors, '+n(r.views)+' views</div><b style="height:'+Math.max(1,Math.round(r.visitors/max*100))+'%"></b><span>'+(i%every===0?lab:'&nbsp;')+'</span></div>'; }).join('');
@@ -208,10 +231,53 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       :'<tr><td colspan="4" class="empty">No new gyms in this period yet.</td></tr>';
   }
 
+
+  var PAY={active:'Paid',past_due:'Card failing',canceling:'Ending',canceled:'Cancelled',trialing:'Trial',unpaid:'Unpaid',incomplete:'Not finished'}; function pay(x){ return PAY[x]||x||''; }
+  var HL={active:'Active',new:'New',stuck:'Stuck',quiet:'Quiet',near_limit:'Near limit',at_limit:'At limit',broken:'Cannot read'};
+  function ago(t){ if(!t) return 'never'; var m=(Date.now()-new Date(t).getTime())/60000; if(m<60) return Math.max(1,Math.round(m))+' min ago'; if(m<1440) return Math.round(m/60)+' h ago'; return Math.round(m/1440)+' days ago'; }
+  function renderGyms(){
+    if(!H){ $('health').innerHTML='<tr><td colspan="7" class="empty">Could not load the gyms.</td></tr>'; return; }
+    var c=function(k){ return H.filter(function(g){ return g.health===k; }).length; };
+    var act7=H.filter(function(g){ return g.last&&Date.now()-new Date(g.last).getTime()<7*864e5; }).length;
+    $('htiles').innerHTML=tile('Gyms',n(H.length),n(H.filter(function(g){ return g.plan!=='free'; }).length)+' paying')+
+      tile('Active this week',n(act7),H.length?Math.round(act7/H.length*100)+'% of gyms':'')+
+      tile('Fully set up',n(H.filter(function(g){ return g.steps>=5; }).length),'all 5 steps done')+
+      tile('Need a call',n(c('stuck')+c('quiet')),c('stuck')+' stuck, '+c('quiet')+' quiet')+
+      tile('Ready to upgrade',n(c('near_limit')+c('at_limit')),'near or at their member limit');
+    var order={stuck:0,quiet:1,at_limit:2,near_limit:3,new:4,active:5,broken:6};
+    var rows=H.slice().sort(function(a,b){ return (order[a.health]-order[b.health])||String(b.made).localeCompare(String(a.made)); });
+    $('health').innerHTML=rows.length?rows.map(function(g){
+      if(g.health==='broken') return '<tr><td>'+esc(g.name)+'</td><td><span class="pill h-broken">Cannot read</span></td><td colspan="5" class="sub">This gym\'s tables could not be read. Check its setup.</td></tr>';
+      var st=['members','packages','classes','sales','checkins'], dots='<span class="dots" title="'+st.map(function(k){ return k+': '+(g[k]>0?'yes':'no'); }).join(', ')+'">'+st.map(function(k){ return '<i class="'+(g[k]>0?'on':'')+'"></i>'; }).join('')+'</span> '+g.steps+'/5';
+      return '<tr><td><a href="../app/?g='+encodeURIComponent(g.slug)+'">'+esc(g.name)+'</a><div class="sub"><a href="mailto:'+esc(g.email)+'">'+esc(g.email)+'</a>\nJoined '+ago(g.made)+'</div></td>'+
+        '<td><span class="pill h-'+g.health+'">'+HL[g.health]+'</span></td><td>'+dots+'</td>'+
+        '<td>'+n(g.members)+(g.limit_members?' of '+n(g.limit_members):'')+'<div class="sub">'+n(g.staff)+(g.limit_staff?' of '+g.limit_staff:'')+' staff</div></td>'+
+        '<td>'+n(g.checkins_7d)+' check-ins<div class="sub">'+n(g.sales_7d)+' sales, '+n(g.members_7d)+' new members</div></td>'+
+        '<td>'+ago(g.last)+'<div class="sub">owner signed in '+ago(g.seen)+'</div></td>'+
+        '<td><span class="pill'+(g.plan!=='free'?' paid':'')+'">'+esc(PLAN[g.plan]||g.plan)+(g.cycle==='year'?', yearly':'')+'</span>'+(g.pay&&g.pay!=='active'?'<div class="sub">'+esc(pay(g.pay))+'</div>':'')+'</td></tr>'; }).join('')
+      :'<tr><td colspan="7" class="empty">No gyms yet.</td></tr>';
+    var used=function(k){ return H.filter(function(g){ return g[k]>0; }).length; }, F=[['checkins','Check-ins'],['sales','Selling packages'],['classes','Class timetable'],['privates','Privates'],['shop','Shop orders'],['courses','Online courses']];
+    $('feat').innerHTML=F.map(function(f){ var u=used(f[0]); return '<div><b>'+u+'</b><span>'+f[1]+(H.length?', '+Math.round(u/H.length*100)+'% of gyms':'')+'</span></div>'; }).join('');
+  }
+  function renderMoney(){
+    var g=(D&&D.gyms)||{}, m=M||{};
+    $('mtiles').innerHTML=tile('Monthly income',n(g.mrr_thb)+' ฿',n(m.monthly)+' monthly, '+n(m.yearly)+' yearly')+
+      tile('New paying gyms',n(m.new_paid),'in this period')+
+      tile('Upgrades',n(m.upgrades),n(m.downgrades)+' moved down')+
+      tile('Cancelled',n(m.cancels),'in this period')+
+      tile('Income change','<span class="'+((m.mrr_gained||0)>=(m.mrr_lost||0)?'up':'down')+'">'+((m.mrr_gained||0)>=(m.mrr_lost||0)?'+':'')+n((m.mrr_gained||0)-(m.mrr_lost||0))+' ฿</span>','+'+n(m.mrr_gained)+' gained, '+n(m.mrr_lost)+' lost a month')+
+      tile('Free to paid',m.gyms_total?Math.round((m.ever_paid||0)/m.gyms_total*100)+'%':'0%',m.days_to_paid!=null?'paid after '+m.days_to_paid+' days on average':'no paid gyms yet');
+    var risk=(m.failing||[]).map(function(x){ return '<li><span><b>'+esc(x.name)+'</b>: card failing ('+esc(pay(x.status))+')<br><a href="mailto:'+esc(x.email)+'">'+esc(x.email)+'</a></span><b></b></li>'; })
+      .concat((m.ending||[]).map(function(x){ return '<li><span><b>'+esc(x.name)+'</b>: cancelled, ends '+(x.paid_until?new Date(x.paid_until).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'soon')+(x.reason?'<br>'+esc(x.reason):'')+'<br><a href="mailto:'+esc(x.email)+'">'+esc(x.email)+'</a></span><b></b></li>'; }));
+    $('risk').innerHTML=risk.length?'<ul class="list">'+risk.join('')+'</ul>':'<p class="empty">No failing cards or plans ending. Good.</p>';
+    var rs=m.reasons||[]; $('reasons').innerHTML=rs.length?'<ul class="list">'+rs.map(function(x){ return '<li><span>'+esc(x.reason)+'<br><span class="s">'+esc(x.slug)+', '+when(x.at)+'</span></span><b></b></li>'; }).join('')+'</ul>':'<p class="empty">No cancellations with a reason in this period.</p>';
+    var lg=m.log||[]; $('plog').innerHTML=lg.length?lg.map(function(x){ return '<tr><td>'+when(x.at)+'</td><td>'+esc(x.name||x.slug)+'</td><td>'+esc(PLAN[x.from]||x.from)+'</td><td>'+esc(PLAN[x.to]||x.to)+(x.cycle==='year'?', yearly':'')+'</td><td>'+esc(x.status||'')+'</td></tr>'; }).join('')
+      :'<tr><td colspan="5" class="empty">No plan changes in this period.</td></tr>';
+  }
   function load(){
-    return sb.rpc('mf_dash',{p_days:days}).then(function(r){
-      if(r.error){ if(/team/i.test(r.error.message)){ $('gate').hidden=false; $('dash').hidden=true; return; } throw r.error; }
-      D=r.data; $('gate').hidden=true; $('dash').hidden=false; $('msg').textContent=''; render();
+    return Promise.all([sb.rpc('mf_dash',{p_days:days}),sb.rpc('mf_gym_health'),sb.rpc('mf_money',{p_days:days})]).then(function(rs){
+      var r=rs[0]; if(r.error){ if(/team/i.test(r.error.message)){ $('gate').hidden=false; $('dash').hidden=true; return; } throw r.error; }
+      D=r.data; H=rs[1].error?null:rs[1].data; M=rs[2].error?null:rs[2].data; $('gate').hidden=true; $('dash').hidden=false; $('msg').textContent=''; render(); renderGyms(); renderMoney();
     }).catch(function(e){ $('msg').className='msg err'; $('msg').textContent='Could not load the numbers: '+(e.message||e)+'. Check your connection and refresh.'; });
   }
 

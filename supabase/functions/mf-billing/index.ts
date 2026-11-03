@@ -44,6 +44,7 @@ async function stripe(method: string, path: string, body?: Record<string, unknow
   return j;
 }
 const lookup = (plan: string, cycle: string) => `mf_${plan}_${cycle}`;
+const portalCfg = async () => ((await admin.rpc("mf_billing_cfg", { p_key: "portal_cfg" })).data as string | null) || undefined;
 
 async function ensurePrices() {
   const keys = Object.keys(PLANS).flatMap((p) => [lookup(p, "month"), lookup(p, "year")]);
@@ -141,10 +142,13 @@ Deno.serve(async (req) => {
       const hook = await stripe("POST", "webhook_endpoints", { url: SELF, description: "Muay Friend plans",
         enabled_events: ["checkout.session.completed", "customer.subscription.updated", "customer.subscription.deleted"] });
       await admin.rpc("mf_billing_cfg_set", { p_key: "stripe_whsec", p_value: hook.secret });
-      await stripe("POST", "billing_portal/configurations", { business_profile: { headline: "Muay Friend: your plan" }, default_return_url: APP,
+      const defs = await stripe("GET", "billing_portal/configurations?is_default=true&limit=1").catch(() => null);
+      const def = defs?.data?.[0];
+      const pcfg = await stripe("POST", def ? "billing_portal/configurations/" + def.id : "billing_portal/configurations", { business_profile: { headline: "Muay Friend: your plan" }, default_return_url: APP,
         features: { customer_update: { enabled: true, allowed_updates: ["email", "address", "tax_id"] }, invoice_history: { enabled: true },
           payment_method_update: { enabled: true }, subscription_cancel: { enabled: true, mode: "at_period_end", cancellation_reason: { enabled: true, options: ["too_expensive", "missing_features", "switched_service", "unused", "customer_service", "too_complex", "low_quality", "other"] } } } }).catch(() => null);
-      return json({ ok: true, live: /^(sk|rk)_live_/.test(SK), webhook: hook.id });
+      if (pcfg?.id) await admin.rpc("mf_billing_cfg_set", { p_key: "portal_cfg", p_value: pcfg.id });
+      return json({ ok: true, live: /^(sk|rk)_live_/.test(SK), webhook: hook.id, portal: pcfg?.id ?? null });
     }
 
     // from the app: the signed-in manager of the gym
@@ -159,14 +163,14 @@ Deno.serve(async (req) => {
 
     if (b.action === "portal") {
       if (!g.customer) return json({ error: "There is no paid plan to manage yet." }, 400);
-      const s = await stripe("POST", "billing_portal/sessions", { customer: g.customer, return_url: back });
+      const s = await stripe("POST", "billing_portal/sessions", { customer: g.customer, return_url: back, configuration: await portalCfg() });
       return json({ url: s.url });
     }
     if (b.action === "checkout") {
       const plan = String(b.plan), cycle = b.cycle === "year" ? "year" : "month";
       if (!PLANS[plan]) return json({ error: "Choose a plan." }, 400);
       if (g.sub && ["active", "trialing", "past_due", "canceling"].includes(g.status)) {
-        const s = await stripe("POST", "billing_portal/sessions", { customer: g.customer, return_url: back });
+        const s = await stripe("POST", "billing_portal/sessions", { customer: g.customer, return_url: back, configuration: await portalCfg() });
         return json({ url: s.url, portal: true });
       }
       let customer = g.customer as string | null;
