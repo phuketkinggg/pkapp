@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=117"></script>
+<script src="changelog.js?v=118"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -982,7 +982,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=72; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=73; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1216,8 +1216,11 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
     {key:'start_within_days',label:'Must start within (days of buying)',type:'number',hint:'Leave empty for no deadline.'},
     {key:'clock',label:'The clock starts',type:'select',def:'first',options:[['first','At their first class'],['purchase','On the day it is bought']]},
     {key:'active',label:'On sale now',type:'checkbox',def:true},
+    {key:'badge',label:'Badge (optional)',hint:'Makes it stand out on your website and in the app, for example Best seller, New or Limited offer. Leave empty for none.'},
+    {key:'was_thb',label:'Normal price, shown crossed out (THB, optional)',type:'number',hint:'For a promotion: the price before, shown crossed out next to the new price, with how much they save. Leave empty for none.'},
     {key:'notes',label:'Notes',type:'textarea'}],
     onSave:function(v){ var t,tl; try{ t=parseTiers(v.tiers_txt); tl=parseTiers(v.tiers_local_txt); }catch(e){ return e.message; }
+      v.badge=String(v.badge||'').trim().slice(0,30)||null; if(v.was_thb!=null&&!(Number(v.was_thb)>0)) v.was_thb=null;
       // a time ticked on every day it runs is kept as just the time, so it also covers that class on days added later
       var pick=v.times||[], out=[], done={};
       pick.forEach(function(k){ var tm=slot[k].t; if(done[tm]) return; var all=slotKeys.filter(function(x){ return slot[x].t===tm; });
@@ -8493,7 +8496,7 @@ function upgSection(){ if(!featOn('upgrades')) return null; var list=upgPaths(),
 function vPackages(){
   return [pageHead('Packages',SPA?'Packs of visits customers buy upfront, like 10 gel nail visits or 5 massages. Pay an appointment from a pack on the board.':'What you sell, and the rules the check in follows.',btn(SPA?'Add pack':'Add package',function(){ editPackage(); },'primary')),upgSection(),
     table([
-      {label:'Name',cell:function(p){return [linkBtn(p.name,function(){ editPackage(p); }),exChip(p)];}},
+      {label:'Name',cell:function(p){return [linkBtn(p.name,function(){ editPackage(p); }),exChip(p),p.badge?chip(p.badge,'warn'):null];}},
       {label:'Standard',num:true,cell:function(p){return thb(p.price_thb);}},
       {label:'Local',num:true,cell:function(p){return thb(p.price_local_thb);}},
       {label:'Thai',num:true,cell:function(p){return thb(p.price_thai_thb);}},
