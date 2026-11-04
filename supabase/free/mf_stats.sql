@@ -69,7 +69,10 @@ begin
     'pages', (select coalesce(jsonb_agg(jsonb_build_object('k', k, 'n', n) order by n desc), '[]'::jsonb) from (
         select coalesce(path, '/') k, count(*) n from mf.hits where at >= since and kind = 'view' group by 1 order by 2 desc limit 12) x),
     'sources', (select coalesce(jsonb_agg(jsonb_build_object('k', k, 'n', n) order by n desc), '[]'::jsonb) from (
-        select case when utm_source is not null then utm_source || coalesce(' (' || utm_campaign || ')', '')
+        select case when nullif(utm_source, '') is not null then
+                      case utm_source when 'an' then 'Facebook ads, Audience Network (other apps)' when 'fb' then 'Facebook ads' when 'ig' then 'Instagram ads'
+                        when 'msg' then 'Messenger ads' when 'facebook' then 'Facebook' when 'instagram' then 'Instagram' else utm_source end
+                      || coalesce(' (' || nullif(utm_campaign, '') || ')', '')
                     when ref is null then 'Direct (typed or bookmarked)'
                     when ref ~ '(facebook|fb\.|instagram|messenger)' then 'Facebook and Instagram'
                     when ref ~ 'google\.' then 'Google'
