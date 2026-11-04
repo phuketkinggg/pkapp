@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=118"></script>
+<script src="changelog.js?v=119"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -987,7 +987,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=73; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=74; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2319,7 +2319,7 @@ function editStay(st){
   var exF=!st.id&&featOn('stay_extras')?stayExFields():[];
   if(exF.length) Array.prototype.splice.apply(fields,[fields.length-1,0,{key:'sx_on',label:'Add extras: meal plan, transport, training and more',type:'checkbox',hint:'From Settings, Booking page extras, at the same prices. They go on the bill, not paid yet.',onChange:function(v,set,get,o,show){ exF.forEach(function(x){ show(x.key,!!v); }); }}].concat(exF));
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
-  openForm({title:st.id?'Edit stay':'Add a stay',values:st,fields:fields,
+  openForm({title:st.id?'Edit stay':'Add a stay',note:st.id&&st.created_at?'Booked '+bookedWhen(st)+(st.source_id?', via '+nameOf('sources',st.source_id):'')+'.':null,values:st,fields:fields,
     onDelete:st.id&&me&&(me.role==='manager'||me.role==='admin')?function(){ return sb.rpc('stay_remove',{p_id:st.id}).then(must).then(function(){ setTimeout(function(){ toast('Stay deleted.'); },100); return Promise.all([reload('stays'),reload('purchases')]); }); }:null,
     onSave:function(v){
       if(v.check_out<=v.check_in) return 'The leaving date must be after the arrival date.';
@@ -2579,6 +2579,8 @@ var FPSTAY={}, FPSTAYK='';
 function loadFpStays(list){ if(!featOn('food_plans')) return; var ids=list.map(function(x){ return x.id; }).sort(), k=ids.join(',');
   if(!ids.length||k===FPSTAYK) return; FPSTAYK=k;
   sb.rpc('food_plans_stays',{p_ids:ids}).then(function(r){ if(r.error) return; var m={}; (r.data||[]).forEach(function(x){ m[x.stay_id]=x.plans; }); FPSTAY=m; schedule(); }); }
+/* when the booking was made (the stay was added to the app), in Bangkok time */
+function bookedWhen(st){ if(!st||!st.created_at) return ''; var d=new Date(st.created_at); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',timeZone:'Asia/Bangkok'})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}); }
 function stayCard(st,day){
   var g=byId('customers',st.customer_id)||{}, total=billTotal(st), meal=mealPlanOf(st.customer_id,day), acts=[];
   var status=st.hold_until&&st.status==='booked'?chip('Website, waiting for card payment','warn'):st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
@@ -2596,6 +2598,7 @@ function stayCard(st,day){
   if(meal) bits.push('Meals left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:''));
   if(st.guests) bits.push(st.guests);
   if(st.source_id) bits.push('Via '+nameOf('sources',st.source_id));
+  if(st.created_at) bits.push('Booked '+bookedWhen(st));
   if(st.notes) bits.push(st.notes);
   if(st.welcome_sent_at) bits.push('Welcome email sent '+fmtDate(String(st.welcome_sent_at).slice(0,10)));
   var tr=st.training_included!==false;
@@ -3008,7 +3011,11 @@ function vStays(){
     open.length?section('Bills not settled',null,cards(open.map(function(st){ var g=byId('customers',st.customer_id)||{};
       return {when:nameOf('rooms',st.room_id),right:thb(billTotal(st)),title:g.name||'Guest',note:'Left '+fmtDate(st.check_out),act:btn('Settle',function(){ openBill(st); },'primary small')}; }),'')):null,
     me&&me.role==='resort'?[dashTodo(),hkDeskSections(),dashHk()]:hkDeskSections(),
-    section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.'))]);
+    section('Coming in the next 30 days',null,cards(coming.map(function(st){ return stayCard(st,day); }),'No bookings coming up.')),
+    (function(){ var wk=Date.now()-7*864e5, rec=S.stays.filter(function(st){ return st.created_at&&new Date(st.created_at).getTime()>=wk&&st.status!=='cancelled'&&!st.hold_until; }).sort(function(a,b){ return String(b.created_at).localeCompare(String(a.created_at)); });
+      return section('Booked in the last 7 days',null,cards(rec.map(function(st){ var g=byId('customers',st.customer_id)||{};
+        return {when:'Booked '+bookedWhen(st),right:st.room_price_thb!=null?thb(st.room_price_thb):null,title:(g.name||'Guest')+', '+nameOf('rooms',st.room_id),
+          note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s')+(st.source_id?'. Via '+nameOf('sources',st.source_id):''),act:btn('Open',function(){ editStay(st); },'small')}; }),'No new bookings in the last 7 days.')); })()]);
 }
 
 /* ---------- housekeeping: clean rooms, report problems, record mini bar use ---------- */

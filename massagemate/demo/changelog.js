@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-04', title: 'When a stay was booked', what: 'Each stay now shows when the booking was made, for example Booked 4 Nov, 20:21, on the stay card and at the top of the stay. Stays, Today and bills has a new list: Booked in the last 7 days, newest first, so you can see who booked today.', feature: 'stays'},
   {date: '2026-11-04', title: 'Make a package stand out', what: 'A package can have a badge, for example Best seller or New, and a normal price shown crossed out for a promotion. On your website it goes to the top of its list with the badge, the old price crossed out and how much they save, and gets its own card at the top of the prices page. Set both in Packages, on the package.'},
   {date: '2026-11-04', title: 'Setup guide for a new business', what: 'A new business sees a short checklist on Today: your look, classes, packages, first member, first sale, first check-in and your team. Each step opens the right place and ticks itself when it is done. It goes away when all is done, or tap Hide.', feature: 'setup_guide'},
   {date: '2026-11-04', title: 'A message with the receipt', what: 'When you send a receipt by email, WhatsApp, text or LINE, you can add your own message, for example a thank you or a reminder about next week. It shows on the email above the receipt, or in the chat message.', feature: 'receipt_send'},
