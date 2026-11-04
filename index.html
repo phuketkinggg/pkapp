@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=115"></script>
+<script src="changelog.js?v=116"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -974,7 +974,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=70; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=71; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -6591,7 +6591,9 @@ function rcBase(){ return location.protocol==='https:'?location.origin+location.
 function sendReceipt(kind,ref,what){ if(!featOn('receipt_send')) return;
   sb.rpc('receipt_link',{p_kind:kind,p_ref:ref}).then(must).then(function(d){
     var link=rcBase()+'receipt.html?t='+d.token, first=String(d.name||'').trim().split(/\s+/)[0]||'', biz=(typeof BIZ_MAIN!=='undefined'&&BIZ_MAIN)||'us';
-    var msg='Hi'+(first?' '+first:'')+', here is your receipt from '+biz+(what?' for '+what:'')+': '+link+'\nThank you!';
+    var note=h('textarea',{id:'rc-note',rows:3,class:'notr',maxlength:1000,placeholder:'For example: Thanks for training with us this month, see you Monday!'});
+    function noteBox(){ return field('rc-note','Your message (optional)',note,'Added to the receipt they get.'); }
+    function msgNow(){ var n=String(note.value||'').trim(); return 'Hi'+(first?' '+first:'')+', here is your receipt from '+biz+(what?' for '+what:'')+': '+link+(n?'\n\n'+n:'')+'\nThank you!'; }
     var how=(function(){ try{ return localStorage.getItem('rc_how')||''; }catch(e){ return ''; } })()||(d.email?'email':'whatsapp');
     var em=h('input',{id:'rc-email',type:'email',autocomplete:'off',placeholder:'their email'}); em.value=d.email||'';
     var ph=h('input',{id:'rc-phone',type:'tel',autocomplete:'off',placeholder:'with country code, for example +66 81 234 5678'}); ph.value=d.phone||'';
@@ -6602,17 +6604,17 @@ function sendReceipt(kind,ref,what){ if(!featOn('receipt_send')) return;
     function draw(){ err.hidden=true;
       tabs.replaceChildren.apply(tabs,[['email','Email'],['whatsapp','WhatsApp'],['line','LINE'],['sms','Text'],['qr','QR'],['link','Link']].map(function(o){ return h('button',{type:'button','aria-pressed':how===o[0]?'true':'false',onclick:function(){ how=o[0]; draw(); }},o[1]); }));
       var b;
-      if(how==='email') b=[field('rc-email','Email',em),btn('Send the receipt',function(){ var to=em.value.trim(), me2=this;
+      if(how==='email') b=[field('rc-email','Email',em),noteBox(),btn('Send the receipt',function(){ var to=em.value.trim(), me2=this;
           if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){ err.textContent='Type their email.'; err.hidden=false; return; }
           me2.disabled=true; me2.textContent='Sending...';
           sb.auth.getSession().then(function(r){ var tok=r&&r.data&&r.data.session&&r.data.session.access_token;
-            return fetch(SB_URL+'/functions/v1/receipt-mail',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY)},body:JSON.stringify({token:d.token,to:to,link:link})}); })
+            return fetch(SB_URL+'/functions/v1/receipt-mail',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY)},body:JSON.stringify({token:d.token,to:to,link:link,note:String(note.value||'').trim().slice(0,1000)})}); })
             .then(function(r){ return r.json(); }).then(function(j){ if(j.error) throw {plain:true,message:j.error}; try{ localStorage.setItem('rc_how','email'); }catch(e){} $dlg.close(); toast('Receipt emailed to '+to+'.'); })
             .catch(function(e){ err.textContent=errText(e); err.hidden=false; me2.disabled=false; me2.textContent='Send the receipt'; }); },'primary')];
-      else if(how==='whatsapp'||how==='sms') b=[field('rc-phone','Phone',ph),h('a',{class:'btn primary',href:'#',onclick:function(e){ var n=digits(); if(n.length<8){ e.preventDefault(); err.textContent='Type their phone number with the country code.'; err.hidden=false; return; }
-          this.href=how==='whatsapp'?'https://wa.me/'+n+'?text='+encodeURIComponent(msg):'sms:+'+n+'?&body='+encodeURIComponent(msg); this.target=how==='whatsapp'?'_blank':''; mark(how,'+'+n); }},how==='whatsapp'?'Open WhatsApp with the message':'Open Messages with the message'),
+      else if(how==='whatsapp'||how==='sms') b=[field('rc-phone','Phone',ph),noteBox(),h('a',{class:'btn primary',href:'#',onclick:function(e){ var n=digits(); if(n.length<8){ e.preventDefault(); err.textContent='Type their phone number with the country code.'; err.hidden=false; return; }
+          var msg=msgNow(); this.href=how==='whatsapp'?'https://wa.me/'+n+'?text='+encodeURIComponent(msg):'sms:+'+n+'?&body='+encodeURIComponent(msg); this.target=how==='whatsapp'?'_blank':''; mark(how,'+'+n); }},how==='whatsapp'?'Open WhatsApp with the message':'Open Messages with the message'),
         h('small',null,'The message opens on this phone or computer, ready to send.')];
-      else if(how==='line') b=[h('a',{class:'btn primary',href:'https://line.me/R/share?text='+encodeURIComponent(msg),target:'_blank',rel:'noopener',onclick:function(){ mark('line',''); }},'Open LINE with the message'),h('small',null,'Choose the customer in LINE and send.')];
+      else if(how==='line') b=[noteBox(),h('a',{class:'btn primary',href:'#',target:'_blank',rel:'noopener',onclick:function(){ this.href='https://line.me/R/share?text='+encodeURIComponent(msgNow()); mark('line',''); }},'Open LINE with the message'),h('small',null,'Choose the customer in LINE and send.')];
       else if(how==='qr'){ var q=null; try{ if(window.qrcode){ var qq=window.qrcode(0,'M'); qq.addData(link); qq.make(); q=h('div',{class:'qr'}); q.innerHTML=qq.createSvgTag({cellSize:6,margin:2,scalable:true}); } }catch(e){}
         b=[q||h('p',{class:'sub'},'The QR could not be drawn. Use Link instead.'),h('small',null,'The customer scans this with their phone camera to open the receipt.')]; mark('qr',''); }
       else b=[h('div',{class:'row',style:'flex-wrap:nowrap'},h('input',{value:link,readonly:'',id:'rc-link',onclick:function(){ this.select(); }}),btn('Copy',copy,'small')),h('a',{class:'btn small',href:link,target:'_blank',rel:'noopener'},'Open the receipt')];

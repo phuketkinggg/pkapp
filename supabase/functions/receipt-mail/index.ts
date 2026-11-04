@@ -1,5 +1,5 @@
 // A receipt by email, sent from the app by the desk (a package, a private or a till sale).
-// POST {token, to, link}  signed-in desk staff: emails the receipt with a button to the receipt page.
+// POST {token, to, link, note?}  signed-in desk staff: emails the receipt with a button to the receipt page, and their own message if they wrote one.
 // The sender and reply address come from Settings, Welcome email (from, reply to). Secret: RESEND_API_KEY.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -19,7 +19,7 @@ type R = { biz_key?: string; tpl?: { color?: string; footer?: string; biz?: Reco
   lines: Line[]; discount: number; fee: number; tax: number; total: number; paid: number; owed: number; payments: { amount: number; method: string; day: string }[]; refunded: boolean; room: boolean };
 
 // the same letterhead as the invoices (Invoices, Template): logo, name, address, colour; the app icon when no logo is set
-function html(r: R, link: string) {
+function html(r: R, link: string, note = "") {
   const b: Biz = r.tpl?.biz?.[r.biz_key ?? ""] ?? {}, logo = b.logo || new URL(link).origin + new URL(link).pathname.replace(/[^/]*$/, "") + "icons/icon-512.png";
   const a = /^#[0-9a-f]{6}$/i.test(r.tpl?.color ?? "") ? r.tpl!.color! : /^#[0-9a-f]{6}$/i.test(r.accent ?? "") ? r.accent! : "#171B23";
   const row = (k: string, v: string, b = false) => `<tr><td style="padding:6px 0;${b ? "font-weight:700;" : ""}">${k}</td><td style="padding:6px 0;text-align:right;${b ? "font-weight:700;" : ""}">${v}</td></tr>`;
@@ -33,6 +33,7 @@ function html(r: R, link: string) {
     (r.tax_id ? `<p style="margin:2px 0 0;font-size:13px;color:#666">Tax ID ${esc(r.tax_id)}</p>` : "") +
     `<p style="margin:18px 0 2px;font-size:13px;color:#666">Receipt ${esc(r.number)}, ${esc(day)}</p>` +
     (r.customer ? `<p style="margin:0 0 12px;font-size:15px">For ${esc(r.customer)}</p>` : "") +
+    (note ? `<p style="margin:8px 0 14px;padding:12px 14px;background:#f4f4f2;border-radius:8px;font-size:15px;line-height:1.5;white-space:pre-wrap">${esc(note)}</p>` : "") +
     `<table style="width:100%;border-collapse:collapse;font-size:15px;border-top:1px solid #eee;margin-top:8px">` +
     r.lines.map((l) => row(esc(l.name), thb(l.amount))).join("") +
     (r.discount ? row("Discount", "-" + thb(r.discount)) : "") + (r.fee ? row("Card fee", thb(r.fee)) : "") + (r.tax ? row("Tax", thb(r.tax)) : "") +
@@ -50,6 +51,7 @@ Deno.serve(async (req) => {
   if (!RESEND) return json({ error: "Email sending is not set up yet. Add RESEND_API_KEY in Supabase." });
   const b = await req.json().catch(() => ({}));
   const token = String(b.token ?? ""), to = String(b.to ?? "").trim().toLowerCase(), link = String(b.link ?? "");
+  const note = String(b.note ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, 1000);
   if (!/^[0-9a-f]{24,64}$/.test(token)) return json({ error: "No receipt." });
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return json({ error: "Type a real email address." });
   if (!/^https:\/\/[^\s]+$/.test(link) || !link.includes(token)) return json({ error: "Bad receipt link." });
@@ -64,9 +66,9 @@ Deno.serve(async (req) => {
   try { const { data } = await admin.from("app_settings").select("value").eq("key", "welcome_email").maybeSingle(); we = JSON.parse(data?.value ?? "{}"); } catch { /* defaults */ }
   if (!(we.from || "").includes("@")) return json({ error: "Set who emails come from first: Settings, Welcome email, From." });
   const from = we.from;
-  const text = `${rr.business}\nReceipt ${rr.number}\nTotal ${thb(rr.total)}${rr.owed ? `, still to pay ${thb(rr.owed)}` : ""}\n\nView or save the receipt: ${link}\n\n${rr.footer}`;
+  const text = `${rr.business}\n${note ? note + "\n\n" : ""}Receipt ${rr.number}\nTotal ${thb(rr.total)}${rr.owed ? `, still to pay ${thb(rr.owed)}` : ""}\n\nView or save the receipt: ${link}\n\n${rr.footer}`;
   const res = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [to], reply_to: we.reply_to || rr.email || undefined, subject: `Your receipt from ${rr.business}`, html: html(rr, link), text }) });
+    body: JSON.stringify({ from, to: [to], reply_to: we.reply_to || rr.email || undefined, subject: `Your receipt from ${rr.business}`, html: html(rr, link, note), text }) });
   const j = await res.json().catch(() => ({}));
   return res.ok ? json({ ok: true }) : json({ error: "Not sent: " + ((j as { message?: string }).message ?? res.status) });
 });
