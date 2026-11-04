@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=116"></script>
+<script src="changelog.js?v=117"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -140,6 +140,12 @@ h2{font-size:16px;font-weight:600;margin:0}
 .sec{display:flex;flex-direction:column;gap:10px}
 .sechead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.setupg{margin:0 0 16px;border-color:var(--gold);border-width:2px}
+.setupbar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:12px 0 4px}.setupbar i{display:block;height:100%;background:var(--gold)}
+.setupl{list-style:none;margin:8px 0 0;padding:0}.setupl li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.setupl li:first-child{border-top:0}.setupn{flex:0 0 30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;border:2px solid var(--line)}
+.setupl li.done .setupn{background:var(--ok);border-color:var(--ok);color:#fff}.setupl li.next .setupn{border-color:var(--gold)}
+.setupt{flex:1;min-width:0;display:flex;flex-direction:column}.setupl li.done .setupt b{color:var(--muted);font-weight:600}
 .pad{padding:16px}
 .scroll{overflow-x:auto}
 .cards{max-width:640px}
@@ -877,6 +883,7 @@ var TABS=[];
    def: on or off for a new business; spa: the default in spa mode (Massage Mate). The owner's choice is kept in app_settings 'features'. */
 var FEATURES=[
   {k:'upgrades',g:'Selling',n:'Package upgrades',d:'Customers on one package can move up to a better one, for example a weekly class pass to unlimited, for the difference in price (less for time already used). They see the offer in the app and pay it like any order; the front desk sees it on the customer. Set the upgrades in Packages.'},
+  {k:'setup_guide',g:'Customers',n:'Setup guide',d:'A short checklist on Today for the manager of a new business: your look, classes, packages, first member, first sale, first check-in and your team. Each step opens the right place and ticks itself when it is done. It goes away when everything is done, or when you hide it.',spa:false},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
@@ -974,7 +981,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=71; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=72; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8015,6 +8022,38 @@ function bookingMailSetup(){ sb.rpc('mail_token_get').then(function(r){ if(r.err
     pre,h('p',{class:'sub'},'Keep this script private: it has the key that lets emails into your app.'),
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Copy the script',function(){ copyText(code,'Script copied.'); }),btn('Close',function(){ $dlg.close(); },'primary')))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }); }
+/* setup guide: the first steps for a new business, on Today for the manager. Each step ticks itself from what is in the app. */
+function setupSteps(){
+  var theme=!!pref('app_theme'), members=S.customers.filter(function(c){ return !c.is_agency; }).length;
+  var checked=S.checkin_days.some(function(d){ return (d.entries||[]).length>0; });
+  return [
+    {k:'look',t:'Make it yours',d:'Your logo and colours, so members see your gym.',done:theme,go:function(){ SETT.tab='look'; go('settings'); }},
+    {k:'classes',t:'Add your classes',d:'Your weekly timetable, for example Muay Thai at 8:00 and 16:30.',done:S.classes.length>0,go:function(){ editClass({}); }},
+    {k:'packages',t:'Add your packages',d:'What you sell: drop-ins, 10 class passes, monthly, privates.',done:S.packages.length>0,go:function(){ editPackage({}); }},
+    {k:'member',t:'Add your first member',d:'Their name, phone and email. They can sign in to your app with that email.',done:members>0,go:function(){ editCustomer({}); }},
+    {k:'sale',t:'Sell a package',d:'Open a member and tap Sell a package. Cash, card or PromptPay QR.',done:S.purchases.length>0,go:function(){ go('customers'); }},
+    {k:'checkin',t:'Check someone in',d:'Type their name on Today and tap Check in. The package counts down by itself.',done:checked,go:function(){ go('today'); setTimeout(function(){ var q=document.getElementById('q'); if(q) q.focus(); },100); }},
+    {k:'team',t:'Add your team',d:'Coaches and front desk, each with their own sign in and only what they need.',done:S.staff.length>1,go:function(){ editStaff({}); }}
+  ];
+}
+function setupGuide(){
+  if(!me||me.role!=='manager'||SPA||!featOn('setup_guide')) return null;
+  var hide=false; try{ hide=localStorage.getItem('setup_hide')==='1'; }catch(e){}
+  var st=setupSteps(), n=st.filter(function(x){ return x.done; }).length;
+  if(hide||n===st.length) return null;
+  var next=st.filter(function(x){ return !x.done; })[0];
+  return h('section',{class:'panel pad setupg'},
+    h('div',{class:'row',style:'justify-content:space-between;align-items:flex-start'},
+      h('div',null,h('h2',{style:'margin:0'},'Get your gym ready'),h('p',{class:'sub',style:'margin:4px 0 0'},n+' of '+st.length+' done. Most gyms finish in about 15 minutes.')),
+      btn('Hide',function(){ try{ localStorage.setItem('setup_hide','1'); }catch(e){} schedule(); },'small')),
+    h('div',{class:'setupbar',role:'progressbar','aria-valuemin':'0','aria-valuemax':String(st.length),'aria-valuenow':String(n)},h('i',{style:'width:'+Math.round(n/st.length*100)+'%'})),
+    h('ol',{class:'setupl'},st.map(function(x,i){
+      var isNext=x===next;
+      return h('li',{class:(x.done?'done':'')+(isNext?' next':'')},
+        h('span',{class:'setupn','aria-hidden':'true'},x.done?'✓':String(i+1)),
+        h('div',{class:'setupt'},h('b',null,x.t),isNext||!x.done?h('span',{class:'sub'},x.d):null),
+        x.done?h('span',{class:'sub'},'Done'):btn(isNext?'Start':'Open',function(){ x.go(); },isNext?'primary small':'small')); })));
+}
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
   var entries=entriesOf(day), todays=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&!classOff(c,day);}),'time');
@@ -8103,6 +8142,7 @@ function vToday(){
   };
   return [
     pageHead('Today',new Date().toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'&&can('settings')?btn('Arrange',todayArrange,'small'):null,gymOn?btn('Desk mode',startDeskMode):null)),
+    setupGuide(),
     h('div',{class:'stats'},gymOn?h('span',null,h('b',null,entries.length),'checked in'):null,gymOn?h('span',null,h('b',null,pToday.length),'privates today'):null,h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null)
   ].concat(todayWidgets(PART));
 }
