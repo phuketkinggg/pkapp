@@ -36,5 +36,9 @@ jobs:
           git add prerender site
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
           git commit -m "Website: refresh pre-rendered posts, pages and prices"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          # GitHub sometimes answers a push with a server error: try again a few times before giving up
+          for i in 1 2 3 4; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            echo "push failed, trying again in $((i*20)) seconds"; sleep $((i*20))
+          done
+          exit 1
