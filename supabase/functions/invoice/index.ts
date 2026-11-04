@@ -8,6 +8,17 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
+// Feature stays_main_stripe (on unless the business turns it off in Settings, Features): stay and room payments by card go to the main
+// Stripe account (the old account, settles in pounds), not the Thai baht one. PromptPay QR can only use the Thai account.
+async function staysToMain(): Promise<boolean> {
+  try { const { data } = await admin.from("app_settings").select("value").eq("key", "features").maybeSingle(); return JSON.parse(data?.value ?? "{}").stays_main_stripe !== false; }
+  catch { return true; }
+}
+// an invoice from the stay business (Accounts, Businesses: the stay name)
+async function isStayBiz(name: string): Promise<boolean> {
+  try { const { data } = await admin.from("app_settings").select("value").eq("key", "acc_names").maybeSingle(); const n = JSON.parse(data?.value ?? "{}"); return !!name && name === (n.stay || "Stay"); }
+  catch { return false; }
+}
 
 // customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page
 type CardRule = { pct: number; fixed: number; under: number };
@@ -64,7 +75,8 @@ Deno.serve(async (req) => {
     p.set("payment_method_types[0]", "card");
     if (inv.to_email) p.set("customer_email", inv.to_email);
     for (const [k, v] of Object.entries({ kind: "invoice", id: inv.id, amount: String(amount), fee: String(fee) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
-    const r = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p });
+    const key = KEY_MAIN && await isStayBiz(String(inv.business ?? "")) && await staysToMain() ? KEY_MAIN : KEY;
+    const r = await fetch("https://api.stripe.com/v1/checkout/sessions", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p });
     const j = await r.json();
     if (!r.ok) return json({ error: "Stripe: " + (j?.error?.message ?? r.status) });
     return json({ url: j.url });

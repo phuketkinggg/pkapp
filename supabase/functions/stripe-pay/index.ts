@@ -37,7 +37,13 @@ function backUrl(u: unknown): string {
   return APP;
 }
 
-async function session(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, promptpay: boolean, fee = 0, label = "Card fee") {
+// Feature stays_main_stripe (on unless the business turns it off in Settings, Features): stay and room payments by card go to the main
+// Stripe account (the old account, settles in pounds), not the Thai baht one. PromptPay QR can only use the Thai account.
+async function staysToMain(): Promise<boolean> {
+  try { const { data } = await admin.from("app_settings").select("value").eq("key", "features").maybeSingle(); return JSON.parse(data?.value ?? "{}").stays_main_stripe !== false; }
+  catch { return true; }
+}
+async function session(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, promptpay: boolean, fee = 0, label = "Card fee", key = KEY) {
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1");
@@ -53,19 +59,19 @@ async function session(amount: number, what: string, meta: Record<string, string
   for (const [k, v] of Object.entries(meta)) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" },
     body: p,
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j?.error?.message ?? `Stripe said ${r.status}`);
   return j;
 }
-async function make(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, fee = 0, label = "Card fee") {
-  if (fee > 0) return { s: await session(amount, what, meta, email, back, false, fee, label), promptpay: false };
-  try { return { s: await session(amount, what, meta, email, back, true), promptpay: true }; }
+async function make(amount: number, what: string, meta: Record<string, string>, email: string | null, back: string, fee = 0, label = "Card fee", key = KEY) {
+  if (fee > 0) return { s: await session(amount, what, meta, email, back, false, fee, label, key), promptpay: false };
+  try { return { s: await session(amount, what, meta, email, back, true, 0, label, key), promptpay: true }; }
   catch (e) {
     if (!/promptpay|payment method/i.test(String((e as Error).message))) throw e;
-    return { s: await session(amount, what, meta, email, back, false), promptpay: false };
+    return { s: await session(amount, what, meta, email, back, false, 0, label, key), promptpay: false };
   }
 }
 
@@ -91,7 +97,8 @@ Deno.serve(async (req) => {
     const { data: who } = await admin.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
     const { data: st } = who?.user ? await admin.from("staff").select("id").eq("user_id", who.user.id).eq("active", true).maybeSingle() : { data: null };
     const rule = (!st || body.kiosk === true) ? await cardRule() : null, fee = rule ? cardFee(amount, rule) : 0;
-    const m = await make(amount, String(q.what ?? "Phuket King"), { kind: String(body.kind), id: String(body.kind === "customer" ? q.customer_id : body.id), amount: String(amount), fee: String(fee) }, q.email ?? null, backUrl(body.back), fee, rule ? cardLabel(amount, rule) : "Card fee");
+    const m = await make(amount, String(q.what ?? "Phuket King"), { kind: String(body.kind), id: String(body.kind === "customer" ? q.customer_id : body.id), amount: String(amount), fee: String(fee) }, q.email ?? null, backUrl(body.back), fee, rule ? cardLabel(amount, rule) : "Card fee",
+      body.kind === "stay" && KEY_MAIN && await staysToMain() ? KEY_MAIN : KEY);
     return json({ url: m.s.url, amount, fee, total: amount + fee, promptpay: m.promptpay });
   } catch (e) {
     return json({ error: `Stripe: ${(e as Error).message}` });

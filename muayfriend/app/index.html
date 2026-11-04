@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=114"></script>
+<script src="changelog.js?v=115"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -885,6 +885,7 @@ var FEATURES=[
   {k:'upgrades',g:'Selling',n:'Package upgrades',d:'Customers on one package can move up to a better one, for example a weekly class pass to unlimited, for the difference in price (less for time already used). They see the offer in the app and pay it like any order; the front desk sees it on the customer. Set the upgrades in Packages.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
+  {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
   {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
   {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
@@ -979,7 +980,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=69; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=70; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }

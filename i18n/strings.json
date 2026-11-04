@@ -20290,5 +20290,13 @@
 "Yearly, save 2 months": [
 "รายปี ประหยัด 2 เดือน",
 "နှစ်စဉ်၊ 2 လ ချွေတာ"
+],
+"Room payments to the main Stripe account": [
+"รับชำระค่าห้องพักเข้าบัญชี Stripe หลัก",
+"ငွေပေးချေမှု အခန်းခများကို အဓိက Stripe အကောင့်သို့"
+],
+"Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.": [
+"การชำระด้วยบัตรสำหรับการเข้าพักและใบแจ้งหนี้ค่าห้องจะเข้าบัญชี Stripe หลัก ไม่ใช่บัญชีเงินบาท ปิด: การชำระเป็นเงินบาทจะเข้าบัญชีเงินบาท การชำระด้วย QR พร้อมเพย์ใช้บัญชีเงินบาทเสมอ",
+"တည်းခိုမှုနှင့် အခန်းငွေတောင်းခံလွှာများအတွက် ကတ်ဖြင့်ပေးချေမှုများသည် ထိုင်းဘတ်အကောင့်မဟုတ်ဘဲ သင့်အဓိက Stripe အကောင့်သို့ ရောက်ပါသည်။ ပိတ်ထားလျှင်: ဘတ်ဖြင့်ပေးချေမှုများသည် ထိုင်းဘတ်အကောင့်သို့ ရောက်ပါသည်။ Thai QR (PromptPay) ဖြင့်ပေးချေမှုသည် ထိုင်းဘတ်အကောင့်ကို အမြဲအသုံးပြုပါသည်။"
 ]
 }

@@ -26,6 +26,12 @@ async function cardRule(): Promise<CardRule> {
 const cardFee = (amount: number, r: CardRule) => amount > 0 ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
 const cardLabel = (amount: number, r: CardRule) => `Card fee (${r.pct}%${r.fixed > 0 && amount < r.under ? ` + ${r.fixed} THB` : ""})`;
 const keyFor = (cur: string) => (cur === "thb" ? KEY_TH || KEY_MAIN : KEY_MAIN);
+// Feature stays_main_stripe (on unless the business turns it off in Settings, Features): stay and room payments by card go to the main
+// Stripe account (the old account, settles in pounds), not the Thai baht one. PromptPay QR can only use the Thai account.
+async function staysToMain(): Promise<boolean> {
+  try { const { data } = await admin.from("app_settings").select("value").eq("key", "features").maybeSingle(); return JSON.parse(data?.value ?? "{}").stays_main_stripe !== false; }
+  catch { return true; }
+}
 const CURS = ["thb", "usd", "gbp", "eur"];
 // exchange rates: how much of each currency for 1 THB, refreshed every 12 hours, plus a small margin (app_settings fx.margin, in %)
 async function fx(): Promise<Record<string, number>> {
@@ -283,7 +289,7 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   // amount is always the THB value; the app records the stay in THB whatever currency was charged
   for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount), currency: cur, fee: String(fee), amount_cur: ((lines.reduce((t, l) => t + Math.round(l.amount * rate * 100), 0) + (fee > 0 ? Math.round(fee * rate * 100) : 0)) / 100).toFixed(2) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
   const r = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST", headers: { Authorization: `Bearer ${keyFor(cur)}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p,
+    method: "POST", headers: { Authorization: `Bearer ${!qr && KEY_MAIN && await staysToMain() ? KEY_MAIN : keyFor(cur)}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body: p,
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j?.error?.message ?? `Stripe said ${r.status}`);
