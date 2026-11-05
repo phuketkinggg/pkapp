@@ -186,7 +186,7 @@ declare cid uuid := __Q__.customer_id();
 begin
   if cid is null then raise exception 'Sign in first.'; end if;
   return jsonb_build_object(
-    'file', coalesce((select to_jsonb(f) - 'updated_by' from __P__.member_file f where f.customer_id = cid), jsonb_build_object('customer_id', cid)),
+    'file', coalesce((select to_jsonb(f) - 'updated_by' - 'alerts' from __P__.member_file f where f.customer_id = cid), jsonb_build_object('customer_id', cid)),
     'notes', coalesce((select jsonb_agg(jsonb_build_object('id', n.id, 'day', n.day, 'kind', n.kind, 'title', n.title, 'body', n.body, 'files', n.files, 'by', s.name) order by n.day desc, n.created_at desc)
       from __P__.member_notes n left join __P__.staff s on s.id = n.staff_id where n.customer_id = cid and n.shared and not n.removed), '[]'::jsonb),
     'docs', coalesce((select jsonb_agg(jsonb_build_object('id', d.id, 'name', d.name, 'kind', d.kind, 'path', d.path, 'day', d.day, 'mine', d.by_member) order by d.day desc, d.created_at desc)
