@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=124"></script>
+<script src="changelog.js?v=125"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -910,6 +910,7 @@ var FEATURES=[
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
+  {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
@@ -990,7 +991,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=79; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=80; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2961,7 +2962,7 @@ function paDecide(a,ok){
     onSave:function(v){ return sb.rpc('partner_app_decide',{p_id:a.id,p_ok:false,p_note:v.note||null}).then(must).then(function(){ PAPPS=null; partLoad(); }); }});
   openForm({title:'Approve '+a.name,note:'They become an affiliate with the share of the level you choose, and get their own link. Send it to them from the list.',saveLabel:'Approve',
     values:{level:a.level||((PLEV||[])[0]||{}).id||'',note:''},fields:[{key:'level',label:'Level',type:'select',options:(PLEV||[]).map(function(l){ return [l.id,l.name+(l.pct!=null?', '+l.pct+'%':'')]; })},{key:'note',label:'Note (optional)',hint:'For example what content you agreed.'}],
-    onSave:function(v){ if(!v.level) return 'Choose a level.'; return sb.rpc('partner_app_decide',{p_id:a.id,p_ok:true,p_level:v.level,p_note:v.note||null}).then(must).then(function(){ PAPPS=null; AFF=null; partLoad(); affLoad(); toast('Approved. Their link is in the list below: tap Copy link and send it to them.'); }); }});
+    onSave:function(v){ if(!v.level) return 'Choose a level.'; return sb.rpc('partner_app_decide',{p_id:a.id,p_ok:true,p_level:v.level,p_note:v.note||null}).then(must).then(function(){ PAPPS=null; AFF=null; partLoad(); affLoad(); toast(featOn('aff_welcome')?'Approved. Tap Welcome pack next to them in the list to email their link and how to use it.':'Approved. Their link is in the list below: tap Copy link and send it to them.'); }); }});
 }
 function plEditor(){ var L=(PLEV||[]).map(function(l){ return Object.assign({},l); }); if(!L.length) return;
   var vals={}, fields=[]; L.forEach(function(l,i){ vals['n'+i]=l.name; vals['p'+i]=l.pct; vals['a'+i]=l.web_from==null?'':l.web_from; vals['b'+i]=l.web_to==null?'':l.web_to; vals['f'+i]=l.min_followers; vals['v'+i]=l.min_views; vals['w'+i]=l.who||''; vals['g'+i]=l.gets||''; vals['o'+i]=l.gives||'';
@@ -3003,7 +3004,7 @@ function vAff(){
   var plv={}; (PAPPS||[]).forEach(function(x){ if(x.status==='approved'&&x.affiliate_id) plv[x.affiliate_id]=x.level; });
   var owed=AFF.reduce(function(t,a){ return t+affOwed(a); },0);
   var days=(AFF.filter(function(a){ return a.own_days==null; })[0]||{}).days||AFFDAYS||60;
-  return [paSection(),section('Referrals',mgr?h('div',{class:'row'},btn('Links count for '+(days||60)+' days',affDaysDlg,'small'),btn('Add an affiliate',function(){ editAff(); },'primary small')):null,h('div',null,
+  return [paSection(),section('Referrals',mgr?h('div',{class:'row'},btn('Links count for '+(days||60)+' days',affDaysDlg,'small'),featOn('aff_welcome')?btn('Welcome email',affWEdit,'small'):null,btn('Add an affiliate',function(){ editAff(); },'primary small')):null,h('div',null,
     h('p',{class:'sub'},'Give anyone who sends you guests their own link. When someone books a room or buys a package or course on the website through it (within the days you set), it is tagged to them and they earn their share of the room price or the package price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
     owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
     table([
@@ -3014,7 +3015,7 @@ function vAff(){
       {label:'Earned',num:true,cell:function(a){ return thb(a.earned)||'0 THB'; }},
       {label:'Paid',num:true,cell:function(a){ return thb(a.paid)||'0 THB'; }},
       {label:'To pay',num:true,cell:function(a){ var o=affOwed(a); return o?chip(thb(o),'warn'):'0 THB'; }},
-      {label:'',cell:function(a){ return h('div',{class:'row'},btn('Make a link',function(){ affLinks(a); },'small'),btn('Copy link',function(){ copyText(affLink(a),'Link copied: '+affLink(a)); },'small')); }}],
+      {label:'',cell:function(a){ return h('div',{class:'row'},mgr&&featOn('aff_welcome')?btn('Welcome pack',function(){ affWelcome(a); },'small'):null,btn('Make a link',function(){ affLinks(a); },'small'),btn('Copy link',function(){ copyText(affLink(a),'Link copied: '+affLink(a)); },'small')); }}],
       AFF,'No affiliates yet. Add one and send them their link.')))];
 }
 function editAff(a){
@@ -3044,7 +3045,7 @@ function affDlg(a){
   var box=h('div',{class:'billbox'},h('h2',null,a.name),
     h('p',{class:'sub'},(a.rules?'Earns on: '+affRulesLine(a)+'. ':Number(a.pct)+'% of everything: rooms, packages and courses. ')+[a.email,a.phone].filter(Boolean).join(', ')),
     h('p',{class:'sub'},'Their link counts for '+(a.days||60)+' days after a click'+(a.own_days!=null?' (their own setting)':'')+'.'),
-    mgr?h('div',{class:'row wrap'},btn('What they earn on',function(){ close(); affRules(a); },'small'),btn('How long their link counts',function(){ close(); affDaysDlg(a); },'small')):null,
+    mgr?h('div',{class:'row wrap'},btn('What they earn on',function(){ close(); affRules(a); },'small'),featOn('aff_welcome')?btn('Send welcome pack',function(){ close(); affWelcome(a); },'primary small'):null,btn('How long their link counts',function(){ close(); affDaysDlg(a); },'small')):null,
     h('div',{class:'panel pad'},h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Their link'),affLink(a))),
       h('div',{class:'row wrap',style:'margin-top:10px'},btn('Make a link to any page',function(){ close(); affLinks(a); },'primary small'),btn('Copy link',function(){ copyText(affLink(a),'Link copied.'); },'small'))),
     h('h3',{class:'billh'},'Bookings'),
@@ -3061,6 +3062,32 @@ function affDlg(a){
   $dlg.replaceChildren(box);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
+/* affiliate welcome pack (feature aff_welcome): one email with their link, what they earn, how to sign in to the app and how to use their links.
+   The wording is a setting (app_settings aff_welcome) with {words} filled in; the manager reads it and presses Send. */
+var AFFW=null;
+var AFFW_DEF={subject:'Welcome to the {business} partner programme',
+  body:'Hi {first},\n\nWelcome on board, and thank you for working with us. Here is everything you need.\n\nYOUR LINK\n{link}\n\nWhen someone clicks your link and books or buys within {days} days, it counts for you. You earn {share}. A room counts once the guest arrives, a package or course once it is paid.\n\nLINKS TO SHARE\n{links}\n\nYOUR APP\nSee your link, every booking and what you have earned in our app:\n{app}\n{login}\nOn the Home page, scroll down to your partner card.\n\nHOW TO GET THE MOST FROM YOUR LINK\n1. Put your link in your Instagram, TikTok and YouTube bio.\n2. Add it to every story, post and video description about us.\n3. Send it on WhatsApp or LINE when someone asks about training or a stay.\n4. Use a page link for the right thing: the stay page for rooms, the prices page for training.\n5. Ask us for your QR code to print or show on your phone.\n\nAny questions, just reply to this email.\n\nSee you soon,\n{business}'};
+function affWLoad(){ if(AFFW) return Promise.resolve(AFFW); return sb.from('app_settings').select('value').eq('key','aff_welcome').maybeSingle().then(function(r){ var v=null; try{ v=r.data&&r.data.value?JSON.parse(r.data.value):null; }catch(e){ v=null; } AFFW=v&&v.body?v:AFFW_DEF; return AFFW; }); }
+function affWEdit(){ affWLoad().then(function(t){ openForm({title:'Partner welcome email',note:'Sent when you press Send welcome pack on a partner. You read it before it goes. These words are filled in for each partner: {first} {name} {business} {link} {share} {days} {links} {app} {login} {email}. Delete puts the standard wording back.',
+  values:{subject:t.subject,body:t.body},fields:[{key:'subject',label:'Subject',required:true},{key:'body',label:'Email',type:'textarea',rows:18,required:true}],saveLabel:'Save',doneMsg:'Saved.',
+  onDelete:function(){ return sb.from('app_settings').delete().eq('key','aff_welcome').then(must).then(function(){ AFFW=AFFW_DEF; }); },
+  onSave:function(v){ var val=JSON.stringify({subject:v.subject,body:v.body}); return sb.from('app_settings').upsert({key:'aff_welcome',value:val,updated_at:new Date().toISOString()}).select('key').then(must).then(function(){ AFFW={subject:v.subject,body:v.body}; }); }}); }); }
+function affWelcome(a){
+  if(!a.email){ toast('Add their email first.'); editAff(a); return; }
+  var em=String(a.email).trim().toLowerCase();
+  // their app account: the customer linked to the partner, or found or made from their email, so the partner card shows when they sign in
+  var cust=a.customer_id?byId('customers',a.customer_id):null;
+  var job=cust?Promise.resolve(cust):(function(){ var same=(S.customers||[]).filter(function(c){ return !c.is_agency&&c.email&&c.email.toLowerCase()===em; })[0];
+    var mk=same?Promise.resolve(same.id):sb.from('customers').insert({name:a.name,email:em,tier:'train',price_group:'standard',notes:'Partner'}).select('id').single().then(must).then(function(d){ return d.id; });
+    return mk.then(function(cid){ return sb.rpc('affiliate_save',{p:{id:a.id,name:a.name,code:a.code,pct:a.pct,email:a.email,phone:a.phone,customer_id:cid,note:a.note,active:a.active!==false}}).then(must).then(function(){ return reload('customers'); }).then(function(){ AFF=null; affLoad(); return byId('customers',cid)||{id:cid,email:em}; }); }); })();
+  Promise.all([job,affWLoad()]).then(function(r){ var c=r[0], t=r[1], st=window.PK_STORE||{};
+    var appUrl=location.origin+location.pathname.replace(/[^/]*$/,''), app=[appUrl,st.ios?'iPhone: '+st.ios:null,st.android?'Android: '+st.android:null].filter(Boolean).join('\n');
+    var login=c&&c.user_id?'Sign in with '+em+' and your password. Forgot it? Tap Forgot password on the sign in page.':'Tap Create account and use this email: '+em+'. Use the same email, so your partner card is there when you sign in.';
+    var share=a.rules?affRulesLine(a):Number(a.pct)+'% of what is booked or bought through your link';
+    var links=affPages().slice(0,6).map(function(x){ return x[1]+': '+affUrl(x[0],a.code); }).join('\n');
+    var fill=function(x){ return String(x||'').replace(/\{(\w+)\}/g,function(m,k){ var v={first:String(a.name||'').split(' ')[0],name:a.name,business:BIZ_MAIN,link:affLink(a),share:share,days:String(a.days||60),links:links,app:app,login:login,email:em}[k]; return v!=null?v:m; }); };
+    emailOne({id:c&&c.id||null,email:em},{to:em,subject:fill(t.subject),body:fill(t.body)}); })
+  .catch(function(e){ toast(errText(e)); }); }
 /* the affiliate's own card in the member app */
 var AFFME=null;
 function affMeCard(){
@@ -3069,7 +3096,7 @@ function affMeCard(){
     h('p',{class:'sub'},'Share your link. When someone books a room or buys a training package or course through it, you earn '+Number(a.pct)+'% of the price: for a room once they arrive, for a package once it is paid.'),
     h('div',{class:'kv',style:'overflow-wrap:anywhere'},h('div',null,h('small',null,'Your link'),link)),
     h('div',{class:'row wrap',style:'margin:10px 0'},btn('Copy link',function(){ copyText(link,'Link copied.'); },'primary small'),
-      navigator.share?btn('Share',function(){ navigator.share({title:'Pangea Resort and Phuket King Muay Thai',url:link}).catch(function(){}); },'small'):null),
+      navigator.share?btn('Share',function(){ navigator.share({title:BIZ_MAIN,url:link}).catch(function(){}); },'small'):null),
     h('div',{class:'row wrap'},chip('Earned '+(thb(a.earned)||'0 THB'),'ok'),Number(a.coming)?chip('Coming '+thb(a.coming)):null,chip('Paid '+(thb(a.paid)||'0 THB')),owed?chip('To come to you '+thb(owed),'warn'):null),
     (a.stays||[]).length||(a.sales||[]).length?h('div',{class:'sub',style:'margin-top:10px'},(a.sales||[]).filter(function(x){ return x.state!=='cancelled'; }).slice(0,8).map(function(x){ return h('div',null,x.guest+', '+(x.what||'')+': '+(thb(x.commission)||'0 THB')+(x.state==='coming'?' (once paid)':'')); }),(a.stays||[]).filter(function(x){ return x.state!=='cancelled'; }).slice(0,8).map(function(x){ return h('div',null,x.guest+', '+fmtDate(x.from)+': '+(thb(x.commission)||'0 THB')+(x.state==='coming'?' (when they arrive)':'')); })):null));
 }
