@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=126"></script>
+<script src="changelog.js?v=127"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -910,6 +910,7 @@ var FEATURES=[
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
+  {k:'course_welcome',g:'Training',n:'Course welcome email',d:'When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.'},
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
@@ -992,7 +993,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=81; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=82; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3955,10 +3956,18 @@ function editCourse(c){ c=c||{status:'draft',members_free:true};
   anchor.parentNode.parentNode.insertBefore(h('div',{class:'field'},h('label',null,'Cover photo'),h('div',{class:'row',style:'align-items:center'},pic,
     btn(cover?'Change photo':'Add photo',function(){ var b=this; blogPhoto(function(u){ cover=u; pic.src=u; pic.style.display=''; rm.hidden=false; b.textContent='Change photo'; }); },'small'),rm)),anchor.parentNode);
 }
+/* course welcome email (feature course_welcome): sent by itself when someone gets the course. Each course has its own wording. */
+var CWDEF={subject:'Your course is ready: {course}',body:'Hi {first},\n\nThank you, {course} is yours. Here is how to start.\n\n1. GET THE APP\n{app}\n{store}\n\n2. SIGN IN\n{login}\n\n3. OPEN YOUR COURSE\nIn the app, tap Learn and open {course}. Day 1 is the day you got it. New lessons open as the days go by, so you build up step by step:\n{schedule}\n\nWatch each lesson, practise it, then move on. Take your time and come back to the lessons as often as you like.\n\nAny questions, just reply to this email.\n\n{business}'};
+function crsWelcome(c){ sb.rpc('course_welcome_get',{p_course:c.id}).then(must).then(function(w){ w=w||{};
+  openForm({title:'Welcome email: '+c.title,note:'Sent by itself, within 10 minutes, when someone gets this course: bought on the website, with a package or a stay, or given at the desk. Replies come to your normal email. These words are filled in for each person: {first} {course} {app} {store} {login} {schedule} {business} {email}. {schedule} lists what opens on which day, from the lessons.',
+    values:{on:w.on!==false,subject:w.subject||CWDEF.subject,body:w.body||CWDEF.body},
+    fields:[{key:'on',label:'Send the welcome email for this course',type:'checkbox'},{key:'subject',label:'Subject',required:true},{key:'body',label:'Email',type:'textarea',rows:18,required:true}],
+    saveLabel:'Save',doneMsg:'Saved. New students get this email.',
+    onSave:function(v){ return sb.rpc('course_welcome_set',{p_course:c.id,p:{on:!!v.on,subject:v.subject,body:v.body},p_app:location.origin+location.pathname.replace(/[^/]*$/,'')}).then(must).then(function(){ schedule(); }); }}); }).catch(function(e){ toast(errText(e)); }); }
 function crsEditView(){ var c=CRS.edit, L=c.lessons||[];
   return [h('div',{class:'row'},btn('All courses',function(){ CRS.edit=null; CRS.list=null; schedule(); },'small')),
     pageHead(c.title,(c.status==='published'?'On the website and in the app. ':'Draft, only managers see it. ')+crsPrice(c)+'.',h('div',{class:'row'},btn('Edit course',function(){ editCourse(c); },'small'),
-      h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),featOn('course_offer')?btn(OFFER&&OFFER.id===c.id?'Offer with packages: on':'Offer with packages',function(){ crsOfferEdit(c); },'small'):null,btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
+      h('a',{class:'btn small',href:crsBuyUrl(c),target:'_blank',rel:'noopener'},'See it on the website'),featOn('course_offer')?btn(OFFER&&OFFER.id===c.id?'Offer with packages: on':'Offer with packages',function(){ crsOfferEdit(c); },'small'):null,featOn('course_welcome')&&me&&me.role==='manager'?btn('Welcome email',function(){ crsWelcome(c); },'small'):null,btn('Add lesson',function(){ editLesson(c,null); },'primary'))),
     OFFER&&OFFER.id===c.id&&featOn('course_offer')?h('div',{class:'panel pad'},h('b',null,'Offered with packages for '+thb(OFFER.price)),h('p',{class:'sub',style:'margin:4px 0 0'},'A tick box when someone buys '+(OFFER.with==='all'?'any package':'a Muay Thai training package')+(OFFER.new_only?' as a new member (their first package)':'')+', on the website and at the desk, and when someone books a room on the website.'+(c.status!=='published'?' This course is still a draft: buyers get it in their app once you publish it.':'')+(!L.length?' It has no lessons yet.':''))):null,
     crsGroupsSection(c),
     c.cover?h('img',{class:'crscover',src:c.cover,alt:''}):null,
