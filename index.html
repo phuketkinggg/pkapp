@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=121"></script>
+<script src="changelog.js?v=122"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -983,7 +983,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=76; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=77; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1336,7 +1336,7 @@ function sellPackage(c){
     {key:'course',label:OFFER?'Add the online course: '+OFFER.title+', +'+thb(OFFER.price)+(OFFER.new_only?' (new members)':''):'',type:'checkbox',hide:!offerFits(list[0],c.id),hint:OFFER&&OFFER.text?OFFER.text:'Unlocks in their app, in the Learn tab.',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'price_thb',label:'Price charged (THB)',type:'number',required:true,onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
     {key:'purchased_on',label:'Date bought',type:'date',def:ymd(new Date()),required:true},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(PAYOPTS,PAYLINK,freeOk()?[['free','Free of charge (promotional, sponsored, staff...)']]:[]),hint:'Not paid yet: the package works straight away and the full price shows as owed until they pay with Take payment. Stripe card link and PromptPay QR show the payment straight after you tap Record sale.',
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(payList(PAYOPTS.concat(PAYLINK)),freeOk()?[['free','Free of charge (promotional, sponsored, staff...)']]:[]),hint:'Not paid yet: the package works straight away and the full price shows as owed until they pay with Take payment. Stripe card link and PromptPay QR show the payment straight after you tap Record sale.',
       onChange:function(v,set,get,o,show){ px.method(v,set,get,show); show('paid_now',v!=='later'&&v!=='free'); set('paid_now',v==='later'||v==='free'?0:px.total(get)); show('free_why',v==='free'); show('free_note',v==='free'); show('price_thb',v!=='free'); }},
     {key:'free_why',label:'Why it is free',type:'select',hide:true,def:'Promotional',options:FREEWHY.map(function(x){ return [x,x]; }),hint:'Saved on the package. It shows as 0 THB, so it is not counted as money taken.'},
     {key:'free_note',label:'Note (optional)',hide:true,hint:'For example: the sponsor or the campaign.'},
@@ -1489,7 +1489,7 @@ function coachCell(p){ var t=p.lead_id?[]:pCoaches(p).slice(1); return p.coach_i
 /* a coach with their own private rate, on a pack: the desk takes the top up */
 function takeTopUp(p){
   openForm({title:'Top up for '+nameOf('staff',p.coach_id||p.preferred_coach_id),note:nameOf('customers',p.customer_id)+' used a pack session, and this coach has their own rate. The difference is '+thb(p.extra_thb)+'.',saveLabel:'Paid '+thb(p.extra_thb),doneMsg:'Top up paid.',values:{method:'cash'},
-    fields:[{key:'method',label:'Paid by',type:'select',options:[['cash','Cash'],['card','Card'],['transfer','Bank transfer'],['qr','PromptPay QR'],['room','Charge to room']]}],
+    fields:[{key:'method',label:'Paid by',type:'select',options:payList([['cash','Cash'],['card','Card'],['transfer','Bank transfer'],['qr','PromptPay QR'],['room','Charge to room']])}],
     onSave:function(v){ return sb.rpc('private_extra_paid',{p_id:p.id,p_method:v.method}).then(must).then(function(){ return reload('privates'); }); }});
 }
 function coachRateLine(cid,packId){ var c=byId('staff',cid); if(!c||!c.private_rate_thb) return ''; var pk=packId&&byId('purchases',packId), ps=pk?perSession(pk):null;
@@ -1550,7 +1550,7 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
     {key:'coach_share_thb',label:'Coach gets (THB)',type:'number',hide:!featOn('private_share'),hint:'Leave empty for the coach\'s usual share. Set it when it is different, for example 2 people: the coach gets 600.'},
     {key:'status',label:'Status',type:'select',def:'confirmed',options:[['requested','Requested, waiting for approval'],['confirmed','Confirmed'],['done','Done'],['cancelled','Cancelled']]},
     {key:'paid',label:'Payment received',type:'checkbox'},
-    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']]),hint:'Charge to room works when they are staying with us. If the pack above is not paid yet, the pack goes on the room bill.',onChange:function(v,set,get,o,show){ if(!get('purchase_id')) px.method(v,set,get,show); }},
+    {key:'method',label:'Paid by (if paid per session)',type:'select',def:'cash',options:payList(PAYOPTS.concat([['qr','PromptPay QR'],['room','Charge to room (goes on their room bill)']])),hint:'Charge to room works when they are staying with us. If the pack above is not paid yet, the pack goes on the room bill.',onChange:function(v,set,get,o,show){ if(!get('purchase_id')) px.method(v,set,get,show); }},
     {key:'notes',label:'Notes',type:'textarea'}]),
     onSave:function(v){
       var today=ymd(new Date());
@@ -1639,7 +1639,7 @@ function walkIn(name,target){
       onChange:function(v,set,get){ set('price_thb',priceFor2(get)); }},
     {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first.price_thb,
       hint:'For an agency, what they pay you after their cut. The app remembers it for next time.'},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS},
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS)},
     {key:'target',label:'Check in for',type:'select',options:targets,def:tdef}],
     onSave:function(v){
       var k=byId('packages',v.package_id); if(!k) return 'Choose a package.';
@@ -1686,6 +1686,11 @@ function undoCheckIn(e){
 function unpaidOrder(p){ return !!(p.ordered_in_app&&!p.paid&&!p.cancelled); }
 var PAYLINK=[['stripe','Stripe card link (QR for their phone)'],['qr','PromptPay QR']];
 var PAYOPTS=[['cash','Cash'],['card','Card machine'],['transfer','Bank transfer or PromptPay'],['agent','Paid through an agent']];
+/* ways to pay the desk is offered (Settings, Card fee and tax, Ways to pay): a business turns off what it does not take, for example no card machine.
+   Kept in app_settings pay_extras.pay_off. Past payments keep their method; only the choices offered change. */
+var PAYWAYS=[['cash','Cash'],['card','Card machine'],['transfer','Bank transfer'],['qr','PromptPay QR'],['stripe','Stripe card link (QR for their phone)'],['room','Charge to room'],['bill','Bill to customer'],['staff','Staff tab'],['agent','Paid through an agent']];
+function payOk(m){ var off=(PX&&PX.pay_off)||[]; return off.indexOf(m)<0; }
+function payList(list){ var l=list.filter(function(o){ return payOk(o[0]); }); return l.length?l:list.slice(0,1); }
 function owedOf(p){ return p.cancelled?0:Math.max(0,(Number(p.price_thb)||0)-(Number(p.paid_thb)||0)); }
 function customerOwes(cid){ var a=S.purchases.filter(function(p){ return p.customer_id===cid; }).reduce(function(t,p){ return t+owedOf(p); },0);
   var b=S.privates.filter(function(x){ return x.customer_id===cid&&!x.purchase_id&&!x.paid&&x.status!=='cancelled'&&Number(x.price_thb)>0; }).reduce(function(t,x){ return t+Number(x.price_thb); },0);
@@ -1949,7 +1954,7 @@ function payCustomer(c){
   var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
   var px=pxFields('amount',{base:o.total},null,'Customer pays now');
   openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
-    values:Object.assign({amount:o.total},px.values),fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true,onChange:function(v,set,get,o2,show){ px.re(set,get,show); }}].concat(px.fields,[{key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat([['qr','PromptPay QR (money already in the bank)'],['stripe','Stripe card link for everything owed']]),onChange:function(v,set,get,o2,show){ px.method(v,set,get,show); }},{key:'note',label:'Note',hint:'Optional.'}]),
+    values:Object.assign({amount:o.total},px.values),fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true,onChange:function(v,set,get,o2,show){ px.re(set,get,show); }}].concat(px.fields,[{key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS.concat([['qr','PromptPay QR (money already in the bank)'],['stripe','Stripe card link for everything owed']])),onChange:function(v,set,get,o2,show){ px.method(v,set,get,show); }},{key:'note',label:'Note',hint:'Optional.'}]),
     onSave:function(v){ var a=Math.round(v.amount||0), x=pxOf(v), tg=(x.fee||x.tax)?pxTarget(c.id):null; if((x.fee||x.tax)&&!tg) return 'Nothing to add the fee to.';
       if(v.method==='stripe'){ return pxAdd(tg?tg[0]:'',tg?tg[1]:null,x).then(function(){ setTimeout(function(){ stripePay('customer',c.id,c.name); },300); }); } if(a<=0) return 'Type the amount paid.'; if(a>o.total) return 'That is more than they owe ('+thb(o.total)+').';
       a+=x.fee+x.tax;
@@ -1959,7 +1964,7 @@ function takePayment(p){
   var owe=owedOf(p), px=pxFields('x_base',{base:owe},null,'Customer pays now');
   openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(owe)+' to pay'+(pxNote(p)?' ('+pxNote(p)+')':'')+'.',saveLabel:'Payment received',doneMsg:'Paid. The package is ready to use.',values:Object.assign({x_base:owe},px.values),fields:[
     {key:'x_base',label:'To pay (THB)',type:'number',readonly:true}].concat(px.fields,[
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:PAYOPTS.concat(PAYLINK),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}]),
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS.concat(PAYLINK)),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}]),
     onSave:function(v){ var x=pxOf(v);
       return pxAdd('purchase',p.id,x).then(function(){ var q=byId('purchases',p.id)||p;
         if(v.method==='stripe'){ setTimeout(function(){ stripePay('purchase',q.id,q.package_name); },300); return; }
@@ -2042,7 +2047,7 @@ function closePeriod(st,back){
   openForm({title:'Close the bill up to a date',note:nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+'. They pay the nights and everything on the bill before this date. A new bill starts from it.',
     saveLabel:'Paid, close this part',doneMsg:'Paid. A new bill starts from here.',values:{upto:def,method:'cash'},fields:[
     {key:'upto',label:'Paid up to (the first night of the new bill)',type:'date',required:true,onChange:preview,hint:'For a weekly stay this is usually 7 days after the last time they paid.'},
-    {key:'method',label:'Paid by',type:'select',options:[['cash','Cash'],['card','Card'],['transfer','Bank transfer or PromptPay'],['stripe','Card link (Stripe)']]},
+    {key:'method',label:'Paid by',type:'select',options:payList([['cash','Cash'],['card','Card'],['transfer','Bank transfer or PromptPay'],['stripe','Card link (Stripe)']])},
     {key:'preview',label:'This part of the bill',type:'info'}],
     onSave:function(v){ var c=calc(v.upto); if(!c) return 'Pick a date after '+fmtDate(start)+', up to '+fmtDate(st.check_out)+'.';
       return sb.rpc('stay_close_period',{p_stay:st.id,p_upto:v.upto,p_method:v.method}).then(must).then(function(){ return Promise.all([reload('stays'),reload('charges')]); }).then(function(){ if(back) setTimeout(function(){ back(byId('stays',st.id)); },80); }); }});
@@ -2458,7 +2463,7 @@ function openBill(st,msg,thenOut){
   var perPay=pers.reduce(function(t,x){ return t+Math.max(0,(Number(x.total)||0)-(Number(x.till)||0)); },0), perAll=pers.reduce(function(t,x){ return t+(Number(x.total)||0); },0), appOnly=(Number(st.app_paid_thb)||0)-perPay;
   if(appOnly>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Paid in the app'),h('td',{class:'num'},'-'+thb(appOnly)),h('td')));
   if(perAll>0) roomRows.push(h('tr',null,h('td'),h('td',null,'Paid up to '+fmtDate(upto)+' (see Paid so far)'),h('td',{class:'num'},'-'+thb(perAll)),h('td')));
-  var method=h('select',{id:'bill-method'},[['card','Card'],['cash','Cash'],['transfer','Bank transfer or PromptPay']].map(function(o){ return h('option',{value:o[0]},o[1]); }));
+  var method=h('select',{id:'bill-method'},payList([['card','Card'],['cash','Cash'],['transfer','Bank transfer or PromptPay']]).map(function(o){ return h('option',{value:o[0]},o[1]); }));
   var err=h('p',{class:'ferr',role:'alert',hidden:true});
   function close(){ $dlg.close(); }
   function settle(){
@@ -2534,7 +2539,7 @@ function stayRefundDlg(st){
   sb.rpc('stay_refund_info',{p_stay:st.id}).then(must).then(function(info){
     var cancelled=st.status==='cancelled', online=!!info.stripe, rows=[], ex=info.extras||[];
     var room=h('input',{id:'sr-room',type:'number',inputmode:'numeric',value:String(info.room||0)});
-    var meth=h('select',{id:'sr-meth'},(online?[['stripe','Back to their card (Stripe, done for you)']]:[]).concat([['cash','Cash'],['transfer','Bank transfer'],['card','Card machine'],['stripe_done','Stripe, already refunded there']]).map(function(o){ return h('option',{value:o[0]},o[1]); }));
+    var meth=h('select',{id:'sr-meth'},(online?[['stripe','Back to their card (Stripe, done for you)']]:[]).concat(payList([['cash','Cash'],['transfer','Bank transfer'],['card','Card machine']]),[['stripe_done','Stripe, already refunded there']]).map(function(o){ return h('option',{value:o[0]},o[1]); }));
     var pin=h('input',{id:'sr-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'}), why=h('input',{id:'sr-why',type:'text',placeholder:'For example: flight cancelled, illness'});
     var cxl=h('input',{type:'checkbox'}); cxl.checked=!cancelled;
     var err=h('p',{class:'ferr',role:'alert',hidden:true}), tot=h('b',null), busy=false;
@@ -2575,7 +2580,7 @@ function stayRefundDlg(st){
 function refundTab(kind,x){
   var isP=kind==='private', name=isP?'Private '+fmtDate(x.date)+' '+(x.time||''):x.package_name;
   sb.rpc('refund_info',isP?{p_private:x.id}:{p_purchase:x.id}).then(must).then(function(info){
-    var amt=h('input',{id:'rf-amt',type:'number',inputmode:'numeric',value:String(info.max||0)}), meth=h('select',{id:'rf-meth'},[['cash','Cash'],['transfer','Bank transfer'],['card','Card'],['stripe','Stripe']].map(function(o){ return h('option',{value:o[0]},o[1]); }));
+    var amt=h('input',{id:'rf-amt',type:'number',inputmode:'numeric',value:String(info.max||0)}), meth=h('select',{id:'rf-meth'},payList([['cash','Cash'],['transfer','Bank transfer'],['card','Card'],['stripe','Stripe']]).map(function(o){ return h('option',{value:o[0]},o[1]); }));
     var pin=h('input',{id:'rf-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'}), why=h('input',{id:'rf-why',type:'text',placeholder:'For example: injured, left early'});
     var err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
     var bits=[]; if(info.max) bits.push('They paid '+thb(info.max)+'. Type how much to give back, 0 for none.'); else bits.push(isP&&x.purchase_id?'Paid with a pack. The session goes back on the pack.':'Nothing was paid, so no money goes back.');
@@ -7059,7 +7064,7 @@ function vShop(){
       disc?h('div',null,h('span',null,'Discount'+(ui.cartDisc.reason?' ('+ui.cartDisc.reason+')':'')),h('span',null,'-'+thb(disc))):null,
       h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(tot)||'0 THB'))),
     h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small'),btn('Other item',miscDlg,'small')),
-    shift?h('div',{class:'paybtns'},PAYS.map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); }))
+    shift?h('div',{class:'paybtns'},payList(PAYS).map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); }))
       :h('div',{class:'panel pad'},h('p',null,'Open a shift before you sell. Count the change in the till first.'),btn('Open shift',shiftDlg,'primary')));
   var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
   return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
@@ -7068,7 +7073,7 @@ function vShop(){
       act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
     waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
-      act:[shift?PAYS.filter(function(m){ return m[0]!=='room'&&m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
+      act:[shift?payList(PAYS).filter(function(m){ return m[0]!=='room'&&m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
     h('div',{class:'till'},h('div',{class:'tillleft'},search,topRow,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
         cats.map(function(c){ return btn(c.name,function(){ ui.shopCat=c.id; ui.shopQ=''; schedule(); },ui.shopCat===c.id?'primary small':'small'); }),
         gymTill(loc)?btn('Training packages',function(){ ui.shopCat='__pk'; ui.shopQ=''; schedule(); },pkMode?'primary small':'small'):null):null,grid),cartBox),
@@ -8887,6 +8892,19 @@ function aiUsageSection(){ loadAiUsage();
     by.length?h('p',{class:'sub'},by.map(function(k){ return (names[k]||k)+': '+u.by_fn[k]; }).join(', ')):null,
     h('p',{class:'sub'},'Last month: '+(Number(u.last_month)||0)+'. The count starts again on the 1st of each month.')));
 }
+function payWaysSection(){
+  var off=(PX&&PX.pay_off)||[];
+  return section('Ways to pay',btn('Change',function(){
+    var vals={}; PAYWAYS.forEach(function(w){ vals['w_'+w[0]]=off.indexOf(w[0])<0; });
+    openForm({title:'Ways to pay',note:'Tick what the desk takes. What is not ticked is not offered when taking payment, selling, at the till or on refunds, for example untick Card machine when you have none. Payments already taken keep how they were paid.',values:vals,
+      fields:PAYWAYS.map(function(w){ return {key:'w_'+w[0],label:w[1],type:'checkbox'}; }),
+      onSave:function(v){ var no=PAYWAYS.filter(function(w){ return !v['w_'+w[0]]; }).map(function(w){ return w[0]; });
+        if(no.length===PAYWAYS.length) return 'Keep at least one way to pay.';
+        var val=JSON.stringify(Object.assign({},PX||{},{pay_off:no}));
+        return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','pay_extras').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'pay_extras',value:val}).then(must); }).then(function(){ PX=JSON.parse(val); schedule(); }); }});
+  },'small'),h('div',{class:'panel pad'},h('p',null,'Offered at the desk: '+PAYWAYS.filter(function(w){ return off.indexOf(w[0])<0; }).map(function(w){ return w[1]; }).join(', ')+'.'),
+    off.length?h('p',{class:'sub'},'Turned off: '+PAYWAYS.filter(function(w){ return off.indexOf(w[0])>=0; }).map(function(w){ return w[1]; }).join(', ')+'.'):null));
+}
 function pxSettings(){
   return section('Card fee and tax',btn('Change',function(){
     openForm({title:'Card fee and tax',note:'When you tick Add card payment fee or Add tax on a sale, a private or a payment, these rates fill in the amount. You can still change the amount each time.',values:{card_pct:pxRate('card_pct'),card_fixed:pxRate('card_fixed'),card_fixed_under:pxRate('card_fixed_under'),tax_pct:pxRate('tax_pct')},fields:[
@@ -9037,7 +9055,7 @@ function navEdit(){
 var SETT={tab:pref('pk_settab')||'home'};
 function setTabs(){ var mgr=me.role==='manager';
   return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],['features','Features','Switch parts of the app on or off, languages'],
-    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr?['money','Money','PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
+    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
     ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
     .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
 function setGo(t){ SETT.tab=t; pref('pk_settab',t); schedule(); window.scrollTo(0,0); }
@@ -9064,7 +9082,7 @@ function vSettings(){
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
-  else if(t==='money') body=[ppSettings(),pxSettings()];
+  else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings()];
   else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
@@ -10602,7 +10620,7 @@ function kBuy(c){
   var day=ymd(new Date()), group=c.price_group||'standard', st=kStay(c,day);
   var list=sortBy(S.packages.filter(function(p){ return p.active!==false&&canBuy(p,group)&&!tiersFor(p,group)&&Number(priceFor(p,group))>0&&!isMealOnly(p)&&(p.covers||[]).length&&(p.covers||[]).indexOf(MEAL)<0; }),'name');
   if(!list.length){ ui.kerr='Packages can not be bought here yet. See the front desk.'; schedule(); return; }
-  var pays=[['card','Card (scan a code with your phone), +'+cardFeeText()+' card fee'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk','Cash or card at the front desk']]);
+  var pays=[['card','Card (scan a code with your phone), +'+cardFeeText()+' card fee'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk',payOk('card')?'Cash or card at the front desk':'Pay at the front desk']]);
   kIdle(120000);
   openForm({title:'Buy a package',note:c.name+(group!=='standard'?', '+GROUPS[group]+' prices':'')+'.',saveLabel:'Buy',values:{package_id:list[0].id,pay:'card'},fields:[
     {key:'package_id',label:'Package',type:'select',options:list.map(function(p){ return [p.id,p.name+', '+thb(priceFor(p,group))]; })},
