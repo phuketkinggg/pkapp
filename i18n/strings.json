@@ -20742,5 +20742,37 @@
 "Welcome pack": [
 "ชุดต้อนรับ",
 "ကြိုဆိုရေး အစုံ"
+],
+"A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.": [
+"หน้านักมวยบนเว็บไซต์ ให้คนสมัครชกในนามยิม: สถิติ น้ำหนัก ประสบการณ์ โซเชียลมีเดีย และวันที่จะมา ใบสมัครแสดงใน ลูกค้า นักมวย ที่คุณรับ (กลายเป็นลูกค้าที่เป็นนักมวย) หรือปฏิเสธ",
+"ဝက်ဘ်ဆိုက်ပေါ်ရှိ လက်ဝှေ့သမား စာမျက်နှာ- ဂျင်အတွက် ထိုးရန် လျှောက်ထားနိုင်သည်- မှတ်တမ်း၊ ကိုယ်အလေးချိန်၊ အတွေ့အကြုံ၊ ဆိုရှယ်မီဒီယာနှင့် လာမည့်အချိန်။ လျှောက်လွှာများကို ဖောက်သည်များ၊ လက်ဝှေ့သမားများ တွင် ပြပြီး လက်ခံ (လက်ဝှေ့သမား ဖောက်သည် ဖြစ်လာမည်) သို့မဟုတ် ငြင်းပယ်နိုင်သည်။"
+],
+"Accepted": [
+"รับแล้ว",
+"လက်ခံပြီး"
+],
+"Fighter applications": [
+"ใบสมัครนักมวย",
+"လက်ဝှေ့သမား လျှောက်လွှာများ"
+],
+"No applications yet. Share your Fighters page.": [
+"ยังไม่มีใบสมัคร แชร์หน้านักมวยของคุณ",
+"လျှောက်လွှာ မရှိသေးပါ။ လက်ဝှေ့သမား စာမျက်နှာကို မျှဝေပါ။"
+],
+"People apply on the Fighters page of your website (": [
+"คนสมัครจากหน้านักมวยบนเว็บไซต์ (",
+"ဝက်ဘ်ဆိုက်၏ လက်ဝှေ့သမား စာမျက်နှာမှ လျှောက်ထားသည် ("
+],
+"Record: ": [
+"สถิติ: ",
+"မှတ်တမ်း- "
+],
+"They are not told automatically. Message them if you want to.": [
+"ระบบไม่แจ้งเขาอัตโนมัติ ส่งข้อความถ้าต้องการ",
+"အလိုအလျောက် မအကြောင်းကြားပါ။ လိုလျှင် စာပို့ပါ။"
+],
+"They become a customer marked as a fighter, on paid training. Their first month is paid at the normal price. Message them with the next steps.": [
+"เขาจะเป็นลูกค้าที่เป็นนักมวย จ่ายค่าซ้อม เดือนแรกจ่ายราคาปกติ ส่งข้อความบอกขั้นตอนต่อไป",
+"၎င်းတို့သည် လက်ဝှေ့သမားအဖြစ် ငွေပေး လေ့ကျင့်သူ ဖောက်သည် ဖြစ်လာမည်။ ပထမလကို ပုံမှန်ဈေးဖြင့် ပေးရသည်။ နောက်အဆင့်များကို စာပို့ပါ။"
 ]
 }

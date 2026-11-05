@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=125"></script>
+<script src="changelog.js?v=126"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -910,6 +910,7 @@ var FEATURES=[
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
+  {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
@@ -991,7 +992,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=80; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=81; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8418,6 +8419,24 @@ function renewSection(){ return section('Renewal reminder message',btn('Edit mes
 function renewAsk(c,r){ var ph=reviewPhone(c); if(!ph){ toast('No phone number on file. Add one with Edit first.'); return; }
   window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(renewText(c,r)),'_blank','noopener'); }
 var CSHOW=[['all','All customers']].concat(SPA?[]:[['fighters','Fighters']]).concat([['active','Active members'],['newest','Newest members'],['oldest','Longest with us'],['spend','Highest spenders'],['visits','Most attendance'],['out','Package running out']]);
+/* fighter applications from the website Fighters page (feature fighter_apply): accept makes them a customer marked as a fighter (paying), or decline */
+var FAPPS=null;
+function fappLoad(){ FAPPS=false; sb.rpc('fighter_apps').then(must).then(function(l){ FAPPS=l||[]; schedule(); }).catch(function(){ FAPPS=[]; schedule(); }); }
+function fappSection(){ if(!featOn('fighter_apply')||!(me&&me.role==='manager')) return null; if(FAPPS===null){ fappLoad(); return null; } if(!FAPPS) return null;
+  var news=FAPPS.filter(function(a){ return a.status==='new'; }), show=news.concat(FAPPS.filter(function(a){ return a.status!=='new'; }).slice(0,8));
+  function decide(a,ok){ openForm({title:(ok?'Accept ':'Decline ')+a.name,note:ok?'They become a customer marked as a fighter, on paid training. Their first month is paid at the normal price. Message them with the next steps.':'They are not told automatically. Message them if you want to.',
+      saveLabel:ok?'Accept':'Decline',values:{note:''},fields:[{key:'note',label:'Note for you (optional)'}],
+      onSave:function(v){ return sb.rpc('fighter_app_decide',{p_id:a.id,p_ok:ok,p_note:v.note||null}).then(must).then(function(){ fappLoad(); if(ok) return reload('customers'); }); }}); }
+  return section('Fighter applications'+(news.length?' ('+news.length+' new)':''),null,h('div',null,
+    h('p',{class:'sub'},'People apply on the Fighters page of your website ('+SITE_URL.replace(/^https:\/\//,'')+'/fighters).'),
+    cards(show.map(function(a){ var wa=a.phone?String(a.phone).replace(/[^\d]/g,''):'';
+      return {when:fmtDate(String(a.created_at).slice(0,10)),right:a.status==='new'?chip('New','warn'):a.status==='accepted'?chip('Accepted','ok'):chip('Declined'),
+        title:h('b',{class:'notr'},a.name),
+        note:h('span',{class:'notr'},[[a.country,a.age?a.age+' years':null,a.weight].filter(Boolean).join(', '),a.record?'Record: '+a.record:null,a.experience,a.links,a.followers?a.followers.toLocaleString('en-US')+' followers':null,
+          a.arrive?'Arriving '+fmtDate(a.arrive)+(a.months?' for '+a.months+' month'+(a.months===1?'':'s'):''):null,a.goals?'Goals: '+a.goals:null,[a.email,a.phone].filter(Boolean).join(', '),a.note?'Note: '+a.note:null].filter(Boolean).join('. ')),
+        act:[a.status==='new'?btn('Accept',function(){ decide(a,true); },'primary small'):null,a.status==='new'?btn('Decline',function(){ decide(a,false); },'small'):null,
+          wa.length>7?h('a',{class:'btn small',href:'https://wa.me/'+wa,target:'_blank',rel:'noopener'},'WhatsApp'):null,
+          a.customer_id?btn('Customer',function(){ openCustomer(a.customer_id); },'small'):null]}; }),'No applications yet. Share your Fighters page.'))); }
 /* new fighters can join a coaching group by themselves */
 var FGRP=null;
 function fighterGroupLine(){
@@ -8594,6 +8613,7 @@ function vCustomers(){
   function record(x){ var r={win:0,loss:0,draw:0}; ((FIGHTS&&FIGHTS.fights)||[]).forEach(function(f){ if(f.fighter_customer_id===x.id&&!f.cancelled&&r[f.result]!=null) r[f.result]++; }); return r.win+'-'+r.loss+'-'+r.draw; }
   if(show==='fighters') return [pageHead('Customers',S.customers.length+' on file',btn('Add customer',function(){ editCustomer(); },'primary')),
     h('div',{class:'row wrap'},h('input',{id:'cq',class:'search',type:'search',placeholder:'Search customers',value:ui.cq,'aria-label':'Search customers',oninput:function(ev){ ui.cq=ev.target.value; schedule(); }}),showSelEl(),h('span',{class:'sub'},list.length+' fighter'+(list.length===1?'':'s'))),
+    fappSection(),
     fighterGroupLine(),
     table([{label:'Fighter',cell:function(x){ return [linkBtn(x.name,function(){ openCustomer(x.id); }),x.fighter_name?h('div',{class:'sub'},x.fighter_name):null]; }},
       {label:'Training',cell:function(x){ return x.fighter_free?chip('Free','ok'):chip('Paid'); }},
