@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=120"></script>
+<script src="changelog.js?v=121"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -886,6 +886,7 @@ var FEATURES=[
   {k:'setup_guide',g:'Customers',n:'Setup guide',d:'A short checklist on Today for the manager of a new business: your look, classes, packages, first member, first sale, first check-in and your team. Each step opens the right place and ticks itself when it is done. It goes away when everything is done, or when you hide it.',spa:false},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
+  {k:'stay_refund',g:'Rooms',n:'Cancel and refund a stay',d:'A Cancel and refund button on each stay: give back all or part of the room and any add-ons (meals, training, spa) in one go, with a manager PIN. Each amount shows in Accounts as money out on the day, in the department it was paid to, so the accounts correct themselves. If the stay was paid online, the money goes back to their card through Stripe for you.',spa:false},
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
@@ -982,7 +983,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=75; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=76; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2527,6 +2528,49 @@ function extendStay(st){
     }});
 }
 function reloadMoney(){ return Promise.all([reload('purchases'),reload('privates'),reload('charges'),reload('stays'),reload('checkin_days')]).then(function(){ if(typeof loadNotices==='function') loadNotices(); if(SALES) shopRefresh(); CUORD={}; }); }
+/* cancel and refund a stay (feature stay_refund): the room and any add-ons in one go, a manager PIN every time.
+   Each amount is money out today in the department the money came in to, so Accounts corrects itself. Paid online: back to their card through Stripe. */
+function stayRefundDlg(st){
+  sb.rpc('stay_refund_info',{p_stay:st.id}).then(must).then(function(info){
+    var cancelled=st.status==='cancelled', online=!!info.stripe, rows=[], ex=info.extras||[];
+    var room=h('input',{id:'sr-room',type:'number',inputmode:'numeric',value:String(info.room||0)});
+    var meth=h('select',{id:'sr-meth'},(online?[['stripe','Back to their card (Stripe, done for you)']]:[]).concat([['cash','Cash'],['transfer','Bank transfer'],['card','Card machine'],['stripe_done','Stripe, already refunded there']]).map(function(o){ return h('option',{value:o[0]},o[1]); }));
+    var pin=h('input',{id:'sr-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'}), why=h('input',{id:'sr-why',type:'text',placeholder:'For example: flight cancelled, illness'});
+    var cxl=h('input',{type:'checkbox'}); cxl.checked=!cancelled;
+    var err=h('p',{class:'ferr',role:'alert',hidden:true}), tot=h('b',null), busy=false;
+    ex.forEach(function(x){ var cb=h('input',{type:'checkbox'}), am=h('input',{type:'number',inputmode:'numeric',value:String(x.paid),style:'max-width:110px','aria-label':'Give back for '+x.name});
+      cb.checked=!cancelled; cb.onchange=sum; am.oninput=sum; rows.push({x:x,cb:cb,am:am});
+      return null; });
+    function picks(){ return rows.filter(function(r){ return r.cb.checked; }).map(function(r){ return {id:r.x.id,amount:Math.round(Number(r.am.value)||0)}; }); }
+    function sum(){ var t=Math.round(Number(room.value)||0)+picks().reduce(function(a,p){ return a+p.amount; },0); tot.textContent='Give back '+(thb(t)||'0 THB')+'.'; return t; }
+    room.oninput=sum; sum();
+    var b=btn(cancelled?'Refund':'Cancel and refund',function(){ if(busy) return; err.hidden=true;
+      var r=Math.round(Number(room.value)||0), pk=picks(), bad=null;
+      if(r<0||r>(info.room||0)) bad='The room: give back between 0 and '+(thb(info.room)||'0 THB')+'.';
+      rows.forEach(function(x){ if(x.cb.checked){ var a=Math.round(Number(x.am.value)||0); if(a<0||a>x.x.paid) bad=x.x.name+': give back between 0 and '+thb(x.x.paid)+'.'; } });
+      if(!bad&&!pin.value) bad='A manager types their PIN.'; if(!bad&&!why.value.trim()) bad='Say why.';
+      if(bad){ err.textContent=bad; err.hidden=false; return; }
+      busy=true; b.disabled=true; b.textContent='Working';
+      var m=meth.value, total=sum(), job;
+      if(m==='stripe'&&total>0) job=sb.auth.getSession().then(function(rs){ var tok=rs&&rs.data&&rs.data.session&&rs.data.session.access_token;
+          return fetch(SB_URL+'/functions/v1/stay-refund',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY)},body:JSON.stringify({stay_id:st.id,room:r,extras:pk,pin:pin.value,reason:why.value.trim(),cancel:cxl.checked})}).then(function(x){ return x.json(); })
+            .then(function(j){ if(!j||j.error) throw new Error(j&&j.error||'The refund did not go through.'); return j; }); });
+      else job=sb.rpc('refund_stay',{p_stay:st.id,p_room:r,p_extras:pk,p_method:m==='stripe_done'?'stripe':m==='stripe'?'cash':m,p_pin:pin.value,p_reason:why.value.trim(),p_cancel:cxl.checked,p_dry:false,p_note:m==='stripe_done'?'refunded in Stripe':null}).then(must);
+      job.then(function(){ return Promise.all([reloadMoney(),reload('stays'),reload('purchases')]); })
+        .then(function(){ $dlg.close(); toast((cxl.checked&&!cancelled?'Stay cancelled. ':'')+(total?'Refunded '+thb(total)+(m==='stripe'?' to their card. It reaches them in 5 to 10 days.':' by '+meth.options[meth.selectedIndex].text.toLowerCase()+'.'):'No money given back.')); },
+          function(e){ busy=false; b.disabled=false; b.textContent=cancelled?'Refund':'Cancel and refund'; err.textContent=errText(e); err.hidden=false; }); },'danger');
+    shopDlg(h('div',{class:'billbox'},h('h2',null,cancelled?'Refund a stay':'Cancel and refund'),
+      h('p',null,nameOf('customers',st.customer_id)+', '+nameOf('rooms',st.room_id)+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)),
+      h('p',{class:'sub'},'Type how much goes back, all of it or part, 0 to keep it. Each amount shows in Accounts as money out today, in the department it was paid to. Add-ons you tick stop working. Only a manager can do this, with their PIN.'+(online?' This stay was paid online: Back to their card refunds it in Stripe for you, in the currency they paid. The card fee is not given back.':'')),
+      field('sr-room','The room, paid '+(thb(info.room)||'0 THB'),room),
+      ex.length?h('div',{class:'panel pad'},h('b',null,'Add-ons'),rows.map(function(r){ return h('div',{class:'row',style:'justify-content:space-between;margin-top:6px'},h('label',{class:'row'},r.cb,r.x.name+', paid '+thb(r.x.paid)),r.am); })):null,
+      h('div',{class:'fgrid'},field('sr-meth','How it goes back',meth),field('sr-pin','Manager PIN',pin)),field('sr-why','Why',why),
+      cancelled?null:h('label',{class:'row',style:'margin:8px 0'},cxl,'Cancel the stay too (frees the room)'),
+      h('p',null,tot),err,
+      h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Close',function(){ $dlg.close(); }),b))));
+    setTimeout(function(){ room.focus(); },30);
+  }).catch(function(e){ toast(errText(e)); });
+}
 /* refund: a manager PIN every time. Money back is recorded, the package or private stops working everywhere. */
 function refundTab(kind,x){
   var isP=kind==='private', name=isP?'Private '+fmtDate(x.date)+' '+(x.time||''):x.package_name;
@@ -2606,6 +2650,7 @@ function stayCard(st,day){
   if(st.welcome_sent_at) bits.push('Welcome email sent '+fmtDate(String(st.welcome_sent_at).slice(0,10)));
   var tr=st.training_included!==false;
   bits.push(tr?'Group Muay Thai included for 1 person (morning class only on the leaving day)':'No training included');
+  if(featOn('stay_refund')&&st.status!=='out') acts.push(btn(st.status==='cancelled'?'Refund':'Cancel and refund',function(){ stayRefundDlg(st); },'small'));
   if(st.status!=='out'&&st.status!=='cancelled') acts.push(btn(tr?'Remove training':'Add training',function(){ setStay(st,{training_included:!tr},tr?'Training taken off this stay.':'Group Muay Thai added to this stay.'); setTimeout(function(){ reload('purchases'); },700); },'small'));
   return {when:nameOf('rooms',st.room_id),right:FPSTAY[st.id]&&st.status!=='out'?h('span',{class:'row',style:'gap:4px;justify-content:flex-end'},chip('Food plan','ok'),status):status,title:g.id?linkBtn(g.name||'Guest',function(){ openCustomer(g.id); }):'Guest',note:bits.join('. '),act:acts};
 }
