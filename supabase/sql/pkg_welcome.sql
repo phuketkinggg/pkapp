@@ -6,7 +6,7 @@
 create or replace function private.pkg_welcome_text(p_order uuid) returns jsonb
 language plpgsql stable security definer set search_path to '' as $$
 declare o public.web_pkg_orders%rowtype; cu public.customers%rowtype; w jsonb; we jsonb; app text; st jsonb; store text; biz text; first text; login text;
-  cls text; wa text; subj text; body text;
+  cls text; wa text; subj text; body text; priv boolean;
 begin
   select * into o from public.web_pkg_orders where id = p_order; if o.id is null or o.package_id is null then return null; end if;
   select * into cu from public.customers where id = o.customer_id;
@@ -21,12 +21,17 @@ begin
   select string_agg(t || ' ' || n, E'\n' order by t) into cls from (
     select to_char(c.start_time, 'HH24:MI') t, min(split_part(c.title, ',', 1)) n from public.classes c
     where not coalesce(c.no_checkin, false) and c.day between 1 and 5 group by 1) x;
+  -- a privates only package: the coach confirms the time, group class times come after as an extra
+  select coalesce(k.covers = array['Privates']::text[], false) into priv from public.packages k where k.id = o.package_id;
+  if coalesce(priv, false) then
+    cls := 'Privates are one to one, at a time that suits you. Your coach will message you to confirm your session time.' || coalesce(E'\n\nWant to join a group class too? Group classes, Monday to Friday:\n' || cls, '');
+  else cls := coalesce('Group classes, Monday to Friday:' || E'\n' || cls, 'See the timetable in the app.'); end if;
   first := split_part(btrim(coalesce(cu.name, o.name, '')), ' ', 1); if first = '' then first := 'there'; end if;
   login := case when cu.user_id is not null then 'Sign in with ' || coalesce(cu.email, o.email) || ' and your password. Forgot it? Tap Forgot password on the sign in page.'
     else 'Tap Create account and use this email: ' || coalesce(cu.email, o.email) || '. Use the same email, so your package is there when you sign in.' end;
   subj := coalesce(nullif(btrim(w->>'subject'), ''), 'Welcome to {business}: your {package}');
   body := coalesce(nullif(btrim(w->>'body'), ''),
-    E'Hi {first},\n\nThank you for booking {package}. We cannot wait to train with you. Here is everything you need.\n\nYOUR PACKAGE\n{package}{start}\n\nCLASS TIMES, MONDAY TO FRIDAY\n{classes}\nCome 10 to 15 minutes early for your first class, so we can say hello and show you around.\n\nTHE APP\nSee the timetable, your package and check in with the app:\n{app}\n{store}\n{login}\n\nWHAT TO BRING\nWater, a towel and comfortable training clothes. Hand wraps and gloves if you have them; if not, ask at the front desk.\n\nWHERE WE ARE\nMessage us on WhatsApp and we will send you the location pin: {whatsapp}\n\nSee you soon,\n{business}');
+    E'Hi {first},\n\nThank you for booking {package}. We cannot wait to train with you. Here is everything you need.\n\nYOUR PACKAGE\n{package}{start}\n\nYOUR TRAINING\n{classes}\nCome 10 to 15 minutes early for your first session, so we can say hello and show you around.\n\nTHE APP\nSee the timetable, your package and check in with the app:\n{app}\n{store}\n{login}\n\nWHAT TO BRING\nWater, a towel and comfortable training clothes. Hand wraps and gloves if you have them; if not, ask at the front desk.\n\nWHERE WE ARE\nMessage us on WhatsApp and we will send you the location pin: {whatsapp}\n\nSee you soon,\n{business}');
   subj := replace(replace(subj, '{business}', biz), '{package}', o.package_name);
   body := replace(replace(replace(replace(replace(replace(replace(replace(replace(body,
     '{first}', first), '{package}', o.package_name), '{start}', case when o.start_on is not null then ', starting ' || to_char(o.start_on, 'FMDay FMDD Mon YYYY') else '' end),
