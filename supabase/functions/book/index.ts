@@ -28,6 +28,17 @@ const cardLabel = (amount: number, r: CardRule) => `Card fee (${r.pct}%${r.fixed
 const keyFor = (cur: string) => (cur === "thb" ? KEY_TH || KEY_MAIN : KEY_MAIN);
 // Feature stays_main_stripe (on unless the business turns it off in Settings, Features): stay and room payments by card go to the main
 // Stripe account (the old account, settles in pounds), not the Thai baht one. PromptPay QR can only use the Thai account.
+// Feature stay_two_guests (on unless turned off): the booking page asks if one or two people are staying, and each add-on
+// (training, meals, spa) can be for one guest or both; extras marked "second guest only" show when two are staying.
+async function twoGuests(): Promise<boolean> {
+  try { const { data } = await admin.from("app_settings").select("value").eq("key", "features").maybeSingle(); return JSON.parse(data?.value ?? "{}").stay_two_guests !== false; }
+  catch { return true; }
+}
+const maxGuests = (R: Rates) => Math.max(1, Math.min(6, Math.round(Number(R.max_guests) || 2)));
+async function guestsOf(R: Rates, body: Record<string, unknown>): Promise<number> {
+  if (!(await twoGuests())) return 1;
+  return Math.max(1, Math.min(maxGuests(R), Math.round(Number(body.guests_n) || 1)));
+}
 async function staysToMain(): Promise<boolean> {
   try { const { data } = await admin.from("app_settings").select("value").eq("key", "features").maybeSingle(); return JSON.parse(data?.value ?? "{}").stays_main_stripe !== false; }
   catch { return true; }
@@ -71,8 +82,8 @@ const isDay = (d: unknown) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.tes
 type Season = { id: string; name: string; ranges?: { from: string; to: string }[] };
 type Group = { id: string; name: string; rooms: string[]; prices: Record<string, number>; note?: string; month?: number; months?: Record<string, number> };
 type Opt = { id: string; name: string; price: number; limit?: number };
-type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; any?: boolean; any_max?: number; max?: number; unit?: string; note?: string };
-type Rates = { base: string; month_nights?: number; seasons: Season[]; groups: Group[]; extras?: Extra[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
+type Extra = { id: string; name: string; kind: "pick" | "day" | "qty"; second?: boolean; price?: number; covers?: string[]; per_day?: number; tiers?: { max: number; price: number }[]; addon?: { name: string; price: number }; options?: Opt[]; any?: boolean; any_max?: number; max?: number; unit?: string; note?: string };
+type Rates = { base: string; month_nights?: number; max_guests?: number; seasons: Season[]; groups: Group[]; extras?: Extra[]; map?: { img?: string; pins?: Record<string, { x: number; y: number }> } };
 type Item = { name: string; price: number; covers: string[]; limit?: number | null; days?: number | null; starts?: string | null; expires?: string | null; course_id?: string };
 // the online course on offer (Courses, Offer it), added to a stay as an extra; checked and priced by the database
 async function courseOffer() { try { const { data } = await admin.rpc("course_offer"); return data && (data as { id?: string }).id ? data : null; } catch { return null; } }
@@ -87,7 +98,7 @@ async function courseItem(body: Record<string, unknown>, items: Item[], from: st
 
 async function rates(): Promise<Rates> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "room_rates").maybeSingle();
-  try { const r = JSON.parse(data?.value ?? "{}"); return { base: r.base || "low", month_nights: r.month_nights, seasons: r.seasons || [], groups: r.groups || [], extras: r.extras || [], map: r.map || {} }; }
+  try { const r = JSON.parse(data?.value ?? "{}"); return { base: r.base || "low", month_nights: r.month_nights, max_guests: r.max_guests, seasons: r.seasons || [], groups: r.groups || [], extras: r.extras || [], map: r.map || {} }; }
   catch { return { base: "low", seasons: [], groups: [] }; }
 }
 function inRange(md: string, r: { from: string; to: string }) { const a = r.from, b = r.to; if (!a || !b) return false; return a <= b ? md >= a && md <= b : md >= a || md <= b; }
@@ -229,19 +240,24 @@ function anyName(e: Extra, n: number): string {
   const w1 = one ? one.name.replace(/^\d+\s*/, "") : "session", w2 = many ? many.name.replace(/^\d+\s*/, "") : w1 + "s"; return `${n} ${n === 1 ? w1 : w2}`;
 }
 // what the guest picked on the page, priced here from the settings, never from the page
-function extraItems(R: Rates, picks: unknown, from: string, to: string): Item[] {
+function extraItems(R: Rates, picks: unknown, from: string, to: string, guests = 1): Item[] {
   const nights = Math.round((Date.parse(to) - Date.parse(from)) / 864e5), out: Item[] = [];
   if (!Array.isArray(picks)) return out;
   for (const p of picks.slice(0, 20) as Record<string, unknown>[]) {
     const e = (R.extras || []).find((x) => x.id === p.id && !(x as { off?: boolean }).off); if (!e) continue;
     const covers = e.covers || [];
+    // second guest only extras need two guests; other pick and day extras can be for more than one guest (price and sessions times guests)
+    if (e.second && guests < 2) continue;
+    const ppl = e.kind !== "qty" && !e.second ? Math.max(1, Math.min(guests, Math.round(Number(p.ppl) || 1))) : 1;
+    const who = ppl > 1 ? `, for ${ppl} guests` : "", mark = out.length;
     if (e.kind === "pick") {
       if (p.option === "any" && e.any) {
         const n = Math.max(1, Math.min(e.any_max || 30, Math.round(Number(p.n) || 1))), price = packPrice(e.options || [], n); if (!price) continue;
-        out.push({ name: `${e.name}, ${anyName(e, n)}`, price, covers, limit: n, starts: from, expires: addDays(to, 30) }); continue;
+        out.push({ name: `${e.name}, ${anyName(e, n)}`, price, covers, limit: n, starts: from, expires: addDays(to, 30) });
+      } else {
+        const o = (e.options || []).find((x) => x.id === p.option); if (!o) continue;
+        out.push({ name: `${e.name}, ${o.name}`, price: o.price, covers, limit: o.limit ?? null, starts: from, expires: addDays(to, 30) });
       }
-      const o = (e.options || []).find((x) => x.id === p.option); if (!o) continue;
-      out.push({ name: `${e.name}, ${o.name}`, price: o.price, covers, limit: o.limit ?? null, starts: from, expires: addDays(to, 30) });
     } else if (e.kind === "day") {
       // for the whole stay it runs to the leaving day, so meals can go from dinner on arrival to breakfast on the leaving day
       const days = Math.max(1, Math.min(nights, Math.round(Number(p.days) || nights)));
@@ -253,6 +269,7 @@ function extraItems(R: Rates, picks: unknown, from: string, to: string): Item[] 
       const q = Math.max(1, Math.min(e.max || 10, Math.round(Number(p.qty) || 1)));
       out.push({ name: `${e.name}${e.unit ? " (" + e.unit + ")" : ""}${q > 1 ? " x " + q : ""}`, price: Number(e.price || 0) * q, covers, starts: from, expires: addDays(to, 30) });
     }
+    if (ppl > 1) for (const it of out.slice(mark)) { it.price *= ppl; it.name += who; if (it.limit) it.limit *= ppl; }
   }
   return out.filter((i) => i.price > 0);
 }
@@ -315,7 +332,7 @@ async function mailQuote(R: Rates, body: Record<string, unknown>) {
   const { count: all } = await admin.from("sent_emails").select("id", { count: "exact", head: true }).eq("campaign", "stay_quote").gte("created_at", since(1));
   if ((mine ?? 0) >= 3 || (all ?? 0) >= 30) return json({ error: "We already sent you a price. Check your inbox, or WhatsApp us." });
   if (!RESEND) return json({ error: "Email is not set up. WhatsApp us for a price." });
-  const nights = q.nights.length, rp = roomPrice(R, g, q.nights, O), items = extraItems(R, notFree(body.extras, rp.promo), from, to), fr = freeItem(R, rp.promo, from, to);
+  const nights = q.nights.length, rp = roomPrice(R, g, q.nights, O), items = extraItems(R, notFree(body.extras, rp.promo), from, to, await guestsOf(R, body)), fr = freeItem(R, rp.promo, from, to);
   try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
   const total = rp.total + items.reduce((t, i) => t + i.price, 0), plan = depositPlan(R, O, from, nights, rp.total, total - rp.total, rp.monthly);
   const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
@@ -422,7 +439,8 @@ Deno.serve(async (req) => {
         groups: R.groups.map((g) => ({ id: g.id, name: g.name, note: g.note || "", prices: g.prices, month: lowestMonth(g) })),
         month_nights: monthNights(R),
         rooms: rooms.map((r) => ({ id: r.id, name: r.name, group: inGroup(r.id)?.id ?? null })),
-        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "" })),
+        extras: (R.extras || []).filter((e) => !(e as { off?: boolean }).off).map((e) => ({ id: e.id, cat: (e as { cat?: string }).cat ?? "misc", name: e.name, kind: e.kind, price: e.price ?? null, tiers: e.tiers ?? null, addon: e.addon ?? null, options: e.options ?? null, any: e.any ?? false, any_max: e.any_max ?? null, max: e.max ?? null, unit: e.unit ?? null, note: e.note ?? "", second: !!e.second })),
+        two_guests: await twoGuests(), max_guests: maxGuests(R),
         map: R.map?.img ? { img: R.map.img, pins: R.map.pins || {} } : null,
         offer: await offer(),
         course: await courseOffer(),
@@ -463,7 +481,7 @@ Deno.serve(async (req) => {
       const rp = roomPrice(R, g, q.nights, O); q.total = rp.total;
       const offerNote = [rp.monthly ? `Monthly price ${rp.month} THB a month${rp.promo ? ", with " + offLabel(rp, O) : ""} (full price ${full} THB).` : q.total < full ? `${offLabel(rp, O)} (full price ${full} THB).` : "", O.gift && O.gift_nights && nightsN >= O.gift_nights ? `Gift: ${O.gift} (${nightsN} nights).` : ""].filter(Boolean).join(" ");
       const { data: rm } = await admin.from("rooms").select("name").eq("id", roomId).maybeSingle();
-      const items = extraItems(R, notFree(body.extras, rp.promo), from, to), fr = freeItem(R, rp.promo, from, to);
+      const items = extraItems(R, notFree(body.extras, rp.promo), from, to, await guestsOf(R, body)), fr = freeItem(R, rp.promo, from, to);
       try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
       if (fr) items.push(fr);
       const total = q.total + items.reduce((t, i) => t + i.price, 0);

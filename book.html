@@ -220,7 +220,12 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
 (function(){
 'use strict';
 var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/book', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
-var INFO=null, Q=null, pick=null, EX={};
+var INFO=null, Q=null, pick=null, EX={}, GUESTS=1;
+/* two guests in one room: add-ons can be for one guest or both, and some extras (like group training) are only for the second guest */
+function twoOn(){ return !!INFO&&INFO.two_guests!==false&&(Number(INFO.max_guests)||2)>=2; }
+function ppl(e,sel){ return twoOn()&&GUESTS>1&&e.kind!=='qty'&&!e.second&&sel&&sel.ppl>1?GUESTS:1; }
+function setGuests(n){ GUESTS=twoOn()?Math.max(1,Math.min(Number(INFO.max_guests)||2,n)):1; var g=$('g-guests'); if(g&&(GUESTS>1)!==/^2/.test(g.value)) g.value=GUESTS>1?'2 adults':'1 adult'; }
+document.getElementById('g-guests').addEventListener('change',function(){ if(!INFO) return; setGuests(/^2/.test(this.value)?2:1); if(pick) changed(); });
 function $(id){ return document.getElementById(id); }
 function el(tag,attrs){ var e=document.createElement(tag); if(attrs) for(var k in attrs){ if(k==='text') e.textContent=attrs[k]; else if(k==='cls') e.className=attrs[k]; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),attrs[k]); else e.setAttribute(k,attrs[k]); }
   for(var i=2;i<arguments.length;i++){ var c=arguments[i]; if(c==null) continue; (Array.isArray(c)?c:[c]).forEach(function(x){ if(x!=null) e.appendChild(typeof x==='string'?document.createTextNode(x):x); }); } return e; }
@@ -359,7 +364,8 @@ function anyN(e,n){ return Math.max(1,Math.min(e.any_max||30,Math.round(Number(n
 function anyName(e,n){ var p=(e.options||[]).filter(function(o){ return o.limit>0; }), one=p.filter(function(o){ return o.limit===1; })[0], many=p.filter(function(o){ return o.limit>1; })[0];
   var w1=one?one.name.replace(/^\d+\s*/,''):'session', w2=many?many.name.replace(/^\d+\s*/,''):w1+'s'; return n+' '+(n===1?w1:w2); }
 function freeX(){ if(!pick||!Q||!Q.rooms) return null; var r=Q.rooms.filter(function(x){ return x.id===pick.id; })[0]; return r&&r.free||null; }
-function exPrice(e,sel){ if(!sel||e.id===freeX()) return 0; var n=Q.nights;
+function exPrice(e,sel){ var b=exBase(e,sel); return b*ppl(e,sel); }
+function exBase(e,sel){ if(!sel||e.id===freeX()) return 0; if(e.second&&GUESTS<2) return 0; var n=Q.nights;
   if(e.kind==='pick'){ if(sel.option==='any'&&e.any) return packPrice(e.options,anyN(e,sel.n)); var o=(e.options||[]).filter(function(x){ return x.id===sel.option; })[0]; return o?o.price:0; }
   if(e.kind==='day'){ if(!sel.on) return 0; var d=Math.max(1,Math.min(n,Math.round(Number(sel.days)||n))), per=e.tiers&&e.tiers.length?((e.tiers.filter(function(t){ return d<=t.max; })[0]||e.tiers[e.tiers.length-1]).price):Number(e.price||0);
     return (per+(sel.addon&&e.addon?e.addon.price:0))*d; }
@@ -381,10 +387,14 @@ function crsCard(box){ var c=INFO.course; if(!crsFits()){ ADDC=false; return; }
     el('div',{cls:'sub'},(off?off+'% off with your stay, usually '+thb(c.full_price)+'. ':'')+'It opens in the app as soon as you pay, so you can start straight away.'),
     el('div',{cls:'exrow'},yes,no)))); }
 function renderExtras(){
-  var box=$('extras'); box.innerHTML=''; var n=Q.nights; crsCard(box);
+  var box=$('extras'); box.innerHTML=''; var n=Q.nights;
+  if(twoOn()){ var gm=Number(INFO.max_guests)||2, gb=[]; for(var gi=1;gi<=gm;gi++) (function(k){ gb.push(el('button',{type:'button',cls:'chip'+(GUESTS===k?' on':''),onclick:function(){ setGuests(k); T('stay_guests',String(k)); changed(); }},k+' guest'+(k===1?'':'s'))); })(gi);
+    box.appendChild(el('div',{cls:'excat c-misc'},el('h3',null,'Who is staying'),el('span',{cls:'sub'},'The room sleeps '+gm+'. Group classes are included for one guest.')));
+    box.appendChild(el('div',{cls:'exrow',style:'margin:4px 0 14px'},gb.concat([GUESTS>1?el('span',{cls:'sub'},'Each add-on below can be for one guest or both.'):null]))); }
+  crsCard(box);
   var CATS=[['cafe','Cafe','Breakfast, shakes and meal plans'],['training','Training','One to one with a coach'],['recovery','Recovery','Spa, massage and yoga'],['gear','Muay Thai gear','Wraps, shorts and tops'],['misc','Other','Transfers and more']];
   var grid=null, curCat=null;
-  CATS.forEach(function(c){ (INFO.extras||[]).filter(function(e){ return (CATS.some(function(k){ return k[0]===e.cat; })?e.cat:'misc')===c[0]; }).forEach(function(e,ix){
+  CATS.forEach(function(c){ (INFO.extras||[]).filter(function(e){ return !(e.second&&GUESTS<2); }).filter(function(e){ return (CATS.some(function(k){ return k[0]===e.cat; })?e.cat:'misc')===c[0]; }).forEach(function(e,ix){
     if(ix===0){ box.appendChild(el('div',{cls:'excat c-'+c[0]},el('h3',null,c[1]),el('span',{cls:'sub'},c[2]))); grid=el('div',{cls:'exgrid'}); box.appendChild(grid); curCat=c[0]; }
     renderOne(e,grid,curCat); }); });
   function renderOne(e,grid,cat){ var sel=EX[e.id]||(EX[e.id]={}), price=exPrice(e,sel), on=price>0, body=[];
@@ -404,6 +414,10 @@ function renderExtras(){
       if(e.addon){ var ad=el('input',{type:'checkbox'}); ad.checked=!!sel.addon; ad.onchange=function(){ sel.addon=ad.checked; if(ad.checked) sel.on=true; changed(); }; body.push(el('div',{cls:'exrow'},el('label',null,ad,e.addon.name+', +'+thb(e.addon.price)+' a day'))); } }
     else { var q=Number(sel.qty)||0;
       body.push(el('div',{cls:'exrow'},el('span',{cls:'sub'},thb(e.price)+(e.unit?' '+e.unit:' each')),el('div',{cls:'step'},el('button',{type:'button',cls:'btn','aria-label':'Less',onclick:function(){ sel.qty=Math.max(0,q-1); changed(); }},'−'),el('b',null,String(q)),el('button',{type:'button',cls:'btn','aria-label':'More',onclick:function(){ sel.qty=Math.min(e.max||10,q+1); changed(); }},'+')))); }
+    if(twoOn()&&GUESTS>1&&e.kind!=='qty'&&!e.second) body.push(el('div',{cls:'exrow'},el('span',{cls:'sub'},'For'),
+      el('button',{type:'button',cls:'chip'+(!(sel.ppl>1)?' on':''),onclick:function(){ sel.ppl=1; changed(); }},'1 guest'),
+      el('button',{type:'button',cls:'chip'+(sel.ppl>1?' on':''),onclick:function(){ sel.ppl=GUESTS; changed(); }},GUESTS===2?'Both guests':GUESTS+' guests')));
+    if(e.second) body.unshift(el('div',{cls:'sub'},'For the second guest.'));
     grid.appendChild(el('div',{cls:'ex c-'+cat+(on?' on':'')},el('div',{cls:'exrow',style:'justify-content:space-between'},el('h4',null,e.name),on?el('span',{cls:'exprice'},'Added: '+thb(price)):null),e.note?el('div',{cls:'exnote'},e.note):null,body)); }
 }
 function changed(){ renderExtras(); summary(); }
@@ -413,7 +427,7 @@ function summary(){
   if(r.full>r.total) lines.push(el('div',{cls:'offnote'},el('span',null,r.monthly?'Monthly price'+(r.promo&&r.promo_pct?', with '+r.promo+' '+r.promo_pct+'% off':''):r.promo?r.promo+', '+r.promo_pct+'% off':'Book direct, '+((INFO.offer||{}).pct||'')+'% off'),el('span',null,'-'+thb(r.full-r.total))));
   var fx0=freeX(), fe=fx0&&(INFO.extras||[]).filter(function(e){ return e.id===fx0; })[0]; if(fe) lines.push(el('div',{cls:'offnote'},el('span',null,fe.name+', '+(r.promo||'offer')),el('span',null,'Free')));
   var of=INFO.offer||{}; if(of.gift&&of.gift_nights&&Q.nights>=of.gift_nights) lines.push(el('div',{cls:'offnote'},el('span',null,of.gift.charAt(0).toUpperCase()+of.gift.slice(1)),el('span',null,'Free')));
-  (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name),el('span',null,thb(pr)))); });
+  (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name+(ppl(e,EX[e.id])>1?', '+(GUESTS===2?'both guests':GUESTS+' guests'):'')),el('span',null,thb(pr)))); });
   if(crsPrice()) lines.push(el('div',null,el('span',null,'Online course: '+INFO.course.title),el('span',null,thb(crsPrice()))));
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); }); if(crsPrice()) amts.push(crsPrice());
@@ -434,7 +448,7 @@ function summary(){
 }
 function T(e,i){ try{ if(window.PK&&PK.track) PK.track(e,i); }catch(x){} }
 /* questions before paying: WhatsApp with the room and dates filled in, or the price by email (the desk gets a notice to follow up) */
-function exPicks(){ return (INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null}; }); }
+function exPicks(){ return (INFO.extras||[]).filter(function(e){ return exPrice(e,EX[e.id])>0; }).map(function(e){ var x=EX[e.id]; return {id:e.id,option:x.option||null,n:x.option==='any'?anyN(e,x.n):null,days:x.days||null,addon:!!x.addon,qty:x.qty||null,ppl:ppl(e,x)}; }); }
 function askBar(rr,tot){ var a=$('ask'); a.innerHTML='';
   var msg='Hi, I am looking at '+rr.name+' from '+fmt(Q.from)+' to '+fmt(Q.to)+' ('+Q.nights+' night'+(Q.nights===1?'':'s')+', '+thb(tot)+'). I have a question: ';
   a.appendChild(el('span',{cls:'sub'},'Not ready to pay?'));
@@ -445,7 +459,7 @@ function quoteForm(){ var b=$('qbox'); if(!b.hidden){ b.hidden=true; return; } b
   if($('g-email').value) em.value=$('g-email').value.trim();
   go.onclick=function(){ var v=em.value.trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ msg.textContent='Type your email.'; msg.className='err'; em.focus(); return; }
     go.disabled=true; go.textContent='Sending';
-    call({mode:'mail_quote',email:v,name:$('g-name').value.trim(),phone:$('g-phone').value.trim(),room_id:pick.id,from:Q.from,to:Q.to,extras:exPicks(),course:crsPrice()?INFO.course.id:null,back:location.origin+location.pathname})
+    call({mode:'mail_quote',guests_n:GUESTS,email:v,name:$('g-name').value.trim(),phone:$('g-phone').value.trim(),room_id:pick.id,from:Q.from,to:Q.to,extras:exPicks(),course:crsPrice()?INFO.course.id:null,back:location.origin+location.pathname})
       .then(function(){ T('stay_quote',Q.nights+' night'+(Q.nights===1?'':'s')); b.innerHTML=''; b.appendChild(el('p',{cls:'offnote',style:'margin:6px 0 10px'},'\u2713 Sent to '+v+'. Check your inbox (and junk folder). Your room is not held until you pay.')); },
         function(x){ go.disabled=false; go.textContent='Send me the price'; msg.textContent=x.message; msg.className='err'; }); };
   em.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); go.click(); } });
@@ -476,7 +490,7 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
   T('stay_pay',payWith()+(pick.dep?', deposit':''));
   b.disabled=true; b.textContent=payWith()==='pp'?'Making your QR':'Opening the card payment';
-  call({mode:'reserve',room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),deposit:!!pick.dep,extras:exPicks(),course:crsPrice()?INFO.course.id:null,back:location.origin+location.pathname})
+  call({mode:'reserve',guests_n:GUESTS,room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),deposit:!!pick.dep,extras:exPicks(),course:crsPrice()?INFO.course.id:null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+(pick.how||' by card'); err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
