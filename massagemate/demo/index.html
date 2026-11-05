@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=122"></script>
+<script src="changelog.js?v=123"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -887,6 +887,7 @@ var FEATURES=[
   {k:'setup_guide',g:'Customers',n:'Setup guide',d:'A short checklist on Today for the manager of a new business: your look, classes, packages, first member, first sale, first check-in and your team. Each step opens the right place and ticks itself when it is done. It goes away when everything is done, or when you hide it.',spa:false},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
+  {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
   {k:'stay_refund',g:'Rooms',n:'Cancel and refund a stay',d:'A Cancel and refund button on each stay: give back all or part of the room and any add-ons (meals, training, spa) in one go, with a manager PIN. Each amount shows in Accounts as money out on the day, in the department it was paid to, so the accounts correct themselves. If the stay was paid online, the money goes back to their card through Stripe for you.',spa:false},
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
@@ -984,7 +985,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=77; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=78; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1605,6 +1606,33 @@ function editHoliday(hd){ hd=hd||{};
     onDelete:hd.id?function(){ return db.doc('holidays/'+hd.id).delete(); }:null});
 }
 
+/* new customers at the desk (feature new_cust_details): name, email and a phone with its country code for WhatsApp, and a tick when they do not want
+   messages or emails. Everything but the name is optional: no email, they are still a normal customer. A known email finds the customer they already are. */
+var DIALS=[['66','Thailand'],['44','United Kingdom'],['1','USA or Canada'],['61','Australia'],['64','New Zealand'],['353','Ireland'],['49','Germany'],['33','France'],['31','Netherlands'],['32','Belgium'],['41','Switzerland'],['43','Austria'],['46','Sweden'],['47','Norway'],['45','Denmark'],['358','Finland'],['34','Spain'],['39','Italy'],['351','Portugal'],['48','Poland'],['420','Czech Republic'],['36','Hungary'],['40','Romania'],['30','Greece'],['7','Russia or Kazakhstan'],['380','Ukraine'],['90','Turkey'],['972','Israel'],['971','United Arab Emirates'],['966','Saudi Arabia'],['974','Qatar'],['20','Egypt'],['27','South Africa'],['234','Nigeria'],['254','Kenya'],['91','India'],['92','Pakistan'],['880','Bangladesh'],['94','Sri Lanka'],['977','Nepal'],['86','China'],['852','Hong Kong'],['886','Taiwan'],['81','Japan'],['82','South Korea'],['65','Singapore'],['60','Malaysia'],['62','Indonesia'],['63','Philippines'],['84','Vietnam'],['855','Cambodia'],['856','Laos'],['95','Myanmar'],['55','Brazil'],['52','Mexico'],['54','Argentina'],['56','Chile'],['57','Colombia'],['51','Peru']];
+function ncFields(hide){ if(!featOn('new_cust_details')) return [{key:'nc_contact',label:'Email or phone',hide:hide,hint:'Optional.'}];
+  var d=DIALS.slice().sort(function(a,b){ return a[1].localeCompare(b[1]); });
+  return [{key:'nc_email',label:'Email',type:'email',hide:hide,hint:'Optional, for the app, receipts and offers.'},
+    {key:'nc_dial',label:'Phone country code',type:'select',hide:hide,options:[['','Choose the country']].concat(d.map(function(x){ return [x[0],x[1]+' +'+x[0]]; }))},
+    {key:'nc_phone',label:'Phone (WhatsApp)',type:'tel',hide:hide,hint:'Optional. Without the country code, for example 81 234 5678.'},
+    {key:'nc_no',label:'They do not want messages or emails from us',type:'checkbox',hide:hide}]; }
+function ncShow(show,on){ ['nc_contact','nc_email','nc_dial','nc_phone','nc_no'].forEach(function(k){ show(k,on); }); }
+/* the customer row from those fields: {row} or {err} */
+function ncRow(v,name,notes){ var row={name:String(name||'').trim(),tier:'train',price_group:'standard',notes:notes||null};
+  if(!featOn('new_cust_details')){ var c=String(v.nc_contact||'').trim(), m=c.indexOf('@')>0; row.email=m?c.toLowerCase():null; row.phone=!m&&c?c:null; return {row:row}; }
+  var em=String(v.nc_email||'').trim().toLowerCase(), ph=String(v.nc_phone||'').trim(), dg=ph.replace(/[^\d]/g,'');
+  if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return {err:'Check the email, or leave it empty.'};
+  if(ph){ if(/^\s*(\+|00)/.test(ph)) row.phone='+'+dg.replace(/^00/,'');
+    else { if(!v.nc_dial) return {err:'Choose the phone country code.'}; row.phone='+'+v.nc_dial+dg.replace(/^0+/,''); }
+    if(row.phone.length<9) return {err:'Check the phone number.'}; }
+  var ctry=DIALS.filter(function(x){ return x[0]===v.nc_dial; })[0]; if(ctry&&v.nc_dial!=='1'&&v.nc_dial!=='7') row.country=ctry[1];
+  row.email=em||null; row.phone=row.phone||null;
+  if(v.nc_no){ row.marketing_ok=false; row.unsubscribed_at=new Date().toISOString(); } else if(em||row.phone) row.marketing_ok=true;
+  return {row:row}; }
+/* make the customer, or find them by email or phone so nobody is in twice; returns the customer id */
+function ncSave(r){ var row=r.row, same=(S.customers||[]).filter(function(c){ return !c.is_agency&&((row.email&&c.email&&c.email.toLowerCase()===row.email)||(row.phone&&c.phone&&c.phone.replace(/[^\d]/g,'')===row.phone.replace(/[^\d]/g,''))); })[0];
+  if(same){ var up={}; if(row.email&&!same.email) up.email=row.email; if(row.phone&&!same.phone) up.phone=row.phone; if(row.marketing_ok===false){ up.marketing_ok=false; up.unsubscribed_at=row.unsubscribed_at; }
+    return (Object.keys(up).length?sb.from('customers').update(up).eq('id',same.id).then(must):Promise.resolve()).then(function(){ return same.id; }); }
+  return sb.from('customers').insert(row).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); }); }
 /* ---------- walk-ins, tourists and agency guests: one form, sold and checked in ---------- */
 function lastSourcePrice(sourceId,packageId){
   var hit=null; S.purchases.forEach(function(p){ if(p.source_id===sourceId&&p.package_id===packageId&&!p.cancelled&&(!hit||p.purchased_on>=hit.purchased_on)) hit=p; });
@@ -1632,8 +1660,7 @@ function walkIn(name,target){
   openForm({title:'Walk-in or agency guest',saveLabel:'Sell and check in',doneMsg:'Sold and checked in.',
     note:'For tourists and one time visitors. Makes the customer, records the sale and checks them in, all at once.',
     values:{name:name||''},fields:[
-    {key:'name',label:'Name',required:true},
-    {key:'contact',label:'Email or phone',hint:'Optional. Add an email if they might come back or want the app.'},
+    {key:'name',label:'Name',required:true}].concat(ncFields(false),[
     {key:'source_id',label:'Where they came from',type:'select',options:opts(src,'Walk-in, no source'),def:direct?direct.id:'',
       onChange:function(v,set,get){ set('price_thb',priceFor2(get)); set('method',payFor(v)); }},
     {key:'package_id',label:'Package',type:'select',options:ordered.map(function(k){ return [k.id,k.name+' ('+thb(k.price_thb)+')']; }),def:first.id,
@@ -1641,14 +1668,13 @@ function walkIn(name,target){
     {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first.price_thb,
       hint:'For an agency, what they pay you after their cut. The app remembers it for next time.'},
     {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS)},
-    {key:'target',label:'Check in for',type:'select',options:targets,def:tdef}],
+    {key:'target',label:'Check in for',type:'select',options:targets,def:tdef}]),
     onSave:function(v){
       var k=byId('packages',v.package_id); if(!k) return 'Choose a package.';
-      var c=String(v.contact||'').trim(), isMail=c.indexOf('@')>0;
-      var row={name:v.name,email:isMail?c.toLowerCase():null,phone:!isMail&&c?c:null,tier:'train',price_group:'standard',notes:(byId('sources',v.source_id)||{name:'Walk-in'}).name+' guest, '+fmtDate(day)};
+      var nr=ncRow(v,v.name,(byId('sources',v.source_id)||{name:'Walk-in'}).name+' guest, '+fmtDate(day)); if(nr.err) return nr.err;
       var cid=null, pid=null;
-      return sb.from('customers').insert(row).select('id').single().then(must).then(function(d){
-        cid=d.id;
+      return ncSave(nr).then(function(id){
+        cid=id;
         var p={customer_id:cid,package_id:k.id,package_name:k.name,price_thb:v.price_thb,price_group:'standard',paid:true,method:v.method,source_id:v.source_id||null,purchased_on:day,
           covers:k.covers||null,times:k.times||null,class_limit:k.class_limit||null,classes_left:k.class_limit||null,per_week_limit:k.per_week_limit||null,duration_days:k.duration_days||null,
           start_by:k.start_within_days?addDays(day,k.start_within_days):null,starts_on:null,expires_on:null};
@@ -6496,17 +6522,18 @@ function tillPackage(pk){
   var g0=(byId('customers',cc)||{}).price_group||'standard', t0=tiersFor(pk,g0), q0=pk.qty_default||5, p0=t0?(tierUnit(t0,q0)||0)*q0:Number(priceFor(pk,g0))||0;
   openForm({title:pk.name,note:'Goes on the customer like a package sold at the desk. They pay for it with the rest of this sale.',saveLabel:'Add to sale',doneMsg:'Added to the sale.',
     values:{customer_id:cc||'',qty:t0?q0:null,price:p0},fields:[
-    {key:'customer_id',label:'Customer',type:'select',options:[['','New customer, type the name below']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),onChange:function(v,set,get){ set('price',price(get)); }},
-    {key:'new_name',label:'New customer name',hint:'Only if they are not in the list.'},
+    {key:'customer_id',label:'Customer',type:'select',options:[['','New customer or walk-in, type their details below']].concat(cs.map(function(c){ return [c.id,c.name+(c.email?' ('+c.email+')':'')]; })),onChange:function(v,set,get,o,show){ set('price',price(get)); show('new_name',!v); ncShow(show,!v); }},
+    {key:'new_name',label:'New customer name',hide:!!cc,hint:'Only if they are not in the list.'}].concat(ncFields(!!cc),[
     {key:'qty',label:pk.qty_unit==='days'?'How many days':'How many sessions',type:'number',hide:!t0,onChange:function(v,set,get){ set('price',price(get)); }},
-    {key:'price',label:'Price (THB)',type:'number',required:true}],
+    {key:'price',label:'Price (THB)',type:'number',required:true}]),
     onSave:function(v){
       if(!v.customer_id&&!v.new_name) return 'Choose the customer or type a new name.';
+      var nr=v.customer_id?null:ncRow(v,v.new_name,'Walk-in, bought at the till '+fmtDate(ymd(new Date()))); if(nr&&nr.err) return nr.err;
       if(cc&&v.customer_id!==cc) return 'One customer per sale. Finish this sale first, or choose '+nameOf('customers',cc)+'.';
       var c=v.customer_id?byId('customers',v.customer_id):null, g=c&&c.price_group||'standard', t=tiersFor(pk,g), q=t?Math.round(v.qty||0):null;
       if(t&&(q<1||q>200)) return 'Type how many, 1 to 200.';
       var pr=Math.round(Number(v.price)); if(!(pr>=0)) return 'Type the price.';
-      var first=v.customer_id?Promise.resolve(v.customer_id):sb.from('customers').insert({name:v.new_name,tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); });
+      var first=v.customer_id?Promise.resolve(v.customer_id):ncSave(nr);
       return first.then(function(cid){
         var today=ymd(new Date()), byDay=t&&pk.qty_unit==='days', lim=t&&!byDay?q:(byDay?null:pk.class_limit||null);
         var nm=pk.name+(t?', '+q+(byDay?(q===1?' day':' days'):(pk.covers||[]).indexOf('Privates')>=0?' sessions':' visits'):'');
