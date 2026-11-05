@@ -499,10 +499,58 @@ function coachView(){
     h('div',{class:'card'},h('h3',null,'Pangea team'),h('p',{class:'sub'},'Questions about bookings, stays or your plan.'),h('button',{class:'btn ghost small',onclick:function(){ openChat({p_desk:true},'Pangea team'); }},'Message the team')),
     h('div',{class:'card'},h('h3',null,'Levels'),Object.keys(LEVELS).map(function(k){ return h('div',{class:'list-row'},h('div',{class:'grow'},h('b',null,LEVELS[k][0]),h('div',{class:'sub'},LEVELS[k][1])),k===lv?h('span',{class:'pill green'},'You'):null); })));
 }
+/* ---------- my file: my health details, my coaches' diary notes shared with me, my documents (member_file) ---------- */
+var MYF=null, MYF_BUSY=false;
+var DOCK={bloods:'Blood test',medical:'Medical letter or report',scan:'Scan or X-ray',programme:'Programme or plan',photo:'Photo',other:'Other'};
+function loadFile(){ if(MYF_BUSY) return; MYF_BUSY=true; rpc('my_file').then(function(x){ MYF=x; MYF_BUSY=false; var list=[];
+    (x.docs||[]).forEach(function(d){ if(d.path&&!S.signed[d.path]) list.push(d.path); });
+    (x.notes||[]).forEach(function(n){ (n.files||[]).forEach(function(f){ if(f.path&&!S.signed[f.path]) list.push(f.path); }); });
+    if(x.file&&x.file.photo&&!S.signed[x.file.photo]) list.push(x.file.photo);
+    if(list.length) sb.storage.from('coaching').createSignedUrls(list,3600).then(function(r){ (r.data||[]).forEach(function(y){ if(y.signedUrl) S.signed[y.path]=y.signedUrl; }); render(); });
+    render(); }).catch(function(e){ MYF_BUSY=false; MYF={err:errText(e)}; render(); }); }
+function fileDetailsSheet(){ var f=(MYF&&MYF.file)||{}, ins={};
+  function fld(k,label,rows,ph){ ins[k]=rows?h('textarea',{id:'mf-'+k,rows:String(rows),placeholder:ph||''}):h('input',{id:'mf-'+k,placeholder:ph||''}); ins[k].value=f[k]||''; return h('div',null,h('label',{for:'mf-'+k},label),ins[k]); }
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,'My health and details'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
+    h('p',{class:'sub'},'Only you, your coaches and the Pangea managers see this.'),
+    fld('conditions','Illnesses and conditions',3),fld('medication','Medication and supplements',3),fld('allergies','Allergies',2),fld('injuries','Injuries and operations',3),
+    fld('goals','My goals',3),fld('emergency_name','Emergency contact name'),fld('emergency_phone','Emergency contact phone',0,'+44 7700 900123'),
+    h('button',{class:'btn full',style:'margin-top:12px',onclick:function(ev){ var bt=ev.currentTarget, p={}; Object.keys(ins).forEach(function(k){ p[k]=ins[k].value.trim(); }); bt.disabled=true;
+      rpc('my_file_save',{p:p}).then(function(){ close(); toast('Saved.'); loadFile(); }).catch(function(e){ bt.disabled=false; toast(errText(e)); }); }},'Save'))); }
+function fileUpload(){ var inp=h('input',{type:'file',accept:'image/*,application/pdf,.doc,.docx'});
+  inp.onchange=function(){ var f=inp.files[0]; if(!f) return; if(f.size>50e6) return toast('That file is over 50 MB.');
+    var ext=(f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'jpg', path=S.data.me.id+'/file/'+Date.now()+Math.random().toString(36).slice(2,6)+'.'+ext;
+    toast('Uploading.');
+    sb.storage.from('coaching').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false}).then(function(r){ if(r.error) throw r.error;
+      return rpc('member_doc_add',{p:{name:f.name.replace(/\.[^.]+$/,'').slice(0,120),kind:/blood|lab/i.test(f.name)?'bloods':'other',path:path,size:f.size}}); })
+      .then(function(){ toast('Saved. Your coaches can see it.'); loadFile(); }).catch(function(e){ toast(errText(e)); }); };
+  inp.click(); }
+function fileCards(){
+  if(!MYF){ loadFile(); return h('div',{class:'card'},h('p',{class:'empty'},'Loading your file.')); }
+  if(MYF.err) return h('div',{class:'card'},h('p',{class:'empty'},MYF.err));
+  var f=MYF.file||{}, notes=MYF.notes||[], docs=MYF.docs||[];
+  var consent=f.consent_at?null:h('div',{class:'card dark'},h('h3',{style:'color:#fff'},'Your health details'),
+    h('p',{class:'sub'},'To look after you properly we keep notes on your health: conditions, medication, allergies, injuries, blood tests and your coaches\' notes. Only you, your coaches and the Pangea managers see them, and you can see everything we keep here. You can take this back at any time.'),
+    h('button',{class:'btn gold',onclick:function(ev){ ev.currentTarget.disabled=true; rpc('my_consent',{p_on:true}).then(function(){ toast('Thank you.'); loadFile(); }).catch(function(e){ toast(errText(e)); }); }},'I agree'));
+  var details=h('div',{class:'card'},h('div',{class:'row between'},h('h2',null,'My file'),h('button',{class:'btn small',onclick:fileDetailsSheet},'Update')),
+    [['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]].map(function(r){
+      return h('div',{class:'list-row'},h('div',{class:'grow'},h('div',{class:'sub'},r[0]),h('div',{style:'white-space:pre-wrap'},r[1]||'Nothing noted'))); }));
+  var diary=h('div',{class:'card'},h('h2',null,'Coach notes'),notes.length?notes.slice(0,40).map(function(n){
+      return h('div',{class:'list-row',style:'display:block'},h('div',{class:'sub'},nice(n.day)+(n.by?' · '+n.by:'')),n.title?h('b',null,n.title):null,n.body?h('p',{style:'margin:4px 0;white-space:pre-wrap'},n.body):null,
+        (n.files||[]).map(function(x){ var u=S.signed[x.path]; return u?h('a',{class:'btn small ghost',href:u,target:'_blank',rel:'noopener',style:'margin:4px 6px 0 0;display:inline-block;text-decoration:none'},x.name||'File'):null; })); })
+    :h('p',{class:'empty'},'After your sessions, your coaches\' notes show here.'));
+  var docList=h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('h2',null,'My documents'),h('div',{class:'sub'},'Blood tests, doctor\'s letters, scans.')),h('button',{class:'btn small',onclick:fileUpload},'Upload')),
+    docs.length?docs.map(function(d){ var u=S.signed[d.path]; return h('div',{class:'list-row'},h('div',{class:'grow'},h('div',{style:'font-weight:600'},d.name),h('div',{class:'sub'},(DOCK[d.kind]||'File')+' · '+nice(d.day))),
+      u?h('a',{class:'btn small ghost',href:u,target:'_blank',rel:'noopener'},'Open'):h('span',{class:'sub'},'…'),
+      d.mine?h('button',{class:'btn link',onclick:function(){ if(!confirm('Remove '+d.name+'?')) return; rpc('member_doc_remove',{p_id:d.id}).then(function(){ loadFile(); }).catch(function(e){ toast(errText(e)); }); }},'Remove'):null); })
+    :h('p',{class:'empty'},'Nothing yet.'));
+  var back=f.consent_at?h('p',{class:'sub center'},'You agreed to us keeping your health details on '+niceT(f.consent_at)+'. ',h('button',{class:'btn link',onclick:function(){ if(!confirm('Take back your agreement? Your coaches keep what is there, but we will ask before using it.')) return; rpc('my_consent',{p_on:false}).then(function(){ loadFile(); }); }},'Take it back')):null;
+  return [consent,details,diary,docList,back];
+}
 function meView(){
   var d=S.data, lv=LEVELS[d.me.level||'app'];
   return h('div',null,h('h1',null,d.me.name||'Me'),h('p',{class:'sub'},d.me.email||''),
     h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('div',{class:'sub'},'Your level'),h('h3',null,lv[0])),h('span',{class:'pill gold'},'Member')),h('p',{class:'sub',style:'margin:6px 0 0'},lv[1])),
+    fileCards(),
     h('div',{class:'card'},h('h3',null,'Phuket King'),h('p',{class:'sub'},'Check in, book privates, classes and your room in the Phuket King app. Same account.'),h('a',{class:'btn ghost small',href:'https://app.phuketking.com/',style:'display:inline-block;text-decoration:none;line-height:20px'},'Open Phuket King')),
     h('div',{class:'card'},h('p',{class:'sub',style:'margin-top:0'},'Add Pangea to your home screen: in Safari tap Share, then Add to Home Screen.'),
       h('button',{class:'btn ghost small',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out')),

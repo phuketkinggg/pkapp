@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=123"></script>
+<script src="changelog.js?v=124"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -696,6 +696,11 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .accrc{display:grid;grid-template-columns:200px 1fr;gap:14px;margin-bottom:12px}.accrc.focus{outline:3px solid var(--gold)}.accrcimgw{display:block}.accrcimgw img,.accrcimg{width:100%;max-height:300px;object-fit:contain;border-radius:8px;background:var(--sunken);display:flex;align-items:center;justify-content:center;min-height:120px;color:var(--muted);font-size:13px}
 .accrcf{display:flex;flex-direction:column;gap:8px}.accrcg{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.accrcg .field{margin:0}
 @media (max-width:640px){.accrc{grid-template-columns:1fr}.accnums span{font-size:15px}}
+.mfhead{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}.mfphoto{display:flex;flex-direction:column;gap:8px;align-items:center}
+.mfimg{width:120px;height:120px;border-radius:14px;object-fit:cover;display:block}.mfnone{display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:700;background:var(--sunken,rgba(127,127,127,.12));color:var(--muted)}
+.mfalert{background:var(--bad-bg,#fde8e8);color:var(--bad,#a11);border-radius:10px;padding:8px 12px;margin-bottom:10px;white-space:pre-wrap}
+.mfgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 16px;margin-bottom:10px}.mfgrid small{display:block;color:var(--muted);font-weight:600}.mfgrid span{white-space:pre-wrap}
+.mfdiary{display:flex;flex-direction:column;gap:10px}.mfnote .mfbody{white-space:pre-wrap;margin:8px 0}
 .forminfo{font-size:14px;line-height:1.45;padding:10px 12px;border-radius:10px;background:var(--panel2,rgba(127,127,127,.08));min-height:1.5em}
 .forminfo:empty{display:none}
 .ssbar{position:relative;display:flex;align-items:center;gap:8px;min-width:160px}.sstrack{display:block;width:140px;height:10px;border-radius:5px;background:var(--sunken);flex:none;overflow:hidden}.ssbar .ssfill{display:block;height:10px;border-radius:5px;background:var(--gold)}.ssbar b{font-variant-numeric:tabular-nums}
@@ -905,6 +910,7 @@ var FEATURES=[
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
+  {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
@@ -984,7 +990,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=78; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=79; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4726,9 +4732,9 @@ function coClient(){
       return h('label',{class:'check',for:'cc-'+s.id},cb,h('span',null,s.name+(s.role==='manager'?' (manager)':''))); })),h('small',{class:'sub'},'Managers can always see every client.'))
     :h('p',{class:'sub'},'Coaches: '+(d.coaches.map(function(c){ return c.name; }).join(', ')||'none'));
   var waiting=d.forms.filter(function(f){ return !f.reply; }).length;
-  var tabs=[['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['logs','Workout logs'+((d.logs||[]).some(function(l){ return l.hurt&&l.day>=cAdd(t,-14); })?' (pain)':'')],['about','About them'],['videos','Videos'+(waiting?' ('+waiting+')':'')],['pangea','Pangea']];
+  var tabs=(featOn('member_file')?[['file','Member file']]:[]).concat([['habits','Habits'],['groups','Action groups'+(d.groups.length?' ('+d.groups.length+')':'')],['food','Food diary'],['weight','Weight'],['programs','Programs'],['logs','Workout logs'+((d.logs||[]).some(function(l){ return l.hurt&&l.day>=cAdd(t,-14); })?' (pain)':'')],['about','About them'],['videos','Videos'+(waiting?' ('+waiting+')':'')],['pangea','Pangea']]);
   var sub=h('div',{class:'ctabs'},tabs.map(function(x){ return h('button',{type:'button',class:'ctab'+(COACH.sub===x[0]?' on':''),onclick:function(){ COACH.sub=x[0]; schedule(); }},x[1]); }));
-  var body=COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):COACH.sub==='pangea'?coStayPanel(d):COACH.sub==='about'?intakePanel(d.customer.id):coHabits(d);
+  var body=COACH.sub==='file'&&featOn('member_file')?mfPanel(d):COACH.sub==='logs'?coLogs(d):COACH.sub==='groups'?coClientGroups(d):COACH.sub==='food'?coFood(d):COACH.sub==='weight'?coWeight(d):COACH.sub==='programs'?coPrograms(d):COACH.sub==='videos'?coVideos(d):COACH.sub==='pangea'?coStayPanel(d):COACH.sub==='about'?intakePanel(d.customer.id):coHabits(d);
   return [back,pageHead(d.customer.name,'Coaching. Private to this client, their coaches and the managers.'),coaches,sub,body];
 }
 /* one customer's "About you" answers (Coaching, About them, and the customer page) */
@@ -4759,6 +4765,73 @@ function coStayPanel(d){
     section('Blood tests',null,files.length?h('div',{class:'panel pad'},files.map(function(f){ return h('div',{class:'row'},h('span',null,(f.note||'Blood test')+', '+fmtDate(String(f.at).slice(0,10))),btn('Open',function(){ sb.storage.from('coaching').createSignedUrl(f.path,3600).then(function(r){ if(r.error) return toast(errText(r.error)); window.open(r.data.signedUrl,'_blank','noopener'); }); },'small')); })):h('div',{class:'panel empty'},'None uploaded.')),
     section('Health numbers',null,nums.length?h('div',{class:'panel pad'},nums.slice(0,60).map(function(m){ var k=PGK[m.kind]||[m.kind,''];
       return h('div',{class:'row'},h('span',{style:'flex:1'},k[0]),h('b',null,val(m)+(k[1]?' '+k[1]:'')),h('small',{class:'sub'},fmtDate(String(m.at).slice(0,10)))); })):h('div',{class:'panel empty'},'Nothing logged yet.'))];
+}
+/* ---------- member file (feature member_file): one file per member for life: photo, alerts, health, a coaching diary and documents.
+   The member, the managers and the coaches assigned to them see it; every look by staff is logged. Files go in the private coaching storage. ---------- */
+var MF={cid:null,data:null};
+var MFK=[['session','Coaching session'],['checkin','Check-in'],['health','Health'],['note','Note']], MFD=[['bloods','Blood test'],['medical','Medical letter or report'],['scan','Scan or X-ray'],['programme','Programme or plan'],['photo','Photo'],['other','Other']];
+function mfOpen(cid){ ui.tab='coaching'; COACH.sub='file'; MF={cid:null,data:null}; coOpen(cid); schedule(); window.scrollTo(0,0); }
+function mfLoad(cid){ MF={cid:cid,data:null}; return sb.rpc('member_file_get',{p_customer:cid}).then(must).then(function(x){ if(MF.cid===cid){ MF.data=x; schedule(); } }).catch(function(e){ MF.data={err:errText(e)}; schedule(); }); }
+function mfOpenFile(path){ sb.storage.from('coaching').createSignedUrl(path,600).then(function(r){ if(r.error) return toast(errText(r.error)); window.open(r.data.signedUrl,'_blank','noopener'); }); }
+/* pick a file and put it in the member's private folder; done({path,name,type,size}) */
+function mfUpload(cid,done,accept){
+  var inp=h('input',{type:'file',accept:accept||'image/*,.pdf,.doc,.docx,.txt,.heic',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+    if(f.size>50*1024*1024){ toast('That file is over 50 MB.'); return; }
+    var ext=(f.name.match(/\.([a-z0-9]{2,5})$/i)||[0,'bin'])[1].toLowerCase(), path=cid+'/file/'+cRand()+'.'+ext, img=/^image\/(jpeg|png|webp)$/.test(f.type);
+    toast('Uploading '+f.name+'...');
+    (img?shrinkPhoto(f,2000):Promise.resolve(f)).then(function(b){ return sb.storage.from('coaching').upload(path,b,{contentType:img?'image/jpeg':(f.type||'application/octet-stream'),upsert:false}); })
+      .then(function(r){ if(r.error) throw r.error; toast('Uploaded.'); done({path:path,name:f.name.replace(/\.[^.]+$/,'').slice(0,80),type:f.type||'',size:f.size}); }).catch(function(e){ toast(errText(e)); }); }});
+  document.body.appendChild(inp); inp.click(); }
+function mfPanel(d){
+  var cid=d.customer.id, mgr=me&&me.role==='manager';
+  if(MF.cid!==cid){ mfLoad(cid); }
+  var x=MF.data; if(!x) return h('div',{class:'panel empty'},'Loading.'); if(x.err) return h('div',{class:'panel empty'},x.err);
+  var f=x.file||{}, photo=f.photo||x.intake_photo;
+  function editHealth(){ openForm({title:'Health and details: '+d.customer.name,saveLabel:'Save',doneMsg:'Saved.',
+      note:'Only this member, their coaches and the managers see this. The member can update it in their app too.',
+      values:{alerts:f.alerts||'',conditions:f.conditions||'',medication:f.medication||'',allergies:f.allergies||'',injuries:f.injuries||'',goals:f.goals||'',emergency_name:f.emergency_name||'',emergency_phone:f.emergency_phone||''},
+      fields:[{key:'alerts',label:'Alerts for every coach',type:'textarea',rows:2,hint:'Shown in red at the top, for example: bad left knee, diabetic, carry sugar. The member does not see this box.'},
+        {key:'conditions',label:'Illnesses and conditions',type:'textarea',rows:3},{key:'medication',label:'Medication and supplements',type:'textarea',rows:3},
+        {key:'allergies',label:'Allergies',type:'textarea',rows:2},{key:'injuries',label:'Injuries and operations',type:'textarea',rows:3},{key:'goals',label:'Goals',type:'textarea',rows:3},
+        {key:'emergency_name',label:'Emergency contact name'},{key:'emergency_phone',label:'Emergency contact phone',type:'tel',hint:'With the country code, for example +44 7700 900123.'}],
+      onSave:function(v){ return sb.rpc('member_file_save',{p_customer:cid,p:v}).then(must).then(function(){ return mfLoad(cid); }); }}); }
+  function setPhoto(){ mfUpload(cid,function(u){ sb.rpc('member_file_save',{p_customer:cid,p:{photo:u.path}}).then(must).then(function(){ mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'image/*'); }
+  function editNote(n){ n=n||{}; var files=(n.files||[]).slice(), fl=h('div',{class:'row wrap'});
+    function drawFiles(){ fl.replaceChildren.apply(fl,files.map(function(fx,i){ return h('span',{class:'chip'},fx.name,' ',h('button',{type:'button',class:'linkbtn','aria-label':'Remove '+fx.name,onclick:function(){ files.splice(i,1); drawFiles(); }},'x')); })); }
+    drawFiles();
+    openForm({title:n.id?'Edit diary entry':'New diary entry: '+d.customer.name,saveLabel:'Save',doneMsg:'Saved in the diary.',
+      values:{day:n.day||ymd(new Date()),kind:n.kind||'session',title:n.title||'',body:n.body||'',shared:n.id?!!n.shared:false},
+      fields:[{key:'day',label:'Date',type:'date'},{key:'kind',label:'What it was',type:'select',options:MFK},{key:'title',label:'Title',hint:'Optional, for example: Pads, footwork, left hook.'},
+        {key:'body',label:'Notes',type:'textarea',rows:8,hint:'What you did, how they were, what to work on next.'},
+        {key:'files',label:'Files',type:'info'},
+        {key:'shared',label:'The member can see this entry in their app',type:'checkbox'}],
+      onSave:function(v){ return sb.rpc('member_note_save',{p:{id:n.id||null,customer_id:cid,day:v.day,kind:v.kind,title:v.title,body:v.body,shared:!!v.shared,files:files}}).then(must).then(function(){ return mfLoad(cid); }); }});
+    var info=document.querySelector('dialog .forminfo'); if(info){ info.replaceChildren(fl,btn('Add a file or photo',function(){ mfUpload(cid,function(u){ if(files.length>=10){ toast('Up to 10 files on one entry.'); return; } files.push(u); drawFiles(); }); },'small')); } }
+  function addDoc(){ mfUpload(cid,function(u){ openForm({title:'Save the file',saveLabel:'Save',doneMsg:'Saved in Documents.',values:{name:u.name,kind:/blood|lab/i.test(u.name)?'bloods':'other',day:ymd(new Date()),shared:true},
+      fields:[{key:'name',label:'Name',required:true},{key:'kind',label:'What it is',type:'select',options:MFD},{key:'day',label:'Date',type:'date'},{key:'shared',label:'The member can see it in their app',type:'checkbox'}],
+      onSave:function(v){ return sb.rpc('member_doc_add',{p:{customer_id:cid,name:v.name,kind:v.kind,path:u.path,size:u.size,day:v.day,shared:!!v.shared}}).then(must).then(function(){ return mfLoad(cid); }); }}); }); }
+  var consent=f.consent_at?h('p',{class:'sub'},chip('Consent given','ok'),' '+fmtDate(String(f.consent_at).slice(0,10))+(f.consent_how?', '+f.consent_how:''))
+    :h('div',{class:'panel pad owebox'},h('b',null,'No consent yet to keep health details'),h('p',{class:'sub'},'Health details are sensitive. The member agrees in their app, or tell them what you keep and why, and tick here when they agree in person.'),
+      btn('They agreed in person',function(){ sb.rpc('member_consent_set',{p_customer:cid,p_on:true}).then(must).then(function(){ toast('Consent recorded.'); mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'small'));
+  var head=h('div',{class:'panel pad mfhead'},h('div',{class:'mfphoto'},photo?cPhoto(photo,'mfimg'):h('div',{class:'mfimg mfnone'},String(d.customer.name||'?').charAt(0)),btn(photo?'Change photo':'Add a photo',setPhoto,'small')),
+    h('div',{style:'flex:1;min-width:220px'},f.alerts?h('div',{class:'mfalert',role:'note'},h('b',null,'Alert: '),f.alerts):null,
+      h('div',{class:'mfgrid'},[['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]].map(function(r){ return h('div',null,h('small',null,r[0]),h('span',{class:'notr'},r[1]||'None noted')); })),
+      h('div',{class:'row'},btn('Edit health and details',editHealth,'small')),f.updated_at&&f.updated_by?h('small',{class:'sub'},'Last changed '+fmtDate(String(f.updated_at).slice(0,10))+' by '+f.updated_by):null));
+  var notes=x.notes||[], docs=x.docs||[];
+  var diary=section('Diary',btn('New entry',function(){ editNote(); },'primary small'),notes.length?h('div',{class:'mfdiary'},notes.map(function(n){
+      return h('div',{class:'panel pad mfnote'},h('div',{class:'row',style:'justify-content:space-between'},h('b',null,fmtDate(n.day)+', '+((MFK.filter(function(k){ return k[0]===n.kind; })[0]||[0,'Note'])[1])+(n.title?': ':''),h('span',{class:'notr'},n.title||'')),
+          h('span',{class:'row'},n.shared?chip('Member sees it','ok'):chip('Team only'),h('small',{class:'sub'},n.by||''))),
+        n.body?h('p',{class:'notr mfbody'},n.body):null,
+        (n.files||[]).length?h('div',{class:'row wrap'},n.files.map(function(fx){ return btn(fx.name||'File',function(){ mfOpenFile(fx.path); },'small'); })):null,
+        n.mine||mgr?h('div',{class:'row'},btn('Edit',function(){ editNote(n); },'small'),btn('Remove',function(){ if(!confirm('Remove this diary entry?')) return; sb.rpc('member_note_remove',{p_id:n.id}).then(must).then(function(){ toast('Removed.'); mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'small')):null); }))
+    :h('div',{class:'panel empty'},'No entries yet. After each session, add what you did and what to work on next. Years later you can scroll back through it all.'));
+  var docList=section('Documents',btn('Upload a file',addDoc,'small'),docs.length?table([{label:'File',cell:function(o){ return linkBtn(o.name,function(){ mfOpenFile(o.path); }); }},
+      {label:'What',cell:function(o){ return (MFD.filter(function(k){ return k[0]===o.kind; })[0]||[0,'Other'])[1]; }},{label:'Date',cell:function(o){ return fmtDate(o.day); }},{label:'By',cell:function(o){ return o.by||''; }},
+      {label:'',cell:function(o){ return h('span',{class:'row'},btn(o.shared?'Member sees it':'Team only',function(){ sb.rpc('member_doc_share',{p_id:o.id,p_shared:!o.shared}).then(must).then(function(){ mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'small'),
+        btn('Remove',function(){ if(!confirm('Remove '+o.name+'?')) return; sb.rpc('member_doc_remove',{p_id:o.id}).then(must).then(function(){ toast('Removed.'); mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'small')); }}],docs,'')
+    :h('div',{class:'panel empty'},'Blood tests, doctor\'s letters, scans, programmes: upload anything. PDFs, Word files and photos.'));
+  var views=mgr&&x.views&&x.views.length?section('Who opened this file',null,h('div',{class:'panel pad'},h('small',{class:'sub'},x.views.slice(0,15).map(function(v){ return (v.by||'Staff')+', '+cWhen(v.at); }).join('. ')))):null;
+  return [consent,head,diary,docList,views,h('p',{class:'sub'},'Private to '+d.customer.name+', their coaches and the managers. Health numbers and blood results the member logs are under Pangea.')];
 }
 /* habits (coach) */
 function coHabits(d){
@@ -8420,7 +8493,7 @@ function vCustomers(){
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),featOn('member_file')&&tabOn('coaching')&&!c.is_agency&&me&&(me.role==='manager'||me.role==='coach'||me.also_coach)?btn('Member file',function(){ mfOpen(c.id); }):null,isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       custBills(c),
       me&&me.role==='manager'?emailOneSection(c):null,
       me&&(me.role==='manager'||me.role==='coach')?intakePanel(c.id,true):null,
