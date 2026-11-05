@@ -2,17 +2,7 @@
 -- Each amount goes in as money out (a minus payment) on the day of the refund, in the same department as the money that came in,
 -- so Accounts corrects itself. Add-ons are refunded like Refund on a package (they stop working). The stay can be cancelled too.
 -- p_dry: only check the PIN and the amounts (the booking page refund through Stripe checks first, then refunds the card, then records it).
--- Needs private.pay_insert, private.manager_pin and private.refundable; skips cleanly where a database does not have them.
-do $patch$
-begin
-  if to_regprocedure('private.pay_insert(uuid,uuid,uuid,uuid,integer,text,date,text)') is null
-     or to_regprocedure('private.manager_pin(text)') is null
-     or to_regprocedure('private.refundable(uuid,uuid)') is null then
-    raise notice 'stay_refund: skipped, this database has no refunds yet';
-    return;
-  end if;
-
-  execute $f$
+-- New functions only (nothing existing is changed). Needs private.pay_insert, private.manager_pin and private.refundable.
 create or replace function private.stay_room_refundable(p_stay uuid) returns integer
 language sql stable security definer set search_path to '' as $q$
   -- room money taken on this stay (deposits, paid ahead, the settled bill), less extras charged to a settled bill (those refund on the add-on)
@@ -21,9 +11,7 @@ language sql stable security definer set search_path to '' as $q$
     - coalesce((select sum(rc.amount_thb) from public.room_charges rc join public.stays s on s.id = rc.stay_id
                 where rc.stay_id = p_stay and s.settled and not rc.voided and (rc.purchase_id is not null or rc.private_id is not null)), 0))::int
 $q$;
-$f$;
 
-  execute $f$
 create or replace function public.stay_refund_info(p_stay uuid) returns jsonb
 language plpgsql stable security definer set search_path to '' as $q$
 declare s public.stays%rowtype;
@@ -40,9 +28,7 @@ begin
        from public.purchases k where (k.for_stay = p_stay or k.stay_id = p_stay) and k.refunded_at is null
          and k.package_name <> 'Stay: group Muay Thai included' and private.refundable(k.id, null) > 0), '[]'::jsonb));
 end $q$;
-$f$;
 
-  execute $f$
 create or replace function public.refund_stay(p_stay uuid, p_room integer, p_extras jsonb, p_method text, p_pin text, p_reason text, p_cancel boolean, p_dry boolean default false, p_note text default null)
 returns jsonb language plpgsql security definer set search_path to '' as $q$
 declare s public.stays%rowtype; who uuid; why text := btrim(coalesce(p_reason,'')); mx integer; room integer := coalesce(p_room, 0);
@@ -88,11 +74,9 @@ begin
           to_char(total, 'FM999,999,990') || ' THB back. ' || why);
   return jsonb_build_object('refunded', total);
 end $q$;
-$f$;
 
-  execute 'revoke all on function public.refund_stay(uuid,integer,jsonb,text,text,text,boolean,boolean,text) from public, anon';
-  execute 'grant execute on function public.refund_stay(uuid,integer,jsonb,text,text,text,boolean,boolean,text) to authenticated';
-  execute 'revoke all on function public.stay_refund_info(uuid) from public, anon';
-  execute 'grant execute on function public.stay_refund_info(uuid) to authenticated';
-  execute 'revoke all on function private.stay_room_refundable(uuid) from public, anon, authenticated';
-end $patch$;
+revoke all on function public.refund_stay(uuid,integer,jsonb,text,text,text,boolean,boolean,text) from public, anon;
+grant execute on function public.refund_stay(uuid,integer,jsonb,text,text,text,boolean,boolean,text) to authenticated;
+revoke all on function public.stay_refund_info(uuid) from public, anon;
+grant execute on function public.stay_refund_info(uuid) to authenticated;
+revoke all on function private.stay_room_refundable(uuid) from public, anon, authenticated;
