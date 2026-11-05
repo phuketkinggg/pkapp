@@ -37,9 +37,10 @@ Deno.serve(async (req) => {
   if (total > 0) {
     // the online payment for this stay (the room, or an add-on paid with the booking)
     const ids = extras.map((x) => x.id).filter((x) => /^[0-9a-f-]{36}$/.test(x));
-    const { data: pays } = await admin.from("payments").select("stripe_session, amount_thb, stay_id, purchase_id").not("stripe_session", "is", null).eq("voided", false).gt("amount_thb", 0)
+    const { data: pays } = await admin.from("payments").select("stripe_session, amount_thb, stay_id, purchase_id").like("stripe_session", "cs_%").eq("voided", false).gt("amount_thb", 0)
       .or([`stay_id.eq.${stayId}`].concat(ids.length ? [`purchase_id.in.(${ids.join(",")})`] : []).join(","));
-    const sess = [...new Set((pays ?? []).map((p) => p.stripe_session as string))];
+    // extras paid with the booking carry the session id plus ":purchase id"
+    const sess = [...new Set((pays ?? []).map((p) => String(p.stripe_session).split(":")[0]))];
     if (!sess.length) return json({ error: "This stay was not paid online, so there is no card to refund. Choose cash or bank transfer." });
     if (sess.length > 1) return json({ error: "This stay was paid in more than one online payment. Refund each one in Stripe, then record it here with Bank transfer." });
     let key = "", s: Record<string, unknown> | null = null;
