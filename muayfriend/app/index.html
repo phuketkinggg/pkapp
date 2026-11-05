@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=127"></script>
+<script src="changelog.js?v=128"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -916,6 +916,7 @@ var FEATURES=[
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
+  {k:'pkg_welcome',g:'Selling',n:'Package welcome email',d:'When someone buys a training package on your website and it is paid, they get a welcome email by themselves: their package and start date, your class times, how to get the app and sign in, what to bring and where you are. Change the wording in Settings, Messages, Package welcome email.'},
   {k:'course_welcome',g:'Training',n:'Course welcome email',d:'When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.'},
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
@@ -999,7 +1000,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=82; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=83; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2796,6 +2797,15 @@ function editWelcome(){
         if(v['ut'+j]) n.upsells.push({title:v['ut'+j],price:v['up'+j],text:v['ux'+j],link:v['ul'+j]}); }
       return saveWelcome(n); }});
 }
+/* package welcome email (feature pkg_welcome): sent by itself when a training package bought on the website is paid */
+var PKW=null, PKWDEF={subject:'Welcome to {business}: your {package}',body:'Hi {first},\n\nThank you for booking {package}. We cannot wait to train with you. Here is everything you need.\n\nYOUR PACKAGE\n{package}{start}\n\nCLASS TIMES, MONDAY TO FRIDAY\n{classes}\nCome 10 to 15 minutes early for your first class, so we can say hello and show you around.\n\nTHE APP\nSee the timetable, your package and check in with the app:\n{app}\n{store}\n{login}\n\nWHAT TO BRING\nWater, a towel and comfortable training clothes. Hand wraps and gloves if you have them; if not, ask at the front desk.\n\nWHERE WE ARE\nMessage us on WhatsApp and we will send you the location pin: {whatsapp}\n\nSee you soon,\n{business}'};
+function pkwLoad(){ PKW=false; sb.from('app_settings').select('value').eq('key','pkg_welcome').maybeSingle().then(function(r){ var v=null; try{ v=r.data&&r.data.value?JSON.parse(r.data.value):null; }catch(e){ v=null; } PKW=v||{}; schedule(); },function(){ PKW={}; schedule(); }); }
+function pkgWelcomeSection(){ if(!featOn('pkg_welcome')||!(me&&me.role==='manager')) return null; if(PKW===null){ pkwLoad(); return null; } if(!PKW) return null; var w=PKW;
+  return section('Package welcome email',btn('Change',function(){ openForm({title:'Package welcome email',note:'Sent by itself, within 10 minutes, when someone buys a training package on your website and it is paid. These words are filled in: {first} {package} {start} {classes} {app} {store} {login} {whatsapp} {business}. {classes} lists your class times from the timetable, Monday to Friday. Delete puts the standard wording back.',
+      values:{on:w.on!==false,subject:w.subject||PKWDEF.subject,body:w.body||PKWDEF.body},fields:[{key:'on',label:'Send it',type:'checkbox'},{key:'subject',label:'Subject',required:true},{key:'body',label:'Email',type:'textarea',rows:18,required:true}],saveLabel:'Save',doneMsg:'Saved.',
+      onDelete:function(){ return sb.from('app_settings').delete().eq('key','pkg_welcome').then(must).then(function(){ PKW={}; schedule(); }); },
+      onSave:function(v){ var val=JSON.stringify({on:!!v.on,subject:v.subject,body:v.body}); return sb.from('app_settings').upsert({key:'pkg_welcome',value:val,updated_at:new Date().toISOString()}).select('key').then(must).then(function(){ PKW=JSON.parse(val); schedule(); }); }}); },'small'),
+    h('div',{class:'panel pad'},h('p',{style:'margin:0'},w.on===false?chip('Off'):chip('On','ok'),' Subject: '+(w.subject||PKWDEF.subject)),h('p',{class:'sub',style:'margin:6px 0 0'},'Sent by itself when a training package bought on your website is paid: their package and start date, your class times, how to get the app and sign in, what to bring and where you are. Online courses have their own email, in Courses.'))); }
 function welcomeSection(){
   if(!WELCOME){ if(!ui.weAsked){ ui.weAsked=true; loadWelcome().catch(function(){}); } return section('Welcome email',null,h('div',{class:'panel empty'},'Loading.')); }
   var c=WELCOME;
@@ -9245,7 +9255,7 @@ function vSettings(){
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings()];
-  else if(t==='messages') body=[welcomeSection(),reviewSection(),renewSection()];
+  else if(t==='messages') body=[welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[

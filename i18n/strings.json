@@ -20794,5 +20794,21 @@
 "When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.": [
 "เมื่อมีคนได้คอร์สออนไลน์ (ซื้อบนเว็บไซต์ พร้อมแพ็กเกจหรือที่พัก หรือให้ที่เคาน์เตอร์) เขาจะได้อีเมลอัตโนมัติ: วิธีโหลดแอปและลงชื่อเข้าใช้ คอร์สอยู่ที่ไหน และบทเรียนไหนเปิดวันไหน แต่ละคอร์สมีข้อความของตัวเอง: เปิดคอร์สแล้วกด อีเมลต้อนรับ",
 "တစ်စုံတစ်ယောက် အွန်လိုင်းသင်တန်း ရရှိသောအခါ (ဝက်ဘ်ဆိုက်တွင် ဝယ်၊ အထုပ် သို့မဟုတ် တည်းခိုမှုနှင့်အတူ၊ သို့မဟုတ် ကောင်တာမှ ပေး) အလိုအလျောက် အီးမေးလ် ရမည်- အက်ပ်ရယူပုံနှင့် ဝင်ပုံ၊ သင်တန်း ဘယ်မှာလဲ၊ ဘယ်နေ့ ဘာဖွင့်မလဲ။ သင်တန်းတိုင်းတွင် ကိုယ်ပိုင်စာသား ရှိသည်- သင်တန်းကိုဖွင့်ပြီး ကြိုဆိုရေး အီးမေးလ် ကို နှိပ်ပါ။"
+],
+"Package welcome email": [
+"อีเมลต้อนรับแพ็กเกจ",
+"အထုပ် ကြိုဆိုရေး အီးမေးလ်"
+],
+"Send it": [
+"ส่ง",
+"ပို့ရန်"
+],
+"Sent by itself when a training package bought on your website is paid: their package and start date, your class times, how to get the app and sign in, what to bring and where you are. Online courses have their own email, in Courses.": [
+"ส่งอัตโนมัติเมื่อแพ็กเกจที่ซื้อบนเว็บไซต์ชำระแล้ว: แพ็กเกจและวันเริ่ม เวลาคลาส วิธีโหลดแอปและลงชื่อเข้าใช้ สิ่งที่ต้องนำมา และที่ตั้ง คอร์สออนไลน์มีอีเมลของตัวเองในหน้าคอร์ส",
+"ဝက်ဘ်ဆိုက်တွင် ဝယ်ထားသော လေ့ကျင့်ရေးအထုပ် ငွေချေပြီးသောအခါ အလိုအလျောက် ပို့သည်- အထုပ်နှင့် စတင်ရက်၊ အတန်းချိန်များ၊ အက်ပ်ရယူပုံနှင့် ဝင်ပုံ၊ ယူလာရမည့်အရာများနှင့် တည်နေရာ။ အွန်လိုင်းသင်တန်းများတွင် သင်တန်းများထဲ၌ ကိုယ်ပိုင် အီးမေးလ် ရှိသည်။"
+],
+"When someone buys a training package on your website and it is paid, they get a welcome email by themselves: their package and start date, your class times, how to get the app and sign in, what to bring and where you are. Change the wording in Settings, Messages, Package welcome email.": [
+"เมื่อมีคนซื้อแพ็กเกจบนเว็บไซต์และชำระแล้ว เขาจะได้อีเมลต้อนรับอัตโนมัติ: แพ็กเกจและวันเริ่ม เวลาคลาส วิธีโหลดแอปและลงชื่อเข้าใช้ สิ่งที่ต้องนำมา และที่ตั้ง เปลี่ยนข้อความได้ที่ ตั้งค่า ข้อความ อีเมลต้อนรับแพ็กเกจ",
+"ဝက်ဘ်ဆိုက်တွင် လေ့ကျင့်ရေးအထုပ် ဝယ်ပြီး ငွေချေသောအခါ ကြိုဆိုရေး အီးမေးလ်ကို အလိုအလျောက် ရမည်- အထုပ်နှင့် စတင်ရက်၊ အတန်းချိန်များ၊ အက်ပ်ရယူပုံနှင့် ဝင်ပုံ၊ ယူလာရမည့်အရာများနှင့် တည်နေရာ။ စာသားကို ဆက်တင်များ၊ စာများ၊ အထုပ် ကြိုဆိုရေး အီးမေးလ် တွင် ပြောင်းပါ။"
 ]
 }
