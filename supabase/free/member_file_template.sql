@@ -235,10 +235,5 @@ do $$ declare g record; r record; begin
     end loop;
   end loop;
 end $$;
-update storage.buckets set allowed_mime_types = (select array_agg(distinct m) from unnest(coalesce(allowed_mime_types, '{}'::text[]) || array['application/pdf','application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain','image/heic','image/heif']) m)
-where id = 'coaching' and allowed_mime_types is not null;
-drop policy if exists "coaching staff upload" on storage.objects;
-create policy "coaching staff upload" on storage.objects for insert to authenticated
-  with check (bucket_id = 'coaching' and private.my_staff_id() is not null and (select private.coach_path_ok(name)));
+-- storage: the free database has no private coaching bucket yet, so files in member files wait for the paid apps
 notify pgrst, 'reload schema';
