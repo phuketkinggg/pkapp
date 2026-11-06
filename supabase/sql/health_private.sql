@@ -111,7 +111,7 @@ begin
       from public.web_pkg_orders o where o.customer_id = p_customer
     union all select jsonb_build_object('at', p.created_at, 'kind', 'package', 'what', 'Package: ' || p.package_name,
         'detail', concat_ws('. ', p.price_thb || ' THB', 'Bought ' || to_char(p.purchased_on, 'FMDD Mon YYYY'),
-          case when p.ordered_in_app then 'In the app' when exists (select 1 from public.web_pkg_orders w where w.purchase_id = p.id) then 'On the website' when p.stay_id is not null then 'With the stay' else 'At the desk' end,
+          case when p.ordered_in_app then 'In the app' when exists (select 1 from public.web_pkg_orders w where w.purchase_id = p.id) then 'On the website' when p.stay_id is not null or p.for_stay is not null then 'With the room booking' when exists (select 1 from public.payments q where q.purchase_id = p.id and q.stripe_session is not null) then 'Paid online' else 'At the desk' end,
           case when p.method is not null then 'Paid by ' || p.method end, case when p.sold_by is not null then 'By ' || (select name from public.staff where id = p.sold_by) end,
           case when p.starts_on is not null then 'Runs ' || to_char(p.starts_on, 'FMDD Mon') || coalesce(' to ' || to_char(p.expires_on, 'FMDD Mon YYYY'), '') end,
           case when p.cancelled then 'Cancelled' end, case when p.refunded_at is not null then 'Refunded ' || coalesce(p.refund_thb::text || ' THB', '') end))
