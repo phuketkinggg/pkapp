@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=129"></script>
+<script src="changelog.js?v=130"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -916,6 +916,8 @@ var FEATURES=[
   {k:'course_welcome',g:'Training',n:'Course welcome email',d:'When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.'},
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
+  {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
+  {k:'health_private',g:'Training',n:'Private health records',d:'Health records (member files, health numbers, blood tests and injuries from the About you form) are seen only by the owner of the health records and the people they allow, for one member or for every member. Set who in Settings, General, Health records, and on the Info tab of each customer. Turned off, the member\'s coaches and the managers see them.',def:true,spa:true},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
@@ -996,7 +998,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=84; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=85; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8402,7 +8404,7 @@ function custBills(c){
   return h('div',{class:'panel pad owebox'},h('div',{class:'row'},h('b',null,'Shop bill not paid: '+thb(tot)),btn('Take payment in Shop',function(){ ui.tab='shop'; ui.shopView=''; schedule(); window.scrollTo(0,0); },'primary small')),
     h('ul',{class:'plain'},L.map(function(o){ return h('li',{class:'sub'},'#'+o.number+', '+fmtDate(ymd(new Date(o.at)))+': '+o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+', '+thb(o.total)); })));
 }
-function openCustomer(id){ ackCustomer(id); ui.tab='customers'; ui.customerId=id; schedule(); }
+function openCustomer(id){ ackCustomer(id); ui.tab='customers'; if(ui.customerId!==id) ui.ctab='main'; ui.customerId=id; schedule(); }
 var REVIEW_URL='https://massagemate.app/';
 function reviewPhone(c){ var ph=String(c&&c.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1); return ph.length>=8?ph:''; }
 var REVIEW_DEF='Hi {name}, thanks so much for training with us at Karahill Nail and Beauty! If you have a minute, a quick Google review helps us a lot: {link} Thank you, see you in class.', REVIEW_MSG=null;
@@ -8579,6 +8581,80 @@ function vAskAi(){
     h('div',{class:'panel pad aicompose'},box,AI.files.length?h('div',{class:'row wrap'},AI.files.map(function(f,i){ return h('span',{class:'chip notr'},f.name,' ',h('button',{type:'button',class:'link','aria-label':'Remove '+f.name,onclick:function(){ AI.files.splice(i,1); schedule(); }},'×')); })):null,
       h('div',{class:'row'},btn('Attach a file',aiPick,'small'),btn(AI.busy?'Thinking':'Send',function(){ aiSend(box.value); },'primary'+(AI.busy?' disabled':''))))];
 }
+/* ---------- customer Info tab (feature cust_info): everything known about one customer, newest first, from customer_info.
+   Health shows only for the people allowed (feature health_private: the owner of the health records and the people they allow). ---------- */
+var CI={cid:null,data:null,acc:null,err:null};
+function ciLoad(cid){ CI={cid:cid,data:null,acc:null,err:null};
+  Promise.all([sb.rpc('customer_info',{p_customer:cid}).then(must),sb.rpc('health_access_list',{p_customer:cid}).then(must).catch(function(){ return null; })]).then(function(r){ if(CI.cid!==cid) return; CI.data=r[0]; CI.acc=r[1]; schedule(); })
+    .catch(function(e){ if(CI.cid===cid){ CI.err=errText(e); schedule(); } }); }
+function ciWhen(t){ if(!t) return ''; var d=new Date(t); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Bangkok'})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}); }
+var CIK={customer:'Customer',app:'App',stay:'Stay',web:'Website',package:'Package',payment:'Payment',private:'Private',course:'Course',shop:'Shop',agency:'Agency',email:'Email',visit:'Visits',chat:'Chat',invoice:'Invoice',fighter:'Fighter',notice:'Notice'};
+function ciPanel(c){
+  if(CI.cid!==c.id) ciLoad(c.id);
+  if(CI.err) return [h('div',{class:'panel empty'},CI.err)];
+  var d=CI.data; if(!d) return [h('div',{class:'panel empty'},'Loading.')];
+  var cu=d.customer||{}, acc=CI.acc||{}, kv=function(k,v){ return v==null||v===''?null:h('div',null,h('small',null,k),v); };
+  var sum=h('div',{class:'panel pad kv'},
+    kv('Customer since',ciWhen(cu.created_at)),kv('App account',d.signed_up?ciWhen(d.signed_up):'No app account yet'),kv('Last signed in',d.last_sign_in?ciWhen(d.last_sign_in):null),
+    kv('Email',cu.email||'Not given'),kv('Phone',cu.phone||'Not given'),kv('Country',cu.country),kv('Spent with us',thb(d.spent)||'0 THB'),kv('Visits',String(d.visits||0)),
+    kv('Referred by',d.referred_by),kv('Messages and emails',cu.marketing_ok===false||cu.unsubscribed_at?'Does not want them':'OK'),
+    kv('Level',TIERS[cu.tier]||null),kv('Pricing',GROUPS[cu.price_group||'standard']));
+  var ev=d.events||[];
+  var kinds=[['all','Everything']].concat(Object.keys(CIK).filter(function(k){ return ev.some(function(e){ return e.kind===k; }); }).map(function(k){ return [k,CIK[k]]; }));
+  var f=ui.ciKind||'all'; if(!kinds.some(function(k){ return k[0]===f; })) f='all';
+  var list=ev.filter(function(e){ return f==='all'||e.kind===f; });
+  var sel=h('select',{id:'ci-kind','aria-label':'Show',onchange:function(e){ ui.ciKind=e.target.value; schedule(); }},kinds.map(function(k){ return h('option',{value:k[0],selected:k[0]===f},k[1]); }));
+  return [sum,ciHealth(c,d,acc),
+    section('Everything, newest first',sel,table([
+      {label:'When',cell:function(e){ return ciWhen(e.at); }},
+      {label:'',cell:function(e){ return chip(CIK[e.kind]||e.kind); }},
+      {label:'What',cell:function(e){ return h('span',{class:e.kind==='email'||e.kind==='notice'?'notr':null},e.what); }},
+      {label:'Details',cell:function(e){ return e.detail?h('span',{class:'sub notr'},e.detail):''; }}],list,'Nothing yet.'))];
+}
+function ciHealth(c,d,acc){
+  if(c.is_agency) return null;
+  var keepers=(acc.keepers||[]).map(function(k){ return k.name; }).join(', ');
+  if(!d.health_ok) return section('Health',null,h('div',{class:'panel pad'},h('b',null,'Health records are private.'),h('p',{class:'sub'},'Only '+(keepers||'the owner of the health records')+' can see them, or someone they allow.')));
+  var x=d.health||{}, fl=x.file||{}, ik=x.intake||{}, rows=[];
+  [['Alerts',fl.alerts],['Illnesses and conditions',fl.conditions],['Medication',fl.medication],['Allergies',fl.allergies||ik.allergies],['Injuries and operations',fl.injuries],
+    ['Injury (About you form)',ik.injury==='yes'?[ik.injury_where,ik.injury_note].filter(Boolean).join('. ')||'Yes':ik.injury==='no'?'None':null],['Goals',fl.goals],
+    ['Emergency contact',[fl.emergency_name,fl.emergency_phone].filter(Boolean).join(', ')]].forEach(function(r){ if(r[1]) rows.push(h('div',null,h('small',null,r[0]),h('span',{class:'notr'},r[1]))); });
+  var marks=(x.marks||[]).filter(function(m){ return m.kind!=='bloods'; }).slice(0,12), bloods=(x.marks||[]).filter(function(m){ return m.kind==='bloods'; });
+  function val(m){ return m.kind==='bp'?Math.round(m.value)+'/'+Math.round(m.value2):String(+Number(m.value).toFixed(2)); }
+  var body=[rows.length?h('div',{class:'panel pad kv'},rows):h('div',{class:'panel empty'},'No health details yet.'),
+    marks.length?h('div',{class:'panel pad'},h('b',null,'Health numbers'),marks.map(function(m){ var k=(typeof PGK!=='undefined'&&PGK[m.kind])||[m.kind,'']; return h('div',{class:'row'},h('span',{style:'flex:1'},k[0]),h('b',null,val(m)+(k[1]?' '+k[1]:'')),h('small',{class:'sub'},fmtDate(String(m.at).slice(0,10)))); })):null,
+    bloods.length||(x.docs||[]).length||x.notes?h('p',{class:'sub'},[bloods.length?bloods.length+' blood test'+(bloods.length===1?'':'s'):null,(x.docs||[]).length?(x.docs.length+' document'+(x.docs.length===1?'':'s')):null,x.notes?x.notes+' coaching note'+(x.notes===1?'':'s'):null].filter(Boolean).join(', ')+'. Open the member file to see them.'):null,
+    acc.keeper&&featOn('health_private')?ciWho(c,acc):null];
+  return section('Health',featOn('member_file')&&tabOn('coaching')?btn('Open member file',function(){ mfOpen(c.id); },'small'):null,h('div',null,body));
+}
+/* the owner of the health records: who else can see this member's health */
+function ciWho(c,acc){
+  var g=acc.grants||[], all={}, one={}; g.forEach(function(x){ if(x.all) all[x.staff_id]=1; else one[x.staff_id]=1; });
+  return h('div',{class:'panel pad'},h('b',null,'Who can see '+c.name+'\'s health'),h('p',{class:'sub'},'You and '+((acc.keepers||[]).length>1?'the other owners of the health records':'nobody else')+', and the people you tick here. Nobody else on the team sees it.'),
+    (acc.staff||[]).length?(acc.staff||[]).map(function(st){ var id='hw-'+st.id, cb=h('input',{type:'checkbox',id:id,checked:!!(one[st.id]||all[st.id]),disabled:!!all[st.id],onchange:function(e){ var on=e.target.checked; e.target.disabled=true;
+        sb.rpc('health_access_set',{p_staff:st.id,p_customer:c.id,p_on:on}).then(must).then(function(){ toast(on?st.name+' can now see '+c.name+'\'s health.':st.name+' can no longer see it.'); ciLoad(c.id); }).catch(function(er){ e.target.checked=!on; e.target.disabled=false; toast(errText(er)); }); }});
+      return h('label',{class:'row',for:id},cb,h('span',{class:'notr'},st.name),all[st.id]?h('small',{class:'sub'},'Sees every member. Change it in Settings, General.'):null); }):h('p',{class:'sub'},'Nobody else on the team has a sign in yet.'));
+}
+/* Settings, General: the owner of the health records, and who sees every member's health */
+var HACC=undefined;
+function healthSection(){ if(!featOn('health_private')) return null;
+  if(HACC===undefined){ HACC=null; sb.rpc('health_access_list',{p_customer:null}).then(must).then(function(r){ HACC=r; schedule(); }).catch(function(){ HACC=false; schedule(); }); return null; }
+  if(!HACC) return null;
+  var keepers=(HACC.keepers||[]).map(function(k){ return k.name; }).join(', ');
+  if(!HACC.keeper) return section('Health records',null,h('div',{class:'panel pad sub'},'Health records are private. Only '+(keepers||'the owner')+' can see them and choose who else can.'));
+  var all={}; (HACC.grants||[]).forEach(function(x){ if(x.all) all[x.staff_id]=1; });
+  function reload(){ HACC=undefined; schedule(); }
+  return section('Health records',btn('Owners',function(){ healthKeepersEdit(); },'small'),h('div',{class:'panel pad'},
+    h('p',null,'Health records (member files, health numbers, blood tests and injuries) are seen only by the owners of the health records: ',h('b',{class:'notr'},keepers),'. Owners choose who else can see them. On each customer, the Info tab lets you allow one person for that member.'),
+    h('b',null,'Can see every member\'s health'),
+    (HACC.staff||[]).map(function(st){ var id='ha-'+st.id; return h('label',{class:'row',for:id},h('input',{type:'checkbox',id:id,checked:!!all[st.id],onchange:function(e){ var on=e.target.checked; e.target.disabled=true;
+      sb.rpc('health_access_set',{p_staff:st.id,p_customer:null,p_on:on}).then(must).then(function(){ toast(on?st.name+' can now see every member\'s health.':st.name+' can no longer see every member\'s health.'); reload(); }).catch(function(er){ e.target.checked=!on; e.target.disabled=false; toast(errText(er)); }); }}),h('span',{class:'notr'},st.name),h('small',{class:'sub'},ROLES&&ROLES[st.role]||st.role)); })));
+}
+function healthKeepersEdit(){ var opts0=(HACC.keepers||[]).concat(HACC.staff||[]);
+  openForm({title:'Owners of the health records',note:'Owners see every member\'s health and choose who else can. Keep it to the people who really need it.',values:{who:(HACC.keepers||[]).map(function(k){ return k.id; })},
+    fields:[{key:'who',label:'Owners',type:'checks',options:opts0.map(function(s){ return [s.id,s.name]; })}],
+    onSave:function(v){ if(!(v.who||[]).length) return 'Keep at least one owner.'; return sb.rpc('health_keepers_set',{p_staff:v.who}).then(must).then(function(){ HACC=undefined; schedule(); }); },doneMsg:'Saved.'});
+}
 function vCustomers(){
   var day=ymd(new Date());
   var c=ui.customerId?byId('customers',ui.customerId):null;
@@ -8587,9 +8663,12 @@ function vCustomers(){
     var ps=S.purchases.filter(function(p){return p.customer_id===c.id&&!(p.cancelled&&p.stay_id&&p.package_name==='Stay: group Muay Thai included');}).sort(function(a,b){return a.purchased_on<b.purchased_on?1:-1;});
     var visits=[]; S.checkin_days.forEach(function(d){ (d.entries||[]).forEach(function(e){ if(e.customer_id===c.id) visits.push({day:d.id,e:e}); }); });
     visits.sort(function(a,b){ return (a.day+a.e.time)<(b.day+b.e.time)?1:-1; });
+    var ctabs=featOn('cust_info')?h('div',{class:'ctabs'},[['main','Overview'],['info','Info']].map(function(x){ return h('button',{type:'button',class:'ctab'+((ui.ctab||'main')===x[0]?' on':''),onclick:function(){ ui.ctab=x[0]; schedule(); }},x[1]); })):null;
+    if(ctabs&&ui.ctab==='info') return [h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; ui.ctab='main'; schedule(); })),pageHead(c.name),ctabs].concat(ciPanel(c));
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
       pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),featOn('member_file')&&tabOn('coaching')&&!c.is_agency&&me&&(me.role==='manager'||me.role==='coach'||me.also_coach)?btn('Member file',function(){ mfOpen(c.id); }):null,isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      ctabs,
       custBills(c),
       me&&me.role==='manager'?emailOneSection(c):null,
       me&&(me.role==='manager'||me.role==='coach')?intakePanel(c.id,true):null,
@@ -9299,7 +9378,7 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.'))];
-  else body=[cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
 var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
