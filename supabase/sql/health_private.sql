@@ -111,7 +111,7 @@ begin
       from public.web_pkg_orders o where o.customer_id = p_customer
     union all select jsonb_build_object('at', p.created_at, 'kind', 'package', 'what', 'Package: ' || p.package_name,
         'detail', concat_ws('. ', p.price_thb || ' THB', 'Bought ' || to_char(p.purchased_on, 'FMDD Mon YYYY'),
-          case when p.ordered_in_app then 'In the app' when exists (select 1 from public.web_pkg_orders w where w.purchase_id = p.id) then 'On the website' when p.stay_id is not null or p.for_stay is not null then 'With the room booking' when exists (select 1 from public.payments q where q.purchase_id = p.id and q.stripe_session is not null) then 'Paid online' else 'At the desk' end,
+          case when p.ordered_in_app then 'In the app' when exists (select 1 from public.web_pkg_orders w where w.purchase_id = p.id) then 'On the website' when p.stay_id is not null or to_jsonb(p)->>'for_stay' is not null then 'With the room booking' when exists (select 1 from public.payments q where q.purchase_id = p.id and q.stripe_session is not null) then 'Paid online' else 'At the desk' end,
           case when p.method is not null then 'Paid by ' || p.method end, case when p.sold_by is not null then 'By ' || (select name from public.staff where id = p.sold_by) end,
           case when p.starts_on is not null then 'Runs ' || to_char(p.starts_on, 'FMDD Mon') || coalesce(' to ' || to_char(p.expires_on, 'FMDD Mon YYYY'), '') end,
           case when p.cancelled then 'Cancelled' end, case when p.refunded_at is not null then 'Refunded ' || coalesce(p.refund_thb::text || ' THB', '') end))
@@ -120,13 +120,13 @@ begin
         'detail', coalesce((select k.package_name from public.purchases k where k.id = y.purchase_id), case when y.stay_id is not null then 'Room bill' when y.private_id is not null then 'Private session' end, y.note))
       from public.payments y where y.customer_id = p_customer and not y.voided
     union all select jsonb_build_object('at', x.created_at, 'kind', 'private', 'what', 'Private session ' || to_char(x.date, 'FMDD Mon YYYY') || coalesce(' ' || to_char(x.start_time, 'HH24:MI'), ''),
-        'detail', concat_ws('. ', (select 'With ' || name from public.staff where id = x.coach_id), 'Status: ' || x.status, case when x.web then 'Booked online' end))
+        'detail', concat_ws('. ', (select 'With ' || name from public.staff where id = x.coach_id), 'Status: ' || x.status, case when to_jsonb(x)->>'web' = 'true' then 'Booked online' end))
       from public.privates x where x.customer_id = p_customer
     union all select jsonb_build_object('at', a.created_at, 'kind', 'course', 'what', 'Got the online course ' || coalesce(k.title, ''), 'detail', a.source)
       from public.course_access a left join public.courses k on k.id = a.course_id where a.customer_id = p_customer
     union all select jsonb_build_object('at', max(g.done_at), 'kind', 'course', 'what', 'Watched ' || count(*) || ' course lesson' || case when count(*) = 1 then '' else 's' end, 'detail', null)
       from public.course_progress g where g.customer_id = p_customer and g.done having count(*) > 0
-    union all select jsonb_build_object('at', so.created_at, 'kind', 'shop', 'what', 'Shop order #' || so.number || ', ' || so.total_thb || ' THB', 'detail', concat_ws('. ', 'Status: ' || so.status, case when so.web then 'Ordered in the app' end, so.method))
+    union all select jsonb_build_object('at', so.created_at, 'kind', 'shop', 'what', 'Shop order #' || so.number || ', ' || so.total_thb || ' THB', 'detail', concat_ws('. ', 'Status: ' || so.status, case when to_jsonb(so)->>'web' = 'true' then 'Ordered in the app' end, so.method))
       from public.shop_orders so where so.customer_id = p_customer
     union all select jsonb_build_object('at', ab.created_at, 'kind', 'agency', 'what', 'Agency booking: ' || coalesce(ab.product, ab.kind), 'detail', concat_ws('. ', ab.source_name, ab.ref, to_char(ab.date, 'FMDD Mon YYYY'), ab.people || ' people'))
       from public.agency_bookings ab where ab.customer_id = p_customer
