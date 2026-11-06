@@ -54,4 +54,25 @@ begin
       else execute n; end if;
     end if;
   end if;
+  -- Coaching, Arriving soon: injuries only for those allowed
+  if to_regprocedure('public.prearrival_list()') is not null then
+    d := pg_get_functiondef('public.prearrival_list()'::regprocedure);
+    if position('health_can' in d) = 0 then
+      n := replace(replace(d, $r$'answers', p.answers,$r$, $r$'answers', case when private.health_can(c.id) then p.answers else p.answers - 'injury' - 'injury_where' - 'injury_note' end,$r$),
+        $r$'answers', coalesce(ci.answers, '{}'::jsonb),$r$, $r$'answers', case when private.health_can(c.id) then coalesce(ci.answers, '{}'::jsonb) else coalesce(ci.answers, '{}'::jsonb) - 'injury' - 'injury_where' - 'injury_note' end,$r$);
+      if n = d then raise notice 'health_private: prearrival_list is a different version, skipped';
+      else execute n; if position('health_can' in pg_get_functiondef('public.prearrival_list()'::regprocedure)) = 0 then raise exception 'health_private: prearrival_list did not change'; end if; end if;
+    end if;
+  end if;
+
+  -- the coaches' evening email goes to the whole team: no injuries in it while health is private
+  if to_regprocedure('public.coach_brief(date)') is not null then
+    d := pg_get_functiondef('public.coach_brief(date)'::regprocedure);
+    if position('health_private' in d) = 0 then
+      n := replace(d, $r$'answers', coalesce(nullif(p.answers, '{}'::jsonb), ci.answers, '{}'::jsonb),$r$,
+        $r$'answers', coalesce(nullif(p.answers, '{}'::jsonb), ci.answers, '{}'::jsonb) - case when private.feature('health_private', true) then array['injury','injury_where','injury_note'] else array[]::text[] end,$r$);
+      if n = d then raise notice 'health_private: coach_brief is a different version, skipped';
+      else execute n; if position('health_private' in pg_get_functiondef('public.coach_brief(date)'::regprocedure)) = 0 then raise exception 'health_private: coach_brief did not change'; end if; end if;
+    end if;
+  end if;
 end $patch$;
