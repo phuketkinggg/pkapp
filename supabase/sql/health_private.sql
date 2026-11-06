@@ -104,7 +104,7 @@ begin
     union all select jsonb_build_object('at', s.created_at, 'kind', 'stay', 'what', 'Booked a stay: ' || coalesce(r.name, 'room') || ', ' || to_char(s.check_in, 'FMDD Mon YYYY') || ' to ' || to_char(s.check_out, 'FMDD Mon YYYY'),
         'detail', concat_ws('. ', 'Through ' || coalesce(src.name, case when s.external_id like 'mphb:%' then 'the website' else 'the desk' end), case when s.room_price_thb is not null then 'Room ' || s.room_price_thb || ' THB' end,
           s.guests, case when s.guest_names is not null then 'Staying: ' || replace(s.guest_names, E'\n', ', ') end, 'Status: ' || s.status, case when s.settled then 'Settled ' || coalesce(to_char(s.settled_on, 'FMDD Mon YYYY'), '') end))
-      from public.stays s left join public.rooms r on r.id = s.room_id left join public.sources src on src.id = s.source_id where s.customer_id = p_customer
+      from public.stays s left join public.rooms r on r.id = s.room_id left join public.booking_sources src on src.id = s.source_id where s.customer_id = p_customer
     union all select jsonb_build_object('at', o.created_at, 'kind', 'web', 'what', 'Ordered on the website: ' || coalesce(o.package_name, 'a package'),
         'detail', concat_ws('. ', o.price_thb || ' THB', case when o.start_on is not null then 'Starting ' || to_char(o.start_on, 'FMDD Mon YYYY') end,
           case when o.paid_at is not null then 'Paid ' || to_char(o.paid_at at time zone 'Asia/Bangkok', 'FMDD Mon HH24:MI') else 'Status: ' || o.status end, nullif(o.note, '')))
