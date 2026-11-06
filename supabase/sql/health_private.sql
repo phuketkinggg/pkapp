@@ -91,7 +91,7 @@ end $$;
 -- everything known about one customer, newest first: bookings, packages, website orders, payments, privates, courses, shop, emails, visits, app use.
 -- Health is in it only for the people allowed to see it.
 create or replace function public.customer_info(p_customer uuid) returns jsonb
-language plpgsql stable security definer set search_path to '' as $$
+language plpgsql security definer set search_path to '' as $$
 declare c public.customers%rowtype; u record; ev jsonb; hl jsonb := null; ok boolean;
 begin
   if private.my_staff_id() is null then raise exception 'Staff only.'; end if;
