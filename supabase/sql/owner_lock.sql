@@ -44,7 +44,7 @@ create or replace function private.owner_staff_guard() returns trigger
 language plpgsql security definer set search_path to '' as $$
 declare me uuid := private.my_staff_id(); o uuid;
 begin
-  if (select auth.uid()) is null or not private.owner_locked() or private.is_biz_owner() then return coalesce(new, old); end if;
+  if (select auth.uid()) is null or not private.owner_locked() or private.is_biz_owner() or coalesce(current_setting('pk.owner_recover', true), '') = '1' then return coalesce(new, old); end if;
   o := private.biz_owner_id();
   if coalesce(new.id, old.id) = o then raise exception 'Only the owner can change the owner.'; end if;
   if tg_op = 'DELETE' then
@@ -124,6 +124,7 @@ begin
       if extensions.crypt(code, k.code_hash) = k.code_hash then
         update private.owner_codes set used_at = now() where id = k.id;
         insert into private.owner_code_tries (ok) values (true);
+        perform set_config('pk.owner_recover', '1', true);
         update public.staff set active = true, role = 'manager' where id = o.id;
         return o.user_id;
       end if;
