@@ -44,6 +44,7 @@
   <div><b data-text="prices_buy3">Group classes: just turn up</b><span data-text="prices_buy4">No booking needed. Your package starts automatically from your first class.</span></div>
   <div><b data-text="prices_buy5">Other packages: you choose the start</b><span data-text="prices_buy6">For privates and kids monthly, pick the day you want to start when you buy.</span></div>
 </div></div></div>
+<div class="light-sec" id="resline" hidden><div class="wrap"><p style="margin:0 0 6px"><b data-text="prices_res1">Live in Phuket?</b> <span data-text="prices_res2">Thai nationals and residents with a work permit or a long stay visa can ask us about resident memberships.</span> <a data-wa="Hi Phuket King, I live in Phuket. Can you tell me about resident memberships?">WhatsApp us</a></p></div></div>
 
 <div class="light-sec"><div class="wrap" style="padding-bottom:1px">
   <nav class="tabs" aria-label="Price sections" id="tabs"></nav>
@@ -284,6 +285,7 @@ function waitPP(ref){ var box=$('doneBody'), tries=0; openDlg($('done'));
 })();
 
 PK.data().then(function(d){
+  if(d.residents&&d.residents.length) document.getElementById('resline').hidden=false;
   var used={}, box=document.getElementById('groups'), tabs=document.getElementById('tabs'); box.innerHTML='';
   G.forEach(function(g){
     var list=d.packages.filter(function(p){ return !used[p.name]&&g.test(p); }); list.forEach(function(p){ used[p.name]=1; });

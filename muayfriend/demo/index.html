@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=131"></script>
+<script src="changelog.js?v=132"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -916,6 +916,7 @@ var FEATURES=[
   {k:'course_welcome',g:'Training',n:'Course welcome email',d:'When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.'},
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
+  {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
   {k:'health_private',g:'Training',n:'Private health records',d:'Health records (member files, health numbers, blood tests and injuries from the About you form) are seen only by the owner of the health records and the people they allow, for one member or for every member. Set who in Settings, General, Health records, and on the Info tab of each customer. Turned off, the member\'s coaches and the managers see them.',def:true,spa:true},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
@@ -998,7 +999,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=86; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=87; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10500,7 +10501,7 @@ function editPromo(idx){
 var WEBP={list:null,photos:null,busy:null,err:''};
 function webScript(src,has){ return has()?Promise.resolve():new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=src; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); }); }
 function loadWebPhotos(){
-  return Promise.all([webScript('pk/photos.js?v=13',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js?v=13',function(){ return !!window.PK_TEXTS; })])
+  return Promise.all([webScript('pk/photos.js?v=13',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js?v=14',function(){ return !!window.PK_TEXTS; })])
     .then(function(){ WEBP.list=window.PK_PHOTOS||[]; WEBP.tlist=window.PK_TEXTS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
     .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.texts=(d&&d.texts)||{}; WEBP.gallery=(d&&d.gallery)||{}; WEBP.err=''; schedule(); })
     .catch(function(){ WEBP.err='The website photos and text could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; WEBP.texts=WEBP.texts||{}; schedule(); });

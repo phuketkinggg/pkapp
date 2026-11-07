@@ -91,9 +91,8 @@
 /mphb_room_type_category-sitemap.xml /sitemap.xml 301
 /mphb_room_type_facility-sitemap.xml /sitemap.xml 301
 /mphb_room_type_tag-sitemap.xml /sitemap.xml 301
-/th / 301
-/th/ / 301
-/th/* / 301
+/th/ /th 301
+/th/* /th 301
 /stay /book 301
 /stay/ /book 301
 /rooms /book 301

@@ -1211,5 +1211,250 @@ window.PK_TEXTS=[{
 "page": "Courses",
 "label": "Text: Video lessons, drills and notes...",
 "text": "Video lessons, drills and notes from the Phuket King coaches. Watch the free lessons here, then unlock the full course in the Phuket King app. Members with an active package get most courses free.",
-"multi": true}
+"multi": true},
+{
+"id": "th_t01",
+"page": "Thai page",
+"label": "Text: มวยไทย · กะทู้ ภูเก็ต",
+"text": "มวยไทย · กะทู้ ภูเก็ต",
+"multi": false
+},
+{
+"id": "th_t02",
+"page": "Thai page",
+"label": "Heading: มวยไทยของคนภูเก็ต",
+"text": "มวยไทย*ของคนภูเก็ต*",
+"multi": false
+},
+{
+"id": "th_t03",
+"page": "Thai page",
+"label": "Text: ค่ายมวยไทยริมทะเลสาบที่กะทู้ สอนเทคนิคถู",
+"text": "ค่ายมวยไทยริมทะเลสาบที่กะทู้ สอนเทคนิคถูกต้องตั้งแต่พื้นฐาน ครูทุกคนผ่านการฝึกสอนมาแล้ว เหมาะทั้งมือใหม่ คนที่อยากฟิต และนักมวย สำหรับคนไทยและผู้ที่อาศัยอยู่ในภูเก็ต เรามีราคาพิเศษ",
+"multi": true
+},
+{
+"id": "th_t04",
+"page": "Thai page",
+"label": "Text: ราคาผู้พักอาศัย",
+"text": "ราคาผู้พักอาศัย",
+"multi": false
+},
+{
+"id": "th_t05",
+"page": "Thai page",
+"label": "Heading: ราคาสำหรับคนไทยและผู้พักอาศัยในภูเก็ต",
+"text": "ราคาสำหรับ*คนไทยและผู้พักอาศัยในภูเก็ต*",
+"multi": false
+},
+{
+"id": "th_t06",
+"page": "Thai page",
+"label": "Text: สำหรับคนไทย และชาวต่างชาติที่อาศัยและทำง",
+"text": "สำหรับคนไทย และชาวต่างชาติที่อาศัยและทำงานอยู่ในภูเก็ต (มีใบอนุญาตทำงาน หรือวีซ่าระยะยาว) แสดงบัตรประชาชนหรือเอกสารที่เคาน์เตอร์ในครั้งแรก แล้วเราจะบันทึกราคาผู้พักอาศัยไว้ในบัญชีของคุณ",
+"multi": true
+},
+{
+"id": "th_t07",
+"page": "Thai page",
+"label": "Text: ราคาเป็นเงินบาท ชำระที่เคาน์เตอร์ด้วยเงิ",
+"text": "ราคาเป็นเงินบาท ชำระที่เคาน์เตอร์ด้วยเงินสด โอน หรือพร้อมเพย์ มีคำถาม ทักแชทมาได้เลย",
+"multi": true
+},
+{
+"id": "th_t08",
+"page": "Thai page",
+"label": "Text: สมัครอย่างไร",
+"text": "สมัครอย่างไร",
+"multi": false
+},
+{
+"id": "th_t09",
+"page": "Thai page",
+"label": "Heading: ง่ายๆ สามขั้นตอน",
+"text": "ง่ายๆ สามขั้นตอน",
+"multi": false
+},
+{
+"id": "th_t10",
+"page": "Thai page",
+"label": "Text: 1. มาที่ยิม",
+"text": "1. มาที่ยิม",
+"multi": false
+},
+{
+"id": "th_t11",
+"page": "Thai page",
+"label": "Text: มาก่อนคลาส 10 ถึง 15 นาที ไม่ต้องจองคลาส",
+"text": "มาก่อนคลาส 10 ถึง 15 นาที ไม่ต้องจองคลาสกลุ่มล่วงหน้า",
+"multi": false
+},
+{
+"id": "th_t12",
+"page": "Thai page",
+"label": "Text: 2. แสดงเอกสาร",
+"text": "2. แสดงเอกสาร",
+"multi": false
+},
+{
+"id": "th_t13",
+"page": "Thai page",
+"label": "Text: บัตรประชาชนไทย หรือใบอนุญาตทำงาน หรือวีซ",
+"text": "บัตรประชาชนไทย หรือใบอนุญาตทำงาน หรือวีซ่าระยะยาว แสดงครั้งเดียวพอ",
+"multi": true
+},
+{
+"id": "th_t14",
+"page": "Thai page",
+"label": "Text: 3. เริ่มซ้อม",
+"text": "3. เริ่มซ้อม",
+"multi": false
+},
+{
+"id": "th_t15",
+"page": "Thai page",
+"label": "Text: เลือกแพ็กเกจ ชำระเงิน แล้วเข้าคลาสได้เลย",
+"text": "เลือกแพ็กเกจ ชำระเงิน แล้วเข้าคลาสได้เลย ดูแพ็กเกจและเช็คอินได้ในแอป Phuket King",
+"multi": true
+},
+{
+"id": "th_t16",
+"page": "Thai page",
+"label": "Text: ตารางเรียน",
+"text": "ตารางเรียน",
+"multi": false
+},
+{
+"id": "th_t17",
+"page": "Thai page",
+"label": "Heading: คลาสวันนี้",
+"text": "คลาสวันนี้",
+"multi": false
+},
+{
+"id": "th_t18",
+"page": "Thai page",
+"label": "Text: คลาสกลุ่มไม่ต้องจอง มาก่อนเวลา เช็คอินที",
+"text": "คลาสกลุ่มไม่ต้องจอง มาก่อนเวลา เช็คอินที่เคาน์เตอร์ แล้วซ้อมได้เลย",
+"multi": true
+},
+{
+"id": "th_t19",
+"page": "Thai page",
+"label": "Text: ที่ตั้ง",
+"text": "ที่ตั้ง",
+"multi": false
+},
+{
+"id": "th_t20",
+"page": "Thai page",
+"label": "Heading: มาหาเราที่กะทู้",
+"text": "มาหาเราที่กะทู้",
+"multi": false
+},
+{
+"id": "th_t21",
+"page": "Thai page",
+"label": "Text: 40/2 กะทู้ ภูเก็ต 83120 ริมทะเลสาบ มีที่",
+"text": "40/2 กะทู้ ภูเก็ต 83120 ริมทะเลสาบ มีที่จอดรถ ซาวน่า สตีม อ่างน้ำแข็ง ฟิตเนส และคาเฟ่อาหารสุขภาพในที่เดียว",
+"multi": true
+},
+{
+"id": "th_training_title",
+"page": "Thai page",
+"label": "Heading: มวยไทย คลาสกลุ่ม",
+"text": "มวยไทย คลาสกลุ่ม",
+"multi": false
+},
+{
+"id": "th_training_note",
+"page": "Thai page",
+"label": "Text: คลาสกลุ่มทุกระดับ หกวันต่อสัปดาห์ แพ็กเก",
+"text": "คลาสกลุ่มทุกระดับ หกวันต่อสัปดาห์ แพ็กเกจรายเดือนเข้าได้ทุกคลาสกลุ่ม",
+"multi": true
+},
+{
+"id": "th_recovery_title",
+"page": "Thai page",
+"label": "Heading: มวยไทย และฟื้นฟูร่างกาย",
+"text": "มวยไทย และฟื้นฟูร่างกาย",
+"multi": false
+},
+{
+"id": "th_recovery_note",
+"page": "Thai page",
+"label": "Text: คลาสมวยไทย พร้อมซาวน่าสมุนไพร สตีม และอ่",
+"text": "คลาสมวยไทย พร้อมซาวน่าสมุนไพร สตีม และอ่างน้ำแข็ง",
+"multi": false
+},
+{
+"id": "th_privates_title",
+"page": "Thai page",
+"label": "Heading: เรียนส่วนตัว",
+"text": "เรียนส่วนตัว",
+"multi": false
+},
+{
+"id": "th_privates_note",
+"page": "Thai page",
+"label": "Text: เรียนตัวต่อตัวกับครู ครั้งละหนึ่งชั่วโมง",
+"text": "เรียนตัวต่อตัวกับครู ครั้งละหนึ่งชั่วโมง",
+"multi": false
+},
+{
+"id": "th_fitness_title",
+"page": "Thai page",
+"label": "Heading: ฟิตเนส",
+"text": "ฟิตเนส",
+"multi": false
+},
+{
+"id": "th_fitness_note",
+"page": "Thai page",
+"label": "Text: เครื่องเล่นและฟรีเวท",
+"text": "เครื่องเล่นและฟรีเวท",
+"multi": false
+},
+{
+"id": "th_spa_title",
+"page": "Thai page",
+"label": "Heading: ซาวน่าและสปา",
+"text": "ซาวน่าและสปา",
+"multi": false
+},
+{
+"id": "th_spa_note",
+"page": "Thai page",
+"label": "Text: ซาวน่า สตีม อ่างน้ำแข็ง และมุมพักผ่อน",
+"text": "ซาวน่า สตีม อ่างน้ำแข็ง และมุมพักผ่อน",
+"multi": false
+},
+{
+"id": "th_yoga_title",
+"page": "Thai page",
+"label": "Heading: โยคะ",
+"text": "โยคะ",
+"multi": false
+},
+{
+"id": "th_yoga_note",
+"page": "Thai page",
+"label": "Text: โยคะและการยืดเหยียด",
+"text": "โยคะและการยืดเหยียด",
+"multi": false
+},
+{
+"id": "prices_res1",
+"page": "Prices",
+"label": "Text: Live in Phuket?",
+"text": "Live in Phuket?",
+"multi": false
+},
+{
+"id": "prices_res2",
+"page": "Prices",
+"label": "Text: Thai nationals and residents with a work",
+"text": "Thai nationals and residents with a work permit or a long stay visa can ask us about resident memberships.",
+"multi": true
+}
 ];

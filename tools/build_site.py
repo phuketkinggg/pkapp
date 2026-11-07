@@ -16,7 +16,7 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "partners.html", "fighters.html", "education.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "404.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "partners.html", "fighters.html", "education.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
@@ -31,7 +31,7 @@ def fix_book(html):
     return html
 
 NAMES = {"about.html": "About", "prices.html": "Prices", "dtv.html": "DTV Visa", "shop.html": "Shop", "blog.html": "Blog", "wellness.html": "Wellness and recovery",
-         "education.html": "Education", "beginners-muay-thai.html": "Beginners guide", "partners.html": "Partners", "fighters.html": "Fight for Phuket King", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service"}
+         "education.html": "Education", "beginners-muay-thai.html": "Beginners guide", "partners.html": "Partners", "fighters.html": "Fight for Phuket King", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service", "th.html": "ภาษาไทย"}
 DYNAMIC = ("post.html", "page.html", "course.html", "technique.html", "404.html")
 DEFAULT_IMG = "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp"
 
@@ -329,7 +329,7 @@ def main():
         "/team-sitemap.xml /sitemap.xml 301", "/author-sitemap.xml /sitemap.xml 301", "/category-sitemap.xml /sitemap.xml 301", "/post_tag-sitemap.xml /sitemap.xml 301",
         "/news-sitemap.xml /sitemap.xml 301", "/news_sitemap.xml /sitemap.xml 301", "/mphb_room_type-sitemap.xml /sitemap.xml 301",
         "/mphb_room_type_category-sitemap.xml /sitemap.xml 301", "/mphb_room_type_facility-sitemap.xml /sitemap.xml 301", "/mphb_room_type_tag-sitemap.xml /sitemap.xml 301",
-        "/th / 301", "/th/ / 301", "/th/* / 301", "/stay /book 301", "/stay/ /book 301", "/rooms /book 301", "/rooms/ /book 301",
+        "/th/ /th 301", "/th/* /th 301", "/stay /book 301", "/stay/ /book 301", "/rooms /book 301", "/rooms/ /book 301",
     ]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
@@ -353,7 +353,7 @@ def main():
     # main pages here; blog posts, courses and pages made in the app are in the live sitemap (listed in robots.txt)
     import datetime
     today = datetime.date.today().isoformat()
-    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/education", "0.7"), ("/beginners-muay-thai", "0.8"), ("/partners", "0.5"), ("/fighters", "0.6"), ("/shop", "0.6"), ("/blog", "0.6")]
+    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/education", "0.7"), ("/beginners-muay-thai", "0.8"), ("/partners", "0.5"), ("/fighters", "0.6"), ("/th", "0.7"), ("/shop", "0.6"), ("/blog", "0.6")]
     # blog posts and app pages too (copied from the live sitemap into tools/sitemap_extra.txt), so Google sees them on the main sitemap
     urls += [m for m in made if m[0] not in {u for u, _ in urls}]
     ex = os.path.join(ROOT, "tools", "sitemap_extra.txt")

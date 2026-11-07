@@ -1,4 +1,4 @@
-// Public website data for phuketking.com pages: packages with standard prices, the weekly timetable, the private price, and photos and text the manager has changed.
+// Public website data for phuketking.com pages: packages with standard prices (and resident prices for the Thai page when switched on), the weekly timetable, the private price, and photos and text the manager has changed.
 // Read only. Nothing about customers, staff pay or money taken. Staff: only the website team (name, title, text, photo, video).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
     const [pk, cl, src, ph, tx, ga, st, fe] = await Promise.all([
-      admin.from("packages").select("id,name,price_thb,covers,visit_limit,per_week_limit,duration_days,audience,addon_fz_thb,notes,clock,start_within_days,badge,was_thb").eq("active", true).not("price_thb", "is", null).order("price_thb"),
+      admin.from("packages").select("id,name,price_thb,price_local_thb,addon_fz_local_thb,covers,visit_limit,per_week_limit,duration_days,audience,addon_fz_thb,notes,clock,start_within_days,badge,was_thb").eq("active", true).not("price_thb", "is", null).order("price_thb"),
       admin.from("classes").select("day,start_time,end_time,title,discipline,off_from,off_to"),
       admin.from("booking_sources").select("price_thb").ilike("name", "direct").maybeSingle(),
       admin.from("app_settings").select("value").eq("key", "site_photos").maybeSingle(),
@@ -48,6 +48,9 @@ Deno.serve(async (req) => {
       packages: (pk.data ?? []).filter((p) => (p.audience || "all") === "all").map((p) => ({
         id: p.id, name: p.name, price: p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_thb, notes: p.notes ?? "",
         pick_start: p.clock === "purchase", start_within: p.start_within_days ?? null, badge: p.badge || null, was: p.was_thb && p.was_thb > p.price_thb ? p.was_thb : null })),
+      // resident prices (the Local resident price group) for the Thai page, only when the business turns on Resident prices on the website
+      residents: feat.web_residents !== true ? [] : (pk.data ?? []).filter((p) => p.audience === "local" || (p.price_local_thb != null && p.price_local_thb < p.price_thb))
+        .map((p) => ({ id: p.id, name: p.name, price: p.price_local_thb ?? p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_local_thb ?? null })),
       classes: (cl.data ?? []).map((k) => ({ day: k.day, time: String(k.start_time ?? "").slice(0, 5), end: k.end_time ? String(k.end_time).slice(0, 5) : null, title: k.title, discipline: k.discipline,
         off: !!(k.off_from && t >= k.off_from && t <= (k.off_to ?? k.off_from)) })).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time)),
     });
