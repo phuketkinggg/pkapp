@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=137"></script>
+<script src="changelog.js?v=138"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1007,7 +1007,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=89; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=90; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3065,6 +3065,13 @@ function paSection(){ if(!featOn('partners')||!(me&&me.role==='manager')) return
     cards(show.map(function(a){ return {when:fmtDate(String(a.created_at).slice(0,10)),right:a.status==='new'?chip('New, '+plName(a.level),'warn'):a.status==='approved'?chip('Approved, '+plName(a.level),'ok'):chip('Declined'),
       title:h('b',null,a.name),note:[a.links,(a.followers?paNum(a.followers)+' followers':'')+(a.avg_views?', '+paNum(a.avg_views)+' average views':''),a.audience?'Audience: '+a.audience:'',a.offer?'Offers: '+a.offer:'',[a.email,a.phone].filter(Boolean).join(', '),a.note?'Note: '+a.note:''].filter(Boolean).join('. '),
       act:a.status==='new'?[btn('Approve',function(){ paDecide(a,true); },'primary small'),btn('Decline',function(){ paDecide(a,false); },'small')]:null}; }),'No applications yet. Share your Partners page, or wait for people to find it in the footer of your website.'))); }
+/* food, drinks and small items (packages with no classes, cafe meal plans) earn no commission until the owner allows it */
+var AFFFOOD=undefined;
+function affFoodLine(mgr){ if(AFFFOOD===undefined){ AFFFOOD=null; sb.from('app_settings').select('value').eq('key','aff_food').maybeSingle().then(function(r){ AFFFOOD=!!(r.data&&/true/.test(String(r.data.value))); schedule(); },function(){ AFFFOOD=false; schedule(); }); return null; }
+  if(AFFFOOD===null) return null;
+  return h('p',{class:'row'},chip(AFFFOOD?'Food and drinks earn commission':'No commission on food, drinks or small items',AFFFOOD?'warn':'ok'),
+    h('small',{class:'sub'},AFFFOOD?'Meal plans, cafe items and extras like water or lunch earn the affiliate their share.':'Meal plans, cafe items and extras like water, lunch or hand wraps never earn commission. Rooms earn on the room price only.'),
+    mgr?btn(AFFFOOD?'Stop commission on food':'Allow commission on food',function(){ var on=!AFFFOOD; if(on&&!confirm('Allow affiliates to earn on meal plans, cafe items and extras?')) return; sb.rpc('aff_food_set',{p_on:on}).then(must).then(function(){ AFFFOOD=on; toast(on?'Affiliates now earn on food and extras.':'No commission on food and extras.'); schedule(); }).catch(function(e){ toast(errText(e)); }); },'small'):null); }
 function vAff(){
   var mgr=me&&me.role==='manager';
   if(!AFF){ affLoad(); return [h('div',{class:'panel empty'},ui.affErr||'Loading.')]; }
@@ -3074,6 +3081,7 @@ function vAff(){
   return [paSection(),section('Referrals',mgr?h('div',{class:'row'},btn('Links count for '+(days||60)+' days',affDaysDlg,'small'),featOn('aff_welcome')?btn('Welcome email',affWEdit,'small'):null,btn('Add an affiliate',function(){ editAff(); },'primary small')):null,h('div',null,
     h('p',{class:'sub'},'Give anyone who sends you guests their own link. When someone books a room or buys a package or course on the website through it (within the days you set), it is tagged to them and they earn their share of the room price or the package price, not the extras. Booked by message or phone? Tag the stay by hand in Edit stay, Referred by. Their share is earned once the guest arrives.'),
     owed?h('p',null,chip('To pay affiliates: '+thb(owed),'warn')):null,
+    affFoodLine(mgr),
     table([
       {label:'Affiliate',cell:function(a){ return h('span',null,linkBtn(a.name,function(){ affDlg(a); }),plv[a.id]?h('span',null,' ',chip(plName(plv[a.id]),'ok')):null,a.active?null:h('div',{class:'sub'},'Switched off')); }},
       {label:'Share',num:true,cell:function(a){ return a.rules?h('span',null,'Own list',h('div',{class:'sub'},affRulesLine(a))):Number(a.pct)+'%'; }},
