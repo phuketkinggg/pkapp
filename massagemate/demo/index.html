@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=135"></script>
+<script src="changelog.js?v=136"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -917,6 +917,7 @@ var FEATURES=[
   {k:'course_welcome',g:'Training',n:'Course welcome email',d:'When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.'},
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
+  {k:'custom_deals',g:'Selling',n:'Custom deals',d:'Managers can sell a package as a custom deal: their own length (for example 4 months) and their own price, with Fitness Zone included if they like, starting on the first visit, today or a chosen date. In Sell a package, tick Custom deal.',def:true,spa:true},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
@@ -1001,7 +1002,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=88; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=89; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1334,7 +1335,7 @@ function freeOk(){ return featOn('free_packages')&&!!me&&(me.role==='manager'||m
 /* a package sold from a stay (feature stay_sell): for the guest or someone else in the room, and it can go on the room bill */
 function openStayOf(cid){ var d=ymd(new Date()); return sortBy((S.stays||[]).filter(function(s){ return s.customer_id===cid&&(s.status==='booked'||s.status==='in')&&!s.settled&&s.check_in<=d&&d<=s.check_out; }),'check_in').pop()||null; }
 function stayNames(st){ return String(st&&st.guest_names||'').split(/\n|,/).map(function(x){ return x.trim(); }).filter(Boolean); }
-function sellPackage(c,o){ o=o||{};
+function sellPackage(c,o){ o=o||{}; var dealOk=featOn('custom_deals')&&!!me&&(me.role==='manager'||me.role==='admin');
   var group=c.price_group||'standard', sOn=featOn('stay_sell'), rst=sOn&&payOk('room')?(o.stay&&(o.stay.status==='booked'||o.stay.status==='in')&&!o.stay.settled?o.stay:o.stay?null:openStayOf(c.id)):null;
   var rName=rst?nameOf('rooms',rst.room_id,'room'):'', mates=o.stay&&sOn?stayNames(o.stay).filter(function(n){ return n.toLowerCase()!==String(c.name||'').trim().toLowerCase(); }):[];
   /* people in the room who already have a customer record from an earlier sale on this stay */
@@ -1357,6 +1358,12 @@ function sellPackage(c,o){ o=o||{};
     {key:'for_who',label:'Who is it for',type:'select',hide:!forOpts,options:forOpts||[['me',c.name]],def:'me',hint:'Add everyone staying in Edit on the stay, so their names are here.',onChange:function(v,set,get,o,show){ var nw=v!=='me'; show('fw_name',nw); ncShow(show,nw); set('fw_name',/^n:/.test(v)?v.slice(2):''); }},
     {key:'fw_name',label:'Their name',hide:true,hint:'Their package is their own, with their name, and can go on this room bill.'}].concat(forOpts?ncFields(true):[],[
     {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get,o,show){ set('qty',null); reprice(set,get,show); }},
+    {key:'custom',label:'Custom deal: my own length and price',type:'checkbox',hide:!dealOk,hint:'For example 4 months with Fitness Zone for 25,000 THB. Pick the package it is like above, set the length here, tick Fitness Zone if it is included, and type your price in Price charged.',
+      onChange:function(v,set,get,o,show){ ['len','len_unit','cstart'].forEach(function(k){ show(k,!!v); }); show('cdate',!!v&&get('cstart')==='date'); if(v&&!get('len')) set('len',1); }},
+    {key:'len',label:'How long',type:'number',hide:true},
+    {key:'len_unit',label:'Months, weeks or days',type:'select',hide:true,def:'months',options:[['months','Months'],['weeks','Weeks'],['days','Days']]},
+    {key:'cstart',label:'Starts',type:'select',hide:true,def:'first',options:[['first','On their first visit'],['today','Today'],['date','On a date I choose']],onChange:function(v,set,get,o,show){ show('cdate',v==='date'); }},
+    {key:'cdate',label:'Start date',type:'date',hide:true},
     {key:'qty',label:'How many (privates, sessions, or days for a day pass)',type:'number',hide:!(t0||p0),onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'tiernote',label:'Price for each',hide:!(t0||p0),readonly:true},
     {key:'fz',label:'Add Fitness Zone access (the add-on price set on the package)',type:'checkbox',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
@@ -1374,7 +1381,13 @@ function sellPackage(c,o){ o=o||{};
       var paidNow=v.paid_now==null?Number(v.price_thb)||0:Math.round(v.paid_now); if(paidNow<0||paidNow>Number(v.price_thb)) return 'The amount paid now must be between 0 and the price.';
       var tt=tiersFor(pk,group), pp=perPriv(pk), q=tt||pp?Math.round(v.qty||0):null; if((tt||pp)&&(q<1||q>200)) return 'Type how many, 1 to 200.'; if(v.method==='later') paidNow=0;
       var byDay=tt&&pk.qty_unit==='days', lim=(tt&&!byDay)||pp?q:(byDay?null:pk.class_limit||null), nm=pp?(q===1?pk.name:'Private Muay Thai, '+q+' sessions'):pk.name+(tt?', '+q+(byDay?(q===1?' day':' days'):pk.covers&&pk.covers.indexOf('Privates')>=0?' sessions':' visits'):'');
-      if(v.fz&&addonFor(pk,group)==null) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
+      /* a custom deal: the length and price the manager chose; unlimited classes of the package's kind for that time */
+      var deal=dealOk&&!!v.custom&&!pp, dN=0, dDays=0, dStart=null;
+      if(deal){ dN=Math.round(Number(v.len)||0); if(dN<1||dN>(v.len_unit==='days'?1830:v.len_unit==='weeks'?260:60)) return 'Type how long the deal is.';
+        dDays=v.len_unit==='days'?dN:v.len_unit==='weeks'?dN*7:Math.round(dN*30.42);
+        dStart=v.cstart==='today'?v.purchased_on:v.cstart==='date'?(v.cdate||null):null; if(v.cstart==='date'&&!dStart) return 'Choose the start date.';
+        lim=null; nm='Deal: '+String(pk.name).replace(/,\s*[^,]*\d.*$/,'')+', '+dN+' '+(v.len_unit==='days'?(dN===1?'day':'days'):v.len_unit==='weeks'?(dN===1?'week':'weeks'):(dN===1?'month':'months')); }
+      if(v.fz&&addonFor(pk,group)==null&&!deal) return 'This package has no Fitness Zone add-on. Untick it. Some packages already include it.';
       var covers=pk.covers?pk.covers.slice():null; if(v.fz&&covers) ['Fitness zone','Open gym'].forEach(function(f){ if(covers.indexOf(f)<0) covers.push(f); });
       var who=forOpts&&v.for_who&&v.for_who!=='me', wn=who?String(v.fw_name||'').trim():'', nr=null;
       if(who){ if(wn.length<2) return 'Type their name.'; nr=ncRow(v,wn,'Staying in '+rName+' with '+c.name); if(nr.err) return nr.err; }
@@ -1385,6 +1398,7 @@ function sellPackage(c,o){ o=o||{};
         covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:byDay?q:(pk.duration_days||null),
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
+      if(deal){ p.duration_days=dDays; p.class_limit=null; p.classes_left=null; p.start_by=null; p.starts_on=null; p.expires_on=null; if(dStart) Object.assign(p,startPurchase(p,dStart)); }
       if(free){ p.paid=true; p.paid_thb=0; p.method=null; }
       if(room){ p.paid=true; p.paid_thb=p.price_thb; p.method='room'; p.for_stay=rst.id; }
       var link=v.method==='stripe'||v.method==='qr', linkAmt=paidNow;
