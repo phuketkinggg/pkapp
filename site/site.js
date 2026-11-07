@@ -63,6 +63,17 @@ if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open')
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
 var y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
+// a phone or computer set to Thai, on an English page: a small bar at the top offering the Thai page (closed with ×, remembered)
+(function(){ try{
+  if((document.documentElement.lang||'en').slice(0,2)!=='en'||/(^|\/)th(\.html)?$/.test(location.pathname)) return;
+  var langs=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'']).map(function(l){ return String(l).toLowerCase(); });
+  if(!langs.length||langs[0].slice(0,2)!=='th') return;
+  var off=false; try{ off=localStorage.getItem('pk_th_bar')==='off'; }catch(e){} if(off) return;
+  var bar=document.createElement('div'); bar.className='thbar'; bar.setAttribute('lang','th');
+  bar.innerHTML='<a href="'+(PK.live?'/th':'th.html')+'">ดูเว็บไซต์ภาษาไทย ราคาสำหรับคนไทยและผู้พักอาศัยในภูเก็ต <b>›</b></a><button type="button" aria-label="ปิด">×</button>';
+  bar.querySelector('button').onclick=function(){ bar.remove(); try{ localStorage.setItem('pk_th_bar','off'); }catch(e){} };
+  document.body.insertBefore(bar,document.body.firstChild);
+}catch(e){} })();
 // text and photos the manager has changed in the app (Settings > Website text, Website photos)
 // text format: *stars* highlight, a new line is a line break, in lists each line is one item
 PK.rich=function(t,list){ var e=function(x){ return PK.esc(x).replace(/\*([^*\n]+)\*/g,'<em>$1</em>'); };

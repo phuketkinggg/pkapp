@@ -305,3 +305,7 @@ dialog.basket{--pp-on:var(--red);--pp-on-ink:#fff;--pp-line:var(--line);--pp-sof
 .additem.on{border-color:#171B23;background:#FBF8F4}
 .addtxt{display:flex;flex-direction:column;min-width:0}.addtxt .sub{font-size:14px;margin:2px 0}.addp{font-weight:600;font-size:15px;margin-top:2px}
 .additem .pp-yn{flex-wrap:nowrap;align-items:center}.addn{min-width:26px;text-align:center}
+/* the Thai page offer, only for phones and computers set to Thai (site.js) */
+.thbar{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--red);color:#fff;font:500 15px/1.4 'Prompt','Rubik',system-ui,sans-serif;padding:8px 44px 8px 16px;position:relative;text-align:center}
+.thbar a{color:#fff;text-decoration:none}.thbar a:hover{text-decoration:underline}
+.thbar button{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:0;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:6px 10px}
