@@ -14,7 +14,7 @@
 <link rel="alternate" hreflang="en" href="https://www.phuketking.com/">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Prompt:wght@300;400;500;600;700&display=swap">
-<link rel="stylesheet" href="site.css?v=26">
+<link rel="stylesheet" href="site.css?v=27">
 <style>
 :root{--font:'Rubik','Prompt',system-ui,-apple-system,'Segoe UI',sans-serif}
 body,h1,h2,h3,.btn{font-family:'Prompt','Rubik',system-ui,sans-serif}
@@ -96,7 +96,7 @@ body,h1,h2,h3,.btn{font-family:'Prompt','Rubik',system-ui,sans-serif}
 <div class="dock"><a class="btn light" href="tel:+66615155947">โทร</a><a class="btn red" data-wa="สวัสดี อยากสอบถามราคาสำหรับคนไทยและผู้พักอาศัยในภูเก็ต">ทักแชท</a></div>
 
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=22"></script>
+<script src="site.js?v=23"></script>
 <script>
 (function(){
 'use strict';
@@ -144,11 +144,11 @@ PK.data().then(function(d){
   var wd=PK.weekday(), now=PK.nowHM(), today=d.classes.filter(function(c){ return c.day===wd&&!c.off; }), tbox=document.getElementById('today');
   if(!today.length){ var nx=null; for(var i=1;i<7&&!nx;i++){ var dd=(wd+i)%7, l=d.classes.filter(function(c){ return c.day===dd&&!c.off; }); if(l.length) nx={day:dd,c:l[0]}; }
     tbox.innerHTML='<div class="cls"><div>วันนี้ไม่มีคลาส'+(nx?' คลาสถัดไป: '+DAYS[nx.day]+' '+nx.c.time+' '+PK.esc(nx.c.title):'')+'</div></div>'; }
-  else today.forEach(function(c){ tbox.appendChild(PK.el('div','cls'+(c.time<now?' past':''),'<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); });
+  else today.forEach(function(c){ tbox.appendChild(PK.el('div','cls'+(c.time<now?' past':''),'<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(PK.fight(c)?' · <b class="fk">สำหรับนักมวย</b>':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); });
   var wk=document.getElementById('week');
   for(var w=0;w<7;w++){ var l2=d.classes.filter(function(c){ return c.day===w; }); if(!l2.length) continue;
     wk.appendChild(PK.el('h3',null,DAYS[w])).style.margin='18px 0 8px';
-    l2.forEach(function(c){ wk.appendChild(PK.el('div','cls','<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(c.off?' · สัปดาห์นี้งด':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); }); }
+    l2.forEach(function(c){ wk.appendChild(PK.el('div','cls','<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(PK.fight(c)?' · <b class="fk">สำหรับนักมวย</b>':'')+(c.off?' · สัปดาห์นี้งด':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); }); }
 }).catch(function(){ document.getElementById('groups').innerHTML='<p class="err" style="margin:40px 0">โหลดราคาไม่ได้ ทักแชทมา แล้วเราจะส่งราคาให้</p>'; });
 document.getElementById('weekBtn').addEventListener('click',function(){ var w=document.getElementById('week'); w.hidden=!w.hidden; this.textContent=w.hidden?'ดูตารางทั้งสัปดาห์':'ซ่อนตาราง'; });
 })();

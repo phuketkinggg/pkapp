@@ -63,6 +63,8 @@ if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open')
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
 var y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
+// fight programme classes (the word fight in the class name or type): marked on the timetables, and listed on the Fighters page
+PK.fight=function(c){ return /fight/i.test(String((c&&c.title)||''))||/fight/i.test(String((c&&c.discipline)||'')); };
 // a phone or computer set to Thai, on an English page: a small bar at the top offering the Thai page (closed with ×, remembered)
 (function(){ try{
   if((document.documentElement.lang||'en').slice(0,2)!=='en'||/(^|\/)th(\.html)?$/.test(location.pathname)) return;

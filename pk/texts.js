@@ -1456,5 +1456,33 @@ window.PK_TEXTS=[{
 "label": "Text: Thai nationals and residents with a work",
 "text": "Thai nationals and residents with a work permit or a long stay visa can ask us about resident memberships.",
 "multi": true
+},
+{
+"id": "home_fight1",
+"page": "Home",
+"label": "Text: Classes marked For fighters...",
+"text": "Classes marked For fighters are our fight programme: extra to normal training and hard work, so not for beginners.",
+"multi": true
+},
+{
+"id": "fight_tt1",
+"page": "Fighters",
+"label": "Heading: Fight programme timetable",
+"text": "Fight programme timetable",
+"multi": false
+},
+{
+"id": "fight_tt2",
+"page": "Fighters",
+"label": "Box title: Extra to normal training",
+"text": "Extra to normal training",
+"multi": false
+},
+{
+"id": "fight_tt3",
+"page": "Fighters",
+"label": "Text: The fight programme is for fighters...",
+"text": "The fight programme is for fighters and anyone training like one. Anyone can join, but it is hard work: it is not for real beginners or anyone who is not already fit. It is paid on top of your training package. Ask us before your first session.",
+"multi": true
 }
 ];

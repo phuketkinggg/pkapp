@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-07', title: 'Fight classes marked on the website', what: 'Classes with fight in the name are now marked For fighters on the website timetable, with a short note that they are extra and hard work. The Fighters page has its own fight programme timetable, taken from your timetable in the app, so it changes when you change your classes.'},
   {date: '2026-11-07', title: 'No affiliate commission on food', what: 'Affiliates never earn on meal plans, cafe items or extras like water, lunch or hand wraps, even if their share covers everything. Rooms already earn on the room price only. Only the owner can allow commission on food, in Affiliates.'},
   {date: '2026-11-07', title: 'Coach top up on the customer page', what: 'On the customer page, privates with a coach who has their own rate now show the top up and whether it is paid or still to pay.', feature: 'coach_rates'},
   {date: '2026-11-07', title: 'Custom deals', what: 'Managers can now sell a custom deal in one go: in Sell a package, pick the package it is like, tick Custom deal, choose how long (months, weeks or days) and when it starts (first visit, today or a date), tick Fitness Zone if it is included, and type your own price. For example 4 months with Fitness Zone for 25,000 THB. It shows on the customer as one package, Deal: Training Only, 4 months.', feature: 'custom_deals'},

@@ -10,7 +10,7 @@
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/home_beginners-1792391874012.jpg">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=26">
+<link rel="stylesheet" href="site.css?v=27">
 <style>
 .pkb{--pgold:#C9A227;--gold-soft:#f6efd9;--pink:#141414;--pmuted:#5a5a5a;--pline:#e6e1d3;
   color:var(--pink);background:#fff;line-height:1.65;max-width:880px;margin:0 auto;padding:0 16px 48px}
@@ -118,6 +118,10 @@
 <li><b>A place to live and train.</b> Rooms at Pangea Resort, a short walk from the gym on the same lake. Ask us about long stays.</li>
 </ul>
 
+<h2 id="timetable" data-text="fight_tt1">Fight programme timetable</h2>
+<div class="callout"><strong data-text="fight_tt2">Extra to normal training</strong><span data-text="fight_tt3">The fight programme is for fighters and anyone training like one. Anyone can join, but it is hard work: it is not for real beginners or anyone who is not already fit. It is paid on top of your training package. Ask us before your first session.</span></div>
+<div id="fightTT"><p>Loading the timetable.</p></div>
+
 <h2>From first month to sponsored fighter</h2>
 <p>We pick who is on our fight team. This is the path every fighter follows. How far you go is down to you.</p>
 <div class="path">
@@ -186,9 +190,16 @@
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to fight for Phuket King. Can you tell me more?">WhatsApp</a><a class="btn red" href="#apply">Apply</a></div>
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=22"></script>
+<script src="site.js?v=23"></script>
 <script src="chat.js?v=2" defer></script>
 <script>
+/* the fight programme timetable, from the app's timetable (classes with fight in the name or type) */
+(function(){ var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], box=document.getElementById('fightTT'); if(!box||!window.PK) return;
+  PK.data().then(function(d){ var l=(d.classes||[]).filter(function(c){ return PK.fight(c); });
+    if(!l.length){ box.innerHTML='<p>Message us for the fight programme times.</p>'; return; }
+    var by={}; l.forEach(function(c){ (by[c.day]=by[c.day]||[]).push(c); });
+    box.innerHTML='<ul class="ftt">'+Object.keys(by).sort().map(function(k){ return '<li><b>'+DAYS[k]+'</b>'+by[k].map(function(c){ return '<span>'+c.time+(c.end?' to '+c.end:'')+', '+PK.esc(c.title.replace(/\s+/g,' '))+(c.off?' (not on this week)':'')+'</span>'; }).join('')+'</li>'; }).join('')+'</ul>';
+  }).catch(function(){ box.innerHTML='<p>Message us for the fight programme times.</p>'; }); })();
 (function(){
 'use strict';
 var RPC='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
