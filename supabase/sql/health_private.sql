@@ -94,7 +94,8 @@ create or replace function public.customer_info(p_customer uuid) returns jsonb
 language plpgsql security definer set search_path to '' as $$
 declare c public.customers%rowtype; u record; ev jsonb; hl jsonb := null; ok boolean;
 begin
-  if private.my_staff_id() is null then raise exception 'Staff only.'; end if;
+  -- the people who look after customers: desk, resort, coaches, admins and managers (not housekeeping, maintenance or investors)
+  if coalesce(private.staff_role(), '') not in ('manager', 'admin', 'front_desk', 'resort', 'coach') then raise exception 'Only the desk, coaches and managers can see this.'; end if;
   select * into c from public.customers where id = p_customer; if c.id is null then raise exception 'That customer is not there any more.'; end if;
   select a.created_at, a.last_sign_in_at into u from auth.users a where a.id = c.user_id;
   select coalesce(jsonb_agg(e order by (e->>'at')::timestamptz desc), '[]'::jsonb) into ev from (
