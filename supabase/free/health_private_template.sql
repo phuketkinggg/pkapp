@@ -78,7 +78,7 @@ insert into mf.template (ord, phase, kind, name, sql) values (400977, 4, 'patch'
 language plpgsql security definer set search_path to '' as $$
 declare c __P__.customers%rowtype; u record; ev jsonb; hl jsonb := null; ok boolean;
 begin
-  if __Q__.my_staff_id() is null then raise exception 'Staff only.'; end if;
+  if coalesce(__Q__.staff_role(), '') not in ('manager', 'admin', 'front_desk', 'resort', 'coach') then raise exception 'Only the desk, coaches and managers can see this.'; end if;
   select * into c from __P__.customers where id = p_customer; if c.id is null then raise exception 'That customer is not there any more.'; end if;
   select a.created_at, a.last_sign_in_at into u from auth.users a where a.id = c.user_id;
   select coalesce(jsonb_agg(e order by (e->>'at')::timestamptz desc), '[]'::jsonb) into ev from (
