@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=132"></script>
+<script src="changelog.js?v=133"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -915,6 +915,7 @@ var FEATURES=[
   {k:'course_welcome',g:'Training',n:'Course welcome email',d:'When someone gets an online course (bought on the website, with a package or a stay, or given at the desk) they get an email by themselves: how to get the app and sign in, where the course is, and what opens on which day. Each course has its own wording: open the course and tap Welcome email.'},
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
+  {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
   {k:'health_private',g:'Training',n:'Private health records',d:'Health records (member files, health numbers, blood tests and injuries from the About you form) are seen only by the owner of the health records and the people they allow, for one member or for every member. Set who in Settings, General, Health records, and on the Info tab of each customer. Turned off, the member\'s coaches and the managers see them.',def:true,spa:true},
@@ -998,7 +999,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=87; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=88; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9358,6 +9359,35 @@ function setHome(){ var tabs=setTabs(), l=clList(), on=FEATURES.filter(function(
     section('Folders',null,h('div',{class:'setgrid'},tabs.filter(function(t){ return t[0]!=='news'; }).map(function(t){
       return h('button',{type:'button',class:'setcard',onclick:function(){ setGo(t[0]); }},h('b',null,t[1]),h('small',{class:'sub'},t[2]),h('span',{class:'crsgo'},'›')); })))];
 }
+/* Settings, Privates (feature private_addons): the extras people can add when they buy a private on the website (water, hand wraps, lunch, recovery...),
+   each a package with its price. Not set: the recovery (spa) packages. */
+var PADD=undefined;
+function paddLoad(){ PADD=null; sb.from('app_settings').select('value').eq('key','private_addons').maybeSingle().then(function(r){ var v=null; try{ v=r.data&&r.data.value?JSON.parse(r.data.value):null; }catch(e){} PADD=v&&Array.isArray(v.items)?v.items:false; schedule(); },function(){ PADD=false; schedule(); }); }
+function paddSave(ids){ return sb.from('app_settings').upsert({key:'private_addons',value:JSON.stringify({items:ids}),updated_at:new Date().toISOString()}).select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; PADD=ids; schedule(); }); }
+function paddList(){ var on=S.packages.filter(function(p){ return p.active!==false&&Number(p.price_thb)>=1&&(p.audience||'all')==='all'; });
+  if(PADD===false) return on.filter(function(p){ return (p.covers||[]).length===1&&p.covers[0]==='Spa'; }).sort(function(a,b){ return a.price_thb-b.price_thb; });
+  return (PADD||[]).map(function(id){ return byId('packages',id); }).filter(function(p){ return p&&p.active!==false; }); }
+function privAddonsSection(){ if(!featOn('private_addons')||!(me&&me.role==='manager')) return null; if(PADD===undefined){ paddLoad(); return null; } if(PADD===null) return null;
+  var list=paddList(), ids=list.map(function(p){ return p.id; });
+  function move(i,d){ var a=ids.slice(), j=i+d; if(j<0||j>=a.length) return; var x=a[i]; a[i]=a[j]; a[j]=x; run(paddSave(a),'Saved.'); }
+  return section('Extras with privates',h('div',{class:'row'},btn('New extra',function(){ paddNew(ids); },'primary small'),btn('Choose from packages',function(){ paddPick(ids); },'small')),h('div',null,
+    h('p',{class:'sub'},'When someone buys a private on the website, they can add these, as many as they want. Each one is checked and priced by the app, goes on the same payment, and shows on their account as its own line. Items like water or hand wraps can be added more than once.'+(PADD===false?' Right now: your recovery packages. Add or choose extras to set your own list.':'')),
+    table([{label:'Extra',cell:function(p){ return h('span',null,h('b',null,p.name),p.notes?[h('br'),h('small',{class:'sub'},p.notes)]:null); }},
+      {label:'Price',num:true,cell:function(p){ return thb(p.price_thb); }},
+      {label:'',cell:function(p){ var i=ids.indexOf(p.id); return h('div',{class:'row'},btn('↑',function(){ move(i,-1); },'small'),btn('↓',function(){ move(i,1); },'small'),
+        btn('Remove',function(){ run(paddSave(ids.filter(function(x){ return x!==p.id; })),'Removed from the extras. The package itself is kept.'); },'small')); }}],list,'No extras. Tap New extra, for example Water 20 THB.')));
+}
+/* a new extra: a package with no classes (shows as an Extra on the customer), added to the list */
+function paddNew(ids){ openForm({title:'New extra with privates',saveLabel:'Add',fields:[
+    {key:'name',label:'Name',required:true,hint:'For example: Water, Hand wraps, Lunch at the cafe, Protein shake.'},
+    {key:'price_thb',label:'Price (THB)',type:'number',required:true},
+    {key:'notes',label:'Short description (optional)',hint:'One line people see under the name. For example: Your own pair to keep.'}],
+  onSave:function(v){ var pr=Math.round(Number(v.price_thb)); if(!(pr>=1)) return 'Type the price.';
+    return sb.from('packages').insert({name:String(v.name).trim().slice(0,80),price_thb:pr,covers:[],active:true,audience:'all',notes:v.notes?String(v.notes).trim().slice(0,200):null}).select('id').single().then(must)
+      .then(function(d){ return reload('packages').then(function(){ return paddSave(ids.concat([d.id])); }); }); },doneMsg:'Extra added.'}); }
+function paddPick(ids){ var all=sortBy(S.packages.filter(function(p){ return p.active!==false&&Number(p.price_thb)>=1&&(p.audience||'all')==='all'&&(p.covers||[]).indexOf('Privates')<0; }),'name');
+  openForm({title:'Extras with privates',note:'Tick the packages people can add to a private on the website.',values:{ids:ids},fields:[{key:'ids',label:'Extras',type:'checks',options:all.map(function(p){ return [p.id,p.name+', '+thb(p.price_thb)]; })}],
+    onSave:function(v){ var keep=ids.filter(function(x){ return (v.ids||[]).indexOf(x)>=0; }); (v.ids||[]).forEach(function(x){ if(keep.indexOf(x)<0) keep.push(x); }); return paddSave(keep); },doneMsg:'Saved.'}); }
 function vSettings(){
   var tabs=setTabs(), cur=tabs.filter(function(x){ return x[0]===SETT.tab; })[0];
   if(!cur) return setHome();
@@ -9386,7 +9416,7 @@ function vSettings(){
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
-      sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.'))];
+      sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection()];
   else body=[healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }

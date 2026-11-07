@@ -297,3 +297,11 @@ dialog.basket{--pp-on:var(--red);--pp-on-ink:#fff;--pp-line:var(--line);--pp-sof
 #startBox .pvq{margin:0 0 12px}#pvBox{margin:0 0 6px}
 .pvdone{padding:12px 14px;border-radius:10px;background:var(--cream);margin:0 0 14px}
 #startBox,#pvBox{min-width:0;max-width:100%}
+/* buy dialog: each extra (add-ons, the course offer) is its own block with a line above, and each add-on its own box */
+#startBox .recbox{border-top:1px solid #E2DBD3;margin-top:18px;padding-top:16px}
+#startBox .recbox>b:first-child{margin-top:0!important}
+.addlist{display:flex;flex-direction:column;gap:8px}
+.additem{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1.5px solid #E2DBD3;border-radius:12px;padding:10px 12px}
+.additem.on{border-color:#171B23;background:#FBF8F4}
+.addtxt{display:flex;flex-direction:column;min-width:0}.addtxt .sub{font-size:14px;margin:2px 0}.addp{font-weight:600;font-size:15px;margin-top:2px}
+.additem .pp-yn{flex-wrap:nowrap;align-items:center}.addn{min-width:26px;text-align:center}

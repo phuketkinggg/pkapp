@@ -2,6 +2,7 @@
 // order:  checks the package and price in the database (the page never sets the price), then makes the Stripe page
 // pp:     PromptPay straight to the gym bank account: returns the gym QR; the buyer taps I have paid (claim) and the desk confirms
 // recovery: privates can add spa ({package_id, qty}), priced in the database
+// addons: privates can add the business's chosen add-ons ([{package_id, qty}]: water, hand wraps, lunch, recovery), priced in the database
 // course_addon: the online course on offer, added to a package (Courses, Offer with packages), priced in the database
 // private: privates can book the first session in the same go ({coach, date, time, any, alt_date, alt_time}), a request until confirmed
 // status: after paying, the page asks if the payment went through (package name and start date only)
@@ -75,7 +76,8 @@ Deno.serve(async (req) => {
         phone: String(b.phone ?? "").slice(0, 30), start_on: String(b.start_on ?? "").slice(0, 10), note: String(b.note ?? "").slice(0, 300),
         ...(b.private && typeof b.private === "object" ? { private: b.private } : {}),
         ...(isId(b.course_addon) ? { course_addon: b.course_addon } : {}),
-        ...(b.recovery && typeof b.recovery === "object" ? { recovery: { package_id: String(b.recovery.package_id ?? "").slice(0, 40), qty: Math.round(Number(b.recovery.qty) || 1) } } : {}) } });
+        ...(b.recovery && typeof b.recovery === "object" ? { recovery: { package_id: String(b.recovery.package_id ?? "").slice(0, 40), qty: Math.round(Number(b.recovery.qty) || 1) } } : {}),
+        ...(Array.isArray(b.addons) && b.addons.length ? { addons: b.addons.slice(0, 12).map((x: { package_id?: unknown; qty?: unknown }) => ({ package_id: String(x?.package_id ?? "").slice(0, 40), qty: Math.round(Number(x?.qty) || 1) })) } : {}) } });
       if (error) return json({ error: error.message });
       const o = data as { id: string; amount: number; what: string; email: string };
       // a referral link (?ref=code, kept 60 days by the website): the package earns the affiliate their share once paid
