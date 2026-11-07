@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=136"></script>
+<script src="changelog.js?v=137"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -8730,7 +8730,7 @@ function vCustomers(){
         {label:'When',cell:function(x){ return linkBtn(fmtDate(x.date)+' '+pSpan(x),function(){ editPrivate(x); }); }},
         {label:'Coach',cell:function(x){ return x.coach_id?nameOf('staff',x.coach_id):''; }},
         {label:'Paid with',cell:payLabel},
-        {label:'Price',num:true,cell:function(x){ return x.purchase_id?'':thb(x.price_thb); }},
+        {label:'Price',num:true,cell:function(x){ var tu=Number(x.extra_thb)||0; return h('span',null,x.purchase_id?'':thb(x.price_thb),tu?[x.purchase_id?null:h('br'),h('small',{class:x.extra_paid?'sub':'bad'},'Coach top up '+thb(tu)+(x.extra_paid?', paid':', to pay'))]:null); }},
         {label:'Status',cell:function(x){ return x.refunded_at?chip('Refunded'+(x.refund_thb?' '+thb(x.refund_thb):''),'bad'):chip(PSTATUS[x.status]||x.status,x.status==='done'?'ok':x.status==='cancelled'?'bad':null); }},
         {label:'',cell:function(x){ return h('span',{class:'row'},featOn('receipt_send')&&!x.purchase_id&&x.paid?btn('Receipt',function(){ sendReceipt('private',x.id,'your private session'); },'small'):null,!x.refunded_at&&x.status!=='requested'&&(x.purchase_id?x.status!=='cancelled':(x.paid||x.method==='room'))?btn('Refund',function(){ refundTab('private',x); },'small'):null); }}],pv.slice(0,30),'')):null; })(),
       customerOrders(c.id),
