@@ -86,7 +86,7 @@ begin
   if s.id is null then raise exception 'The owner must be an active manager with a sign in.'; end if;
   perform set_config('pk.owner_set', '1', true);
   insert into public.app_settings (key, value) values ('owner_staff', s.id::text) on conflict (key) do update set value = excluded.value, updated_at = now();
-  delete from private.owner_codes;  -- a new owner makes their own recovery codes
+  delete from private.owner_codes where true;  -- a new owner makes their own recovery codes
 end $$;
 
 create table if not exists private.owner_codes (id uuid primary key default gen_random_uuid(), code_hash text not null, created_at timestamptz not null default now(), used_at timestamptz);
@@ -98,7 +98,7 @@ language plpgsql security definer set search_path to '' as $$
 declare out text[] := '{}'; c text; i int; abc text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; b bytea;
 begin
   if not private.is_biz_owner() then raise exception 'Only the owner can make recovery codes.'; end if;
-  delete from private.owner_codes;
+  delete from private.owner_codes where true;
   for i in 1..8 loop
     b := extensions.gen_random_bytes(16); c := '';
     for j in 0..15 loop c := c || substr(abc, (get_byte(b, j) % 32) + 1, 1); if j in (3, 7, 11) then c := c || '-'; end if; end loop;
