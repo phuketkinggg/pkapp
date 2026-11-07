@@ -1484,5 +1484,33 @@ window.PK_TEXTS=[{
 "label": "Text: The fight programme is for fighters...",
 "text": "The fight programme is for fighters and anyone training like one. Anyone can join, but it is hard work: it is not for real beginners or anyone who is not already fit. It is paid on top of your training package. Ask us before your first session.",
 "multi": true
+},
+{
+"id": "th_kids_title",
+"page": "Thai page",
+"label": "Heading: มวยไทยเด็ก",
+"text": "มวยไทยเด็ก",
+"multi": false
+},
+{
+"id": "th_kids_note",
+"page": "Thai page",
+"label": "Text: คลาสมวยไทยสำหรับเด็ก",
+"text": "คลาสมวยไทยสำหรับเด็ก รายเดือน",
+"multi": false
+},
+{
+"id": "th_dtv_title",
+"page": "Thai page",
+"label": "Heading: คอร์สมวยไทยสำหรับวีซ่า DTV",
+"text": "คอร์สมวยไทยสำหรับวีซ่า DTV",
+"multi": false
+},
+{
+"id": "th_dtv_note",
+"page": "Thai page",
+"label": "Text: สำหรับชาวต่างชาติที่ขอวีซ่า DTV",
+"text": "สำหรับชาวต่างชาติที่ขอวีซ่า DTV รวมเอกสารจากยิม",
+"multi": false
 }
 ];

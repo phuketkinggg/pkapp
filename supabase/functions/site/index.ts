@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
       packages: (pk.data ?? []).filter((p) => (p.audience || "all") === "all").map((p) => ({
         id: p.id, name: p.name, price: p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_thb, notes: p.notes ?? "",
         pick_start: p.clock === "purchase", start_within: p.start_within_days ?? null, badge: p.badge || null, was: p.was_thb && p.was_thb > p.price_thb ? p.was_thb : null })),
-      // resident prices (the Local resident price group) for the Thai page, only when the business turns on Resident prices on the website
-      residents: feat.web_residents !== true ? [] : (pk.data ?? []).filter((p) => p.audience === "local" || (p.price_local_thb != null && p.price_local_thb < p.price_thb))
+      // the Thai page price list: every package for residents, at the Local resident price where one is set, else the standard price (only when Resident prices on the website is on)
+      residents: feat.web_residents !== true ? [] : (pk.data ?? []).filter((p) => ["all", "local"].includes(p.audience || "all"))
         .map((p) => ({ id: p.id, name: p.name, price: p.price_local_thb ?? p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_local_thb ?? null })),
       classes: (cl.data ?? []).map((k) => ({ day: k.day, time: String(k.start_time ?? "").slice(0, 5), end: k.end_time ? String(k.end_time).slice(0, 5) : null, title: k.title, discipline: k.discipline,
         off: !!(k.off_from && t >= k.off_from && t <= (k.off_to ?? k.off_from)) })).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time)),

@@ -97,11 +97,12 @@ body,h1,h2,h3,.btn{font-family:'Prompt','Rubik',system-ui,sans-serif}
 var G=[
   {id:'training',title:'มวยไทย คลาสกลุ่ม',note:'คลาสกลุ่มทุกระดับ หกวันต่อสัปดาห์ แพ็กเกจรายเดือนเข้าได้ทุกคลาสกลุ่ม',test:function(p){ return /^Training Only/i.test(p.name); }},
   {id:'recovery',title:'มวยไทย และฟื้นฟูร่างกาย',note:'คลาสมวยไทย พร้อมซาวน่าสมุนไพร สตีม และอ่างน้ำแข็ง',test:function(p){ return /^Training \+ Recovery/i.test(p.name); }},
-  {id:'privates',title:'เรียนส่วนตัว',note:'เรียนตัวต่อตัวกับครู ครั้งละหนึ่งชั่วโมง',test:function(p){ return (p.covers||[]).indexOf('Privates')>=0; }},
+  {id:'privates',title:'เรียนส่วนตัว',note:'เรียนตัวต่อตัวกับครู ครั้งละหนึ่งชั่วโมง',test:function(p){ return (p.covers||[]).indexOf('Privates')>=0&&p.visits; }},
+  {id:'kids',title:'มวยไทยเด็ก',note:'คลาสมวยไทยสำหรับเด็ก รายเดือน',test:function(p){ return (p.covers||[]).indexOf('Kids')>=0; }},
   {id:'fitness',title:'ฟิตเนส',note:'เครื่องเล่นและฟรีเวท',test:function(p){ return /^Fitness Zone/i.test(p.name); }},
   {id:'spa',title:'ซาวน่าและสปา',note:'ซาวน่า สตีม อ่างน้ำแข็ง และมุมพักผ่อน',test:function(p){ return /^Spa Access/i.test(p.name); }},
   {id:'yoga',title:'โยคะ',note:'โยคะและการยืดเหยียด',test:function(p){ return /^Yoga/i.test(p.name); }},
-  {id:'other',title:'แพ็กเกจอื่นๆ',note:'',test:function(){ return true; }}
+  {id:'dtv',title:'คอร์สมวยไทยสำหรับวีซ่า DTV',note:'สำหรับชาวต่างชาติที่ขอวีซ่า DTV รวมเอกสารจากยิม',test:function(p){ return /^DTV/i.test(p.name); }}
 ];
 var DAYS=['วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสบดี','วันศุกร์','วันเสาร์','วันอาทิตย์'];
 function thb(n){ return Number(n).toLocaleString('en-US')+' บาท'; }
@@ -122,15 +123,17 @@ PK.data().then(function(d){
   var res=(d.residents||[]).slice().sort(function(a,b){ return a.price-b.price; }), used={};
   if(!res.length){ box.innerHTML='<p style="margin:30px 0">ทักแชทมาสอบถามราคาสำหรับคนไทยและผู้พักอาศัยได้เลย</p>'; }
   G.forEach(function(g){
-    var seen={}, list=res.filter(function(p){ if(used[p.id]||!g.test(p)) return false; var k=label(p); if(seen[k]) { used[p.id]=1; return false; } seen[k]=1; used[p.id]=1; return true; });
+    /* the same length at the same price shows once (for example a promotion); the same length at different prices shows the package name too */
+    var seen={}, list=res.filter(function(p){ if(used[p.id]||!g.test(p)) return false; var k=label(p)+'|'+p.price; used[p.id]=1; if(seen[k]) return false; seen[k]=1; return true; });
+    var cnt={}; list.forEach(function(p){ cnt[label(p)]=(cnt[label(p)]||0)+1; });
     if(!list.length) return;
     var s=PK.el('section','group'); s.id='th-'+g.id;
     s.innerHTML='<h2>'+PK.rich(PK.txt(d,'th_'+g.id+'_title',g.title))+'</h2><span class="rule"></span>'+(g.note?'<p>'+PK.rich(PK.txt(d,'th_'+g.id+'_note',g.note))+'</p>':'');
     var t=PK.el('table','ptable'); t.innerHTML='<thead><tr><th>แพ็กเกจ</th><th>ราคา</th><th></th></tr></thead>';
     var tb=document.createElement('tbody');
     list.forEach(function(p){ var tr=document.createElement('tr');
-      tr.innerHTML='<td><b>'+PK.esc(label(p))+'</b><div class="per">'+PK.esc(detail(p))+'</div></td><td><div class="p">'+thb(p.price)+'</div></td>';
-      var td=PK.el('td','go'), a=PK.el('a','btn','สอบถาม'); a.href=PK.wa('สวัสดี สนใจ '+g.title+' '+label(p)+' ราคา '+thb(p.price)+' (ราคาผู้พักอาศัย)'); a.target='_blank'; a.rel='noopener';
+      var nm=label(p)+(cnt[label(p)]>1&&p.name.indexOf(',')>0?' · '+p.name.slice(p.name.indexOf(',')+1).trim():''); tr.innerHTML='<td><b>'+PK.esc(nm)+'</b><div class="per">'+PK.esc(detail(p))+'</div></td><td><div class="p">'+thb(p.price)+'</div></td>';
+      var td=PK.el('td','go'), a=PK.el('a','btn','สอบถาม'); a.href=PK.wa('สวัสดี สนใจ '+g.title+' '+nm+' ราคา '+thb(p.price)+' (ราคาผู้พักอาศัย)'); a.target='_blank'; a.rel='noopener';
       td.appendChild(a); tr.appendChild(td); tb.appendChild(tr); });
     t.appendChild(tb); s.appendChild(t); box.appendChild(s);
   });

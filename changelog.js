@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-07', title: 'Full price list on the Thai page', what: 'The Thai page now lists every package for residents: the Local resident price where you set one, and the normal price where it is the same, so single privates, day passes, kids classes, Fitness Zone, spa, yoga and DTV courses all show.', feature: 'web_residents'},
   {date: '2026-11-07', title: 'Fight classes marked on the website', what: 'Classes with fight in the name are now marked For fighters on the website timetable, with a short note that they are extra and hard work. The Fighters page has its own fight programme timetable, taken from your timetable in the app, so it changes when you change your classes.'},
   {date: '2026-11-07', title: 'No affiliate commission on food', what: 'Affiliates never earn on meal plans, cafe items or extras like water, lunch or hand wraps, even if their share covers everything. Rooms already earn on the room price only. Only the owner can allow commission on food, in Affiliates.'},
   {date: '2026-11-07', title: 'Coach top up on the customer page', what: 'On the customer page, privates with a coach who has their own rate now show the top up and whether it is paid or still to pay.', feature: 'coach_rates'},
