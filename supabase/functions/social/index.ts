@@ -153,7 +153,7 @@ async function account() {
 type Media = { url: string; type: "image" | "video"; cover?: string };
 type Res = { id?: string; url?: string; error?: string; container?: string };
 type TTopts = { direct?: boolean; privacy?: string; comment?: boolean; duet?: boolean; stitch?: boolean; brand_organic?: boolean; brand_content?: boolean };
-type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null; tag_place?: boolean; collaborators?: string[]; tiktok?: TTopts };
+type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null; tag_place?: boolean; collaborators?: string[]; tiktok?: TTopts; yt_title?: string | null };
 
 // the cover the gym chose: uploaded as the video's thumbnail (best effort, the video is already up)
 async function fbCover(videoId: string, cover: string) {
@@ -274,10 +274,12 @@ async function toYouTube(p: Post): Promise<Res> {
   const m = p.media ?? [];
   if (m[0]?.type !== "video") return { error: "YouTube Shorts needs a video." };
   const tok = await ytAccess(), cap = p.caption ?? "";
-  // the title: the first line of the caption, without hashtags, plus #Shorts
-  let title = cap.split("\n").map((l) => l.replace(/#\S+/g, "").trim()).find((l) => l) ?? "New video";
-  if (title.length > 88) title = title.slice(0, 85).replace(/\s+\S*$/, "") + "...";
-  title = title.replace(/[<>]/g, "") + " #Shorts";
+  // the title: the YouTube title typed on the post, or the first line of the caption without hashtags; plus #Shorts
+  const own = (p.yt_title ?? "").replace(/[<>]/g, "").trim();
+  let title = own || (cap.split("\n").map((l) => l.replace(/#\S+/g, "").trim()).find((l) => l) ?? "New video");
+  const tag = /#shorts/i.test(title) ? "" : " #Shorts";
+  if (title.length + tag.length > 100) title = title.slice(0, 97 - tag.length).replace(/\s+\S*$/, "") + "...";
+  title = title.replace(/[<>]/g, "") + tag;
   const vid = await fetch(m[0].url);
   if (!vid.ok || !vid.body) return { error: "Could not read the video from storage." };
   const size = vid.headers.get("content-length") ?? "";

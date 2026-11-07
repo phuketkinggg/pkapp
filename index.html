@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=130"></script>
+<script src="changelog.js?v=131"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -941,7 +941,7 @@ var FEATURES=[
   {k:'social_tags',g:'Marketing',n:'Location and collab tags',d:'Instagram posts from the app are tagged at your business location, and you can add up to 3 collaborators (a coach, a guest, a partner) so the post shows on their profile too.'},
   {k:'social_stories',g:'Marketing',n:'Stories',d:'Send Instagram and Facebook stories from Social media: one photo or one video that shows for 24 hours, at the time you choose.'},
   {k:'tiktok',g:'Marketing',n:'TikTok',d:'Reels can also go to your TikTok account as a draft. Open TikTok, add a sound and the caption, and post.'},
-  {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover.'},
+  {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover, and their own YouTube title.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
@@ -997,7 +997,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=85; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=86; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -5999,7 +5999,7 @@ function socEdit(p0){
     document.body.appendChild(inp); inp.click(); }
   var pls=['facebook','instagram'].concat(ytOn()?['youtube']:[],ttOn()?['tiktok']:[]).map(function(k){ var cb=h('input',{type:'checkbox',value:k,id:'soc-'+k}); cb.checked=(p.platforms||[]).indexOf(k)>=0; cb.disabled=locked; return cb; });
   /* post type: a normal post, a Reel (video), or an Instagram Trial Reel (shown to non-followers first) */
-  var capWrap=null, tagBox=null, ttBox=null;
+  var capWrap=null, tagBox=null, ttBox=null, ytBox=null, ytT=null;
   var kind=p.kind||((media[0]&&media[0].type==='video')?'reel':'post'), trial=p.trial_strategy==='SS_PERFORMANCE'?'SS_PERFORMANCE':'MANUAL', fbWas=null;
   var kindBox=h('div',{class:'seg',role:'group','aria-label':'Post type'}), trialBox=h('div',{class:'field'}), kindNote=h('small',null,'');
   function drawKind(){
@@ -6015,7 +6015,7 @@ function socEdit(p0){
     if(kind==='trial'){ if(fbWas===null) fbWas=fb.checked; fb.checked=false; fb.disabled=true; ig.checked=true; ig.disabled=true; }
     else { fb.disabled=ig.disabled=locked; if(fbWas!==null){ fb.checked=fbWas; fbWas=null; } }
     /* YouTube Shorts: reels and trial reels only (a video) */
-    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(ttBox) drawTT(); if(coverBox) drawCover(); if(storyBox) drawStory(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
+    if(capWrap) capWrap.hidden=kind==='story'; if(tagBox) tagBox.hidden=kind==='story'; if(ttBox) drawTT(); if(ytBox) drawYT(); if(coverBox) drawCover(); if(storyBox) drawStory(); if(addB) addB.disabled=locked||!!busy||media.length>=(kind==='story'?1:10)||(media[0]&&media[0].type==='video');
     if(yt){ var vidOk=kind==='reel'||kind==='trial'; if(!vidOk) yt.checked=false; yt.disabled=locked||!vidOk; var yl=yt.parentNode; if(yl) yl.title=vidOk?'':'YouTube Shorts is for reels and trial reels.'; }
     if(tt){ var vOk=kind==='reel'||kind==='trial'; if(!vOk) tt.checked=false; tt.disabled=locked||!vOk; var tl=tt.parentNode; if(tl) tl.title=vOk?'':'TikTok is for reels (a video).'; }
   }
@@ -6104,6 +6104,15 @@ function socEdit(p0){
   /* TikTok: to the drafts (add a sound in TikTok), or straight to the profile with TikTok's own choices: who can see it, comments, Duet, Stitch, business or paid */
   var tto=Object.assign({direct:false,privacy:'',comment:true,duet:true,stitch:true,brand_organic:false,brand_content:false},p.tiktok||{});
   ttBox=h('div',{class:'field'});
+  /* YouTube Shorts: its own title (YouTube shows it big under the video). Empty: the first line of the caption */
+  ytT=h('input',{id:'soc-ytt',maxlength:'90',placeholder:'For example: 3 tips for your first week',autocomplete:'off'}); ytT.value=p.yt_title||''; ytT.disabled=locked;
+  var ytCount=h('small',null,'');
+  function ytLeft(){ ytCount.textContent=(90-ytT.value.length)+' letters left. Empty: the first line of the caption. #Shorts is added for you.'; }
+  ytT.addEventListener('input',ytLeft); ytLeft();
+  ytBox=h('div',{class:'field'},h('label',{for:'soc-ytt'},'YouTube title'),ytT,ytCount);
+  var ytCb=pls.filter(function(x){ return x.value==='youtube'; })[0];
+  function drawYT(){ ytBox.hidden=!ytCb||!ytCb.checked||kind==='story'; }
+  if(ytCb) ytCb.addEventListener('change',drawYT); drawYT();
   var ttCb=pls.filter(function(x){ return x.value==='tiktok'; })[0]; if(ttCb) ttCb.addEventListener('change',function(){ drawTT(); });
   var TTP={PUBLIC_TO_EVERYONE:'Everyone',MUTUAL_FOLLOW_FRIENDS:'Friends',FOLLOWER_OF_CREATOR:'Followers',SELF_ONLY:'Only me'};
   function drawTT(){
@@ -6128,7 +6137,7 @@ function socEdit(p0){
       h('small',null,'By posting, you agree to TikTok\u2019s ',h('a',{href:'https://www.tiktok.com/legal/page/global/music-usage-confirmation/en',target:'_blank',rel:'noopener'},'Music Usage Confirmation'),
         tto.brand_content?[' and ',h('a',{href:'https://www.tiktok.com/legal/page/global/bc-policy/en',target:'_blank',rel:'noopener'},'Branded Content Policy')]:null,'. The caption goes with the post.'));
   }
-  function vals(approve){ return {tiktok:tto,id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
+  function vals(approve){ return {yt_title:ytBox&&!ytBox.hidden?ytT.value:(p.yt_title||''),tiktok:tto,id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
       post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null,
       tag_place:tagPlace.checked,collaborators:String(collab.value||'').split(/[\s,]+/).map(function(x){ return x.replace(/^@+/,'').trim(); }).filter(Boolean)}; }
   function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true;
@@ -6160,7 +6169,7 @@ function socEdit(p0){
     coverBox, storyBox,
     h('div',{class:'field'},h('label',null,'Type'),kindBox,kindNote), trialBox,
     h('fieldset',{class:'field checks'},h('legend',null,'Post to'),h('div',{class:'checkgrid'},pls.map(function(cb){ return h('label',{class:'check',for:cb.id},cb,h('span',null,SOC_PL[cb.value])); }))),
-    tagBox, ttBox,
+    tagBox, ttBox, ytBox,
     (capWrap=h('div',null,h('div',{class:'field'},h('label',{for:'soc-brief'},'What is this post about?'),brief,h('small',null,'A few words is enough. Names, dates and prices: put them here, the AI never makes them up.')),
       locked?null:h('div',{class:'row'},aiB), opts,
       h('div',{class:'field'},h('label',{for:'soc-cap'},'Caption'),cap,count),
