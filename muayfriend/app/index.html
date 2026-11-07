@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=140"></script>
+<script src="changelog.js?v=141"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -923,6 +923,7 @@ var FEATURES=[
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'custom_deals',g:'Selling',n:'Custom deals',d:'Managers can sell a package as a custom deal: their own length (for example 4 months) and their own price, with Fitness Zone included if they like, starting on the first visit, today or a chosen date. In Sell a package, tick Custom deal.',def:true,spa:true},
+  {k:'owner_lock',g:'Team',n:'Owner',d:'One person owns the business: only they switch features, change money settings and add or change managers and admins. They keep recovery codes in case they are locked out. Set it in Settings, General, Owner.',def:true,spa:true},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
@@ -1007,7 +1008,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=90; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=91; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9368,9 +9369,9 @@ function navEdit(){
 }
 /* Settings: a front page (what is new, the essentials) and folders. Tap a folder to open it, Back to return. The open folder is remembered on this device */
 var SETT={tab:pref('pk_settab')||'home'};
-function setTabs(){ var mgr=me.role==='manager';
-  return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],['features','Features','Switch parts of the app on or off, languages'],
-    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
+function setTabs(){ var mgr=me.role==='manager'; if(OWN===undefined) ownLoad(); var deep=!(OWN&&OWN.locked&&!OWN.me);
+  return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],deep?['features','Features','Switch parts of the app on or off, languages']:null,
+    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr&&deep?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
     ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
     .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
 function setGo(t){ SETT.tab=t; pref('pk_settab',t); schedule(); window.scrollTo(0,0); }
@@ -9417,6 +9418,31 @@ function paddNew(ids){ openForm({title:'New extra with privates',saveLabel:'Add'
 function paddPick(ids){ var all=sortBy(S.packages.filter(function(p){ return p.active!==false&&Number(p.price_thb)>=1&&(p.audience||'all')==='all'&&(p.covers||[]).indexOf('Privates')<0; }),'name');
   openForm({title:'Extras with privates',note:'Tick the packages people can add to a private on the website.',values:{ids:ids},fields:[{key:'ids',label:'Extras',type:'checks',options:all.map(function(p){ return [p.id,p.name+', '+thb(p.price_thb)]; })}],
     onSave:function(v){ var keep=ids.filter(function(x){ return (v.ids||[]).indexOf(x)>=0; }); (v.ids||[]).forEach(function(x){ if(keep.indexOf(x)<0) keep.push(x); }); return paddSave(keep); },doneMsg:'Saved.'}); }
+/* the owner (feature owner_lock): one person owns the business. Only they change features, money settings and the managers and admins,
+   and they keep a set of recovery codes in case they are ever locked out (sign in page, Forgot password, Owner recovery code). */
+var OWN=undefined;
+function ownLoad(){ OWN=null; sb.rpc('owner_info').then(function(r){ OWN=r.error?false:r.data; schedule(); },function(){ OWN=false; schedule(); }); }
+function ownerSection(){ if(!featOn('owner_lock')) return null; if(OWN===undefined){ ownLoad(); return null; } if(!OWN) return null;
+  var mgr=me&&me.role==='manager', o=OWN;
+  if(!o.owner) return section('Owner',null,h('div',{class:'panel pad'},h('p',null,'Make one person the owner of the business. Only the owner can then switch features on or off, change money settings, and add or change managers and admins. Other managers run the business day to day as before.'),
+    mgr?btn('Make me the owner',function(){ if(!confirm('Make yourself the owner of the business?')) return; run(sb.rpc('owner_set',{p_staff:me.id}).then(must).then(function(){ ownLoad(); }),'You are the owner. Now make your recovery codes.'); },'primary'):null));
+  if(!o.me) return section('Owner',null,h('div',{class:'panel pad'},h('p',null,h('b',{class:'notr'},o.owner),' is the owner. Only the owner can switch features, change money settings and change managers and admins.')));
+  return section('Owner',h('div',{class:'row'},btn('Recovery codes',ownCodes,'primary small'),btn('Hand over',ownHand,'small')),h('div',{class:'panel pad'},
+    h('p',null,'You are the owner. Only you can switch features on or off, change money settings, and add or change managers and admins.'),
+    h('p',{class:o.codes_left?'sub':'bad'},o.codes_left?o.codes_left+' recovery codes left, made '+fmtDate(String(o.codes_made).slice(0,10))+'. Keep them somewhere safe, away from your phone.':'No recovery codes yet. Make them now: if you are ever locked out, a code and your email let you set a new password.')));
+}
+function ownCodes(){ if(OWN.codes_left&&!confirm('Make new recovery codes? Your old codes stop working.')) return;
+  sb.rpc('owner_recovery_codes').then(must).then(function(codes){ ownLoad();
+    var txt=codes.join('\n');
+    shopDlg(h('div',{class:'billbox'},h('h2',null,'Your recovery codes'),
+      h('p',{class:'sub'},'Write these down or print them, and keep them somewhere safe, not on your phone. Each code works once. If you are locked out: on the sign in page tap Forgot password, then Owner recovery code. You will not see these codes again.'),
+      h('pre',{class:'notr',style:'font-size:20px;line-height:1.7;letter-spacing:.06em;user-select:all'},txt),
+      h('div',{class:'factions'},btn('Copy',function(){ copyText(txt,'Copied. Paste them somewhere safe, then delete them from the clipboard.'); }),btn('Print',function(){ window.print(); }),btn('Done',function(){ $dlg.close(); },'primary')))); })
+  .catch(function(e){ toast(errText(e)); }); }
+function ownHand(){ var ms=S.staff.filter(function(x){ return x.active!==false&&x.role==='manager'&&x.user_id&&x.id!==me.id; });
+  if(!ms.length){ toast('There is no other manager with a sign in to hand over to.'); return; }
+  openForm({title:'Hand over the business',note:'The new owner gets the owner rights and makes their own recovery codes. Your codes stop working. You stay a manager.',fields:[{key:'who',label:'New owner',type:'select',options:ms.map(function(x){ return [x.id,x.name]; })}],
+    onSave:function(v){ if(!confirm('Hand over the business? You can not undo this yourself.')) return 'Not handed over.'; return sb.rpc('owner_set',{p_staff:v.who}).then(must).then(function(){ ownLoad(); }); },doneMsg:'Handed over.'}); }
 function vSettings(){
   var tabs=setTabs(), cur=tabs.filter(function(x){ return x[0]===SETT.tab; })[0];
   if(!cur) return setHome();
@@ -9446,7 +9472,7 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection()];
-  else body=[healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
 var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
@@ -11104,26 +11130,30 @@ function showSignIn(){
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
   var email=h('input',{id:'login-email',type:'email',autocomplete:'email',placeholder:'you@example.com'});
-  var pw=h('input',{id:'login-pw',type:'password',autocomplete:mode==='up'?'new-password':'current-password'});
+  var pw=h('input',{id:'login-pw',type:'password',autocomplete:mode==='up'||mode==='recover'?'new-password':'current-password'});
   var note=h('p',{class:'sub',role:'status'},linkNote); linkNote='';
   var keeps=true; try{ localStorage.setItem('pk_t','1'); keeps=localStorage.getItem('pk_t')==='1'; localStorage.removeItem('pk_t'); }catch(e){ keeps=false; }
-  var go=h('button',{type:'submit',class:'btn primary'},mode==='up'?'Create account':mode==='link'?'Email me a sign in link':mode==='reset'?'Email me a reset link':'Sign in');
+  var rcode=h('input',{id:'login-code',autocomplete:'off',autocapitalize:'characters',spellcheck:'false',placeholder:'XXXX-XXXX-XXXX-XXXX'});
+  var go=h('button',{type:'submit',class:'btn primary'},mode==='up'?'Create account':mode==='link'?'Email me a sign in link':mode==='reset'?'Email me a reset link':mode==='recover'?'Set my new password':'Sign in');
   function say(t){ note.textContent=t; }
   var intro={in:'Sign in with your email and password. You stay signed in on this phone until you sign out.',
     up:'New here? Make an account with your email and a password. We email you once to confirm it is you.',
     link:'No password yet? We email you a link that signs you in. Then tap Password at the top to set one.',
-    reset:'Forgot your password? We email you a link to set a new one.'}[mode];
-  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,mode==='up'?'Create account':mode==='reset'?'Reset password':'Sign in'),
+    reset:'Forgot your password? We email you a link to set a new one.',
+    recover:'For the owner of the business, when you can not get in any other way: your email, one of your recovery codes and a new password. Each code works once.'}[mode];
+  var form=h('form',{class:'panel pad login',novalidate:true},h('h1',null,mode==='up'?'Create account':mode==='reset'?'Reset password':mode==='recover'?'Owner recovery':'Sign in'),
     mode==='in'||mode==='up'?h('div',{class:'tabs2'},tab('in','Sign in'),tab('up','New here')):null,
     h('p',{class:'sub'},intro),
     keeps?null:h('p',{class:'kerr',style:'font-size:14px'},'This browser is not saving sign ins, so you will be asked every time. If Safari is in Private mode, switch to a normal tab.'),
     h('div',{class:'field'},h('label',{for:'login-email'},'Email'),email),
-    mode==='in'||mode==='up'?h('div',{class:'field'},h('label',{for:'login-pw'},'Password'),pw,mode==='up'?h('small',null,'At least 8 characters.'):null):null,
+    mode==='recover'?h('div',{class:'field'},h('label',{for:'login-code'},'Recovery code'),rcode):null,
+    mode==='in'||mode==='up'||mode==='recover'?h('div',{class:'field'},h('label',{for:'login-pw'},mode==='recover'?'New password':'Password'),pw,mode==='up'?h('small',null,'At least 8 characters.'):mode==='recover'?h('small',null,'At least 10 characters.'):null):null,
     h('div',null,go),note,
     /iPhone|iPad|iPod|Android/i.test(navigator.userAgent||'')&&!(window.pkNative&&window.pkNative())&&!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)&&window.navigator.standalone!==true?h('button',{type:'button',class:'btn small',onclick:function(){ if(window.pkInstall) window.pkInstall(); }},'Put the app on your phone'):null,
     h('div',{class:'row'},
       mode!=='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='in'; showSignIn(); }},'Back to sign in'):null,
       mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='reset'; showSignIn(); }},'Forgot password'):null,
+      mode==='reset'?h('button',{type:'button',class:'link',onclick:function(){ signMode='recover'; showSignIn(); }},'Owner recovery code'):null,
       mode==='in'?h('button',{type:'button',class:'link',onclick:function(){ signMode='link'; showSignIn(); }},'Email me a link instead'):null));
   // demo builds only (window.DEMO_LOGINS is set by tools/build_demo.py): one tap to try each side of the app
   if(window.DEMO_LOGINS&&mode==='in'){
@@ -11138,6 +11168,7 @@ function showSignIn(){
     ev.preventDefault(); var v=email.value.trim(), p=pw.value;
     if(!v){ say('Enter your email first.'); email.focus(); return; }
     if((mode==='in'||mode==='up')&&!p){ say('Enter your password.'); pw.focus(); return; }
+    if(mode==='recover'){ if(!rcode.value.trim()){ say('Type one of your recovery codes.'); rcode.focus(); return; } if(p.length<10){ say('Use at least 10 characters for the new password.'); pw.focus(); return; } }
     if(mode==='up'&&p.length<8){ say('Use at least 8 characters for the password.'); pw.focus(); return; }
     var back=appHere(), job, gymData=window.MF_GYM?{gym:window.MF_GYM}:undefined;
     go.disabled=true; say(mode==='in'?'Signing in.':'Sending.');
@@ -11147,6 +11178,9 @@ function showSignIn(){
       if(res.data&&res.data.session) return;
       if(res.data&&res.data.user&&res.data.user.identities&&!res.data.user.identities.length) return say('That email already has an account. Sign in, or tap Forgot password to set a password.');
       say('Check your inbox and open the link to confirm your email. You only do this once. After that you sign in with your password.'); });
+    else if(mode==='recover') job=sb.functions.invoke('owner-recover',{body:{email:v,code:rcode.value.trim(),password:p}}).then(function(res){ var d=res.data||{};
+      if(res.error||d.error) return say(d.error||'That did not work. Try again.');
+      say('Done. Signing you in with your new password.'); return sb.auth.signInWithPassword({email:v,password:p}).then(function(r){ if(r.error) say(authText(r.error)); }); });
     else if(mode==='reset') job=sb.auth.resetPasswordForEmail(v,{redirectTo:back}).then(function(res){ say(res.error?authText(res.error):'If that email has an account, a reset link is on its way. Open it on this phone.'); });
     else job=sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:back,data:gymData}}).then(function(res){ say(res.error?'That did not send. '+authText(res.error):'Check your inbox for the sign in link. It can take a minute.'); });
     job.catch(function(){ say('No connection. Try again.'); }).then(function(){ go.disabled=false; });
