@@ -746,8 +746,8 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <label>Your name<input name="name" autocomplete="name" required maxlength="100"></label>
         <label>Email<input name="email" type="email" autocomplete="email" required maxlength="160"></label>
         <label>Phone or WhatsApp<input name="phone" type="tel" autocomplete="tel" required maxlength="40"></label>
-        <label>Country<input name="country" autocomplete="country-name" required maxlength="80"></label>
-        <label>Members right now
+        <label>Country<input name="country" autocomplete="country-name" maxlength="80"></label>
+        <label>Members right now <span>(optional)</span>
           <select name="members">
             <option value="">Choose</option>
             <option>Under 15</option><option>15 to 50</option><option>50 to 150</option><option>Over 150</option>
@@ -837,12 +837,18 @@ fbq('init','1689705395897075');fbq('track','PageView');
   function post(u,d){ return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
     .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||!(j.ok||j.full)) throw new Error(j.error||'Not sent. Try again, or check your connection.'); return j; }); }); }
   function done(h,t){ f.innerHTML='<div class="done" tabindex="-1"><h3>'+h+'</h3><p>'+t+'</p></div>'; f.querySelector('.done').focus(); }
+  /* how far people get: opened the form, a check stopped them, or the server said no */
+  var opened=false; f.addEventListener('focusin',function(){ if(!opened){ opened=true; if(window.mfT) mfT('form'); } });
+  function bad(){ if(window.mfT) mfT('form_err'); }
+  /* fill in the country from the phone's time zone, so there is one less thing to type */
+  try{ var tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'', cn={'Asia/Bangkok':'Thailand','Europe/London':'United Kingdom','Australia/Sydney':'Australia','Australia/Melbourne':'Australia','Australia/Brisbane':'Australia','Australia/Perth':'Australia','Asia/Dubai':'United Arab Emirates','Asia/Singapore':'Singapore','Europe/Berlin':'Germany','Europe/Paris':'France','Europe/Amsterdam':'Netherlands','Europe/Madrid':'Spain','Europe/Rome':'Italy','Europe/Stockholm':'Sweden','Europe/Dublin':'Ireland','Asia/Kuala_Lumpur':'Malaysia','Asia/Manila':'Philippines','Asia/Jakarta':'Indonesia','Asia/Ho_Chi_Minh':'Vietnam','Asia/Tokyo':'Japan','Asia/Hong_Kong':'Hong Kong','Pacific/Auckland':'New Zealand','America/Toronto':'Canada','America/Vancouver':'Canada'}[tz]||(/^America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix)/.test(tz)?'United States':'');
+    if(cn&&!f.country.value) f.country.value=cn; }catch(e){}
   f.addEventListener('submit',function(e){
     e.preventDefault(); m.className='msg'; m.textContent='';
     var d={}; new FormData(f).forEach(function(v,k){ d[k]=String(v).trim(); });
-    var need=[['gym','Add your gym name.'],['name','Add your name.'],['phone','Add your phone or WhatsApp.'],['country','Add your country.']];
-    for(var i=0;i<need.length;i++){ if(!d[need[i][0]]){ m.className='msg err'; m.textContent=need[i][1]; f[need[i][0]].focus(); return; } }
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='Check your email address.'; f.email.focus(); return; }
+    var need=[['gym','Add your gym name.'],['name','Add your name.'],['phone','Add your phone or WhatsApp.']];
+    for(var i=0;i<need.length;i++){ if(!d[need[i][0]]){ m.className='msg err'; m.textContent=need[i][1]; f[need[i][0]].focus(); bad(); return; } }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email)){ m.className='msg err'; m.textContent='Check your email address.'; f.email.focus(); bad(); return; }
     d.lang=document.documentElement.lang==='th'?'th':'en'; d.source=location.href.slice(0,120);
     b.disabled=true; b.textContent='Making your app';
     post(API,d).then(function(j){
@@ -850,7 +856,7 @@ fbq('init','1689705395897075');fbq('track','PageView');
       if(j.go){ b.textContent='Opening your app'; setTimeout(function(){ location.href=j.go; },400); return; }
       if(j.full){ d.plan='free'; return post(WAIT,d).then(function(){ done('You are on the waiting list','All free spots are taken right now. We will email you as soon as one opens.'); }); }
       done('Check your email','Your gym app is ready. We sent a sign in link to your email: tap it to open your app. It can take a minute, and check junk too.');
-    }).catch(function(err){ m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent=BTN; });
+    }).catch(function(err){ if(window.mfT) mfT('signup_err'); m.className='msg err'; m.textContent=err.message||'Not sent. Try again.'; b.disabled=false; b.textContent=BTN; });
   });
 })();
 </script>
