@@ -151,7 +151,7 @@ async function account() {
 }
 
 type Media = { url: string; type: "image" | "video"; cover?: string };
-type Res = { id?: string; url?: string; error?: string; container?: string };
+type Res = { id?: string; url?: string; error?: string; container?: string; tries?: number };
 type TTopts = { direct?: boolean; privacy?: string; comment?: boolean; duet?: boolean; stitch?: boolean; brand_organic?: boolean; brand_content?: boolean };
 type Post = { id: string; caption: string; media: Media[]; platforms: string[]; results: Record<string, Res>; kind?: string; trial_strategy?: string | null; tag_place?: boolean; collaborators?: string[]; tiktok?: TTopts; yt_title?: string | null };
 
@@ -349,10 +349,18 @@ async function ttAccess(): Promise<string> {
 }
 // read the video from storage a piece at a time, so a big video never sits in memory whole
 async function* pieces(body: ReadableStream<Uint8Array>, sizes: number[]) {
-  const rd = body.getReader(); let buf = new Uint8Array(0);
+  // each piece is filled once in place (growing a buffer read by read copied the video over and over and ran out of CPU time)
+  const rd = body.getReader(); let left: Uint8Array | null = null;
   for (const n of sizes) {
-    while (buf.length < n) { const { value, done } = await rd.read(); if (done) break; const b = new Uint8Array(buf.length + value.length); b.set(buf); b.set(value, buf.length); buf = b; }
-    yield buf.slice(0, n); buf = buf.slice(n);
+    const out = new Uint8Array(n); let at = 0;
+    while (at < n) {
+      let v: Uint8Array;
+      if (left) { v = left; left = null; } else { const r = await rd.read(); if (r.done) break; v = r.value; }
+      const take = Math.min(v.length, n - at);
+      out.set(take === v.length ? v : v.subarray(0, take), at); at += take;
+      if (take < v.length) left = v.subarray(take);
+    }
+    yield at === n ? out : out.subarray(0, at);
   }
 }
 // who is posting and what TikTok allows them (TikTok asks for this before every direct post)
@@ -448,15 +456,26 @@ async function run() {
   if (!PAGE_TOKEN()) aErr = "Facebook and Instagram are not connected yet. Add META_PAGE_TOKEN in Supabase.";
   else { try { a = await account(); } catch (e) { aErr = "Meta did not accept the page token: " + (e as Error).message; } }
   const done: string[] = [];
+  // one big video upload (TikTok or YouTube) per run: two in one run can go over the function's CPU time; the next run does the next one
+  let heavy = false;
   for (const p of posts) {
     const results: Record<string, Res> = { ...(p.results ?? {}) };
     // quick platforms first, slow video uploads last, and save after each one: if the function is stopped part way
     // (a long upload), the next try skips what already went out instead of posting it again
-    const order = ["facebook", "instagram", "tiktok", "youtube"];
+    const order = ["facebook", "instagram", "youtube", "tiktok"];
     const todo = [...p.platforms].sort((x, y) => order.indexOf(x) - order.indexOf(y));
     for (const pl of todo) {
       if (results[pl]?.id) continue;
       if (!a && pl !== "youtube" && pl !== "tiktok") { results[pl] = { error: aErr }; continue; }
+      if (pl === "youtube" || pl === "tiktok") {
+        if (heavy) continue;
+        heavy = true;
+        // an upload that was cut off twice will not get through: say so instead of trying forever
+        const n = (results[pl]?.tries ?? 0) + 1;
+        if (n > 2) { results[pl] = { error: (pl === "tiktok" ? "TikTok" : "YouTube") + ": the video is too big to send from the app. Make it smaller (under about 60 MB) or post it in the app itself." }; continue; }
+        results[pl] = { tries: n };
+        await admin.rpc("social_done", { p_id: p.id, p_results: results, p_status: "posting", p_error: null });
+      }
       try { results[pl] = pl === "facebook" ? await toFacebook(p, a!) : pl === "youtube" ? await toYouTube(p) : pl === "tiktok" ? await toTikTok(p) : await toInstagram(p, a!, results[pl]); }
       catch (e) { results[pl] = { ...(results[pl]?.container ? { container: results[pl].container } : {}), error: (e as Error).message }; }
       if (results[pl]?.id || results[pl]?.container) await admin.rpc("social_done", { p_id: p.id, p_results: results, p_status: "posting", p_error: null });
