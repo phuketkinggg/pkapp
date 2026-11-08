@@ -181,3 +181,13 @@ revoke all on function public.ai_reply_save_msg(uuid, text, text, text) from pub
 grant execute on function public.ai_reply_save_msg(uuid, text, text, text) to service_role;
 
 notify pgrst, 'reload schema';
+
+-- signed in staff only (each one also checks the role inside)
+revoke all on function public.wa_status() from public, anon;
+revoke all on function public.wa_meta_save(text, text) from public, anon;
+revoke all on function public.ai_reply_settings() from public, anon;
+revoke all on function public.ai_reply_save(jsonb) from public, anon;
+grant execute on function public.wa_status() to authenticated;
+grant execute on function public.wa_meta_save(text, text) to authenticated;
+grant execute on function public.ai_reply_settings() to authenticated;
+grant execute on function public.ai_reply_save(jsonb) to authenticated;
