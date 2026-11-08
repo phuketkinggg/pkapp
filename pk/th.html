@@ -139,7 +139,7 @@ PK.data().then(function(d){
   });
   var wd=PK.weekday(), now=PK.nowHM(), today=d.classes.filter(function(c){ return c.day===wd&&!c.off; }), tbox=document.getElementById('today');
   if(!today.length){ var nx=null; for(var i=1;i<7&&!nx;i++){ var dd=(wd+i)%7, l=d.classes.filter(function(c){ return c.day===dd&&!c.off; }); if(l.length) nx={day:dd,c:l[0]}; }
-    tbox.innerHTML='<div class="cls"><div><b>วันนี้ไม่มีคลาสกลุ่ม</b> ยิมเปิดให้เรียนส่วนตัวและใช้ยิมได้ <a href="#th-privates">ดูราคาเรียนส่วนตัว</a>'+(nx?'<div class="sub" style="margin-top:6px">คลาสกลุ่มถัดไป: '+DAYS[nx.day]+' '+nx.c.time+' '+PK.esc(nx.c.title)+'</div>':'')+'</div></div>'; }
+    tbox.innerHTML='<div class="cls"><div><b>วันนี้ไม่มีคลาสกลุ่ม</b> ยิมเปิด 10:00 ถึง 20:00 สำหรับเรียนส่วนตัว ฟิตเนสโซน และโซนฟื้นฟูร่างกาย (เวลาอื่นนัดล่วงหน้าได้) <a href="#th-privates">ดูราคาเรียนส่วนตัว</a>'+(nx?'<div class="sub" style="margin-top:6px">คลาสกลุ่มถัดไป: '+DAYS[nx.day]+' '+nx.c.time+' '+PK.esc(nx.c.title)+'</div>':'')+'</div></div>'; }
   else today.forEach(function(c){ tbox.appendChild(PK.el('div','cls'+(c.time<now?' past':''),'<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(PK.fight(c)?' · <b class="fk">สำหรับนักมวย</b>':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); });
   var wk=document.getElementById('week');
   for(var w=0;w<7;w++){ var l2=d.classes.filter(function(c){ return c.day===w; }); if(!l2.length) continue;

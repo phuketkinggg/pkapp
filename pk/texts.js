@@ -1461,7 +1461,7 @@ window.PK_TEXTS=[{
 "id": "home_noclass1",
 "page": "Home",
 "label": "Text: on a day with no group classes",
-"text": "The gym is open for privates and gym access.",
+"text": "The gym is open 10:00 to 20:00 for private classes, the Fitness Zone and the recovery spa (other times by arrangement).",
 "multi": true
 },
 {
