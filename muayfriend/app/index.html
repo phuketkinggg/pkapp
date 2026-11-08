@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=145"></script>
+<script src="changelog.js?v=146"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -8287,12 +8287,16 @@ function todaySales(day){
   // room stays booked today (website and desk), not ones still waiting for payment or cancelled
   var st=featOn('stays')?(S.stays||[]).filter(function(x){ return x.created_at&&x.status!=='cancelled'&&!x.hold_until&&new Date(x.created_at).toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'})===day; }):[],
     stT=st.reduce(function(t,x){ return t+Number(x.room_price_thb||0); },0);
+  // privates on today's diary that are not part of a package already counted above (pay as you go, agents, Get Your Guide)
+  var pv=featOn('privates')?(S.privates||[]).filter(function(x){ return x.date===day&&!x.lead_id&&!x.purchase_id&&x.status!=='cancelled'&&x.status!=='requested'; }):[],
+    pvT=pv.reduce(function(t,x){ return t+Number(x.price_thb||0); },0);
   var by={}; ok.forEach(function(o){ var m=payName(o.method)||'Other'; by[m]=(by[m]||0)+Number(o.total||0); });
   return section('Sales today',btn('Open the till',function(){ ui.tab='shop'; schedule(); },'small'),h('div',{class:'panel pad'},
     h('div',{class:'stats'},h('span',null,h('b',null,thb(till)||'0 THB'),'shop and cafe, '+ok.length+' sale'+(ok.length===1?'':'s')),
       h('span',null,h('b',null,thb(pkT)||'0 THB'),pk.length+' package'+(pk.length===1?'':'s')+' and extras sold'),
+      pv.length?h('span',null,h('b',null,thb(pvT)||'0 THB'),pv.length+' private'+(pv.length===1?'':'s')+' today'):null,
       st.length?h('span',null,h('b',null,thb(stT)||'0 THB'),st.length+' room stay'+(st.length===1?'':'s')+' booked'):null,
-      h('span',null,h('b',null,thb(till+pkT+stT)||'0 THB'),'together')),
+      h('span',null,h('b',null,thb(till+pkT+pvT+stT)||'0 THB'),'together')),
     Object.keys(by).length?h('p',{class:'sub'},'Till by payment: '+Object.keys(by).map(function(m){ return m+' '+thb(by[m]); }).join(', ')+'.'):null)); }
 function todayArrange(){
   var lay={order:todayOrder(),hidden:((TLAY&&TLAY.hidden)||[]).slice()};
