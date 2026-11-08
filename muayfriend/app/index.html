@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=141"></script>
+<script src="changelog.js?v=142"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -974,6 +974,7 @@ var FEATURES=[
   {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
   {k:'ask_ai',g:'AI package',n:'Ask AI',d:'An assistant in the app for the owner, and for the staff the owner ticks Ask AI on (Staff, Edit). Ask about anything in the business, send PDFs, photos or spreadsheets (for example a delivery note to add to shop stock), or ask it to write and send an email. It reads with the person\'s own rights, and every change is shown first and only done when they tap Confirm.',tabs:['askai'],spa:true},
   {k:'ask_ai_web',g:'AI package',n:'Ask AI can search the web',d:'Ask AI can look things up on the internet, for example nearby hotels and their contact emails, prices or opening hours, and say where it found them. Web searches cost a little extra on the AI bill.'},
+  {k:'course_sell',g:'Selling',n:'Sell or give a course at the desk',d:'An Add a course button on each customer: sell one of your online courses like a package (cash, card, transfer, agent or pay later), or give it free with a reason (managers, with Give packages free of charge on). It opens in their app, in Learn, as soon as it is paid.',def:true,spa:false},
   {k:'free_packages',g:'Selling',n:'Give packages free of charge',d:'When selling a package, managers and admins can choose Free of charge and a reason: promotional, sponsored, staff or team, gift or apology, competition prize or other. It works like a paid package, shows as 0 THB so it is not counted as money taken, and the reason is saved on it.'},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
@@ -1008,7 +1009,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=91; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=92; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1338,6 +1339,35 @@ function editCustomer(c){ c=c||{};
 /* managers and admins can give a package free of charge (feature free_packages): 0 THB, with the reason saved on it */
 var FREEWHY=['Promotional','Sponsored','Staff or team','Gift or apology','Competition prize','Other'];
 function freeOk(){ return featOn('free_packages')&&!!me&&(me.role==='manager'||me.role==='admin'); }
+/* sell an online course at the desk, like a package, or give it free (feature course_sell): it opens in their app, in Learn, once paid */
+function courseSellOk(){ return featOn('courses')&&featOn('course_sell')&&isDeskRole(); }
+function sellCourse(c){
+  sb.rpc('course_list_as',{p_customer:c.id}).then(function(r){ return r.error?sb.rpc('course_list_mine').then(must):r.data; }).then(function(list){
+    list=(list||[]).filter(function(k){ return k.status==='published'||(me&&me.role==='manager'); });
+    if(!list.length){ toast('Add a course first, in Courses.'); return; }
+    var first=list.filter(function(k){ return !k.open; })[0]||list[0];
+    function label(k){ return k.title+(k.status!=='published'?' (draft)':'')+(k.open?' (already has it)':''); }
+    openForm({title:'Add a course for '+c.name,saveLabel:'Add the course',values:{course_id:first.id,price_thb:first.price||null},fields:[
+      {key:'course_id',label:'Course',type:'select',options:list.map(function(k){ return [k.id,label(k)]; }),def:first.id,onChange:function(v,set){ var k=list.filter(function(x){ return x.id===v; })[0]; if(k) set('price_thb',k.price||null); }},
+      {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(payList(PAYOPTS),freeOk()?[['free','Free, a gift']]:[]),hint:'It opens in their app, in Learn, as soon as it is paid. A gift opens straight away.',
+        onChange:function(v,set,get,o,show){ show('price_thb',v!=='free'); show('free_why',v==='free'); show('free_note',v==='free'); }},
+      {key:'price_thb',label:'Price charged (THB)',type:'number'},
+      {key:'free_why',label:'Why it is free',type:'select',hide:true,def:'Gift or apology',options:FREEWHY.map(function(x){ return [x,x]; }),hint:'Saved with it. It shows as 0 THB, so it is not counted as money taken.'},
+      {key:'free_note',label:'Note (optional)',hide:true},
+      {key:'purchased_on',label:'Date',type:'date',def:ymd(new Date()),required:true}],
+      onSave:function(v){ var k=list.filter(function(x){ return x.id===v.course_id; })[0]; if(!k) return 'Choose the course.';
+        if(k.open) return c.name+' already has this course.';
+        var free=v.method==='free'; if(free&&!freeOk()) return 'Only a manager or admin can give a course free.';
+        var price=free?0:Math.round(Number(v.price_thb)||0); if(!free&&price<1) return 'Type the price, or choose Free.';
+        var later=v.method==='later';
+        var p={customer_id:c.id,package_id:null,course_id:k.id,package_name:'Online course: '+k.title+(free?' (Free: '+(v.free_why||'Gift or apology')+(v.free_note?', '+String(v.free_note).trim().slice(0,60):'')+')':''),
+          price_thb:price,price_group:c.price_group||'standard',paid:free,paid_thb:later||free?0:price,method:free||later?null:v.method,purchased_on:v.purchased_on,covers:[]};
+        return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must)
+          .then(function(){ return free?sb.rpc('course_give',{p_course:k.id,p_customer:c.id}).then(must):null; })
+          .then(function(){ return reload('purchases'); })
+          .then(function(){ setTimeout(function(){ toast(free?k.title+' given free. It is open in their app, in Learn.':later?k.title+' added, not paid yet. It opens when they pay.':k.title+' sold. It is open in their app, in Learn.'); },50); }); }});
+  }).catch(function(e){ toast(errText(e)); });
+}
 /* a package sold from a stay (feature stay_sell): for the guest or someone else in the room, and it can go on the room bill */
 function openStayOf(cid){ var d=ymd(new Date()); return sortBy((S.stays||[]).filter(function(s){ return s.customer_id===cid&&(s.status==='booked'||s.status==='in')&&!s.settled&&s.check_in<=d&&d<=s.check_out; }),'check_in').pop()||null; }
 function stayNames(st){ return String(st&&st.guest_names||'').split(/\n|,/).map(function(x){ return x.trim(); }).filter(Boolean); }
@@ -8707,7 +8737,7 @@ function vCustomers(){
     if(ctabs&&ui.ctab==='info') return [h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; ui.ctab='main'; schedule(); })),pageHead(c.name),ctabs].concat(ciPanel(c));
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),featOn('member_file')&&tabOn('coaching')&&!c.is_agency&&me&&(me.role==='manager'||me.role==='coach'||me.also_coach)?btn('Member file',function(){ mfOpen(c.id); }):null,isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),featOn('member_file')&&tabOn('coaching')&&!c.is_agency&&me&&(me.role==='manager'||me.role==='coach'||me.also_coach)?btn('Member file',function(){ mfOpen(c.id); }):null,isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),courseSellOk()&&!c.is_agency?btn('Add a course',function(){ sellCourse(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       ctabs,
       custBills(c),
       me&&me.role==='manager'?emailOneSection(c):null,
