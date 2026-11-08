@@ -25,6 +25,11 @@ async function hash(s: string) {
   return Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
 }
 
+// who sent them: ?ref=name or ?utm_source=name on the page they signed up from (for partners and ambassadors)
+function refOf(src: unknown) {
+  try { const q = new URL(String(src ?? "")).searchParams; return clip(q.get("ref") || q.get("utm_source") || "", 40).toLowerCase(); } catch (_) { return ""; }
+}
+
 async function resend(msg: Record<string, unknown>) {
   if (!KEY) return { ok: false, err: "no RESEND_API_KEY" };
   try {
@@ -136,12 +141,12 @@ Deno.serve(async (req) => {
     const m = mail(th, first, gym, slug, isNew && !invite ? null : link);
     const s = await resend({ from: FROM, to: [email], reply_to: TEAM, subject: m.subject, html: m.html, text: m.text });
     const rows: [string, string][] = [["Gym", gym], ["App", APP + "?g=" + slug], ["Name", name], ["Email", email], ["Phone or WhatsApp", phone], ["Country", country],
-      ["Members", clip(b.members, 40)], ["Instagram or website", clip(b.social, 200)], ["Language", th ? "Thai" : "English"], ["Welcome email", s.ok ? "sent" : "failed: " + s.err]];
+      ["Members", clip(b.members, 40)], ["Instagram or website", clip(b.social, 200)], ["Language", th ? "Thai" : "English"], ["Came from", refOf(b.source)], ["Welcome email", s.ok ? "sent" : "failed: " + s.err]];
     await resend({ from: FROM, to: [TEAM], reply_to: email, subject: `New free gym: ${gym}`,
       html: `<h2 style="font-family:sans-serif">New free gym, ready now</h2><table style="font-family:sans-serif;font-size:15px">${rows.filter((r) => r[1]).map(([k, v]) => `<tr><td style="padding:4px 14px 4px 0;color:#666">${k}</td><td style="padding:4px 0">${esc(v)}</td></tr>`).join("")}</table>`,
       text: rows.filter((r) => r[1]).map(([k, v]) => `${k}: ${v}`).join("\n") });
     await log(slug, (invite ? "invited, link emailed" : isNew ? "made, signed in" : "made, link emailed") + (s.ok ? "" : "; welcome failed: " + s.err),
-      { phone, country, members: clip(b.members, 40), social: clip(b.social, 200), lang: th ? "th" : "en" });
+      { phone, country, members: clip(b.members, 40), social: clip(b.social, 200), lang: th ? "th" : "en", source: clip(b.source, 120), ref: refOf(b.source) });
     return isNew && !invite ? json({ ok: true, slug, go: link, sent: s.ok }) : json({ ok: true, slug, sent: s.ok });
   } catch (e) {
     try { await admin.rpc("mf_signup_log", { p_ip: ip, p_email: email, p_gym: gym, p_slug: null, p_result: "error: " + String(e).slice(0, 250) }); } catch (_) { /* logging only */ }

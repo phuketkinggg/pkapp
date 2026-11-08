@@ -8,7 +8,7 @@
   var guess={'Asia/Bangkok':'TH','Europe/London':'GB','Australia/Sydney':'AU','Australia/Melbourne':'AU','Asia/Dubai':'AE','Asia/Singapore':'SG','Europe/Berlin':'DE','Europe/Paris':'FR','Asia/Kolkata':'IN','Asia/Riyadh':'SA','Asia/Kuwait':'KW','Europe/Moscow':'RU'}[tz]||(tz.indexOf('America/')===0?'US?':'');
   function send(kind){
     var d={kind:kind,path:location.pathname,lang:document.documentElement.lang||'en',ref:kind==='view'?document.referrer:'',
-      utm_source:q.get('utm_source')||(q.get('fbclid')?'facebook':''),utm_medium:q.get('utm_medium')||'',utm_campaign:q.get('utm_campaign')||'',country:guess};
+      utm_source:q.get('utm_source')||q.get('ref')||(q.get('fbclid')?'facebook':''),utm_medium:q.get('utm_medium')||'',utm_campaign:q.get('utm_campaign')||'',country:guess};
     try{ fetch(URL,{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p:d})}).catch(function(){}); }catch(e){}
   }
   window.mfT=send;
