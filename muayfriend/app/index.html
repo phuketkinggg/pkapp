@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=142"></script>
+<script src="changelog.js?v=143"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -975,6 +975,7 @@ var FEATURES=[
   {k:'ask_ai',g:'AI package',n:'Ask AI',d:'An assistant in the app for the owner, and for the staff the owner ticks Ask AI on (Staff, Edit). Ask about anything in the business, send PDFs, photos or spreadsheets (for example a delivery note to add to shop stock), or ask it to write and send an email. It reads with the person\'s own rights, and every change is shown first and only done when they tap Confirm.',tabs:['askai'],spa:true},
   {k:'ask_ai_web',g:'AI package',n:'Ask AI can search the web',d:'Ask AI can look things up on the internet, for example nearby hotels and their contact emails, prices or opening hours, and say where it found them. Web searches cost a little extra on the AI bill.'},
   {k:'course_sell',g:'Selling',n:'Sell or give a course at the desk',d:'An Add a course button on each customer: sell one of your online courses like a package (cash, card, transfer, agent or pay later), or give it free with a reason (managers, with Give packages free of charge on). It opens in their app, in Learn, as soon as it is paid.',def:true,spa:false},
+  {k:'group_exercises',g:'Training',n:'Exercise videos and opening times in action groups',d:'In an action group, add videos from your exercise library (Add exercise videos, or From my exercises on a video step), and give any step a time of day, so it opens for each person at that time on its day after they join, for example Day 3 at 18:00.',def:true,spa:false},
   {k:'free_packages',g:'Selling',n:'Give packages free of charge',d:'When selling a package, managers and admins can choose Free of charge and a reason: promotional, sponsored, staff or team, gift or apology, competition prize or other. It works like a paid package, shows as 0 THB so it is not counted as money taken, and the reason is saved on it.'},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
@@ -1009,7 +1010,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=92; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=93; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4340,8 +4341,16 @@ function cmFormPick(p,it){
    that unlock by week, by day, or on a date, counted from each person's start date ---------- */
 var GKIND=[['video','Video'],['doc','Document'],['note','Note'],['email','Email'],['habit','Habit'],['food','Food diary'],['weight','Weight check'],['program','Workout program'],['lesson','Course lesson']];
 function gKind(k){ var x=GKIND.filter(function(g){ return g[0]===k; })[0]; return x?x[1]:k; }
-function gWhen(it){ var n=Number(it.at_n)||1; return it.at_mode==='date'?(it.at_date?fmtDate(it.at_date):'Pick a date'):it.at_mode==='day'?'Day '+n:'Week '+n; }
-function gKey(it){ var n=Number(it.at_n)||1; return it.at_mode==='date'?'2'+(it.at_date||''):'1'+String(it.at_mode==='day'?n-1:(n-1)*7).padStart(5,'0'); }
+function gWhen(it){ var n=Number(it.at_n)||1; return (it.at_mode==='date'?(it.at_date?fmtDate(it.at_date):'Pick a date'):it.at_mode==='day'?'Day '+n:'Week '+n)+(gTimeOn()&&it.at_time&&it.kind!=='email'?', '+it.at_time:''); }
+/* exercise videos and opening times in action groups (feature group_exercises) */
+function gTimeOn(){ return featOn('group_exercises'); }
+function coExPick(multi,cb){ (COACH.ex?Promise.resolve(COACH.ex):coEx()).then(function(l){ var v=(l||[]).filter(function(x){ return x.video; });
+    if(!v.length){ toast('No exercises with a video yet. Add them in Coaching, Exercises.'); return; }
+    v=sortBy(v,'name'); var o=v.map(function(x){ return [x.id,x.name+((x.groups||[]).length?' ('+(x.groups||[]).map(coGroupName).join(', ')+')':'')]; });
+    openForm({title:multi?'Add exercise videos':'Choose an exercise',saveLabel:multi?'Add them':'Use it',values:{ex:multi?[]:v[0].id},fields:[multi?{key:'ex',label:'Exercises',type:'checks',options:o}:{key:'ex',label:'Exercise',type:'select',options:o,def:v[0].id}],
+      onSave:function(f){ var ids=multi?(f.ex||[]):[f.ex], got=v.filter(function(x){ return ids.indexOf(x.id)>=0; }); if(!got.length) return 'Choose at least one exercise.'; cb(got); }});
+  }).catch(function(e){ toast(errText(e)); }); }
+function gKey(it){ var n=Number(it.at_n)||1; return (it.at_mode==='date'?'2'+(it.at_date||''):'1'+String(it.at_mode==='day'?n-1:(n-1)*7).padStart(5,'0'))+(it.at_time||''); }
 function gWeekOf(g,t){ return Math.floor((parseYmd(t)-parseYmd(g.start_on))/(7*864e5))+1; }
 /* a step that opens a course lesson: the group sets the day, the course keeps the video */
 function gLessonBtn(it){ return it.kind==='lesson'&&it.course_id&&it.lesson_id?h('div',{class:'row',style:'margin-top:8px'},btn('Open the lesson',function(){ ui.tab=me&&me.role==='customer'?'c_learn':'courses'; CRS.view=null; crsOpen(it.course_id,it.lesson_id); schedule(); window.scrollTo(0,0); },'primary small')):null; }
@@ -4462,6 +4471,7 @@ function coGroupEditor(){
   var steps=g.items.map(function(it,i){ it.habit=it.habit||{freq:'daily',days:[],times:3,weeks:''};
     var whenBox=h('div',{class:'row gwhenrow'},h('label',{class:'sr',for:'gm-'+it.id},'When'),sel(it,'at_mode','gm-'+it.id,[['week','Week'],['day','Day'],['date','On a date']]),
       it.at_mode==='date'?inp(it,'at_date','gd-'+it.id,{type:'date'}):inp(it,'at_n','gn-'+it.id,{type:'number',min:'1',inputmode:'numeric'}),
+      gTimeOn()&&it.kind!=='email'?h('label',{class:'sr',for:'gat-'+it.id},'Opens at'):null,gTimeOn()&&it.kind!=='email'?inp(it,'at_time','gat-'+it.id,{type:'time'}):null,
       h('label',{class:'sr',for:'gk-'+it.id},'Type'),sel(it,'kind','gk-'+it.id,GKIND),
       h('div',{class:'pmini'},h('button',{type:'button','aria-label':'Move up',onclick:function(){ mv(i,-1); }},'↑'),h('button',{type:'button','aria-label':'Move down',onclick:function(){ mv(i,1); }},'↓'),
         h('button',{type:'button','aria-label':'Copy',onclick:function(){ var c=JSON.parse(JSON.stringify(it)); c.id='s'+cRand(); g.items.splice(i+1,0,c); schedule(); }},'⧉'),
@@ -4492,6 +4502,7 @@ function coGroupEditor(){
       h('div',{class:'field'},h('label',{for:'gti-'+it.id},it.kind==='habit'?'Habit':it.kind==='email'?'Subject':'Title'),inp(it,'title','gti-'+it.id,{placeholder:it.kind==='habit'?'For example: 10 minutes stretching':it.kind==='food'?'For example: Start your food diary':it.kind==='weight'?'For example: Weekly weigh-in':'Title'})),
       h('div',{class:'field'},h('label',{for:'gtx-'+it.id},it.kind==='habit'?'How to do it':'Message'),inp(it,'text','gtx-'+it.id,{area:true,rows:it.kind==='email'?8:3,placeholder:it.kind==='email'?'Hi {first},\n\nWrite your email here.':null})),
       it.kind!=='program'&&it.kind!=='lesson'?h('div',{class:'field'},h('label',{for:'gu-'+it.id},urlLabel),h('div',{class:'row pvid'},inp(it,'url','gu-'+it.id,{placeholder:'https://'}),btn('Upload',function(){ coUpload('group',function(u){ it.url=u; schedule(); },it.kind==='video'?'video/*':undefined); },'small'),
+        it.kind==='video'&&gTimeOn()?btn('From my exercises',function(){ coExPick(false,function(l){ var x=l[0]; it.url=x.video; if(!it.title) it.title=x.name; if(!it.text&&x.notes) it.text=x.notes; schedule(); }); },'small'):null,
         it.kind==='doc'&&featOn('coach_docs')?btn('From Documents',function(){ coDocPick(function(d){ it.url=d.url; if(!it.title) it.title=d.title; schedule(); }); },'small'):null)):null,
       extra); });
   var save=btn('Save',function(){ save.disabled=true; var items=g.items.slice().sort(function(a,b){ return gKey(a)<gKey(b)?-1:gKey(a)>gKey(b)?1:0; });
@@ -4501,7 +4512,11 @@ function coGroupEditor(){
     pageHead(g.id?'Edit action group':'New action group','Steps unlock by week or day from each person’s start date (day 1 is the day they start), or on a fixed date. Emails are sent on their day. Habits and programs are set up for each person when you add them, so changes here apply to people you add after.',save),
     h('div',{class:'panel pad'},h('div',{class:'field'},h('label',{for:'gg-name'},'Group name'),inp(g,'name','gg-name',{placeholder:'For example: Fight camp, Weight loss'})),
       h('div',{class:'field'},h('label',{for:'gg-notes'},'Welcome message (shows in week 1)'),inp(g,'notes','gg-notes',{area:true,rows:2}))),
-    steps, h('div',{class:'row'},btn('Add a step',function(){ g.items.push(coNewStep(g.items[g.items.length-1])); schedule(); }),save)];
+    steps, h('div',{class:'row'},btn('Add a step',function(){ g.items.push(coNewStep(g.items[g.items.length-1])); schedule(); }),
+      gTimeOn()?btn('Add exercise videos',function(){ coExPick(true,function(l){ var last=g.items[g.items.length-1];
+        l.forEach(function(x){ var st=coNewStep(last); if(last){ st.at_n=last.at_n; st.at_date=last.at_date; st.at_time=last.at_time||''; } st.kind='video'; st.title=x.name; st.text=x.notes||''; st.url=x.video; g.items.push(st); });
+        schedule(); toast(l.length+' video step'+(l.length>1?'s':'')+' added. Set the day and time on each.'); }); }):null,save),
+      gTimeOn()?h('p',{class:'sub'},'Day 1 is the day they join. Set a time on a step to open it at that time on its day, for example Day 3 at 18:00. Without a time it opens at the start of the day.'):null];
 }
 /* email steps: sent, failed or scheduled, for the coach */
 var GES={};
