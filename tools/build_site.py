@@ -118,9 +118,13 @@ def faq_ld(html):
 def static_page(tpl, box_open, box_close, item, url, extra_ld):
     """One pre-rendered page: the normal template with the content already inside, its own title, address and data."""
     h = tpl.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n<base href="/">', 1)
-    title = item["title"] + " | Phuket King Muay Thai"
+    # Google shows about 60 characters of a title and 155 of a description: keep the brand only when it fits, and cut long descriptions at a word
+    t0 = item["title"].strip()
+    title = t0 if ("phuket king" in t0.lower() or len(t0) > 42) else t0 + " | Phuket King Muay Thai"
     h = re.sub(r"<title>.*?</title>", "<title>%s</title>" % esc_attr(title), h, count=1, flags=re.S)
-    desc = item.get("description") or strip_tags(item["html"])[:155]
+    desc = re.sub(r"\s+", " ", item.get("description") or strip_tags(item["html"])).strip()
+    if len(desc) > 158:
+        desc = desc[:155].rsplit(" ", 1)[0].rstrip(",.;:") + "..."
     h = set_meta(h, "name", "description", desc)
     h = set_meta(h, "property", "og:title", item["title"])
     h = set_meta(h, "property", "og:description", desc)
