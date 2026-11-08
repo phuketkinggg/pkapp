@@ -1,5 +1,5 @@
 {
- "at": "2026-11-08T13:38:48Z",
+ "at": "2026-11-08T19:45:06Z",
  "classes": [
   {
    "day": 0,
@@ -222,26 +222,19 @@
   },
   {
    "covers": [
+    "Muay Thai",
+    "Striking"
+   ],
+   "name": "Fighter Techniques with Kru Pot",
+   "price": 200
+  },
+  {
+   "covers": [
     "Fitness zone",
     "Open gym"
    ],
    "name": "Fitness Zone 1 time",
    "price": 200
-  },
-  {
-   "covers": [
-    "Muay Thai",
-    "Striking"
-   ],
-   "name": "Fighter Techniques wiht Kru Pot",
-   "price": 200
-  },
-  {
-   "covers": [
-    "Spa"
-   ],
-   "name": "Spa Access, Full spa 1 time",
-   "price": 300
   },
   {
    "covers": [
@@ -253,14 +246,16 @@
   },
   {
    "covers": [
+    "Spa"
+   ],
+   "name": "Spa Access, Full spa 1 time",
+   "price": 300
+  },
+  {
+   "covers": [
     "Yoga"
    ],
    "name": "Yoga, 1 Session",
-   "price": 400
-  },
-  {
-   "covers": [],
-   "name": "Hand Wraps",
    "price": 400
   },
   {
@@ -268,6 +263,11 @@
     "Muay Thai"
    ],
    "name": "Training Only, 1 Session",
+   "price": 400
+  },
+  {
+   "covers": [],
+   "name": "Hand Wraps",
    "price": 400
   },
   {
@@ -353,17 +353,17 @@
   },
   {
    "covers": [
-    "Privates"
-   ],
-   "name": "Private Training Coach Tom",
-   "price": 2500
-  },
-  {
-   "covers": [
     "Muay Thai",
     "Kids"
    ],
    "name": "Kids monthly, All classes",
+   "price": 2500
+  },
+  {
+   "covers": [
+    "Privates"
+   ],
+   "name": "Private Training Coach Tom",
    "price": 2500
   },
   {
