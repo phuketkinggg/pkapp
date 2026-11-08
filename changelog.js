@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-08', title: 'Money taken today', what: 'Under Sales today on the Today screen you now also see all the money taken today: the till plus every payment for packages, privates and rooms, including balances paid today for things bought earlier, split by payment type (cash, card, transfer and so on).', feature: 'money_taken'},
   {date: '2026-11-08', title: 'Privates in Sales today', what: 'Sales today on the Today screen now also counts the privates on today\'s diary that are not part of a package (pay as you go, agents and booking sites), and adds them to the total.'},
   {date: '2026-11-08', title: 'Website: a guide to training in your area', what: 'A new page on the website, linked from the home page, the footer and every blog post: a local guide to training Muay Thai in the area, with where to train, what it costs (prices filled in live from your packages), when to come, where to stay and common questions, built so it can rank on Google for the main search people type. The home page title now leads with that search too.'},
   {date: '2026-11-08', title: 'Days with no group classes on the website', what: 'On a day with no group classes, the website now says the gym is open for privates and gym access, with a link to the private lesson prices, and shows the next group class underneath. You can change the wording in Settings, Website.'},

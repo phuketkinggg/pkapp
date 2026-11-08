@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=146"></script>
+<script src="changelog.js?v=147"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -971,6 +971,7 @@ var FEATURES=[
   {k:'ask_ai_web',g:'AI package',n:'Ask AI can search the web',d:'Ask AI can look things up on the internet, for example nearby hotels and their contact emails, prices or opening hours, and say where it found them. Web searches cost a little extra on the AI bill.'},
   {k:'course_sell',g:'Selling',n:'Sell or give a course at the desk',d:'An Add a course button on each customer: sell one of your online courses like a package (cash, card, transfer, agent or pay later), or give it free with a reason (managers, with Give packages free of charge on). It opens in their app, in Learn, as soon as it is paid.',def:true,spa:false},
   {k:'group_exercises',g:'Training',n:'Exercise videos and opening times in action groups',d:'In an action group, add videos from your exercise library (Add exercise videos, or From my exercises on a video step), and give any step a time of day, so it opens for each person at that time on its day after they join, for example Day 3 at 18:00.',def:true,spa:false},
+  {k:'money_taken',g:'Money',n:'Money taken today',d:'Under Sales today on the Today screen: all the money taken today, from the till and every payment for packages, privates and rooms, including balances paid today for things bought earlier, split by payment type.',def:true,spa:true},
   {k:'free_packages',g:'Selling',n:'Give packages free of charge',d:'When selling a package, managers and admins can choose Free of charge and a reason: promotional, sponsored, staff or team, gift or apology, competition prize or other. It works like a paid package, shows as 0 THB so it is not counted as money taken, and the reason is saved on it.'},
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
@@ -1005,7 +1006,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=93; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=94; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8274,6 +8275,12 @@ function todayWidgets(P){ var hid=(TLAY&&TLAY.hidden)||[];
   var need={checkin:'gym',checkedin:'gym',privates:'gym',renewals:'gym',housekeeping:'resort'};
   return todayOrder().filter(function(id){ return hid.indexOf(id)<0&&P[id]&&(!need[id]||inArea(need[id])); }).map(function(id){ var w=twOf(id), b=P[id]();
     return twEmpty(b)?null:h('div',{class:'wid wc-'+w[2],'data-w':id},['staff','urgent','notices','housekeeping'].indexOf(id)>=0?h('div',{class:'widlab'},w[1]):null,b); }); }
+/* money taken today: every payment recorded today (packages, privates, rooms, balances paid off), plus the till */
+var MTK={day:null,at:0,rows:null};
+function moneyTaken(day){ if(!isDeskRole()) return null;
+  if(MTK.day!==day||Date.now()-MTK.at>60000){ MTK.day=day; MTK.at=Date.now();
+    sb.from('payments').select('amount_thb,method,voided').eq('day',day).then(function(r){ if(!r.error){ MTK.rows=r.data||[]; schedule(); } }); }
+  return MTK.day===day?MTK.rows:null; }
 function todaySales(day){
   if(!SALES&&!ui.salesAsked&&me&&(me.role==='manager'||me.role==='front_desk')){ ui.salesAsked=true; shopRefresh(); }
   var orders=SALES&&SALES.orders?SALES.orders:[], ok=orders.filter(function(o){ return o.status==='paid'||o.status==='room'; });
@@ -8292,7 +8299,14 @@ function todaySales(day){
       pv.length?h('span',null,h('b',null,thb(pvT)||'0 THB'),pv.length+' private'+(pv.length===1?'':'s')+' today'):null,
       st.length?h('span',null,h('b',null,thb(stT)||'0 THB'),st.length+' room stay'+(st.length===1?'':'s')+' booked'):null,
       h('span',null,h('b',null,thb(till+pkT+pvT+stT)||'0 THB'),'together')),
-    Object.keys(by).length?h('p',{class:'sub'},'Till by payment: '+Object.keys(by).map(function(m){ return m+' '+thb(by[m]); }).join(', ')+'.'):null)); }
+    Object.keys(by).length?h('p',{class:'sub'},'Till by payment: '+Object.keys(by).map(function(m){ return m+' '+thb(by[m]); }).join(', ')+'.'):null,
+    (function(){ var rows=featOn('money_taken')?moneyTaken(day):null; if(!rows) return null; rows=rows.filter(function(x){ return !x.voided; });
+      var pay=rows.reduce(function(t,x){ return t+Number(x.amount_thb||0); },0), mb={};
+      rows.forEach(function(x){ var m=payName(x.method)||'Other'; mb[m]=(mb[m]||0)+Number(x.amount_thb||0); }); Object.keys(by).forEach(function(m){ mb[m]=(mb[m]||0)+by[m]; });
+      return h('div',{class:'stats',style:'margin-top:10px;padding-top:10px;border-top:1px solid var(--line,#e5e5e5)'},
+        h('span',null,h('b',null,thb(pay+till)||'0 THB'),'money taken today'),
+        h('span',null,h('b',null,thb(pay)||'0 THB'),'packages, privates and rooms ('+rows.length+' payment'+(rows.length===1?'':'s')+')'),
+        Object.keys(mb).length?h('small',{class:'sub',style:'flex-basis:100%'},'By payment: '+Object.keys(mb).map(function(m){ return m+' '+thb(mb[m]); }).join(', ')+'. Includes balances paid today for things bought earlier.'):null); })())); }
 function todayArrange(){
   var lay={order:todayOrder(),hidden:((TLAY&&TLAY.hidden)||[]).slice()};
   var list=h('ol',{class:'warr'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
