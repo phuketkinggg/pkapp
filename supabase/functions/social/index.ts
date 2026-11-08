@@ -450,11 +450,16 @@ async function run() {
   const done: string[] = [];
   for (const p of posts) {
     const results: Record<string, Res> = { ...(p.results ?? {}) };
-    for (const pl of p.platforms) {
+    // quick platforms first, slow video uploads last, and save after each one: if the function is stopped part way
+    // (a long upload), the next try skips what already went out instead of posting it again
+    const order = ["facebook", "instagram", "tiktok", "youtube"];
+    const todo = [...p.platforms].sort((x, y) => order.indexOf(x) - order.indexOf(y));
+    for (const pl of todo) {
       if (results[pl]?.id) continue;
       if (!a && pl !== "youtube" && pl !== "tiktok") { results[pl] = { error: aErr }; continue; }
       try { results[pl] = pl === "facebook" ? await toFacebook(p, a!) : pl === "youtube" ? await toYouTube(p) : pl === "tiktok" ? await toTikTok(p) : await toInstagram(p, a!, results[pl]); }
       catch (e) { results[pl] = { ...(results[pl]?.container ? { container: results[pl].container } : {}), error: (e as Error).message }; }
+      if (results[pl]?.id || results[pl]?.container) await admin.rpc("social_done", { p_id: p.id, p_results: results, p_status: "posting", p_error: null });
     }
     const vals = p.platforms.map((pl) => results[pl] ?? {});
     const waiting = vals.some((v) => !v.id && !v.error);
