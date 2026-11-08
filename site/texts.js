@@ -1458,6 +1458,19 @@ window.PK_TEXTS=[{
 "multi": true
 },
 {
+"id": "home_noclass1",
+"page": "Home",
+"label": "Text: on a day with no group classes",
+"text": "The gym is open for privates and gym access.",
+"multi": true
+},
+{
+"id": "home_noclass2",
+"page": "Home",
+"label": "Link: private lesson prices (no class days)",
+"text": "See private lesson prices"
+},
+{
 "id": "home_fight1",
 "page": "Home",
 "label": "Text: Classes marked For fighters...",

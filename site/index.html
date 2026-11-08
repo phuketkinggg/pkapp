@@ -81,6 +81,7 @@
   <h2 id="todayTitle" data-text="home_t20">Today's classes</h2><span class="rule"></span>
   <p class="lead" data-text="home_t21">No booking needed for group classes. Come ten minutes early, check in at the desk, and train.</p>
   <div class="today" id="today" style="margin-top:28px"></div>
+  <p class="sub" id="noclass" hidden><span data-text="home_noclass1">The gym is open for privates and gym access.</span> <a href="prices.html#privates" data-text="home_noclass2">See private lesson prices</a></p>
   <p style="margin-top:22px"><button class="btn light" type="button" id="weekBtn">See the whole week</button></p>
   <div id="week" hidden style="margin-top:20px"></div>
   <p class="sub" style="margin-top:18px"><span data-text="home_fight1">Classes marked For fighters are our fight programme: extra to normal training and hard work, so not for beginners.</span> <a href="fighters.html#timetable">See the fight timetable</a></p>
@@ -159,7 +160,8 @@ PK.data().then(function(d){
     var a=PK.el('a','btn'+(x[3]?' red':' light'),'Book'); a.textContent='Buy'; a.href=p.id?'prices.html?buy='+p.id:PK.wa('Hi Phuket King, I would like to book '+p.name+' ('+PK.thb(p.price)+').'); t.appendChild(a); box.appendChild(t); });
   var wd=PK.weekday(), now=PK.nowHM(), list=d.classes.filter(function(c){ return c.day===wd&&!c.off; }), box2=document.getElementById('today');
   if(!list.length){ var nx=null; for(var i=1;i<7&&!nx;i++){ var dd=(wd+i)%7, l=d.classes.filter(function(c){ return c.day===dd&&!c.off; }); if(l.length) nx={day:dd,c:l[0]}; }
-    box2.innerHTML='<div class="cls"><div>No classes today.'+(nx?' Next: '+DAYS[nx.day]+' '+nx.c.time+', '+PK.esc(nx.c.title)+'.':'')+'</div></div>'; }
+    box2.innerHTML='<div class="cls"><div><b>No group classes today.</b> <span class="nc"></span>'+(nx?'<div class="sub" style="margin-top:6px">Next group class: '+DAYS[nx.day]+' '+nx.c.time+', '+PK.esc(nx.c.title)+'.</div>':'')+'</div></div>';
+    var nc=document.getElementById('noclass'), ns=box2.querySelector('.nc'); if(nc&&ns){ nc.hidden=false; nc.className=''; nc.style.display='inline'; ns.appendChild(nc); } }
   else list.forEach(function(c){ box2.appendChild(PK.el('div','cls'+(c.time<now?' past':''),'<time>'+c.time+(c.end?'<small> - '+c.end+'</small>':'')+'</time><div><div class="k">'+PK.esc(c.discipline||'')+(PK.fight(c)?' · <b class="fk">For fighters</b>':'')+'</div><div>'+PK.esc(c.title)+'</div></div>')); });
   var wk=document.getElementById('week');
   for(var w=0;w<7;w++){ var l2=d.classes.filter(function(c){ return c.day===w; }); if(!l2.length) continue;

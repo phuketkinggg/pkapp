@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=143"></script>
+<script src="changelog.js?v=144"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -10630,7 +10630,7 @@ function editPromo(idx){
 var WEBP={list:null,photos:null,busy:null,err:''};
 function webScript(src,has){ return has()?Promise.resolve():new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=src; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); }); }
 function loadWebPhotos(){
-  return Promise.all([webScript('pk/photos.js?v=13',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js?v=16',function(){ return !!window.PK_TEXTS; })])
+  return Promise.all([webScript('pk/photos.js?v=13',function(){ return !!window.PK_PHOTOS; }),webScript('pk/texts.js?v=17',function(){ return !!window.PK_TEXTS; })])
     .then(function(){ WEBP.list=window.PK_PHOTOS||[]; WEBP.tlist=window.PK_TEXTS||[]; return fetch(SB_URL+'/functions/v1/site?t='+Date.now(),{cache:'no-store'}); })
     .then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); WEBP.photos=(d&&d.photos)||{}; WEBP.texts=(d&&d.texts)||{}; WEBP.gallery=(d&&d.gallery)||{}; WEBP.err=''; schedule(); })
     .catch(function(){ WEBP.err='The website photos and text could not load. Check the connection and open Settings again.'; WEBP.photos=WEBP.photos||{}; WEBP.texts=WEBP.texts||{}; schedule(); });

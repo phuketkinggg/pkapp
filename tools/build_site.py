@@ -259,7 +259,7 @@ def llms_txt(out, snap, made):
             row = sorted([c for c in cl if c.get("day") == d], key=lambda c: c["time"])
             if row:
                 L.append("- %s: %s" % (days[d], ", ".join("%s%s %s" % (c["time"], ("-" + c["end"]) if c.get("end") else "", c.get("title") or c.get("discipline") or "") for c in row)))
-        L += ["- Sunday: privates only" if not any(c.get("day") == 6 for c in cl) else "", ""]
+        L += ["- Sunday: no group classes, open for privates and gym access" if not any(c.get("day") == 6 for c in cl) else "", ""]
     pk = snap.get("packages") or []
     if pk or snap.get("private_price"):
         L += ["## Prices (Thai baht)", ""]
