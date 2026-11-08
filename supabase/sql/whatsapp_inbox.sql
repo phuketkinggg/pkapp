@@ -89,13 +89,25 @@ revoke all on function public.wa_set(jsonb) from public, anon, authenticated;
 grant execute on function public.wa_get() to service_role;
 grant execute on function public.wa_set(jsonb) to service_role;
 
--- what the app shows: connected or not, the number (no token)
+-- what the app shows: connected or not, the number (no token), and the Meta app and sign in configuration used to connect
 create or replace function public.wa_status() returns jsonb language plpgsql stable security definer set search_path='' as $f$
 begin
   if not private.is_desk() then raise exception 'Only the desk can see this.'; end if;
-  return coalesce((select jsonb_build_object('connected', phone_id is not null, 'number', number, 'name', name, 'coexist', coexist, 'at', connected_at) from private.wa_link), jsonb_build_object('connected', false));
+  return coalesce((select jsonb_build_object('connected', phone_id is not null, 'number', number, 'name', name, 'coexist', coexist, 'at', connected_at) from private.wa_link), jsonb_build_object('connected', false))
+    || jsonb_build_object('meta', coalesce((select case when value ~ '^\s*\{' then value::jsonb end from public.app_settings where key = 'wa_meta'), '{}'::jsonb));
 end $f$;
 grant execute on function public.wa_status() to authenticated;
+
+-- the Meta app ID and the WhatsApp sign in configuration ID (not secret: they are shown in Meta's own sign in window)
+create or replace function public.wa_meta_save(p_app_id text, p_config_id text) returns void language plpgsql security definer set search_path='' as $f$
+begin
+  if coalesce(private.staff_role(), '') <> 'manager' then raise exception 'Only a manager can connect WhatsApp.'; end if;
+  if coalesce(p_app_id,'') !~ '^\d{6,}$' then raise exception 'The Meta app ID is a long number.'; end if;
+  if coalesce(p_config_id,'') !~ '^\d{6,}$' then raise exception 'The configuration ID is a long number.'; end if;
+  insert into public.app_settings(key, value) values ('wa_meta', jsonb_build_object('app_id', p_app_id, 'config_id', p_config_id)::text)
+    on conflict (key) do update set value = excluded.value;
+end $f$;
+grant execute on function public.wa_meta_save(text, text) to authenticated;
 
 -- ---------- AI replies ----------
 -- settings (app_settings ai_reply): on, channels, when (always or away: only when website chat shows Away), pause_h (quiet this many hours after a staff reply), notes (extra facts from the owner)
