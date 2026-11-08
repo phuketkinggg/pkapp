@@ -53,14 +53,15 @@ PK.seo=function(o){ var head=document.head, url='https://www.phuketking.com/'+o.
   meta('name','description',o.description); meta('property','og:title',o.title); meta('property','og:description',o.description); meta('property','og:url',url); meta('property','og:image',o.image); meta('property','og:type',o.type||'website'); meta('name','twitter:title',o.title); meta('name','twitter:description',o.description); meta('name','twitter:image',o.image);
   if(o.ld){ var l=document.createElement('script'); l.type='application/ld+json'; l.textContent=JSON.stringify(o.ld); head.appendChild(l); } };
 var b=document.querySelector('.menu'), n=document.querySelector('.nav');
-if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open'); b.setAttribute('aria-expanded',o?'true':'false'); b.textContent=o?'Close':'Menu'; });
+var mLabel=b?b.textContent:'Menu', cLabel=b&&b.getAttribute('data-close')||(/[\u0E00-\u0E7F]/.test(mLabel)?'\u0E1B\u0E34\u0E14':'Close');
+if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open'); b.setAttribute('aria-expanded',o?'true':'false'); b.textContent=o?cLabel:mLabel; });
 // switch to the menu button if the links would run into the logo
 (function(){ var top=document.querySelector('.top'), logo=document.querySelector('.top .logo'); if(!top||!logo||!n) return;
   function fit(){ if(n.classList.contains('open')) return; top.classList.remove('tight'); if(getComputedStyle(n).display==='none') return;
     var a=n.querySelector('a'), w=top.querySelector('.wrap'); if(!a||!w) return;
     if(a.getBoundingClientRect().left<logo.getBoundingClientRect().right+12||n.getBoundingClientRect().right>w.getBoundingClientRect().right+1) top.classList.add('tight'); }
   fit(); window.addEventListener('resize',fit); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fit); window.addEventListener('load',fit); })();
-if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });
+if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent=mLabel; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
 /* Google Ads: the Google tag on the live site, and two conversions: a package bought on the website, and a tap on WhatsApp */
 var GADS='AW-11225515762', GLAB={purchase:'CT-OCO2_9YQdEPKN3-gp',whatsapp:'sP0UCJ2cu7QdEPKN3-gp'};

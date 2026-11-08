@@ -38,6 +38,8 @@ Deno.serve(async (req) => {
     let gallery: Record<string, unknown> = {};
     try { gallery = JSON.parse(ga.data?.value ?? "{}") ?? {}; } catch { gallery = {}; }
     const t = today();
+    // the date this week's class on weekday wd (0 Monday) falls on, today or later: a class paused for that date shows as off all week
+    const classDay = (td: string, wd: number) => { const d = new Date(td + "T12:00:00Z"); const now = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() + ((wd - now + 7) % 7)); return d.toISOString().slice(0, 10); };
     return json({
       today: t,
       private_price: src.data?.price_thb ?? null,
@@ -52,7 +54,7 @@ Deno.serve(async (req) => {
       residents: feat.web_residents !== true ? [] : (pk.data ?? []).filter((p) => ["all", "local"].includes(p.audience || "all"))
         .map((p) => ({ id: p.id, name: p.name, price: p.price_local_thb ?? p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_local_thb ?? p.addon_fz_thb ?? null })),
       classes: (cl.data ?? []).map((k) => ({ day: k.day, time: String(k.start_time ?? "").slice(0, 5), end: k.end_time ? String(k.end_time).slice(0, 5) : null, title: k.title, discipline: k.discipline,
-        off: !!(k.off_from && t >= k.off_from && t <= (k.off_to ?? k.off_from)) })).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time)),
+        off: !!(k.off_from && ((d) => d >= k.off_from && d <= (k.off_to ?? k.off_from))(classDay(t, k.day))) })).sort((a, b) => a.day - b.day || a.time.localeCompare(b.time)),
     });
   } catch (e) {
     return json({ error: (e as Error).message });

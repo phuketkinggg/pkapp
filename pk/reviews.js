@@ -37,7 +37,7 @@ fetch(FN).then(function(r){ return r.json(); }).then(function(d){
     });
     var acts=el('div','pkr-acts');
     if(d.maps_url&&/^https:\/\//.test(d.maps_url)) acts.appendChild(link(d.maps_url,box.getAttribute('data-btn')||'btn','Read all reviews on Google'));
-    if(d.write_url) acts.appendChild(link(d.write_url,box.getAttribute('data-btn2')||'btn','Write a review'));
+    if(d.write_url&&/^https:\/\//.test(d.write_url)) acts.appendChild(link(d.write_url,box.getAttribute('data-btn2')||'btn','Write a review'));
     box.innerHTML=''; box.appendChild(top); box.appendChild(grid); box.appendChild(acts); box.appendChild(el('div','pkr-g','Reviews from Google'));
     var sec=box.closest('[data-reviews-section]'); if(sec) sec.hidden=false;
   });

@@ -1,10 +1,12 @@
 // Keeps the app installable and opens the last copy when there is no signal.
 // Always tries the network first, so updates show up straight away. Data calls are never cached.
-const CACHE = 'pk-shell-v264';
+const CACHE = 'pk-shell-v265';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './vendor/supabase-js-2.117.2.js', './vendor/qrcode-generator-1.4.4.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && !k.startsWith('pangea-')).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  // only this app's older copies are removed: the other apps on the same address keep their own
+  const mine = CACHE.replace(/v\d+$/, '');
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k.startsWith(mine)).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request, url = new URL(req.url);
@@ -20,7 +22,7 @@ self.addEventListener('fetch', (e) => {
       const copy = res.clone(); caches.open(CACHE).then((c) => c.put(appPage ? './' : req, copy));
     }
     return res;
-  }).catch(() => { const root = new URL('./', self.location).pathname; return caches.match(req.mode === 'navigate' ? ((url.pathname === root || url.pathname === root + 'index.html') ? './' : req) : req).then((r) => r || (url.pathname.startsWith(root + 'pangea/') ? r : caches.match('./'))); }));
+  }).catch(() => { const root = new URL('./', self.location).pathname; return caches.match(req.mode === 'navigate' ? ((url.pathname === root || url.pathname === root + 'index.html') ? './' : req) : req).then((r) => r || (req.mode !== 'navigate' || url.pathname.startsWith(root + 'pangea/') ? r : caches.match('./'))); }));
 });
 
 // Phone notifications: chat messages, and new food and drink orders for staff (turned on in the app: Messages, or the kitchen screen).

@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=150"></script>
+<script src="changelog.js?v=151"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -368,7 +368,7 @@ body.till #view{max-width:none}
 .promoitem .promotxt p{font-size:15px}
 .promoitem .promo img{max-height:160px}
 .promoprev img{max-width:100%;max-height:160px;border-radius:10px}
-.pwshow{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px;letter-spacing:.06em}
+.pwbig{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px;letter-spacing:.06em}
 .accessmsg{width:100%;box-sizing:border-box;font-size:13px}
 .todolist{padding:0;overflow:hidden}
 .todo{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
@@ -986,7 +986,7 @@ var LANGED={q:'',th:null,my:null,fix:null};
 function langLoadAll(){ ['th','my'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
     var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+I18N_V; sc.onload=function(){ LANGED[l]=(window['I18N_'+l]||{}).d||{}; schedule(); }; document.head.appendChild(sc); });
   if(!LANGED.fix){ LANGED.fix={}; sb.rpc('i18n_fixes').then(function(r){ LANGED.fix=(r&&r.data)||{}; schedule(); },function(){}); } }
-function langSave(fix){ return sb.from('app_settings').update({value:JSON.stringify(fix),updated_at:new Date().toISOString()}).eq('key','i18n_fix').select('key').then(must).then(function(d){ if(!d||!d.length) throw new Error('Only a manager can change this.'); LANGED.fix=fix; I18N.fix=fix; trBuild(); }); }
+function langSave(fix){ return sb.from('app_settings').update({value:JSON.stringify(fix),updated_at:new Date().toISOString()}).eq('key','i18n_fix').select('key').then(must).then(function(d){ if(!d||!d.length) throw new Error('Only a manager can change this.'); LANGED.fix=fix; I18N.fix=fix; if(I18N.d) trBuild(); }); }
 function langEdit(k){ var f=LANGED.fix[k]||{};
   openForm({title:'Fix a translation',note:k,values:{th:f.th||(LANGED.th||{})[k]||'',my:f.my||(LANGED.my||{})[k]||''},
     fields:[featOn('lang_th')?{key:'th',label:'Thai',type:'textarea',rows:3}:null,featOn('lang_my')?{key:'my',label:'Myanmar (Burmese)',type:'textarea',rows:3}:null].filter(Boolean),
@@ -1007,7 +1007,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=95; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=96; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1103,7 +1103,7 @@ function toast(msg){ $toast.textContent=msg; $toast.hidden=false; clearTimeout(t
 function chip(text,kind){ return h('span',{class:'chip'+(kind?' '+kind:'')},text); }
 function classOff(c,day){ return !!(c&&c.off_from&&day>=c.off_from&&day<=(c.off_to||c.off_from)); }
 function offText(c){ var a=c.off_from, b=c.off_to||a; return 'Off '+(a===b?fmtDate(a):fmtDate(a)+' to '+fmtDate(b))+(c.off_note?' ('+c.off_note+')':''); }
-function nextClassDate(c){ var d=ymd(new Date()), wd=(new Date().getDay()+6)%7, n=(Number(c.day)-wd+7)%7; return addDays(d,n); }
+function nextClassDate(c){ var d=ymd(new Date()), wd=(new Date().getDay()+6)%7, n=(Number(c.day)-wd+7)%7; if(n===0&&c.time&&c.time<timeNow()) n=7; return addDays(d,n); }
 function pauseClass(c){
   var td=ymd(new Date()), nd=nextClassDate(c), wkEnd=addDays(td,6-((new Date().getDay()+6)%7));
   var same=S.classes.filter(function(x){ return x.id!==c.id&&x.title.trim().toLowerCase()===c.title.trim().toLowerCase(); });
@@ -1182,7 +1182,7 @@ function openForm(spec){
     var res; try{ res=spec.onSave(out); }catch(e){ showErr(errText(e)); return; }
     if(typeof res==='string'){ showErr(res); return; }
     saveBtn.disabled=true;
-    Promise.resolve(res).then(function(){ $dlg.close(); toast(spec.doneMsg||'Saved.'); },function(e){ showErr(errText(e)); saveBtn.disabled=false; });
+    Promise.resolve(res).then(function(){ $dlg.close(); var dm=typeof spec.doneMsg==='function'?spec.doneMsg(out):(spec.doneMsg||'Saved.'); if(dm) toast(dm); },function(e){ showErr(errText(e)); saveBtn.disabled=false; });
   });
   $dlg.replaceChildren(form);
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
@@ -1193,7 +1193,7 @@ function coaches(){ return sortBy(S.staff.filter(function(s){return (s.role==='c
 /* spa and salon apps: a pack is a number of sessions of the treatments you tick (10 nail visits, 5 massages), used up on the board */
 var SPKT=null;
 function editSpaPack(p){ p=p||{};
-  if(!SPKT){ sb.from('spa_services').select('id,name,department,minutes,price_thb').eq('active',true).order('sort').then(function(r){ SPKT=r.data||[]; editSpaPack(p); }); return; }
+  if(!SPKT){ sb.from('spa_services').select('id,name,department,minutes,price_thb').eq('active',true).order('sort').then(function(r){ if(r.error){ toast(errText(r.error)); return; } SPKT=r.data||[]; editSpaPack(p); },function(e){ toast(errText(e)); }); return; }
   var depts=[]; SPKT.forEach(function(x){ var d=x.department||'Treatments'; if(depts.indexOf(d)<0) depts.push(d); });
   var v0=Object.assign({},p,{svc:(p.service_ids||[]).slice(),sessions:p.class_limit||p.visit_limit||null});
   openForm({title:p.id?'Edit pack':'New pack',note:'A pack is a number of visits for the treatments you tick, for example 10 gel nail visits or 5 Thai massages. When they come in, tap their appointment on the board and pay it from the pack.',values:v0,fields:[
@@ -1892,7 +1892,7 @@ setInterval(function(){ if(me&&allReady&&me.role!=='coach'&&me.role!=='housekeep
 function claimsSection(){
   if(!me||!CLAIMS&&!ui.claimsAsked){ if(me){ ui.claimsAsked=true; loadClaims(); } return null; }
   if(!CLAIMS||!CLAIMS.length) return null;
-  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})+' '+fmtDate(c.at.slice(0,10)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
+  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' '+fmtDate(cDayOf(c.at)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
     note:c.kind==='stay'?(c.expired?'Website stay. The 12 hour hold ran out and the room was given back. If the money is in, Money is in books it again when the room is still free.':'Website stay, paid by Thai QR. Check the bank app first. The room is held until '+new Date(c.held_until).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'. Not received gives the room back.'):'They say they paid by PromptPay. Check the bank app first.',
     act:[btn('Money is in',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:true}).then(must).then(function(){ return Promise.all([loadClaims(),reload('purchases'),reload('privates'),reload('stays')]); }),'Confirmed. It is marked paid.'); },'primary small'),
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
@@ -1941,7 +1941,7 @@ function ppSettings(){
         found=q.data; info.textContent='PromptPay QR read. Tap Save.'; }).catch(function(){ info.textContent=''; bad('Could not open that photo.'); }); };
     shopDlg(h('div',{class:'billbox'},h('h2',null,'PromptPay for '+pl.name),h('p',{class:'sub'},'Upload a photo or screenshot of your PromptPay QR from the bank. The app adds the amount for each payment. The money goes straight to that bank account.'),
       field('pp-file','Photo of your PromptPay QR',file),info,field('pp-id','',idIn),field('pp-name','Name customers see',nm),err,
-      h('div',{class:'factions'},cur?btn('Remove',function(){ sb.rpc('promptpay_save',{p_location:pl.id,p_payload:'',p_name:''}).then(must).then(function(){ $dlg.close(); loadPP(); toast('Removed.'); }); },'small'):h('span'),
+      h('div',{class:'factions'},cur?btn('Remove',function(){ sb.rpc('promptpay_save',{p_location:pl.id,p_payload:'',p_name:''}).then(must).then(function(){ $dlg.close(); loadPP(); toast('Removed.'); },function(e){ toast(errText(e)); }); },'small'):h('span'),
         h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Save',function(){ var payload=found||(idIn.value?ppFromId(idIn.value):null);
           if(!payload) return bad(idIn.value?'Type a 10 digit phone number or a 13 digit tax ID.':'Upload the QR photo, or type the PromptPay number.');
           sb.rpc('promptpay_save',{p_location:pl.id,p_payload:payload,p_name:nm.value}).then(must).then(function(){ $dlg.close(); loadPP(); toast('PromptPay saved. Check it once with a 1 baht payment.'); }).catch(function(e){ bad(errText(e)); }); },'primary')))));
@@ -2066,7 +2066,7 @@ function pxAdd(kind,id,x){ if(!x.fee&&!x.tax) return Promise.resolve(); return s
 function payCustomer(c){
   var o=customerOwes(c.id); if(!o.total){ toast(c.name+' owes nothing.'); return; }
   var px=pxFields('amount',{base:o.total},null,'Customer pays now');
-  openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:'Payment saved.',
+  openForm({title:'Take payment from '+c.name,note:'Owes '+thb(o.total)+(o.privates?' ('+thb(o.packages)+' on packages, '+thb(o.privates)+' on privates)':'')+'. The money pays the oldest first.',saveLabel:'Payment received',doneMsg:function(v){ return v.method==='stripe'?'The card payment page is opening.':'Payment saved.'; },
     values:Object.assign({amount:o.total},px.values),fields:[{key:'amount',label:'Amount paid now (THB)',type:'number',required:true,onChange:function(v,set,get,o2,show){ px.re(set,get,show); }}].concat(px.fields,[{key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS.concat([['qr','PromptPay QR (money already in the bank)'],['stripe','Stripe card link for everything owed']])),onChange:function(v,set,get,o2,show){ px.method(v,set,get,show); }},{key:'note',label:'Note',hint:'Optional.'}]),
     onSave:function(v){ var a=Math.round(v.amount||0), x=pxOf(v), tg=(x.fee||x.tax)?pxTarget(c.id):null; if((x.fee||x.tax)&&!tg) return 'Nothing to add the fee to.';
       if(v.method==='stripe'){ return pxAdd(tg?tg[0]:'',tg?tg[1]:null,x).then(function(){ setTimeout(function(){ stripePay('customer',c.id,c.name); },300); }); } if(a<=0) return 'Type the amount paid.'; if(a>o.total) return 'That is more than they owe ('+thb(o.total)+').';
@@ -2075,7 +2075,7 @@ function payCustomer(c){
 }
 function takePayment(p){
   var owe=owedOf(p), px=pxFields('x_base',{base:owe},null,'Customer pays now');
-  openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(owe)+' to pay'+(pxNote(p)?' ('+pxNote(p)+')':'')+'.',saveLabel:'Payment received',doneMsg:'Paid. The package is ready to use.',values:Object.assign({x_base:owe},px.values),fields:[
+  openForm({title:'Take payment',note:nameOf('customers',p.customer_id)+', '+(p.package_name||'package')+', '+thb(owe)+' to pay'+(pxNote(p)?' ('+pxNote(p)+')':'')+'.',saveLabel:'Payment received',doneMsg:function(v){ return v.method==='stripe'?'The card payment page is opening.':v.method==='qr'?'Show them the QR code. Check the bank app before you give the package.':'Paid. The package is ready to use.'; },values:Object.assign({x_base:owe},px.values),fields:[
     {key:'x_base',label:'To pay (THB)',type:'number',readonly:true}].concat(px.fields,[
     {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS.concat(PAYLINK)),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}]),
     onSave:function(v){ var x=pxOf(v);
@@ -2092,8 +2092,8 @@ function stateChip(st){ return chip(st.label, st.ok?(st.status==='active'?'ok':n
 function arrivedChip(p){ return p.arrived_at?chip('Arrived '+bkkTime(p.arrived_at)+(p.arrived_by==='customer'?' (own app)':''),'ok'):null; }
 // a private that was not booked ahead: book it for now and mark them as arrived in one go
 function privNow(c){
-  var d=new Date(), m=d.getMinutes(), hh=d.getHours(); if(m<15) m=0; else if(m<45) m=30; else { m=0; hh=(hh+1)%24; }
-  var p={date:ymd(d),time:(hh<10?'0':'')+hh+':'+(m<10?'0':'')+m,status:'confirmed',arrived_at:d.toISOString(),arrived_by:'desk'};
+  var d=new Date(), day=ymd(d), m=d.getMinutes(), hh=d.getHours(); if(m<15) m=0; else if(m<45) m=30; else { m=0; hh=(hh+1)%24; if(hh===0) day=addDays(day,1); }
+  var p={date:day,time:(hh<10?'0':'')+hh+':'+(m<10?'0':'')+m,status:'confirmed',arrived_at:d.toISOString(),arrived_by:'desk'};
   if(c) p.customer_id=c.id;
   editPrivate(p);
 }
@@ -2588,7 +2588,7 @@ function openBill(st,msg,thenOut){
     var patch={settled:true,settled_method:method.value,settled_on:ymd(new Date())}; if(thenOut) patch.status='out';
     /* anything still owed on packages or privates is paid together with the room bill */
     var first=exOwe>0?sb.rpc('pay_customer',{p_customer:st.customer_id,p_amount:exOwe,p_method:method.value,p_note:'With the room bill'}).then(must):Promise.resolve();
-    first.then(function(){ return st.settled?null:db.doc('stays/'+st.id).update(patch); }).then(function(){ return Promise.all([reload('purchases'),reload('privates')]); })
+    first.then(function(){ return st.settled?(thenOut?db.doc('stays/'+st.id).update({status:'out'}):null):db.doc('stays/'+st.id).update(patch); }).then(function(){ return Promise.all([reload('purchases'),reload('privates')]); })
       .then(function(){ close(); toast(thenOut?'Bill settled and checked out.':'Bill settled.'); },function(e){ err.textContent=errText(e); err.hidden=false; });
   }
   var box=h('div',{class:'billbox'},h('h2',null,'Bill'),
@@ -2753,7 +2753,7 @@ function loadFpStays(list){ if(!featOn('food_plans')) return; var ids=list.map(f
 function bookedWhen(st){ if(!st||!st.created_at) return ''; var d=new Date(st.created_at); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',timeZone:'Asia/Bangkok'})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}); }
 function stayCard(st,day){
   var g=byId('customers',st.customer_id)||{}, total=billTotal(st), meal=mealPlanOf(st.customer_id,day), acts=[];
-  var status=st.hold_until&&st.status==='booked'?chip('Website, waiting for card payment','warn'):st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
+  var status=st.hold_until&&st.status==='booked'?chip('Website, waiting for card payment','warn'):st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.status==='out'?chip('Checked out'):st.status==='cancelled'?chip('Cancelled','warn'):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
   if(st.status==='booked') acts.push(btn('Check in',function(){ setStay(st,{status:'in'},(g.name||'Guest')+' checked in.'); },'primary small'));
   if(meal&&st.status==='in') acts.push(btn('Meal served',function(){ mealServed(st,meal); },'primary small'));
   if(!st.settled) acts.push(btn('Add to bill',function(){ addCharge(st); },'small'));
@@ -2830,7 +2830,7 @@ function welcomeEmail(st,first){
     function bad(m){ err.textContent=m; err.hidden=false; }
     var sendBtn=btn(d.sent_at?'Send again':'Send',function(){
       if(busy) return; err.hidden=true;
-      if(!d.can_send) return bad('Email sending is not switched on yet. Tom adds the email key in Supabase once, then this button works.');
+      if(!d.can_send) return bad('Email sending is not switched on yet. The owner adds the email key in Supabase once, then this button works.');
       var addr=to.value.trim(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return bad('Type the guest email address.');
       busy=true; sendBtn.disabled=true; sendBtn.textContent='Sending.';
       sb.functions.invoke('stay-email',{body:{mode:'send',stay_id:st.id,to:addr}}).then(function(r){ var x=r.data||{};
@@ -2848,7 +2848,7 @@ function welcomeEmail(st,first){
 }
 var WELCOME=null;
 function loadWelcome(){ return sb.from('app_settings').select('value').eq('key','welcome_email').maybeSingle().then(function(res){ var d=res.data; try{ WELCOME=d&&d.value?JSON.parse(d.value):{}; }catch(e){ WELCOME={}; } schedule(); }); }
-function saveWelcome(cfg){ return sb.from('app_settings').update({value:JSON.stringify(cfg),updated_at:new Date().toISOString()}).eq('key','welcome_email').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; WELCOME=cfg; schedule(); }); }
+function saveWelcome(cfg){ return sb.from('app_settings').upsert({key:'welcome_email',value:JSON.stringify(cfg),updated_at:new Date().toISOString()}).select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; WELCOME=cfg; schedule(); }); }
 var WE_INFO=6, WE_UPS=6;
 function editWelcome(){
   var c=WELCOME||{}, info=c.info||[], ups=c.upsells||[], vals={from:c.from,reply_to:c.reply_to,subject:c.subject,intro:c.intro,whatsapp:c.whatsapp,footer:c.footer,auto:!!c.auto,auto_sources:c.auto_sources||'direct'}, fields=[
@@ -2934,9 +2934,8 @@ function vCalendar(){
 }
 /* ---------- affiliates: people who send guests get a share of the room price, and of packages and courses bought on the website ---------- */
 var AFF=null;
-function affLoad(){ if(ui.affBusy) return; ui.affBusy=true; sb.rpc('affiliates_list').then(must).then(function(d){ ui.affBusy=false; ui.affErr=null; AFF=Array.isArray(d)?d:[]; schedule(); },function(e){ ui.affBusy=false; ui.affErr=errText(e); schedule(); }); }
+function affLoad(){ if(ui.affBusy||(ui.affErrAt&&Date.now()-ui.affErrAt<20000)) return; ui.affBusy=true; ui.affErrAt=0; sb.rpc('affiliates_list').then(must).then(function(d){ ui.affBusy=false; ui.affErr=null; AFF=Array.isArray(d)?d:[]; schedule(); },function(e){ ui.affBusy=false; ui.affErr=errText(e); ui.affErrAt=Date.now(); schedule(); }); }
 function affLink(a){ return SITE_URL+'/?ref='+a.code; }
-function affBookLink(a){ return SITE_URL+'/book?ref='+a.code; }
 /* any page with the affiliate's code: the website remembers the click, whatever page they land on (Links count for N days) */
 function affUrl(path,code){ var u=String(path||'/'); if(!/^https?:/i.test(u)) u=SITE_URL+(u.charAt(0)==='/'?'':'/')+u;
   u=u.replace(/([?&])ref=[^&#]*&?/,'$1').replace(/[?&]$/,''); var hash=''; var i=u.indexOf('#'); if(i>=0){ hash=u.slice(i); u=u.slice(0,i); }
@@ -3567,7 +3566,7 @@ function chatGroup(c){
       var ids=boxes.map(function(l){ return l.querySelector('input'); }).filter(function(i){ return i.checked; }).map(function(i){ return i.value; });
       if(!title.value.trim()){ err.textContent='Give the group a name.'; err.hidden=false; return; }
       sb.rpc('chat_group_save',{p_chat:c.id||null,p_title:title.value.trim(),p_staff:ids,p_customers:Object.keys(chosen)}).then(must)
-        .then(function(id){ return sb.rpc('chat_group_mode',{p_chat:id,p_only_staff:only.checked}).then(function(){ return id; }); }).then(function(id){
+        .then(function(id){ return sb.rpc('chat_group_mode',{p_chat:id,p_only_staff:only.checked}).then(must).then(function(){ return id; }); }).then(function(id){
         close(); toast(c.id?'Group saved.':'Group made.'); chatRefresh().then(function(){ if(!c.id){ var g=(CHAT.list||[]).filter(function(x){ return x.id===id; })[0]; if(g) openChat(g); } });
       }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
     }
@@ -3729,9 +3728,10 @@ function waCheck(){
     toast(d.connected?'WhatsApp works: '+d.number+(d.quality?', quality '+String(d.quality).toLowerCase():'')+(d.both?', also on the phone app':'')+'.':'WhatsApp is not connected.'); });
 }
 // the Meta sign in (Embedded Signup): Meta's own window, then the app connects the number
+var FBSDK_APP='';
 function fbSdk(appId){
   return new Promise(function(res,rej){
-    function go(){ try{ FB.init({appId:appId,autoLogAppEvents:false,xfbml:false,version:'v23.0'}); res(); }catch(e){ rej(e); } }
+    function go(){ try{ FB.init({appId:appId,autoLogAppEvents:false,xfbml:false,version:'v23.0'}); FBSDK_APP=appId; res(); }catch(e){ rej(e); } }
     if(window.FB) return go();
     window.fbAsyncInit=go;
     var sc=document.createElement('script'); sc.src='https://connect.facebook.net/en_US/sdk.js'; sc.async=true; sc.crossOrigin='anonymous';
@@ -3740,6 +3740,7 @@ function fbSdk(appId){
 }
 function waConnect(){
   var cfg=(WA&&WA.meta)||{};
+  if(cfg.app_id) fbSdk(cfg.app_id).catch(function(){});
   openForm({title:'Connect WhatsApp',saveLabel:'Sign in with Meta',
     note:'A Meta window opens. Sign in with the Facebook account that manages your business, pick your business and your WhatsApp number, and allow access. Your messages then come into Messages.',
     fields:[{key:'coexist',label:'Your number',type:'select',def:'1',options:[['1','Keep it on the WhatsApp Business app on my phone too'],['0','A number only for the app (not on a phone)']],hint:'Keeping it on the phone needs WhatsApp Business app version 2.24.17 or newer. In the Meta window you scan a code with the phone.'},
@@ -3747,19 +3748,21 @@ function waConnect(){
       {key:'config_id',label:'WhatsApp sign in configuration ID',def:cfg.config_id||'',required:true,hint:'In your Meta app: Facebook Login for Business, Configurations, the WhatsApp Embedded Signup one.'}],
     extraBtn:['Set up by hand',function(){ $dlg.close(); waManual(); }],doneMsg:'WhatsApp connected.',
     onSave:function(v){
+      // the Meta window must open straight from the tap (phones block pop ups that open later), so the sign in script is loaded first
+      if(!window.FB||FBSDK_APP!==v.app_id){ fbSdk(v.app_id).catch(function(e){ toast(errText(e)); }); return 'One moment, the Meta sign in is loading. Tap Sign in with Meta again.'; }
       var coexist=v.coexist==='1', session={};
-      function onMsg(ev){ if(!/facebook\.com$/.test(new URL(ev.origin).hostname)) return; try{ var d=typeof ev.data==='string'?JSON.parse(ev.data):ev.data; if(d&&d.type==='WA_EMBEDDED_SIGNUP'&&d.data) session=d.data; }catch(e){} }
+      function onMsg(ev){ try{ if(!/(^|\.)facebook\.com$/.test(new URL(ev.origin).hostname)) return; var d=typeof ev.data==='string'?JSON.parse(ev.data):ev.data; if(d&&d.type==='WA_EMBEDDED_SIGNUP'&&d.data) session=d.data; }catch(e){} }
       window.addEventListener('message',onMsg);
-      return sb.rpc('wa_meta_save',{p_app_id:v.app_id,p_config_id:v.config_id}).then(must).then(function(){ if(WA) WA.meta={app_id:v.app_id,config_id:v.config_id}; return fbSdk(v.app_id); }).then(function(){
-        return new Promise(function(res,rej){
-          FB.login(function(resp){
-            var code=resp&&resp.authResponse&&resp.authResponse.code;
-            if(!code) return rej(new Error('The Meta window was closed before the end. Nothing was changed.'));
-            setTimeout(function(){ res(code); },800);
-          },{config_id:v.config_id,response_type:'code',override_default_response_type:true,extras:coexist?{setup:{},featureType:'whatsapp_business_app_onboarding',sessionInfoVersion:'3'}:{setup:{},sessionInfoVersion:'3'}});
-        });
-      }).then(function(code){
-        return sb.functions.invoke('meta',{body:{mode:'wa_connect',code:code,waba_id:session.waba_id||'',phone_id:session.phone_number_id||'',coexist:coexist}});
+      var gotCode=new Promise(function(res,rej){
+        FB.login(function(resp){
+          var code=resp&&resp.authResponse&&resp.authResponse.code;
+          if(!code) return rej(new Error('The Meta window was closed before the end. Nothing was changed.'));
+          setTimeout(function(){ res(code); },800);
+        },{config_id:v.config_id,response_type:'code',override_default_response_type:true,extras:coexist?{setup:{},featureType:'whatsapp_business_app_onboarding',sessionInfoVersion:'3'}:{setup:{},sessionInfoVersion:'3'}});
+      });
+      return gotCode.then(function(code){
+        return sb.rpc('wa_meta_save',{p_app_id:v.app_id,p_config_id:v.config_id}).then(must).then(function(){ if(WA) WA.meta={app_id:v.app_id,config_id:v.config_id};
+          return sb.functions.invoke('meta',{body:{mode:'wa_connect',code:code,waba_id:session.waba_id||'',phone_id:session.phone_number_id||'',coexist:coexist}}); });
       }).then(function(r){ window.removeEventListener('message',onMsg); var d=r.data||{};
         if(r.error||d.error) throw new Error(d.error||'Could not connect WhatsApp.');
         WA=null; ui.waAsked=false; schedule();
@@ -3784,7 +3787,7 @@ function aiReplyForm(){
       {key:'pause_h',label:'Stay quiet after a staff reply (hours)',type:'number',def:c.pause_h==null?12:c.pause_h,hint:'0 to 72.'},
       {key:'notes',label:'Notes for the AI',type:'textarea',rows:7,def:c.notes||'',hint:'Anything customers ask that is not in your packages and timetable: address and how to get here, opening hours, what to bring, rooms, food, booking steps, payment ways, your website link.'},
       {key:'site',label:'Your website (optional)',def:c.site||'',hint:'For example https://www.yourgym.com. If it has an llms.txt page, the AI reads it for more facts.'}],
-    onSave:function(v){ return sb.rpc('ai_reply_save',{p:{on:v.on==='1',channels:v.channels,when:v.when,pause_h:v.pause_h,notes:v.notes,site:v.site}}).then(must).then(function(d){ AIR=d; schedule(); }); }});
+    onSave:function(v){ return sb.rpc('ai_reply_save',{p:{on:v.on==='1',channels:v.channels,when:v.when,pause_h:v.pause_h==null?null:Math.round(v.pause_h),notes:v.notes,site:v.site}}).then(must).then(function(d){ AIR=d; schedule(); }); }});
 }
 /* phone notifications (web push). iPhone: only after "Add to Home Screen" and opening the app from there. */
 var PUSH={can:'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window,on:null,busy:false};
@@ -3842,7 +3845,7 @@ function lessonText(t){ var box=h('div',{class:'ltext'});
     else if(lines.every(function(l){ return /^\d+[.)] /.test(l); })) box.appendChild(h('ol',null,lines.map(function(l){ return inl(l.replace(/^\d+[.)] /,''),h('li')); })));
     else { var pp=h('p'); lines.forEach(function(l,i){ if(i) pp.appendChild(h('br')); inl(l,pp); }); box.appendChild(pp); } });
   return box; }
-function crsLoad(){ CRS.busy=true; return (PV?sb.rpc('course_list_as',{p_customer:PV.cid}):sb.rpc('course_list_mine')).then(must).then(function(d){ CRS.list=d; CRS.busy=false; schedule(); }).catch(function(e){ CRS.busy=false; CRS.err=errText(e); schedule(); }); }
+function crsLoad(){ if(CRS.errAt&&Date.now()-CRS.errAt<20000) return Promise.resolve(); CRS.busy=true; CRS.errAt=0; return (PV?sb.rpc('course_list_as',{p_customer:PV.cid}):sb.rpc('course_list_mine')).then(must).then(function(d){ CRS.list=d; CRS.busy=false; schedule(); }).catch(function(e){ CRS.busy=false; CRS.err=errText(e); CRS.errAt=Date.now(); schedule(); }); }
 function crsOpen(id,lessonId){ return Promise.all([(PV?sb.rpc('course_view_as',{p_course:id,p_customer:PV.cid}):sb.rpc('course_view',{p_course:id})).then(must),sb.rpc('course_groups',{p_course:id}).then(must).catch(function(){ return []; })]).then(function(r){ var d=r[0]; d.groups=r[1]||[]; if(d.open&&d.groups.length&&me&&me.role==='customer'&&!PV) sb.rpc('course_join',{p_course:id}).then(function(){ COACHM.data=null; },function(){}); CRS.view=d; CRS.lesson=lessonId||null; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
 function crsPrice(c){ return !c.price?'Free':thb(c.price)+(c.members_free?', or free with a membership':''); }
 function crsBuyUrl(c){ return SITE_URL+'/course?c='+encodeURIComponent(c.slug); }
@@ -3882,7 +3885,7 @@ function learnUpField(anchorId,st){ var anchor=document.getElementById(anchorId)
 /* ---------- technique library (Education): single videos with notes, in categories ---------- */
 var TEC={list:null,busy:false,view:null,q:'',cat:''};
 var TECVIS=[['public','Everyone: the website and the app'],['app','Anyone with the app'],['members','Members with an active package'],['hidden','Only inside courses']];
-function tecLoad(){ TEC.busy=true; return sb.rpc('technique_list',PV?{p_customer:PV.cid}:{}).then(must).then(function(d){ TEC.list=d||[]; TEC.busy=false; schedule(); return d; }).catch(function(e){ TEC.busy=false; TEC.err=errText(e); TEC.list=TEC.list||null; schedule(); }); }
+function tecLoad(){ if(TEC.errAt&&Date.now()-TEC.errAt<20000) return Promise.resolve(); TEC.busy=true; TEC.errAt=0; return sb.rpc('technique_list',PV?{p_customer:PV.cid}:{}).then(must).then(function(d){ TEC.list=d||[]; TEC.busy=false; schedule(); return d; }).catch(function(e){ TEC.busy=false; TEC.err=errText(e); TEC.errAt=Date.now(); TEC.list=TEC.list||null; schedule(); }); }
 function tecVis(v){ var x=TECVIS.filter(function(t){ return t[0]===v; })[0]; return x?x[1]:v; }
 function tecEdit(t){ t=t||{visibility:'public'}; var cover=t.cover||null, vst={path:t.video_path||null};
   var cats=[]; (TEC.list||[]).forEach(function(x){ if(x.category&&cats.indexOf(x.category)<0) cats.push(x.category); }); cats.sort();
@@ -4045,7 +4048,7 @@ function crsLessonDone(c,l,on){
   var calls=[sb.rpc('course_done',{p_lesson:l.id,p_done:on}).then(must)];
   crsGroupsFor(c).forEach(function(g){ (g.items||[]).forEach(function(it){ if(it.kind==='lesson'&&it.lesson_id===l.id&&((g.done||[]).indexOf(it.id)>=0)!==on){
     calls.push(sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); })); } }); });
-  return Promise.all(calls).then(function(){ l.done=on; schedule(); }).catch(function(e){ toast(errText(e)); });
+  return Promise.all(calls).then(function(){ l.done=on; schedule(); return true; }).catch(function(e){ toast(errText(e)); schedule(); return false; });
 }
 function crsSteps(c,back){
   var L=c.lessons||[], d=COACHM.data;
@@ -4059,7 +4062,7 @@ function crsSteps(c,back){
       steps.push({key:'g'+g.member_id+it.id,title:it.title||(les&&les.title)||gKind(it.kind),kind:gKind(it.kind),state:gdone||(les&&les.done)?'done':'todo',
         body:function(){ return [it.text?lessonText(it.text):null,les?btn('Open the lesson',function(){ CRS.lesson=les.id; schedule(); window.scrollTo(0,0); },'primary small pvok'):it.kind==='lesson'?null:gStepBody(it)[1]]; },
         tick:function(on){ var p=sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); });
-          return (les&&les.done!==on?Promise.all([p,sb.rpc('course_done',{p_lesson:les.id,p_done:on}).then(must).then(function(){ les.done=on; })]):p).then(function(){ schedule(); }).catch(function(e){ toast(errText(e)); }); }});
+          return (les&&les.done!==on?Promise.all([p,sb.rpc('course_done',{p_lesson:les.id,p_done:on}).then(must).then(function(){ les.done=on; })]):p).then(function(){ schedule(); return true; }).catch(function(e){ toast(errText(e)); schedule(); return false; }); }});
     });
     (g.later||[]).forEach(function(it){ steps.push({key:'g'+g.member_id+it.id,title:it.title||gKind(it.kind),kind:gKind(it.kind),state:'later',when:it.on===cAdd(today,1)?'tomorrow':fmtDate(it.on)}); });
   });
@@ -4077,7 +4080,7 @@ function crsSteps(c,back){
         h('span',{class:'lnum'},isDone?'✓':String(i)),
         h('button',{type:'button',class:'gsteph pvok',disabled:isLater?'':null,onclick:isLater?null:function(){ COACHM.open[x.key]=!o; schedule(); }},
           h('small',{class:'sub'},first?'Next up, '+x.kind.toLowerCase():isLater?(x.when?'Opens '+x.when:'Opens later'):x.kind),h('b',null,x.title)),
-        isLater?null:h('button',{type:'button',class:'gtick'+(isDone?' on':''),'aria-pressed':isDone?'true':'false','aria-label':isDone?'Done, tap to undo':'Mark done',onclick:function(e){ e.currentTarget.disabled=true; x.tick(!isDone).then(function(){ if(!isDone) toast('Done. Moved to your done list.'); }); }},isDone?'✓':'')),
+        isLater?null:h('button',{type:'button',class:'gtick'+(isDone?' on':''),'aria-pressed':isDone?'true':'false','aria-label':isDone?'Done, tap to undo':'Mark done',onclick:function(e){ e.currentTarget.disabled=true; x.tick(!isDone).then(function(ok){ if(ok&&!isDone) toast('Done. Moved to your done list.'); }); }},isDone?'✓':'')),
       o&&!isLater?h('div',{class:'gstepb'},x.body()):null); }
   var num={}; steps.forEach(function(x,i){ num[x.key]=i+1; });
   return [h('div',{class:'row'},back),
@@ -4090,7 +4093,7 @@ function crsSteps(c,back){
     done.length?section('Done ('+done.length+')',showDone?linkBtn('Hide',function(){ COACHM.open[k+'done']=false; schedule(); }):linkBtn('Show',function(){ COACHM.open[k+'done']=true; schedule(); }),
       showDone?h('div',{class:'hlist'},done.map(function(x){ return row(x,num[x.key],false); })):null):null];
 }
-function lessonOpens(ts){ var d=new Date(ts), days=Math.round((d-Date.now())/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
+function lessonOpens(ts){ var d=new Date(ts), days=Math.round((Date.parse(cDayOf(d.toISOString()))-Date.parse(cDayOf(new Date().toISOString())))/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
 /* store apps (feature store_courses_hide): customers see no courses, only the technique library */
 function noCrs(){ return featOn('store_courses_hide')&&!!(window.pkNative&&window.pkNative())&&!!me&&me.role==='customer'; }
@@ -4177,7 +4180,7 @@ function crsOfferEdit(c){
       onSave:function(v){ return sb.rpc('course_offer_set',{p_course:c.id,p:{on:!!v.on,price:v.price,text:v.text,new_only:!!v.new_only,with:v.with}}).then(must).then(function(){ loadOffer(); setTimeout(function(){ crsEdit(c.id); },400); }); }}); })
     .catch(function(e){ toast(errText(e)); }); }
 function crsMove(c,l,d){ sb.rpc('course_lesson_move',{p_lesson:l.id,p_dir:d}).then(must).then(function(){ return crsEdit(c.id); }).catch(function(e){ toast(errText(e)); }); }
-function editLesson(c,l){ l=l||{}; if(featOn('techniques')&&!TEC.list&&!TEC.busy){ tecLoad().then(function(){ editLesson(c,l.id?l:null); }); return; }
+function editLesson(c,l){ l=l||{}; if(featOn('techniques')&&!TEC.list&&!TEC.busy){ tecLoad().then(function(){ if(TEC.list) editLesson(c,l.id?l:null); else toast(TEC.err||'Could not load the library.'); }); return; }
   var files=(l.files||[]).slice(), vst={path:l.video_path||null}, vdraw=function(){};
   openForm({title:l.id?'Edit lesson':'New lesson',values:{title:l.title||'',video_url:l.video||'',minutes:l.minutes,free:!!l.free,body:l.body||'',open_day:l.open_day||null,open_on:l.open_on||''},
     fields:[featOn('techniques')&&(TEC.list||[]).length?{key:'tec',label:'Use a video from the technique library',type:'select',options:[['','No, add it below']].concat(TEC.list.filter(function(t){ return t.video; }).map(function(t){ return [t.id,(t.category?t.category+': ':'')+t.title]; })),
@@ -4454,7 +4457,7 @@ function cmGroups(d){ var t=d.today;
       return h('div',{class:'panel pad gstep'+(done?' done':'')},
         h('div',{class:'hrow'},h('button',{type:'button',class:'gsteph',onclick:function(){ COACHM.open['s'+g.member_id+it.id]=!open; schedule(); }},h('small',{class:'sub'},gKind(it.kind)+(it.on===t?', new today':it.on>cAdd(t,-7)?', new this week':'')),h('b',null,it.title||gKind(it.kind))),
           h('button',{type:'button',class:'gtick'+(done?' on':''),'aria-pressed':done?'true':'false','aria-label':done?'Done, tap to undo':'Mark done',onclick:function(){
-            sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:!done}).then(must).then(function(){ if(done) g.done=g.done.filter(function(x){ return x!==it.id; }); else g.done.push(it.id); schedule(); }).catch(function(e){ toast(errText(e)); }); }},done?'✓':'')),
+            sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:!done}).then(must).then(function(){ g.done=done?(g.done||[]).filter(function(x){ return x!==it.id; }):(g.done||[]).concat([it.id]); schedule(); }).catch(function(e){ toast(errText(e)); }); }},done?'✓':'')),
         open?h('div',{class:'gstepb'},gStepBody(it),go):null); }
     return section(g.name+', week '+wk,null,h('div',{class:'hlist'},
       g.notes&&wk===1?h('div',{class:'panel pad'},lessonText(g.notes)):null,
@@ -4723,7 +4726,7 @@ function coGroupAddPeople(g,cid){
     if(st.mode==='tags') parts.push(h('div',{class:'checkgrid'},tags.map(function(t,i){ var cb=h('input',{type:'checkbox',id:'ga-t'+i}); cb.checked=st.tags.indexOf(t)>=0;
       cb.addEventListener('change',function(){ st.tags=st.tags.filter(function(x){ return x!==t; }); if(cb.checked) st.tags.push(t); count_(); }); return h('label',{class:'check',for:'ga-t'+i},cb,h('span',null,t+' ('+tagCount[t]+')')); })),h('small',{class:'sub'},'Adds customers with any of the ticked tags.'));
     if(st.mode==='course'){ var cs=h('select',{id:'ga-course',onchange:function(ev){ st.course=ev.target.value; count_(); }},[h('option',{value:''},'Pick a course')].concat((CRS.list||[]).map(function(c){ return h('option',{value:c.id},c.title); }))); cs.value=st.course;
-      parts.push(h('div',{class:'field'},h('label',{for:'ga-course'},'Course'),cs)); if(!CRS.list) crsLoad().then(draw); }
+      parts.push(h('div',{class:'field'},h('label',{for:'ga-course'},'Course'),cs)); if(!CRS.list) crsLoad().then(function(){ if(CRS.list) draw(); }); }
     if(st.mode==='all') parts.push(h('small',{class:'sub'},'Every customer, including people who have not opened the app yet. They see the steps when they sign in.'));
     body.replaceChildren.apply(body,parts); count_(); }
   function run(){ go.disabled=true; err.hidden=true;
@@ -5642,7 +5645,6 @@ function accBizEdit(b){
 }
 var ACC_M={cash:'Cash',transfer:'Transfer',qr:'Scan (PromptPay)',scan:'Scan (PromptPay)',card:'Card',stripe:'Card (online)',agent:'Agent',room:'Room bill'};
 function accM(m){ return ACC_M[m]||m||'Other'; }
-function accMonth(d){ return d.slice(0,7); }
 function accRange(k){ var t=ymd(new Date()), y=t.slice(0,4), m=Number(t.slice(5,7));
   if(k==='today') return [t,t];
   if(k==='yesterday'){ var yd=addDays(t,-1); return [yd,yd]; }
@@ -5844,7 +5846,7 @@ function invTemplate(){
         return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','invoice_template').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; IVC.tpl=t; schedule(); }); }});
     var up=btn('Upload a logo',function(){ blogPhoto(function(url){ var el=document.getElementById('f-logo'); if(el) el.value=url; }); },'small');
     var lf=document.getElementById('f-logo'); if(lf&&lf.parentNode) lf.parentNode.appendChild(up);
-    function keep(){ var b=t.biz[which]=t.biz[which]||{}; ['name','address','tax_id','phone','email','website','logo','bank_name','bank_account_name','bank_account_number','bank_branch','bank_swift','promptpay_id'].forEach(function(k){ var el=document.getElementById('f-'+k); if(el) b[k]=el.value.trim(); }); }
+    function keep(){ ['prefix','receipt_prefix','color','terms','footer'].forEach(function(k){ var el=document.getElementById('f-'+k); if(el) t[k]=el.value.trim(); }); var b=t.biz[which]=t.biz[which]||{}; ['name','address','tax_id','phone','email','website','logo','bank_name','bank_account_name','bank_account_number','bank_branch','bank_swift','promptpay_id'].forEach(function(k){ var el=document.getElementById('f-'+k); if(el) b[k]=el.value.trim(); }); }
   }
   open();
 }
@@ -6006,7 +6008,7 @@ function accCsv(all){
   var rows=[['Date','Business','Department','Type','Category','Description','Paid by','Amount THB','Source']];
   all.slice().sort(function(a,b){ return a.d<b.d?-1:a.d>b.d?1:0; }).forEach(function(l){ rows.push([l.d,l.b,l.dep||'',l.move?(l.t==='in'?'In, from the other business':'Out, to the other business'):(l.t==='in'?'In':'Out'),l.cat||'',l.what||'',accM(l.m),(Math.round(l.a*100)/100).toFixed(2),
     ({payment:'App payment',shop:'Till',receipt:'Receipt',commission:'Coach commission',entry:'Entered by hand'})[l.src]||l.src]); });
-  var csv='﻿'+rows.map(function(r){ return r.map(function(c){ c=String(c); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
+  var csv='﻿'+rows.map(function(r){ return r.map(function(c){ c=String(c); if(/^[=+\-@\t\r]/.test(c)&&!/^-?\d+(\.\d+)?$/.test(c)) c="'"+c; return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(','); }).join('\r\n');
   var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='phuket-king-accounts-'+ACC.from+'-to-'+ACC.to+'.csv'; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }
 
 /* ---------- social media: the AI writes the caption, a manager approves it, the server posts it to Facebook and Instagram on time ---------- */
@@ -6236,7 +6238,7 @@ function socEdit(p0){
       h('div',{class:'covrow'},h('div',{class:'covprev'},h('img',{src:m.url,alt:'Story'})),
         h('div',{style:'flex:1;min-width:0;display:grid;gap:8px'},hd,sb2,ps,h('div',{class:'row wrap'},go,clear))),
       h('small',null,'Drawn onto the photo in your colours. Links cannot be tapped in a story sent from an app, so write the address or Link in bio.')); }
-  var brief=h('textarea',{id:'soc-brief',rows:'3',placeholder:'For example: Saturday sparring with the fight team, Tom and Kru Max coaching, open to all levels'}); brief.value=p.brief||''; brief.disabled=locked;
+  var brief=h('textarea',{id:'soc-brief',rows:'3',placeholder:'For example: Saturday sparring with the fight team, two coaches, open to all levels'}); brief.value=p.brief||''; brief.disabled=locked;
   var cap=h('textarea',{id:'soc-cap',rows:'10',maxlength:'2200'}); cap.value=p.caption||''; cap.disabled=locked;
   var count=h('small',null,''); function cnt(){ count.textContent=cap.value.length+' of 2200 characters'; } cap.addEventListener('input',cnt); cnt();
   var opts=h('div',{class:'socopts'});
@@ -6256,7 +6258,7 @@ function socEdit(p0){
   var now=h('input',{type:'checkbox',id:'soc-now'}); now.disabled=locked; now.addEventListener('change',function(){ when.disabled=now.checked; });
   /* Instagram: tag the business location, and up to 3 collaborators (they accept the invite in Instagram) */
   var placeName=SOC.cfg&&SOC.cfg.place, tagPlace=h('input',{type:'checkbox',id:'soc-place'}); tagPlace.checked=p.tag_place!==false; tagPlace.disabled=locked;
-  var collab=h('input',{id:'soc-collab',placeholder:'for example krumax, a guest\u2019s account',autocomplete:'off'}); collab.value=(p.collaborators||[]).map(function(x){ return '@'+x; }).join(' '); collab.disabled=locked;
+  var collab=h('input',{id:'soc-collab',placeholder:'for example a coach or a guest\u2019s account',autocomplete:'off'}); collab.value=(p.collaborators||[]).map(function(x){ return '@'+x; }).join(' '); collab.disabled=locked;
   tagBox=featOn('social_tags')?h('div',{class:'field'},placeName?h('label',{class:'check',for:'soc-place'},tagPlace,h('span',null,'Tag our location on Instagram: '+placeName)):null,
     h('label',{for:'soc-collab'},'Collab with (Instagram usernames, up to 3)'),collab,
     h('small',null,'They get an invite in Instagram. Once they accept, the post shows on their profile and to their followers too. Not for trial reels.')):null;
@@ -6313,7 +6315,7 @@ function socEdit(p0){
       if(soon) socCall({mode:'run'}).then(function(){ SOC.list=null; socLoad(); }).catch(function(e){ toast(errText(e)); }); })
     .catch(function(e){ bad(errText(e)); b.disabled=false; }); }
   var saveB=btn('Save draft',function(){ save(false,saveB); }), okB=btn(p.status==='failed'?'Approve and try again':'Approve',function(){
-    if(!armed){ armed=true; okB.textContent=now.checked?'Tap again to post now':'Tap again: goes out '+bkkWhen(when.value+':00+07:00'); return; } save(true,okB); },'primary');
+    if(!now.checked&&!when.value){ toast('Choose the day and time, or tick Post now.'); return; } if(!armed){ armed=true; okB.textContent=now.checked?'Tap again to post now':'Tap again: goes out '+bkkWhen(when.value+':00+07:00'); return; } save(true,okB); },'primary');
   var res=(p.platforms||[]).map(function(k){ var r=(p.results||{})[k]; if(!r) return null;
     return h('p',{class:'sub'},(SOC_PL[k]||k)+': ',r.url?h('a',{href:r.url,target:'_blank',rel:'noopener'},'See the post'):r.id?'Posted':r.error?r.error:'Processing'); });
   var left=p.id&&!locked?btn(p.status==='scheduled'?'Back to draft':'Delete',function(){
@@ -6384,7 +6386,7 @@ function newsOpen(n){
         newsCall({mode:'send',id:n.id}).then(function(d){ total+=d.sent||0;
           if(d.error&&!d.sent){ err.textContent='Sending stopped: '+d.error; err.hidden=false; sendB.disabled=false; sendB.textContent='Try again'; armed=false; NEWS.list=null; newsLoad(); return; }
           if(d.more) return step();
-          close(); toast('Sent to '+total+' people.'); NEWS.list=null; newsLoad(); })
+          close(); toast('Sent to '+total+' people.'+(d.error?' Some did not go out: '+d.error:'')); NEWS.list=null; newsLoad(); })
         .catch(function(e){ err.textContent=errText(e); err.hidden=false; sendB.disabled=false; sendB.textContent='Try again'; armed=false; }); })();
     },'primary');
     sendB.disabled=n.status==='sent'||!a.count;
@@ -6585,7 +6587,7 @@ function editHours(e,pre){
     values:{staff_id:e.staff_id||pre.staff_id||'',day:e.day||pre.day||ymd(new Date()),in:e.in_at?bkkTime(e.in_at):pre.time||'',out:e.out_at?bkkTime(e.out_at):'',note:e.note||''},
     fields:(e.id||pre.staff_id?[]:[{key:'staff_id',label:'Who',type:'select',required:true,options:staff.map(function(s){ return [s.id,s.name+' ('+(ROLES[s.role]||s.role)+')']; })}]).concat([
       {key:'day',label:'Day',type:'date',required:true},{key:'in',label:'Started',type:'time',required:true},{key:'out',label:'Finished',type:'time',hint:'Leave empty if they are still working.'},
-      {key:'note',label:'Note',hint:'For example: forgot to scan, added by Tom.'}]),
+      {key:'note',label:'Note',hint:'For example: forgot to scan, added by the manager.'}]),
     onSave:function(v){ return sb.rpc('staff_clock_save',{p:{id:e.id||null,staff_id:e.staff_id||pre.staff_id||v.staff_id,kind:e.kind||pre.kind||'shift',ref_id:e.ref_id||pre.ref_id||null,slot:e.slot||pre.slot||null,day:v.day,in:v.in,out:v.out||null,note:v.note||null}}).then(must).then(function(){ CB={}; return loadHours(); }); },
     onDelete:e.id?function(){ return sb.rpc('staff_clock_save',{p:{id:e.id,void:true}}).then(must).then(function(){ CB={}; return loadHours(); }); }:null});
 }
@@ -6595,7 +6597,7 @@ function staffPoster(){
   return h('section',{class:'sec posterwrap'},
     h('div',{class:'sechead noprint'},h('h2',null,'Staff QR code for the office'),h('div',{class:'row'},qr?btn('Print poster',printPoster,'primary small'):null,
       btn(ui.armStaffQR?'Tap again. The old poster stops working':'Make a new code',function(){ if(!ui.armStaffQR){ ui.armStaffQR=true; schedule(); return; } ui.armStaffQR=false;
-        sb.rpc('staff_clock_code',{p_new:true}).then(must).then(function(c){ STAFFQR=c; toast('New staff code made. Print it and take the old one down.'); schedule(); }); },'small'+(ui.armStaffQR?' danger':'')),
+        sb.rpc('staff_clock_code',{p_new:true}).then(must).then(function(c){ STAFFQR=c; toast('New staff code made. Print it and take the old one down.'); schedule(); },function(e){ toast(errText(e)); }); },'small'+(ui.armStaffQR?' danger':'')),
       btn('Close',function(){ ui.hPoster=false; schedule(); },'small'))),
     h('div',{class:'panel pad poster'},h('img',{class:'plogo',src:'icons/icon-512.png',alt:'Phuket King'}),
       h('div',{class:'p2'},'Staff only: clock in and out'),h('div',{class:'pth'},'สำหรับพนักงาน: ลงเวลาเข้าออก'),
@@ -6664,7 +6666,7 @@ function coachBoard(){
 }
 function vHours(){
   if(!HOURS&&!ui.hBusy) loadHours();
-  if(ui.hPoster&&!STAFFQR) sb.rpc('staff_clock_code',{p_new:false}).then(must).then(function(c){ STAFFQR=c; schedule(); });
+  if(ui.hPoster&&!STAFFQR&&!ui.qrBusy){ ui.qrBusy=true; sb.rpc('staff_clock_code',{p_new:false}).then(must).then(function(c){ ui.qrBusy=false; STAFFQR=c; schedule(); },function(e){ toast(errText(e)); ui.hPoster=false; setTimeout(function(){ ui.qrBusy=false; },20000); schedule(); }); }
   var d=HOURS||{entries:[],missed:[],missed_classes:[]}, who=ui.hWho||'';
   var E=d.entries.filter(function(e){ return !who||e.staff_id===who; });
   var miss=d.missed.concat(d.missed_classes,d.missed_shifts||[],d.missed_sessions||[]).filter(function(m){ return !who||m.staff_id===who; });
@@ -6869,16 +6871,17 @@ function field(id,label,input,hint){ return h('div',{class:'ff'},h('label',{for:
 /* manager approval: a PIN typed on the till, or a request that pops up on the manager's phone */
 function approvalBox(kind,amount,orderId,reason,done){
   var err=h('p',{class:'ferr',role:'alert',hidden:true}), pin=h('input',{id:'ap-pin',type:'password',inputmode:'numeric',autocomplete:'off',placeholder:'Manager PIN'});
-  var wait=h('p',{class:'sub'}), timer=0;
-  function close(){ clearInterval(timer); $dlg.close(); }
+  var wait=h('p',{class:'sub'}), timer=0, asked=false;
+  function close(){ clearInterval(timer); timer=0; $dlg.close(); }
   function usePin(){ if(!pin.value){ err.textContent='Type the PIN, or send a request.'; err.hidden=false; return; } close(); done({pin:pin.value}); }
   function ask(){
+    if(asked) return; asked=true;
     sb.rpc('shop_request_approval',{p_kind:kind,p_amount:amount,p_reason:reason,p_order:orderId||null}).then(must).then(function(id){
       wait.textContent='Request sent. Waiting for a manager to approve on their phone...';
-      timer=setInterval(function(){ sb.rpc('shop_approvals_list').then(function(r){ var a=(r.data||[]).filter(function(x){ return x.id===id; })[0];
+      timer=setInterval(function(){ if(!$dlg.open){ clearInterval(timer); timer=0; return; } sb.rpc('shop_approvals_list').then(function(r){ if(!timer) return; var a=(r.data||[]).filter(function(x){ return x.id===id; })[0];
         if(a&&a.status==='approved'){ close(); toast('Approved by '+(a.decided_by||'a manager')+'.'); done({approval_id:id}); }
         else if(a&&a.status==='declined'){ clearInterval(timer); wait.textContent='Declined by '+(a.decided_by||'a manager')+'.'; } }); },3000);
-    }).catch(function(e){ err.textContent=errText(e); err.hidden=false; });
+    }).catch(function(e){ asked=false; err.textContent=errText(e); err.hidden=false; });
   }
   shopDlg(h('div',{class:'billbox'},h('h2',null,'Manager approval'),
     h('p',null,(kind==='refund'?'Refund ':'Discount ')+thb(amount)+'. '+reason),
@@ -6902,12 +6905,6 @@ function discountDlg(){
     h('div',{class:'fgrid'},field('d-pct','Percent',pct),field('d-amt','Amount (THB)',amt)),field('d-why','Reason',why),err,
     h('div',{class:'factions'},ui.cartDisc?btn('Remove discount',function(){ ui.cartDisc=null; $dlg.close(); schedule(); }):h('span'),
       h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Apply',apply,'primary')))));
-}
-function tillStripe(){
-  var total=cartSub()-cartDisc(); if(!cart().length){ toast('Add something first.'); return; } if(total<20){ toast('Stripe needs at least 20 THB.'); return; }
-  var p={location_id:shopLoc(),method:'stripe',discount:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null,
-    items:cartItems(),customer_id:cartCust()};
-  sb.rpc('shop_sell',{p:p}).then(must).then(function(r){ clearCart(); shopRefresh(); toast('Sale #'+r.number+' is waiting for the card payment.'); stripePay('order',r.id,'Sale #'+r.number); }).catch(function(e){ toast(errText(e)); });
 }
 function payDlg(method,waitingOrder){
   var base=waitingOrder?(waitingOrder.subtotal!=null?Number(waitingOrder.subtotal)-(Number(waitingOrder.discount)||0):Number(waitingOrder.total)-(Number(waitingOrder.fee)||0)-(Number(waitingOrder.tax)||0)):cartSub()-cartDisc();
@@ -6978,7 +6975,7 @@ function payDlg(method,waitingOrder){
     if(staffSel){ if(!staffSel.value){ err.textContent='Choose who it is for.'; err.hidden=false; return; } p.staff_id=staffSel.value; }
     var b=this; if(b) b.disabled=true;
     var hadPk=!waitingOrder&&cart().some(function(l){ return l.pkg; });
-    var first=custSel&&!custSel.value?sb.from('customers').insert({name:custNew.value.trim(),tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ reload('customers'); return d.id; }):Promise.resolve(custSel?custSel.value:null);
+    var first=custSel&&!custSel.value&&!go.newCid?sb.from('customers').insert({name:custNew.value.trim(),tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ go.newCid=d.id; reload('customers'); return d.id; }):Promise.resolve(custSel?(custSel.value||go.newCid):null);
     first.then(function(cid){ if(cid) p.customer_id=cid; return sb.rpc('shop_sell',{p:p}); }).then(must).then(function(r){
       if(method==='bill'){ clearCart(); $dlg.close(); toast('Sale #'+r.number+' is on '+(custSel.value?nameOf('customers',custSel.value):custNew.value.trim())+'\'s bill.'); shopRefresh(); loadShop(); if(hadPk) reload('purchases'); return; }
       var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
@@ -6995,7 +6992,7 @@ function payDlg(method,waitingOrder){
 function receiptNode(o){
   var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
   return h('div',{id:'receipt',class:'receipt'},
-    h('div',{class:'rc-head'},h('b',null,(/cafe/i.test(o.loc||'')?DEPT_CAFE:BIZ_MAIN.replace(/ gym$/i,'')).toUpperCase()),h('span',null,(o.loc||'Muay Thai and Pangea Cafe')+', Kathu, Phuket')),
+    h('div',{class:'rc-head'},h('b',null,(/cafe/i.test(o.loc||'')?DEPT_CAFE:BIZ_MAIN.replace(/ gym$/i,'')).toUpperCase()),h('span',null,[o.loc,(RCINFO&&RCINFO.address)||(RCINFO?'':'Kathu, Phuket')].filter(Boolean).join(', '))),
     h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString(LOC(),{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
     h('table',null,h('tbody',null,(o.items||[]).map(function(l){ return h('tr',null,h('td',null,l.qty+' x '+l.name+(l.note?' ('+l.note+')':'')),h('td',{class:'num'},l.price!=null?thb(l.price*l.qty):'')); }))),
     h('div',{class:'rc-tot'},
@@ -7007,7 +7004,7 @@ function receiptNode(o){
       vat?h('div',null,h('span',null,'Includes VAT '+vat.rate+'%'),h('span',null,thb(Math.round(o.total*vat.rate/(100+vat.rate))))):null,
       h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
       o.change?h('div',null,h('span',null,'Change'),h('span',null,thb(o.change))):null),
-    h('div',{class:'rc-foot'},'Thank you. Work hard, fight easy.'));
+    h('div',{class:'rc-foot'},(RCINFO&&RCINFO.footer)||'Thank you. Work hard, fight easy.'));
 }
 /* a receipt for the customer: a private link to the receipt page, sent the way they like (the last way used is picked first) */
 function rcBase(){ return location.protocol==='https:'?location.origin+location.pathname.replace(/[^\/]*$/,''):'https://app.phuketking.com/'; }
@@ -7052,7 +7049,9 @@ function receiptInfoEdit(){ sb.from('app_settings').select('value').eq('key','re
     fields:[{key:'address',label:'Address',type:'textarea',rows:2},{key:'tax_id',label:'Tax ID (optional)'},{key:'email',label:'Email to show (optional)',hint:'Leave empty to use the reply address from the welcome email.'},{key:'footer',label:'Thank you line',hint:'For example: Thank you for training with us. See you on the mats!'}],
     onSave:function(x){ var val=JSON.stringify({address:String(x.address||'').trim(),tax_id:String(x.tax_id||'').trim(),email:String(x.email||'').trim(),footer:String(x.footer||'').trim()});
       return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','receipt_info').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; }); }}); }); }
+var RCINFO=null; /* receipt details (address, thank you line), read once for till receipts */
 function receiptDlg(o){
+  if(RCINFO===null){ RCINFO=false; sb.from('app_settings').select('value').eq('key','receipt_info').maybeSingle().then(function(r){ try{ RCINFO=JSON.parse(r.data&&r.data.value||'{}'); }catch(e){ RCINFO={}; } receiptDlg(o); },function(){ RCINFO={}; receiptDlg(o); }); return; }
   shopDlg(h('div',{class:'billbox'},receiptNode(o),
     h('div',{class:'factions noprint'},h('span'),h('div',{class:'row'},o.id&&featOn('receipt_send')?btn('Send to the customer',function(){ sendReceipt('shop',o.id,'sale #'+o.number); }):null,btn('Print',function(){ document.body.classList.add('print-receipt'); window.print(); }),btn('Done',function(){ $dlg.close(); },'primary')))));
 }
@@ -7061,7 +7060,7 @@ function refundDlg(o){
   var why=h('input',{id:'rf-why',type:'text',placeholder:'For example: wrong order, cold food'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
   function go(extra){
     sb.rpc('shop_refund',Object.assign({p_order:o.id,p_reason:why.value.trim(),p_pin:null,p_approval:null},extra||{})).then(must).then(function(r){
-      $dlg.close(); toast('Sale #'+r.number+' refunded'+(o.method==='room'?' (taken off the room bill)':', give back '+thb(r.amount)+' by '+payName(o.method))+'.'+(r.note?' '+r.note:'')); shopRefresh();
+      $dlg.close(); toast(o.status==='waiting'?'Order #'+r.number+' cancelled.':'Sale #'+r.number+' refunded'+(o.method==='room'?' (taken off the room bill)':', give back '+thb(r.amount)+' by '+payName(o.method))+'.'+(r.note?' '+r.note:'')); shopRefresh();
     }).catch(function(e){ toast(errText(e)); });
   }
   shopDlg(h('div',{class:'billbox'},h('h2',null,'Refund sale #'+o.number),h('p',null,thb(o.total)+', paid by '+payName(o.method)+'.'),field('rf-why','Reason',why),err,
@@ -7297,7 +7296,7 @@ function vReport(){
   var allM={}; paid.forEach(function(o){ if(o.method!=='room') allM[o.method]=(allM[o.method]||0)+o.total; }); P.forEach(function(x){ allM[x.method]=(allM[x.method]||0)+x.amount; });
   var long=r&&r.from&&r.to&&(parseYmd(r.to)-parseYmd(r.from))/864e5>62, rows={};
   function bucket(d){ var k=long?d.slice(0,7):d; return rows[k]||(rows[k]={k:k,shop:0,pk:0,pv:0,rm:0}); }
-  paid.forEach(function(o){ if(o.method!=='room') bucket(o.at.slice(0,10)).shop+=o.total; });
+  paid.forEach(function(o){ if(o.method!=='room') bucket(cDayOf(o.at)).shop+=o.total; });
   P.forEach(function(x){ var b=bucket(x.day); if(x.kind==='package') b.pk+=x.amount; else if(x.kind==='private') b.pv+=x.amount; else b.rm+=x.amount; });
   var byDay=Object.keys(rows).sort().reverse().map(function(k){ return rows[k]; });
   var tot=paid.reduce(function(t,o){ return t+o.total; },0), disc=paid.reduce(function(t,o){ return t+o.discount; },0), ref=orders.filter(function(o){ return o.status==='refunded'; });
@@ -7316,13 +7315,13 @@ function vReport(){
     h('h2',{class:'subhead'},'Shop'),
     !r?null:h('div',{class:'stats'},h('div',null,h('b',null,thb(tot)||'0 THB'),' sales'),h('div',null,h('b',null,String(paid.length)),' sales made'),h('div',null,h('b',null,thb(disc)||'0 THB'),' discounts'),h('div',null,h('b',null,String(ref.length)),' refunds')),
     !r?null:section('By payment',null,table([{label:'How',cell:function(x){ return payName(x[0]); }},{label:'Total',num:true,cell:function(x){ return thb(x[1]); }}],Object.keys(r.by_method||{}).map(function(k){ return [k,r.by_method[k]]; }),'No sales.')),
-    !r?null:section('Shifts',null,table([{label:'Shop',cell:function(x){ return x.location||''; }},{label:'Opened',cell:function(x){ return fmtDate(x.opened_at.slice(0,10))+' '+bkkTime(x.opened_at)+', '+(x.by||''); }},
+    !r?null:section('Shifts',null,table([{label:'Shop',cell:function(x){ return x.location||''; }},{label:'Opened',cell:function(x){ return fmtDate(cDayOf(x.opened_at))+' '+bkkTime(x.opened_at)+', '+(x.by||''); }},
       {label:'Closed',cell:function(x){ return x.closed_at?bkkTime(x.closed_at)+', '+(x.closed_by||''):chip('Open','ok'); }},{label:'Start cash',num:true,cell:function(x){ return thb(x.opening)||'0 THB'; }},
       {label:'Sales',num:true,cell:function(x){ return thb(x.total)||'0 THB'; }},{label:'Cash expected',num:true,cell:function(x){ return x.closed_at?thb(x.expected)||'0 THB':thb(x.opening+x.cash)||'0 THB'; }},
       {label:'Counted',num:true,cell:function(x){ if(!x.closed_at) return ''; var d=x.counted-x.expected; return h('span',null,thb(x.counted)||'0 THB',' ',d?chip((d>0?'over ':'short ')+thb(Math.abs(d)),'bad'):chip('exact','ok')); }}],r.shifts||[],'No shifts.')),
     !r||!r.by_staff?null:section('By staff',null,table([{label:'Who',cell:function(x){ return x.name; }},{label:'Sales',num:true,cell:function(x){ return String(x.n); }},{label:'Total',num:true,cell:function(x){ return thb(x.total); }}],r.by_staff,'No sales.')),
     !r||!r.top?null:section('Best sellers',null,table([{label:'Product',cell:function(x){ return x.name; }},{label:'Sold',num:true,cell:function(x){ return String(x.qty); }},{label:'Total',num:true,cell:function(x){ return thb(x.total); }}],r.top,'No sales.')),
-    !r?null:section('Discounts and refunds',null,table([{label:'Sale',cell:function(o){ return '#'+o.number+' '+fmtDate(o.at.slice(0,10)); }},{label:'What',cell:function(o){ return o.status==='refunded'?'Refund: '+(o.refund_reason||''):'Discount '+thb(o.discount)+': '+(o.discount_reason||''); }},
+    !r?null:section('Discounts and refunds',null,table([{label:'Sale',cell:function(o){ return '#'+o.number+' '+fmtDate(cDayOf(o.at)); }},{label:'What',cell:function(o){ return o.status==='refunded'?'Refund: '+(o.refund_reason||''):'Discount '+thb(o.discount)+': '+(o.discount_reason||''); }},
       {label:'By',cell:function(o){ return (o.by||'')+(o.approved_by?', approved by '+o.approved_by:''); }}],orders.filter(function(o){ return o.discount>0||o.status==='refunded'; }),'None.'))];
 }
 /* staff tabs: what staff owe for drinks, food and other items, settled later by a manager */
@@ -7561,7 +7560,7 @@ setInterval(function(){ if(SPA&&me&&allReady&&ui.tab==='board'&&document.visibil
 function hm2m(s){ s=String(s||'00:00'); return Number(s.slice(0,2))*60+Number(s.slice(3,5)); }
 function m2hm(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
 function spaFind(list,id){ return ((SPAB&&SPAB[list])||[]).filter(function(s){ return s.id===id; })[0]||null; }
-function spaSvc(id){ return spaFind('services',id); } function spaStaff(id){ return spaFind('staff',id); } function spaBed(id){ return spaFind('beds',id); } function spaShop(id){ return spaFind('shops',id); }
+function spaStaff(id){ return spaFind('staff',id); } function spaBed(id){ return spaFind('beds',id); } function spaShop(id){ return spaFind('shops',id); }
 var SPA_KINDS=[['bed','Massage bed or room'],['couple','Couple room'],['foot','Foot chair'],['nail','Nail desk'],['facial','Facial bed'],['hair','Hair chair'],['other','Other']];
 function spaKind(k){ return (SPA_KINDS.filter(function(x){ return x[0]===k; })[0]||['',k])[1]; }
 function spaNowMin(){ var b=new Date(Date.now()+7*3600e3); return b.getUTCHours()*60+b.getUTCMinutes(); }
@@ -7723,7 +7722,7 @@ function spaPaste(kind){
       var names=(v.shop_ids||[]).map(function(id){ var s=spaShop(id); return s?s.name:null; }).filter(Boolean), p={shops:[],rooms:[],treatments:[]};
       if(kind==='shops') p.shops=lines;
       if(kind==='rooms') p.rooms=lines.map(function(l){ var m=l.split(/\s+[-–]\s+/); return {name:m[0],building:m.slice(1).join(' - ')||null,kind:v.kind,shops:names}; });
-      if(kind==='treatments') p.treatments=lines.map(function(l){ var m=l.split(/\s*,\s*/), nm=m[0], mins=null, pr=null;
+      if(kind==='treatments') p.treatments=lines.map(function(l){ var m=l.replace(/(\d),(\d{3})(?!\d)/g,'$1$2').split(/\s*,\s*/), nm=m[0], mins=null, pr=null;
         m.slice(1).forEach(function(x){ var n=Number(String(x).replace(/[^\d]/g,'')); if(!n) return; if(mins==null&&n<=360&&/min|^\d{2,3}$/i.test(x)&&!/thb|฿|baht/i.test(x)&&n<=180) mins=n; else pr=n; });
         return {name:nm,minutes:mins,price:pr,kind:v.kind,department:v.department||null,shops:names}; });
       return sb.rpc('spa_setup',{p:p}).then(must).then(function(r){ toast('Added '+(r.shops||0)+' shops, '+(r.rooms||0)+' rooms, '+(r.treatments||0)+' treatments.'); return loadSpa(); }); }});
@@ -8055,7 +8054,7 @@ function rcEdit(x){
     {key:'method',label:'Paid by',type:'select',options:[['transfer','Transfer'],['scan','Scan'],['cash','Cash'],['card','Card']]},
     {key:'supplier',label:'Supplier or what for'},{key:'note',label:'Note'},
     {key:'status',label:'Status',type:'select',options:[['new','New, not checked'],['checked','Checked']]}],
-    onSave:function(v){ return sb.rpc('receipt_save',{p:Object.assign({id:x.id},v)}).then(must).then(loadReceipts); }});
+    onSave:function(v){ return sb.rpc('receipt_save',{p:Object.assign({id:x.id},v)}).then(must).then(function(){ ACC.rc=null; ACC.data=null; WORK=null; return loadReceipts(); }); }});
 }
 function rcBoss(){ return !!me&&me.role==='manager'; }
 function rcRemove(x,done){
@@ -8073,7 +8072,7 @@ function rcRemoved(from,to){
     {label:'What',cell:function(x){ return h('span',null,x.supplier||x.purpose||x.department,h('div',{class:'sub'},x.amount!=null?thb(Number(x.amount)):'No amount')); }},
     {label:'Added by',cell:function(x){ return x.by||''; }},
     {label:'Removed by',cell:function(x){ return h('span',null,(x.removed_by||'')+(x.removed_at?', '+new Date(x.removed_at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''),x.removed_why?h('div',{class:'sub'},x.removed_why):null); }},
-    {label:'',cell:function(x){ return h('div',{class:'row'},btn('Photo',function(){ rcPhoto(x); },'small'),btn('Put back',function(){ run(sb.rpc('receipt_restore',{p_id:x.id}).then(must).then(function(){ RCPT=null; RCRM=null; ACC.rc=null; ACC.data=null; WORK=null; }),'Receipt put back.'); },'small')); }}],RCRM.list,''));
+    {label:'',cell:function(x){ return h('div',{class:'row'},btn('Photo',function(){ rcPhoto(x); },'small'),btn('Put back',function(){ run(sb.rpc('receipt_restore',{p_id:x.id}).then(must).then(function(){ RCPT=null; RCRM=null; ACC.rc=null; ACC.data=null; WORK=null; schedule(); }),'Receipt put back.'); },'small')); }}],RCRM.list,''));
 }
 function rcDownload(){
   var list=(RCPT&&RCPT.list)||[]; if(!list.length){ toast('No receipts this month.'); return; }
@@ -8102,8 +8101,8 @@ function vReceipts(){
       {label:'Amount',num:true,cell:function(x){ return x.amount==null?chip('No amount','warn'):thb(Number(x.amount)); }},
       {label:'Paid by',cell:function(x){ return ({transfer:'Transfer',scan:'Scan',cash:'Cash',card:'Card'})[x.method]||x.method; }},
       {label:'Added by',cell:function(x){ return h('span',null,x.by||'',x.at?h('div',{class:'sub'},new Date(x.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})):null); }},
-      {label:'',cell:function(x){ return h('div',{class:'row'},x.status==='checked'?chip('Checked','ok'):btn('Checked',function(){ run(sb.rpc('receipt_save',{p:{id:x.id,amount:x.amount,status:'checked',supplier:x.supplier,note:x.note}}).then(must).then(loadReceipts),'Marked checked.'); },'small'),
-        btn('Photo',function(){ rcPhoto(x); },'small'),btn('Edit',function(){ rcEdit(x); },'small'),rcBoss()?btn('Remove',function(){ rcRemove(x); },'small'):null); }}],list,'No receipts this month. Anyone on the team can add one with the Receipt button at the top.')),
+      {label:'',cell:function(x){ return h('div',{class:'row'},x.status==='checked'?chip('Checked','ok'):!rcBoss()?null:btn('Checked',function(){ run(sb.rpc('receipt_save',{p:{id:x.id,amount:x.amount,status:'checked',supplier:x.supplier,note:x.note}}).then(must).then(loadReceipts),'Marked checked.'); },'small'),
+        btn('Photo',function(){ rcPhoto(x); },'small'),rcBoss()?btn('Edit',function(){ rcEdit(x); },'small'):null,rcBoss()?btn('Remove',function(){ rcRemove(x); },'small'):null); }}],list,'No receipts this month. Anyone on the team can add one with the Receipt button at the top.')),
     rcRemoved(RCPT.month+'-01',addDays(addDays(RCPT.month+'-01',32).slice(0,7)+'-01',-1)),
     h('p',{class:'sub'},'Everyone on the team can add receipts, and the app keeps who added each one. Only an admin or the owner can remove one.')];
 }
@@ -8251,12 +8250,12 @@ function vInvestor(){
   var allowed=INV?INV.allowed:[], sel=INV?INV.zones:[];
   var rg=invRange();
   var ranges=h('div',{class:'row wrap'},[['month','This month'],['last','Last month'],['30d','Last 30 days'],['ytd','This year'],['12m','Last 12 months']].map(function(x){
-    return btn(x[1],function(){ ui.invRange=x[0]; INV=null; schedule(); },(ui.invRange||'month')===x[0]?'primary small':'small'); }));
-  var chips=h('div',{class:'row wrap'},allowed.length>1?[btn('All',function(){ ui.invZones=null; INV=null; schedule(); },!ui.invZones||!ui.invZones.length?'primary small':'small')].concat(allowed.map(function(z){
-    var on=ui.invZones&&ui.invZones.indexOf(z)>=0; return btn(zoneName(z),function(){ var cur=(ui.invZones||[]).slice(); var i=cur.indexOf(z); if(i>=0) cur.splice(i,1); else cur.push(z); ui.invZones=cur.length?cur:null; INV=null; schedule(); },on?'primary small':'small'); })):null);
+    return btn(x[1],function(){ ui.invRange=x[0]; INV=null; ui.invErr=null; schedule(); },(ui.invRange||'month')===x[0]?'primary small':'small'); }));
+  var chips=h('div',{class:'row wrap'},allowed.length>1?[btn('All',function(){ ui.invZones=null; INV=null; ui.invErr=null; schedule(); },!ui.invZones||!ui.invZones.length?'primary small':'small')].concat(allowed.map(function(z){
+    var on=ui.invZones&&ui.invZones.indexOf(z)>=0; return btn(zoneName(z),function(){ var cur=(ui.invZones||[]).slice(); var i=cur.indexOf(z); if(i>=0) cur.splice(i,1); else cur.push(z); ui.invZones=cur.length?cur:null; INV=null; ui.invErr=null; schedule(); },on?'primary small':'small'); })):null);
   var head=pageHead(me.role==='investor'?'Overview':'Investor view',fmtDate(rg[0])+' to '+fmtDate(rg[1])+(me.role==='manager'?'. This is what an investor sees. Choose what each investor can see on the Staff page.':''));
   if(!INV) return [head,ranges,h('div',{class:'panel empty'},ui.invErr||'Loading.')];
-  if(!allowed.length) return [head,h('div',{class:'panel empty'},'Nothing has been shared with you yet. Ask Tom.')];
+  if(!allowed.length) return [head,h('div',{class:'panel empty'},'Nothing has been shared with you yet. Ask the owner.')];
   var rev=INV.revenue||{}, total=sel.reduce(function(s,z){ return s+(rev[z]||0); },0), prev=INV.revenue_prev||0;
   var change=prev?Math.round((total-prev)/prev*100):null;
   var out=[head,ranges,chips,
@@ -9928,8 +9927,8 @@ function closeDlg(staffId,after){
 function availBox(av,staffId,after){
   var off=!!av.off;
   function set(v){ sb.rpc('coach_privates_set',{p_off:v,p_staff:staffId||null}).then(must).then(function(){ toast(hT(v?'avDoneOff':'avDoneOn')); after(); },function(e){ toast(errText(e)); }); }
-  function today(){ var now=new Date(), t=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
-    sb.rpc('coach_close',{p_staff:staffId||null,p_from:ymd(now),p_to:null,p_from_t:t<'23:00'?t:null,p_to_t:t<'23:00'?'23:59':null,p_note:'Not available today'}).then(must).then(function(){ toast(hT('avDoneToday')); after(); },function(e){ toast(errText(e)); }); }
+  function today(){ var bk=new Date(Date.now()+7*3600e3), t=bk.toISOString().slice(11,16);
+    sb.rpc('coach_close',{p_staff:staffId||null,p_from:bk.toISOString().slice(0,10),p_to:null,p_from_t:t<'23:00'?t:null,p_to_t:t<'23:00'?'23:59':null,p_note:'Not available today'}).then(must).then(function(){ toast(hT('avDoneToday')); after(); },function(e){ toast(errText(e)); }); }
   return h('div',{class:'panel pad availbox'+(off?' off':'')},
     h('div',{class:'row',style:'justify-content:space-between'},h('div',null,h('b',{class:'availst'},hT(off?'avOff':'avOn')),h('div',{class:'sub'},hT(off?'avOffNote':'avOnNote'))),
       h('div',{class:'row'},off?btn(hT('avTurnOn'),function(){ set(false); },'primary'):btn(hT('avTurnOff'),function(){ set(true); }),off?null:btn(hT('avToday'),today,'small'))));
@@ -10032,9 +10031,11 @@ function forgetCode(){ cuCode=null; try{ localStorage.removeItem('pk_code'); }ca
 function setCode(c){ cuCode=c; cuAt=Date.now(); cuDone=null; try{ localStorage.setItem('pk_code',JSON.stringify({c:c,t:cuAt})); }catch(e){} }
 /* in-app scanner: an installed app on iPhone cannot be opened by the camera, so members scan the poster from inside the app */
 var JSQR_URL='vendor/jsqr-1.4.0.js';
+var JSQR_P=null;
 function loadJsQR(){
   if(window.jsQR) return Promise.resolve();
-  return new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=JSQR_URL; sc.onload=ok; sc.onerror=function(){ bad(new Error('load')); }; document.head.appendChild(sc); });
+  if(JSQR_P) return JSQR_P;
+  return JSQR_P=new Promise(function(ok,bad){ var sc=document.createElement('script'); sc.src=JSQR_URL; sc.onload=ok; sc.onerror=function(){ setTimeout(function(){ JSQR_P=null; },10000); bad(new Error('load')); }; document.head.appendChild(sc); });
 }
 function codeFromText(t){
   try{ var u=new URL(String(t)); var c=u.searchParams.get('c'); return c&&/^[a-zA-Z0-9]{6,64}$/.test(c)?c:null; }catch(e){ return null; }
@@ -10306,9 +10307,9 @@ function vCReady(){
   function check(){ if(RD.step===0&&!READY.arrival&&!a.arrival) return 'Add your arrival date. A guess is fine, or today if you are already here.';
     if(RD.step===1&&!a.main) return 'Choose what you are mainly coming for.'; if(RD.step===2&&!a.level) return 'Choose your Muay Thai experience.'; return ''; }
   var nextB=btn(RD.step<n?'Next':READY.done_at?'Save my answers':'Finish',function(ev){ var e=check(); if(e){ RD.err=e; schedule(); return; }
-    var b=ev.currentTarget; b.disabled=true; RD.err='';
+    var b=ev.currentTarget; b.disabled=true; RD.err=''; var wasDone=!!READY.done_at;
     rdSave(RD.step===n).then(function(){ if(RD.step<n){ RD.step++; window.scrollTo(0,0); schedule(); return; }
-      toast(READY.done_at?'Saved. Your coaches can see your answers.':'Done.'); RD=null; go('c_home'); })
+      toast(wasDone?'Saved. Your coaches can see your answers.':'Done.'); RD=null; go('c_home'); })
     .catch(function(err){ b.disabled=false; RD.err=errText(err); schedule(); }); },'primary');
   return [h('div',{class:'rdtop'},linkBtn('Back to home',function(){ RD=null; go('c_home'); }),h('span',{class:'sub'},'Step '+(RD.step+1)+' of '+(n+1))),
     h('div',{class:'rdbar',role:'progressbar','aria-valuemin':'1','aria-valuemax':String(n+1),'aria-valuenow':String(RD.step+1)},h('i',{style:'width:'+Math.round((RD.step+1)*100/(n+1))+'%'})),
@@ -10446,7 +10447,7 @@ function requestPrivate(){
     onSave:function(v){ var e=pick.check(); if(e) return e; var c=pick.value(); if(!c.coach) return 'No coach is taking bookings in the app right now. Ask at the front desk.';
       return sb.rpc('customer_request_private',{p_coach:c.coach,p_date:c.date,p_time:c.time,p_note:v.note||null,p_any:c.any,p_alt_date:c.alt_date,p_alt_time:c.alt_time}).then(must).then(function(id){
         var want=v.pay||'pack', got=pack?'pack':'desk'; if(want===got) return loadCustomer();
-        return sb.rpc('customer_private_pay',{p_private:id,p_pay:want}).then(must).then(loadCustomer,function(e){ return loadCustomer().then(function(){ throw {plain:true,message:'Request sent, but '+((e&&e.message)||'the payment choice did not save')+' Choose again on the private.'}; }); }); },
+        return sb.rpc('customer_private_pay',{p_private:id,p_pay:want}).then(must).then(loadCustomer,function(e){ return loadCustomer().then(function(){ throw {plain:true,message:'Request sent, but '+String((e&&e.message)||'the payment choice did not save').replace(/[.\s]+$/,'')+'. Choose again on the private.'}; }); }); },
         function(e){ if(/free|time/i.test((e&&e.message)||'')) pick.reload(); throw e; }); }});
   var box=document.getElementById('f-pick'); if(box){ box.className=''; box.removeAttribute('role'); box.removeAttribute('aria-live'); box.replaceChildren(pick.el); }
 }
@@ -10739,7 +10740,7 @@ function webTextEdit(t){
   openForm({title:'Website text',note:t.page+' page, '+t.label.split(':')[0].toLowerCase()+'.',values:{text:cur||t.text},fields:[
       {key:'text',label:'Text',type:t.multi?'textarea':'text',rows:t.multi?(t.text.length>220?8:5):3,required:true,hint:hint+' Original: '+t.text.replace(/\n/g,' / ')}],
     needMsg:'Write something, or tap Use original.',saveLabel:'Save to website',doneMsg:'Saved. The website shows it within a minute.',
-    extraBtn:cur?['Use original',function(){ $dlg.close(); run(sb.rpc('site_text_save',{p_key:t.id,p_text:null}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; }),'Back to the original text.'); }]:null,
+    extraBtn:cur?['Use original',function(){ $dlg.close(); run(sb.rpc('site_text_save',{p_key:t.id,p_text:null}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; schedule(); }),'Back to the original text.'); }]:null,
     onSave:function(v){ if(v.text.length>3000) return 'That is too long. Keep it under 3000 letters.';
       return sb.rpc('site_text_save',{p_key:t.id,p_text:v.text===t.text?null:v.text}).then(function(r){ if(r.error) throw r.error; WEBP.texts=r.data||{}; schedule(); }); }});
 }
@@ -10827,7 +10828,7 @@ function spaSiteMenu(o){
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
 function spaSiteSection(){
-  if(SPASITE===null){ SPASITE=false; sb.from('app_settings').select('value').eq('key','spa_site').maybeSingle().then(function(res){ var v=must(res); try{ SPASITE=v?JSON.parse(v.value)||{}:{}; }catch(e){ SPASITE={}; } schedule(); }); }
+  if(SPASITE===null){ SPASITE=false; sb.from('app_settings').select('value').eq('key','spa_site').maybeSingle().then(function(res){ var v=must(res); try{ SPASITE=v?JSON.parse(v.value)||{}:{}; }catch(e){ SPASITE={}; } schedule(); }).catch(function(e){ SPASITE={}; toast(errText(e)); schedule(); }); }
   var o=SPASITE||{}, mgr=me&&me.role==='manager';
   return section('Your website',mgr&&SPASITE?h('span',{class:'row'},btn('Menu and home',function(){ spaSiteMenu(o); },'small'),btn('Look',function(){ spaSiteLook(o); },'small'),btn('Change',function(){
     openForm({title:'Your website',note:'Treatments, prices and your team come from Setup. Here you set the words around them.',
@@ -10876,7 +10877,7 @@ function webPhotoChange(s){
   document.body.appendChild(inp); inp.click();
 }
 function webPhotoReset(s){
-  run(sb.rpc('site_photo_save',{p_slot:s.id,p_url:null}).then(function(r){ if(r.error) throw r.error; WEBP.photos=r.data||{}; }),'Back to the original photo.');
+  run(sb.rpc('site_photo_save',{p_slot:s.id,p_url:null}).then(function(r){ if(r.error) throw r.error; WEBP.photos=r.data||{}; schedule(); }),'Back to the original photo.');
 }
 function webGallery(){ var g=WEBP.gallery||{}; return {stay:Array.isArray(g.stay)?g.stay.slice():[],stay_video:g.stay_video||''}; }
 function saveGallery(g){ return sb.rpc('site_gallery_save',{p:g}).then(function(r){ if(r.error) throw r.error; WEBP.gallery=r.data||g; schedule(); }); }
@@ -11024,8 +11025,8 @@ document.addEventListener('visibilitychange',function(){ if(document.visibilityS
 document.addEventListener('pointerdown',function(){ if(document.body.classList.contains('kiosk')&&!KWAKE.dim) kDimLater(); },true);
 document.addEventListener('keydown',function(){ if(document.body.classList.contains('kiosk')){ kDim(false); kDimLater(); } },true);
 function enterKiosk(){
-  loadPromos().catch(function(){}); kWake(true);
-  document.body.classList.add('kiosk'); TABS=[]; ui.tab='kiosk'; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr='';
+  loadPromos().catch(function(){}); document.body.classList.add('kiosk'); kWake(true);
+  TABS=[]; ui.tab='kiosk'; ui.kq=''; ui.kc=null; ui.kdone=null; ui.kerr='';
   try{ history.replaceState(null,'','#'); history.pushState({kiosk:1},'','#desk'); }catch(e){}
   try{ if(document.documentElement.requestFullscreen&&!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){}); }catch(e){}
   clearInterval(kRefresh); kRefresh=setInterval(function(){ if(ui.tab==='kiosk'&&!ui.kc&&!ui.kdone) loadAll().catch(function(){}); },60000);
@@ -11040,7 +11041,7 @@ function exitKiosk(){
   var email=me.email||currentEmail;
   function leave(){ pref('pk_kiosk',null); clearInterval(kRefresh); clearTimeout(kTimer); document.body.classList.remove('kiosk'); kWake(false);
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
-    TABS=staffTabs(me); loadPlatform().catch(function(){}); ui.tab=SPA?'board':'today'; schedule(); }
+    TABS=staffTabs(me.admin?Object.assign({},me,{role:'admin'}):me); loadPlatform().catch(function(){}); ui.tab=SPA?'board':'today'; if(!TABS.some(function(t){ return t[0]===ui.tab; })) ui.tab=TABS[0][0]; schedule(); }
   if(window.DEMO_LOGINS){ leave(); toast('Desk mode off. In your own gym, staff type their password here.'); return; } // demo only: no password to leave desk mode
   openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
     {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:true}],
@@ -11111,11 +11112,11 @@ function kPrivate(c){
   kIdle(150000);
   openForm({title:'Book a private',note:'Today or another day in the next two weeks. Your coach sees it straight away.',saveLabel:'Book my private',values:{date:d0,time:timesFor(d0)[0],coach_id:c0[0]&&c0[0].id,pay:p0.opts[0][0]},fields:[
     {key:'date',label:'Day',type:'select',options:days,onChange:function(v,set,get,setOpts){ var t=timesFor(v); setOpts('time',t.map(function(x){ return [x,x]; })); set('time',t[0]||'');
-      var cc=coachesFor(v); setOpts('coach_id',cc.map(function(x){ return [x.id,x.name]; })); set('coach_id',cc[0]?cc[0].id:''); var pp=paysFor(v); setOpts('pay',pp.opts); set('pay',pp.opts[0][0]); }},
+      var cc=coachesFor(v); setOpts('coach_id',cc.map(function(x){ return [x.id,x.name]; })); set('coach_id',cc[0]?cc[0].id:''); var pp=paysFor(v); setOpts('pay',pp.opts.length?pp.opts:[['','No way to pay on that day']]); set('pay',pp.opts.length?pp.opts[0][0]:''); }},
     {key:'time',label:'Start time',type:'select',options:timesFor(d0).map(function(x){ return [x,x]; })},
     {key:'coach_id',label:'Coach',type:'select',options:c0.map(function(x){ return [x.id,x.name]; })},
     {key:'pay',label:'How I pay',type:'select',options:p0.opts}],
-    onSave:function(v){ if(!v.coach_id) return 'No coach is free that day. Pick another day.'; if(!v.time) return 'Pick a time.';
+    onSave:function(v){ if(!v.coach_id) return 'No coach is free that day. Pick another day.'; if(!v.time) return 'Pick a time.'; if(!v.pay) return 'Your package does not cover that day. Pick another day, or see the front desk.';
       var busy=coachBusy(v.coach_id,v.date,v.time,null); if(busy) return busy+' Pick another coach or time.';
       var pp=paysFor(v.date), coach=byId('staff',v.coach_id), now=v.date===today;
       var body={customer_id:c.id,coach_id:v.coach_id,date:v.date,time:v.time,status:'confirmed',coach_pct:coach&&coach.commission_pct!=null?coach.commission_pct:50,notes:'Booked at the desk screen.'};
@@ -11270,6 +11271,7 @@ function authText(e){
 var signMode='in', recovering=false, linkNote='';
 function lostSession(e){ if(/session missing|not authenticated/i.test((e&&e.message)||'')) setTimeout(function(){ try{ $dlg.close(); }catch(x){} sb.auth.signOut({scope:'local'}); },2500); }
 function showSignIn(){
+  try{ kWake(false); clearTimeout(kTimer); clearTimeout(KWAKE.t); }catch(e){}
   closeChat(); CHAT.list=null; CHAT.unread=0; CHAT.contacts=null; FIGHTS=null; NAVL=undefined; CLOCK=null; HOURS=null; INV=null; ui.invZones=null; BOARD=null; HKR=null; HKS=null; ui.boardAsked=false; ui.hkrFor=null; ui.clockAsked=false; DASH=null; ui.dashDay=null; SHOP=null; SALES=null; KITCHEN=null; MYORDERS=null; ui.cart=null; ui.cartDisc=null; ui.kitAsked=false; ui.menuAsked=false; ui.shopView=''; me=null; db=null; CO=null; CU=null; HK=null; HKD=null; ui.hkAsked=false; cuDone=null; CODE=null; document.body.classList.toggle('lang-my',I18N.l==='my'); document.documentElement.lang=I18N.l; allReady=false; TABS=[]; document.getElementById('mode').textContent=''; document.body.classList.remove('kiosk'); clearInterval(kRefresh); renderNav(); $who.replaceChildren();
   var mode=signMode;
   function tab(m,label){ return h('button',{type:'button','aria-pressed':mode===m?'true':'false',onclick:function(){ signMode=m; showSignIn(); }},label); }
@@ -11305,7 +11307,7 @@ function showSignIn(){
     form.insertBefore(h('div',{class:'demobox'},h('b',null,'Try the demo'),h('p',{class:'sub'},'Tap a role to look around. Everything resets every night, so change anything you like.'),
       h('div',{class:'demobtns'},window.DEMO_LOGINS.map(function(d){ return h('button',{type:'button',class:'btn'+(d.main?' primary':''),onclick:function(ev){
         ev.currentTarget.disabled=true; dnote.textContent='Opening the '+d.label.toLowerCase()+' view.';
-        sb.auth.signInWithPassword({email:d.email,password:d.pw}).then(function(res){ if(res.error) dnote.textContent=authText(res.error); }); }},
+        var bt=ev.currentTarget; sb.auth.signInWithPassword({email:d.email,password:d.pw}).then(function(res){ if(res.error){ dnote.textContent=authText(res.error); bt.disabled=false; } },function(){ dnote.textContent='No connection. Try again.'; bt.disabled=false; }); }},
         h('span',null,d.label),h('small',null,d.note)); })),dnote,h('p',{class:'sub'},'Or sign in below.')),form.children[1]);
   }
   form.addEventListener('submit',function(ev){
@@ -11407,7 +11409,7 @@ function giveAccess(kind,row){
       var ta=h('textarea',{rows:'9',readonly:'',class:'accessmsg'}); ta.value=msg;
       $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access for '+d.name),
         h('p',null,'They can sign in now, no email check needed.'),
-        h('div',{class:'kv'},h('div',null,h('span',{class:'sub'},'Email'),h('b',null,d.email)),h('div',null,h('span',{class:'sub'},'Starting password'),h('b',{class:'pwshow'},d.password))),
+        h('div',{class:'kv'},h('div',null,h('span',{class:'sub'},'Email'),h('b',null,d.email)),h('div',null,h('span',{class:'sub'},'Starting password'),h('b',{class:'pwbig'},d.password))),
         h('p',{class:'sub'},'Shown only now. Give it to them in person or send the message below. When they sign in, the app makes them choose their own password, so this one stops working.'),
         ta,
         h('div',{class:'factions'},h('span'),h('div',{class:'row'},
@@ -11507,7 +11509,7 @@ if(!window.supabase||!window.supabase.createClient){
     var t=EMAILOTP.t; EMAILOTP=null;
     if(res.error){ recovering=false; toast('That email link has expired or was already used. Each link works once. Ask for a new one.'); showSignIn(); return; }
     if(t==='recovery'&&res.data&&res.data.session){ recoveryToken=res.data.session.access_token; setTimeout(showNewPassword,0); }
-  });
+  }).catch(function(){ EMAILOTP=null; recovering=false; toast('No connection. Open the link again.'); showSignIn(); });
   sb.auth.onAuthStateChange(function(event,session){
     if(event==='PASSWORD_RECOVERY'){ recovering=true; if(session&&session.access_token&&!recoveryToken) recoveryToken=session.access_token; setTimeout(showNewPassword,0); return; }
     if(recovering){ if(recoveryToken) setTimeout(showNewPassword,0); return; }

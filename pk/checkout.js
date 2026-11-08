@@ -58,7 +58,7 @@ function showPP(d,email){
 }
 function wait(ref,pp,email){ var box=$('cdoneBody'), tries=0; openDlg($('cdone'));
   function draw(s){
-    if(s&&s.paid){ $('cdoneTitle').textContent='You are in'; box.innerHTML=opened(email); return true; }
+    if(s&&s.paid){ if(window.PK&&PK.conv) PK.conv('purchase',{id:ref}); $('cdoneTitle').textContent='You are in'; box.innerHTML=opened(email); return true; }
     if(s&&s.rejected){ $('cdoneTitle').textContent='Payment not found'; box.innerHTML='<p>The front desk could not find your PromptPay payment. If you paid, <a href="'+PK.wa('Hi Phuket King, I paid by PromptPay for a course on the website.')+'" target="_blank" rel="noopener">WhatsApp us</a> your payment slip.</p>'; return true; }
     $('cdoneTitle').textContent=pp?'Thank you':'Checking your payment';
     box.innerHTML=pp?'<p><b>The front desk is checking your PromptPay payment.</b> This usually takes a few minutes during opening hours. The course unlocks in the app as soon as it is confirmed.</p>'

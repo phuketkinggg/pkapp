@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co https://www.googletagmanager.com https://www.google.com https://www.google.co.th https://googleads.g.doubleclick.net https://*.googleadservices.com; connect-src https://jijnshwduhgegacfvpkh.supabase.co https://www.google.com https://*.google-analytics.com https://*.analytics.google.com https://googleads.g.doubleclick.net https://*.googleadservices.com https://www.googletagmanager.com; media-src 'self' https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://td.doubleclick.net https://www.googletagmanager.com; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co https://www.googletagmanager.com https://www.google.com https://www.google.co.th https://googleads.g.doubleclick.net https://*.googleadservices.com; connect-src https://jijnshwduhgegacfvpkh.supabase.co https://www.google.com https://*.google-analytics.com https://*.analytics.google.com https://googleads.g.doubleclick.net https://*.googleadservices.com https://www.googletagmanager.com; media-src 'self' https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://td.doubleclick.net https://www.googletagmanager.com; object-src 'none'; base-uri 'self'">
 <meta name="robots" content="noindex">
 <title>5 Year DTV Visa with Muay Thai | Phuket King, Phuket</title>
 <meta name="description" content="Train Muay Thai in Phuket on the 5 year DTV visa. Phuket King gives you the course, all the gym paperwork free, and help with your application.">
@@ -132,7 +132,7 @@
 function span(d){ return {180:'6 months',182:'6 months',274:'9 months',365:'12 months',1826:'5 years'}[d]||d+' days'; }
 function name(n){ return n.replace(/^DTV\s*/i,''); }
 function detail(p){
-  if(p.per_week&&p.days) return p.per_week+' group class a week for '+span(p.days);
+  if(p.per_week&&p.days) return p.per_week+' group class'+(p.per_week>1?'es':'')+' a week for '+span(p.days);
   if(p.visits) return p.visits+' group classes, use within '+span(p.days);
   return 'Unlimited group classes for '+span(p.days)+(p.covers.indexOf('Fitness zone')>=0?', Fitness Zone included':'');
 }

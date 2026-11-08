@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co https://www.googletagmanager.com https://www.google.com https://www.google.co.th https://googleads.g.doubleclick.net https://*.googleadservices.com; connect-src https://jijnshwduhgegacfvpkh.supabase.co https://www.google.com https://*.google-analytics.com https://*.analytics.google.com https://googleads.g.doubleclick.net https://*.googleadservices.com https://www.googletagmanager.com; media-src 'self' https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://td.doubleclick.net https://www.googletagmanager.com; object-src 'none'; base-uri 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co https://www.googletagmanager.com https://www.google.com https://www.google.co.th https://googleads.g.doubleclick.net https://*.googleadservices.com; connect-src https://jijnshwduhgegacfvpkh.supabase.co https://www.google.com https://*.google-analytics.com https://*.analytics.google.com https://googleads.g.doubleclick.net https://*.googleadservices.com https://www.googletagmanager.com; media-src 'self' https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://td.doubleclick.net https://www.googletagmanager.com; object-src 'none'; base-uri 'self'">
 <meta name="robots" content="noindex">
 <title>Prices | Phuket King Muay Thai, Kathu, Phuket</title>
 <meta name="description" content="Muay Thai prices in Kathu, Phuket: single classes, weekly and monthly passes, private lessons, recovery, Fitness Zone, yoga and DTV visa training packages.">
@@ -103,7 +103,7 @@ function tidy(n){ n=n.replace(/^Full spa\s+/i,'').replace(/\b1 time\b/i,'1 Visit
 function span(d){ return {7:'7 days',30:'30 days',90:'3 months',91:'3 months',180:'6 months',182:'6 months',274:'9 months',365:'12 months',1826:'5 years'}[d]||d+' days'; }
 function detail(p){
   var bits=[];
-  if(p.per_week&&p.days) bits.push(p.per_week+' group class a week for '+span(p.days));
+  if(p.per_week&&p.days) bits.push(p.per_week+' group class'+(p.per_week>1?'es':'')+' a week for '+span(p.days));
   else if(p.visits===1) bits.push('1 visit');
   else if(p.visits) bits.push(p.visits+(p.covers.indexOf('Privates')>=0?' sessions':' visits')+(p.per_week?', '+p.per_week+' a week':''));
   else if(p.days===1) bits.push('All day');
