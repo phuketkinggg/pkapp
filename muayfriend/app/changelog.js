@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-08', title: 'Google Ads tracking on the website', what: 'The website now has the Google tag, and tells Google Ads when someone buys a package on the website or taps WhatsApp, so your ads learn which searches bring bookings. A simple ads landing page (/train) shows training, prices and class times.'},
   {date: '2026-11-08', title: 'Prices next to each recovery on the website', what: 'On the website wellness page, yoga, the steam room, sauna, ice bath and red light each show their prices right underneath (yoga classes, or spa access for a visit, a week or a month, and with training), taken live from your packages. Tap one to buy it.'},
   {date: '2026-11-08', title: 'Money taken today', what: 'Under Sales today on the Today screen you now also see all the money taken today: the till plus every payment for packages, privates and rooms, including balances paid today for things bought earlier, split by payment type (cash, card, transfer and so on).', feature: 'money_taken'},
   {date: '2026-11-08', title: 'Privates in Sales today', what: 'Sales today on the Today screen now also counts the privates on today\'s diary that are not part of a package (pay as you go, agents and booking sites), and adds them to the total.'},

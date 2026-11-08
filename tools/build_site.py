@@ -16,7 +16,7 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "partners.html", "fighters.html", "education.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "train.html", "partners.html", "fighters.html", "education.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):

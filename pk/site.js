@@ -62,6 +62,14 @@ if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open')
   fit(); window.addEventListener('resize',fit); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fit); window.addEventListener('load',fit); })();
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent='Menu'; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
+/* Google Ads: the Google tag on the live site, and two conversions: a package bought on the website, and a tap on WhatsApp */
+var GADS='AW-11225515762', GLAB={purchase:'CT-OCO2_9YQdEPKN3-gp',whatsapp:'sP0UCJ2cu7QdEPKN3-gp'};
+if(/(^|\.)phuketking\.com$/.test(location.hostname)){ window.dataLayer=window.dataLayer||[]; window.gtag=function(){ window.dataLayer.push(arguments); };
+  window.gtag('js',new Date()); window.gtag('config',GADS); var gs=document.createElement('script'); gs.async=true; gs.src='https://www.googletagmanager.com/gtag/js?id='+GADS; document.head.appendChild(gs); }
+PK.conv=function(kind,o){ o=o||{}; if(!window.gtag||!GLAB[kind]) return; var k='pk_conv_'+kind+(o.id||'');
+  try{ if(o.id&&sessionStorage.getItem(k)) return; if(o.id) sessionStorage.setItem(k,'1'); }catch(e){}
+  var p={send_to:GADS+'/'+GLAB[kind]}; if(o.value){ p.value=o.value; p.currency='THB'; } if(o.id) p.transaction_id=o.id; window.gtag('event','conversion',p); };
+document.addEventListener('click',function(e){ var a=e.target.closest&&e.target.closest('a'); if(a&&/wa\.me\/|whatsapp\.com/i.test(a.href||'')) PK.conv('whatsapp'); },true);
 var y=document.getElementById('year'); if(y) y.textContent=new Date().getFullYear();
 // fight programme classes (the word fight in the class name or type): marked on the timetables, and listed on the Fighters page
 PK.fight=function(c){ return /fight/i.test(String((c&&c.title)||''))||/fight/i.test(String((c&&c.discipline)||'')); };
