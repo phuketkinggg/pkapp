@@ -21714,5 +21714,17 @@
 "for example a coach or a guest’s account": [
 "ตัวอย่าง บัญชีของโค้ชหรือแขก",
 "ဥပမာ နည်းပြ သို့မဟုတ် ဧည့်သည်၏ အကောင့်"
+],
+"Ask AI can read your business inbox and help you answer: ask what came in today, what needs a reply, or to answer someone. New inbox emails are copied into the app every 5 minutes by the Gmail script (Settings, Booking emails, Set up Gmail) and kept for 90 days. Only the owner and admins can ask about them, and every answer is sent only after you confirm.": [
+"Ask AI อ่านกล่องอีเมลธุรกิจของคุณและช่วยตอบได้ ถามว่าวันนี้มีอะไรเข้ามา อะไรต้องตอบ หรือให้ตอบใครสักคน อีเมลใหม่ในกล่องจะถูกคัดลอกเข้าแอปทุก 5 นาทีด้วยสคริปต์ Gmail (ตั้งค่า, อีเมลการจอง, ตั้งค่า Gmail) และเก็บไว้ 90 วัน เฉพาะเจ้าของและแอดมินถามได้ และทุกคำตอบจะส่งหลังจากคุณยืนยันเท่านั้น",
+"Ask AI က သင့်လုပ်ငန်း အီးမေးလ်ဝင်စာပုံးကို ဖတ်ပြီး ပြန်ဖြေရန် ကူညီနိုင်သည်။ ယနေ့ ဘာဝင်လာသလဲ၊ ဘာကို ပြန်ဖြေရမလဲ၊ သို့မဟုတ် တစ်ဦးဦးကို ပြန်ဖြေပေးရန် မေးပါ။ ဝင်စာအသစ်များကို Gmail script (ဆက်တင်များ၊ ဘိုကင်အီးမေးလ်များ၊ Gmail စီစဉ်ရန်) က ၅ မိနစ်တိုင်း အက်ပ်ထဲ ကူးယူပြီး ရက် ၉၀ သိမ်းထားသည်။ ပိုင်ရှင်နှင့် အက်ဒ်မင်များသာ မေးနိုင်ပြီး အဖြေတိုင်းကို သင်အတည်ပြုပြီးမှသာ ပို့ပါသည်။"
+],
+"Ask AI reads your email": [
+"Ask AI อ่านอีเมลของคุณ",
+"Ask AI က သင့်အီးမေးလ်ကို ဖတ်သည်"
+],
+"It also copies every new inbox email into the app, so Ask AI can read them and help you answer. Already set up an older script? Paste this one over it and run setup again.": [
+"สคริปต์จะคัดลอกอีเมลใหม่ทุกฉบับในกล่องเข้าแอปด้วย เพื่อให้ Ask AI อ่านและช่วยคุณตอบ เคยตั้งสคริปต์เก่าไว้แล้ว? วางอันนี้ทับแล้วรัน setup อีกครั้ง",
+"ဝင်စာအသစ်တိုင်းကိုလည်း အက်ပ်ထဲ ကူးယူသဖြင့် Ask AI က ဖတ်ပြီး ပြန်ဖြေရန် ကူညီနိုင်သည်။ script အဟောင်း စီစဉ်ထားပြီးလား? ဤတစ်ခုကို အပေါ်မှ ကူးထည့်ပြီး setup ကို ထပ်ရန်ပါ။"
 ]
 }

@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=151"></script>
+<script src="changelog.js?v=152"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -970,6 +970,7 @@ var FEATURES=[
   {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
   {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
   {k:'ask_ai',g:'AI package',n:'Ask AI',d:'An assistant in the app for the owner, and for the staff the owner ticks Ask AI on (Staff, Edit). Ask about anything in the business, send PDFs, photos or spreadsheets (for example a delivery note to add to shop stock), or ask it to write and send an email. It reads with the person\'s own rights, and every change is shown first and only done when they tap Confirm.',tabs:['askai'],spa:true},
+  {k:'ai_mail',g:'AI package',n:'Ask AI reads your email',d:'Ask AI can read your business inbox and help you answer: ask what came in today, what needs a reply, or to answer someone. New inbox emails are copied into the app every 5 minutes by the Gmail script (Settings, Booking emails, Set up Gmail) and kept for 90 days. Only the owner and admins can ask about them, and every answer is sent only after you confirm.',def:false},
   {k:'ask_ai_web',g:'AI package',n:'Ask AI can search the web',d:'Ask AI can look things up on the internet, for example nearby hotels and their contact emails, prices or opening hours, and say where it found them. Web searches cost a little extra on the AI bill.'},
   {k:'course_sell',g:'Selling',n:'Sell or give a course at the desk',d:'An Add a course button on each customer: sell one of your online courses like a package (cash, card, transfer, agent or pay later), or give it free with a reason (managers, with Give packages free of charge on). It opens in their app, in Learn, as soon as it is paid.',def:true,spa:false},
   {k:'group_exercises',g:'Training',n:'Exercise videos and opening times in action groups',d:'In an action group, add videos from your exercise library (Add exercise videos, or From my exercises on a video step), and give any step a time of day, so it opens for each person at that time on its day after they join, for example Day 3 at 18:00.',def:true,spa:false},
@@ -1008,7 +1009,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=96; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=97; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8444,14 +8445,24 @@ function bookingMailSetup(){ sb.rpc('mail_token_get').then(function(r){ if(r.err
     "  GmailApp.search(QUERY,0,20).forEach(function(th){ th.getMessages().forEach(function(m){\n"+
     "    UrlFetchApp.fetch(URL,{method:'post',contentType:'application/json',headers:{'x-mail-token':TOKEN},muteHttpExceptions:true,\n"+
     "      payload:JSON.stringify({from:m.getFrom(),subject:m.getSubject(),text:m.getPlainBody()})}); }); th.addLabel(label); }); }\n"+
-    "function setup(){ ScriptApp.newTrigger('sendBookings').timeBased().everyMinutes(5).create(); sendBookings(); }\n";
+    (featOn('ai_mail')?
+    "// Also every new inbox email, so Ask AI can read and answer it\n"+
+    "function sendInbox(){ var P=PropertiesService.getScriptProperties(), last=Number(P.getProperty('last')||0), now=Date.now(), since=last||now-3*864e5;\n"+
+    "  GmailApp.search('in:inbox after:'+Math.floor(since/1000-3600),0,50).forEach(function(th){ th.getMessages().forEach(function(m){ if(m.getDate().getTime()<=since) return;\n"+
+    "    UrlFetchApp.fetch(URL,{method:'post',contentType:'application/json',headers:{'x-mail-token':TOKEN},muteHttpExceptions:true,\n"+
+    "      payload:JSON.stringify({kind:'inbox',id:m.getId(),thread:th.getId(),from:m.getFrom(),to:m.getTo(),subject:m.getSubject(),at:m.getDate().toISOString(),text:m.getPlainBody().slice(0,40000)})}); }); });\n"+
+    "  P.setProperty('last',String(now)); }\n"+
+    "function run(){ sendBookings(); sendInbox(); }\n"+
+    "function setup(){ ScriptApp.getProjectTriggers().forEach(function(t){ ScriptApp.deleteTrigger(t); }); ScriptApp.newTrigger('run').timeBased().everyMinutes(5).create(); run(); }\n"
+    :"function setup(){ ScriptApp.newTrigger('sendBookings').timeBased().everyMinutes(5).create(); sendBookings(); }\n");
   var pre=h('textarea',{class:'notr',rows:'12',readonly:true,style:'width:100%;font:12px/1.4 ui-monospace,monospace'}); pre.value=code;
   $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Send booking emails from Gmail'),
     h('ol',{class:'sub',style:'padding-left:18px;margin:0 0 10px'},
       h('li',null,'On a computer, open script.google.com signed in to the Gmail account the booking emails arrive in, and tap New project.'),
       h('li',null,'Delete what is there, paste the script below, and save it.'),
       h('li',null,'At the top choose setup and tap Run. Allow it to read your Gmail and connect to the app.'),
-      h('li',null,'Done. Every 5 minutes new emails from those sites come into the app, and Gmail labels them in-app. Add other agencies to the from list if you use them.')),
+      h('li',null,'Done. Every 5 minutes new emails from those sites come into the app, and Gmail labels them in-app. Add other agencies to the from list if you use them.'),
+      featOn('ai_mail')?h('li',null,'It also copies every new inbox email into the app, so Ask AI can read them and help you answer. Already set up an older script? Paste this one over it and run setup again.'):null),
     pre,h('p',{class:'sub'},'Keep this script private: it has the key that lets emails into your app.'),
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Copy the script',function(){ copyText(code,'Script copied.'); }),btn('Close',function(){ $dlg.close(); },'primary')))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }); }
@@ -8739,7 +8750,7 @@ function aiConfirm(it){
   aiCall({mode:'run',actions:it.prop.actions||[]}).then(function(d){ it.results=d.results||[]; it.state='done';
     var ok=it.results.filter(function(r){ return r.ok; }).length;
     aiNote('I confirmed "'+(it.prop.summary||'the changes')+'". Done: '+ok+' of '+it.results.length+'. '+it.results.filter(function(r){ return !r.ok; }).map(function(r){ return r.label+': '+r.error; }).join('; '));
-    toast(ok===it.results.length?'Done.':'Done '+ok+' of '+it.results.length+'. See the lines marked not done.'); reload('purchases').catch(function(){}); SHOP=null; STOCK=null;
+    toast(ok===it.results.length?'Done.':'Done '+ok+' of '+it.results.length+'. See the lines marked not done.'); reload('purchases').catch(function(){}); reload('privates').catch(function(){}); reload('customers').catch(function(){}); SHOP=null; STOCK=null;
   }).catch(function(e){ it.state='open'; toast(errText(e)); }).then(function(){ schedule(); });
 }
 function aiPick(){ var inp=h('input',{type:'file',multiple:true,accept:'.pdf,.xlsx,.xls,.csv,.txt,image/*',style:'display:none'});

@@ -3,6 +3,7 @@
 // guest's name on a stay. Two ways in:
 //   POST {from, subject, text} with header x-mail-token   from the Gmail script (Settings, Booking emails)
 //   POST {text} signed in as a manager, admin or the front desk   pasted in the app
+//   POST {kind:'inbox', id, thread, from, to, subject, text, at} with x-mail-token   any new inbox email, kept for Ask AI (feature ai_mail)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
@@ -62,6 +63,14 @@ Deno.serve(async (req) => {
   if (!via && await staff(req)) via = "pasted";
   if (!via) return json({ error: "Not allowed." }, 401);
   const subject = str(b.subject, 300), from = str(b.from, 200), text = str(b.text, 40000).replace(/\n{3,}/g, "\n\n");
+  // an inbox email for Ask AI (feature ai_mail): kept as it is, never read as a booking, only from the Gmail script
+  if (b.kind === "inbox") {
+    if (via !== "gmail") return json({ error: "Not allowed." }, 401);
+    const { data: feats } = await admin.rpc("app_features");
+    if ((feats as Record<string, unknown> | null)?.ai_mail !== true) return json({ ok: true, what: "Inbox emails are switched off." });
+    const { data: id } = await admin.rpc("inbound_mail_save", { p: { via, kind: "inbox", from, to: str(b.to, 300), subject, text, msg_id: str(b.id, 200), thread: str(b.thread, 200), at: str(b.at, 40) } });
+    return json({ ok: true, kept: !!id });
+  }
   if (text.trim().length < 20) return json({ error: "Paste the whole email." });
   const { data: mid } = await admin.rpc("inbound_mail_save", { p: { via, from, subject, text } });
   // Gmail asks to confirm forwarding first: kept, and shown in Settings with its link
