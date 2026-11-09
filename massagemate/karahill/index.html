@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=160"></script>
+<script src="changelog.js?v=161"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -912,6 +912,7 @@ var FEATURES=[
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
+  {k:'coach_push',g:'Training',n:'Coach notifications for privates',d:'A coach gets a notification on their phone when a private is booked with them, moved or cancelled. The coach turns notifications on once, on their own screen in the app.'},
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
@@ -3871,7 +3872,7 @@ function pushOn(){
     if(!k) throw new Error('Notifications are not ready yet. Try again in a minute.');
     return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(old){ return old||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k)}); }); });
   }).then(function(sub){ var j=sub.toJSON(); return sb.rpc('push_sub_save',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}).then(must); })
-  .then(function(){ PUSH.on=true; toast(isDeskRole()?'Done. This phone gets a notification for new messages and website chats.':'Done. This phone gets a notification for new messages.'); })
+  .then(function(){ PUSH.on=true; toast(isDeskRole()?'Done. This phone gets a notification for new messages and website chats.':me&&me.role==='coach'?(coLang()==='th'?'เรียบร้อย โทรศัพท์นี้จะได้รับการแจ้งเตือนเมื่อมีการจองไพรเวทและข้อความใหม่':'Done. This phone gets a notification for new privates and messages.'):'Done. This phone gets a notification for new messages.'); })
   .catch(function(e){ toast(errText(e)); }).then(function(){ PUSH.busy=false; schedule(); });
 }
 function pushOff(){
@@ -10121,6 +10122,9 @@ function coachReqCards(){
           onSave:function(v){ return sb.rpc('coach_private_answer',{p_private:p.id,p_yes:false,p_note:v.note||null}).then(must).then(loadCoach); }}); },'small'))};
   });
 }
+/* coaches: the switch for a phone notification when a private is booked with them (feature coach_push), until it is on */
+function coPushRow(){ if(!featOn('coach_push')||!me||me.role!=='coach') return null; if(!ui.pushAsked){ ui.pushAsked=true; pushState(); } if(PUSH.on!==false) return null; var th=coLang()==='th';
+  return h('div',{class:'panel pad row wrap',style:'align-items:center;gap:8px'},h('span',null,th?'รับการแจ้งเตือนบนโทรศัพท์เมื่อมีคนจองไพรเวทกับคุณ':'Get a notification on this phone when a private is booked with you.'),pushBtn()); }
 function vMine(){
   if(!CO) return [h('div',{class:'panel empty'},C('loading'))];
   var day=CO.today, wd=(parseYmd(day).getDay()+6)%7, month=day.slice(0,7), prev=addDays(month+'-01',-1).slice(0,7), all=CO.privates, th=coLang()==='th';
@@ -10148,7 +10152,7 @@ function vMine(){
   var todayItems=classes.map(function(c){ return {t:c.time||'',when:ctime(c),title:c.title,note:C('group')}; })
     .concat(todayP.map(function(p){ return {t:p.time||'',when:pSpan(p),title:C('privWith')(p.customer),right:p.arrived_at?chip((coLang()==='th'?'ลูกค้ามาแล้ว ':'Customer here ')+bkkTime(p.arrived_at),'ok'):null,note:p.notes,act:doneBtn(p)}; }));
   todayItems.sort(function(a,b){ return a.t<b.t?-1:a.t>b.t?1:0; });
-  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setUiLang(th?'en':'th'); })),myJobs(),
+  return [pageHead(C('work'),C('days')[wd]+' '+coDate(day),btn(C('other'),function(){ setUiLang(th?'en':'th'); })),coPushRow(),myJobs(),
     h('div',{class:'stats'},
       h('span',null,h('b',null,doneM.length),C('doneMonth')),
       h('span',null,h('b',null,thb(sum(doneM))||'0 THB'),C('earned')),
