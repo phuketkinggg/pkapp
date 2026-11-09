@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=155"></script>
+<script src="changelog.js?v=156"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1012,7 +1012,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=99; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=100; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -8528,6 +8528,12 @@ function vToday(){
   var orders=sortBy(S.purchases.filter(function(p){ var hs=p.for_stay&&byId('stays',p.for_stay); return unpaidOrder(p)&&!(hs&&hs.hold_until)&&!p.cancelled; }),'purchased_on');
   var q=ui.q.trim().toLowerCase(), hits=[];
   if(q) hits=sortBy(S.customers.filter(function(c){ return !c.is_agency&&[c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }),'name').slice(0,8);
+  /* agency guests booked by name only (a private on the agency, with the guest's name): found by their name too */
+  var guestHits=!q?[]:sortBy(S.privates.filter(function(x){ return x.date===day&&x.guest_name&&x.status!=='cancelled'&&String(x.guest_name).toLowerCase().indexOf(q)>=0; }),'time').slice(0,8).map(function(x){
+    var ag=byId('customers',x.customer_id), who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
+    return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',{class:'notr'},x.guest_name),ag?' ('+ag.name+')':''),h('small',null,'Private '+String(x.time||'').slice(0,5)+who+'. Booked through '+(ag?ag.name:'an agency')+' by name only.')),
+      h('div',{class:'row wrap'},privOwes(x)?btn('Payment received',function(){ payPrivate(x); },'primary small'):null,x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,x.guest_name); },'primary small'),
+        x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+x.guest_name+'.'); },'small'))); });
   var search=h('input',{id:'q',class:'search',type:'search',placeholder:'Type a name, email or phone',value:ui.q,'aria-label':'Find a customer to check in',oninput:function(ev){ ui.q=ev.target.value; schedule(); }});
   var targets=todays.filter(function(c){ return !c.no_checkin; }).map(function(c){ return {key:'c:'+c.id,kind:'class',id:c.id,day:Number(c.day),discipline:c.discipline,time:c.time||'',label:(c.time?c.time+' ':'')+c.title}; })
     .concat([{key:'p:private',kind:'private',label:'Private lesson'}])
@@ -8563,7 +8569,7 @@ function vToday(){
     if(why.length) renew.push({p:p,why:why.join(', ')}); });
   var PART={
     checkin:function(){ return [section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
-      q&&!hits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows))]; },
+      q&&!hits.length&&!guestHits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows.concat(guestHits)))]; },
     staff:function(){ return [staffToday(false),coachBoardToday()]; },
     urgent:function(){ var unp=unpaidToday(); return [agencyToday(),claimsSection(),unp.length?section('Checked in today, not paid',null,h('div',{class:'panel'},unp.map(function(x){
         return h('div',{class:'paynow staff'},h('div',null,h('b',null,linkBtn(x.c.name,function(){ openCustomer(x.c.id); })),h('div',{class:'sub'},'Owes '+thb(x.owe))),btn('Take payment',function(){ payCustomer(x.c); },'primary small')); }))):null,orders.length?section('App orders waiting for payment',null,table([
