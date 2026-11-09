@@ -1,4 +1,6 @@
 // Lists Stripe charges for the accounts import (read only). Called from the database with the sync token.
+// {mode:"fees"} (every hour): looks up Stripe's own fee on each online payment the app has recorded and saves it in THB,
+// so Accounts shows sales less Stripe fees. Tries each Stripe account; a payment in another currency is converted at the same rate.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const KEYS: Record<string, string> = {
@@ -12,6 +14,7 @@ Deno.serve(async (req) => {
   const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
   if (ok !== true) return json({ error: "Not allowed." }, 401);
   const body = await req.json().catch(() => ({}));
+  if (body.mode === "fees") return json(await fees());
   const key = KEYS[String(body.account ?? "main")];
   if (!key) return json({ error: "No key for that account." });
   const since = Math.floor(new Date(String(body.since ?? "2024-01-01")).getTime() / 1000);
@@ -47,3 +50,47 @@ Deno.serve(async (req) => {
   }
   return json({ count: out.length, rows: out });
 });
+
+type Todo = { session: string; thb: number };
+async function stripeGet(path: string, key: string) {
+  const r = await fetch(`https://api.stripe.com/v1/${path}`, { headers: { Authorization: `Bearer ${key}`, "Stripe-Version": "2024-06-20" } });
+  const j = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, j };
+}
+// the balance transaction of a checkout session, payment intent or charge
+async function balanceTx(id: string, key: string) {
+  const path = id.startsWith("cs_") ? `checkout/sessions/${id}?expand[]=payment_intent.latest_charge.balance_transaction`
+    : id.startsWith("pi_") ? `payment_intents/${id}?expand[]=latest_charge.balance_transaction` : `charges/${id}?expand[]=balance_transaction`;
+  const r = await stripeGet(path, key);
+  if (!r.ok) return { found: r.status !== 404 && r.j?.error?.code !== "resource_missing" ? null : false, j: r.j };
+  const o = r.j;
+  const ch = id.startsWith("cs_") ? o.payment_intent?.latest_charge : id.startsWith("pi_") ? o.latest_charge : o;
+  const bt = ch && typeof ch === "object" && ch.balance_transaction && typeof ch.balance_transaction === "object" ? ch.balance_transaction : null;
+  const gross = id.startsWith("cs_") ? { amount: o.amount_total, cur: o.currency } : { amount: o.amount, cur: o.currency };
+  return { found: true, bt, gross };
+}
+async function fees() {
+  const { data, error } = await admin.rpc("stripe_fees_todo", { p_limit: 40 });
+  if (error) return { error: error.message };
+  const out: Record<string, unknown>[] = [];
+  for (const t of (data ?? []) as Todo[]) {
+    let row: Record<string, unknown> | null = null, transient = false;
+    for (const [acct, key] of Object.entries(KEYS)) {
+      if (!key) continue;
+      const r = await balanceTx(t.session, key);
+      if (r.found === null) { transient = true; continue; }
+      if (!r.found) continue;
+      const bt = r.bt as { fee: number; amount: number; currency: string } | null;
+      if (!bt || !bt.amount) { row = { session: t.session, account: acct, status: "wait" }; break; }
+      // the fee as a share of what was paid, applied to the baht the app recorded for it
+      const cur = String(r.gross?.cur ?? "thb").toLowerCase();
+      const thb = cur === "thb" && r.gross?.amount ? r.gross.amount / 100 : Number(t.thb) || 0;
+      const fee = Math.round((bt.fee / bt.amount) * thb * 100) / 100;
+      row = { session: t.session, account: acct, fee_thb: fee, gross_thb: thb, currency: cur, status: "ok" };
+      break;
+    }
+    out.push(row ?? { session: t.session, status: transient ? "wait" : "none" });
+  }
+  if (out.length) { const { error: e2 } = await admin.rpc("stripe_fees_save", { p: out }); if (e2) return { error: e2.message, checked: out.length }; }
+  return { checked: out.length, ok: out.filter((x) => x.status === "ok").length };
+}
