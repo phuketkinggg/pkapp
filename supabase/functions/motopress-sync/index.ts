@@ -80,7 +80,7 @@ function must<T>(r: { data: T; error: any }): T { if (r.error) throw new Error(r
 
 async function sync() {
   const today = bkkToday(), from = addDays(today, -14);
-  const out = { created: 0, updated: 0, cancelled: 0, removed: 0, skipped_old: 0, rooms_added: 0, relinked: 0, errors: [] as string[] };
+  const out = { created: 0, updated: 0, cancelled: 0, removed: 0, skipped_old: 0, rooms_added: 0, relinked: 0, extras: 0, errors: [] as string[] };
   const seen = new Set<string>(); let complete = false;
 
   // rooms: one per MotoPress accommodation, matched by its id
@@ -131,6 +131,60 @@ async function sync() {
     return custCache.get(id);
   };
 
+  // extras the guest booked with the room (MotoPress services: breakfast, training, transfers...): each one is added to the stay
+  // as a package, paid with the stay (no payment of its own, so the stay payment is not counted twice). Meals covered
+  // (breakfast 1 a day, a meal plan 3 a day) can then be ticked as served and billed by the cafe. Added once per stay.
+  let svcs: Map<string, any> | null = null;
+  const svcOf = async (id: unknown) => {
+    if (!svcs) { svcs = new Map(); try { for (const x of (await mp("services?per_page=100")) as any[]) svcs.set(String(x.id), x); } catch { /* names fall back */ } }
+    return svcs.get(String(id)) ?? null;
+  };
+  const coversOf = (t: string): { covers: string[]; perDay: number } => {
+    const n = t.toLowerCase();
+    if (/meal plan|3 meals|full board|all meals/.test(n)) return { covers: ["Cafe meal"], perDay: 3 };
+    if (/half board|2 meals/.test(n)) return { covers: ["Cafe meal"], perDay: 2 };
+    if (/breakfast|lunch|dinner|meal/.test(n)) return { covers: ["Cafe meal"], perDay: 1 };
+    if (/yoga/.test(n)) return { covers: ["Yoga"], perDay: 0 };
+    if (/spa|sauna|steam|ice bath|recovery/.test(n)) return { covers: ["Spa"], perDay: 0 };
+    if (/private/.test(n)) return { covers: ["Privates"], perDay: 0 };
+    if (/training|muay thai|class|gym/.test(n)) return { covers: ["Muay Thai"], perDay: 0 };
+    return { covers: [], perDay: 0 };
+  };
+  // feature mp_extras (Settings, Features): on unless the business switches it off
+  const feats = (must(await admin.from("app_settings").select("value").eq("key", "features").maybeSingle()) as any)?.value;
+  let extrasOn = true; try { extrasOn = JSON.parse(feats ?? "{}").mp_extras !== false; } catch { /* default on */ }
+  const addExtras = async (stayId: string, cid: string, ra: any, b: any) => {
+    if (!extrasOn) return;
+    const list: any[] = Array.isArray(ra.services) ? ra.services : [];
+    if (!list.length) return;
+    const nights = Math.max(1, Math.round((Date.parse(b.check_out_date) - Date.parse(b.check_in_date)) / 86400e3));
+    const have = new Set((must(await admin.from("purchases").select("package_name").eq("for_stay", stayId)) as any[]).map((x) => x.package_name));
+    const notes: string[] = [];
+    for (const v of list) {
+      const sv = await svcOf(v.id);
+      const title = String((sv?.title && typeof sv.title === "object" ? sv.title.rendered : sv?.title) ?? `Extra ${v.id}`).replace(/<[^>]+>/g, "").trim() || `Extra ${v.id}`;
+      const guests = Math.max(1, Math.round(Number(v.adults) || 1)), qty = Math.max(1, Math.round(Number(v.quantity) || 1));
+      const per = String(sv?.periodicity ?? "").toLowerCase();
+      const days = per.includes("night") || per.includes("day") ? nights : per === "flexible" ? Math.min(qty, nights) : (/daily|per day|per night|every day/i.test(title) ? nights : 1);
+      const k = coversOf(title);
+      const name = `Website: ${title}${guests > 1 ? `, ${guests} guests` : ""}${days > 1 ? `, ${days} days` : ""}`.slice(0, 120);
+      notes.push(`${title} x ${guests} guest${guests > 1 ? "s" : ""}`);
+      if (have.has(name)) continue;
+      const unit = Number(sv?.price);
+      const price = Number.isFinite(unit) && unit > 0 ? Math.round(unit * (days > 1 ? days : 1) * guests * (per === "flexible" ? 1 : 1)) : 0;
+      const limit = k.perDay ? k.perDay * days * guests : null;
+      must(await admin.from("purchases").insert({ customer_id: cid, package_name: name, price_thb: price, price_group: "standard", paid: true, paid_thb: price,
+        purchased_on: String(b.date_created ?? b.check_in_date).slice(0, 10), covers: k.covers, visit_limit: limit, visits_left: limit,
+        starts_on: b.check_in_date, expires_on: b.check_out_date, duration_days: days, for_stay: stayId }).select("id"));
+      out.extras++;
+    }
+    if (notes.length) {
+      const st = must(await admin.from("stays").select("notes").eq("id", stayId).maybeSingle()) as any;
+      const line = "Website extras: " + notes.join(", ");
+      if (st && !String(st.notes ?? "").includes("Website extras:")) must(await admin.from("stays").update({ notes: [st.notes, line].filter(Boolean).join(". ").slice(0, 1000) }).eq("id", stayId).select("id"));
+    }
+  };
+
   // bookings, newest first, until we are well past anything still relevant
   for (let page = 1; page <= 40; page++) {
     const list: any[] = await mp(`bookings?per_page=100&page=${page}&orderby=date&order=desc`);
@@ -175,6 +229,7 @@ async function sync() {
               }
             }
             must(await admin.from("stays").update(patch).eq("id", existing.id).select("id"));
+            if (!cancelled && existing.customer_id && i === 0) await addExtras(existing.id, (patch.customer_id as string) ?? existing.customer_id, ra, b);
             out.updated++; continue;
           }
           if (cancelled) continue;
@@ -198,8 +253,9 @@ async function sync() {
           }
           if (!cid) cid = await newGuest(guestName(c, ra, b), email, c, b);
           const past = b.check_out_date < today;
-          must(await admin.from("stays").insert({ ...base, customer_id: cid, external_id: ext, status: past ? "out" : "booked", settled: past,
-            notes: b.imported && b.ical_summary ? String(b.ical_summary).slice(0, 200) : (b.note ? String(b.note).slice(0, 300) : null) }).select("id"));
+          const made = must(await admin.from("stays").insert({ ...base, customer_id: cid, external_id: ext, status: past ? "out" : "booked", settled: past,
+            notes: b.imported && b.ical_summary ? String(b.ical_summary).slice(0, 200) : (b.note ? String(b.note).slice(0, 300) : null) }).select("id").single()) as any;
+          if (!past && made?.id && i === 0) await addExtras(made.id, cid, ra, b);
           out.created++;
         } catch (e) {
           if (out.errors.length < 20) out.errors.push(`Booking ${b.id}: ${(e as Error).message}`);
@@ -307,6 +363,10 @@ Deno.serve(async (req) => {
       return json({ status: r.status, methods: j?.methods ?? null, routes, item_methods: item?.methods ?? null,
         fields: { check_in_date: pick("check_in_date"), check_out_date: pick("check_out_date"), reserved_accommodations: pick("reserved_accommodations"), status: pick("status") },
         item_args: item?.endpoints?.map((e: any) => ({ methods: e.methods, args: Object.keys(e.args ?? {}) })) ?? null });
+    }
+    if (body.mode === "services") {
+      const list = await mp("services?per_page=100");
+      return json({ fields: list.length ? shape(list[0]) : null, services: list.map((x: any) => ({ id: x.id, title: typeof x.title === "object" ? x.title?.rendered : x.title, price: x.price ?? null, periodicity: x.periodicity ?? null, repeat: x.repeat ?? x.repeatability ?? null })) });
     }
     if (body.mode === "inspect") {
       const bookings = await mp("bookings?per_page=5&orderby=date&order=desc");
