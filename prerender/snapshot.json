@@ -1,5 +1,5 @@
 {
- "at": "2026-11-08T19:45:06Z",
+ "at": "2026-11-09T11:45:24Z",
  "classes": [
   {
    "day": 0,
@@ -821,7 +821,7 @@
    "image": "",
    "name": "Training shirts",
    "price": 490,
-   "sold_out": false
+   "sold_out": true
   },
   {
    "description": "",
