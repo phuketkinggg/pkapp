@@ -253,12 +253,9 @@ begin
   -- new parts at the end: paid cafe meal bills, and Stripe fees
   part := replace(n, $$from public.acc_entries e where not e.voided and e.day between p_from and p_to$$, $$from public.acc_entries e where not e.voided and e.day between p_from and p_to
   union all
-  -- cafe meal bills, paid: out of the business that holds the meal plan money, in to the cafe as sales
-  select mb.paid_on, l->>'b', 'Meal plans', 'out', 'Cafe meal bill #' || mb.number || ': ' || (l->>'n') || ' x ' || (l->>'plan'), 'Cafe meals', mb.paid_method, (l->>'amount')::numeric, 'meal_bill', mb.id, null
-  from public.meal_bills mb cross join jsonb_array_elements(mb.lines) l where mb.status = 'paid' and mb.paid_on between p_from and p_to and (l->>'amount')::numeric <> 0
-  union all
-  select mb.paid_on, private.biz_cafe(), private.dept_cafe(), 'in', 'Meal plans served, bill #' || mb.number || ': ' || (l->>'n') || ' x ' || (l->>'plan'), 'Sales', mb.paid_method, (l->>'amount')::numeric, 'meal_bill', mb.id, null
-  from public.meal_bills mb cross join jsonb_array_elements(mb.lines) l where mb.status = 'paid' and mb.paid_on between p_from and p_to and (l->>'amount')::numeric <> 0
+  -- cafe meal bills, paid: money moves from the business that holds the meal plan money to the cafe (its income for the meals served)
+  select mb.paid_on, l->>'b', 'Meal plans', 'move', 'Cafe meal bill #' || mb.number || ': ' || (l->>'n') || ' x ' || (l->>'plan'), 'Meal plans served', mb.paid_method, (l->>'amount')::numeric, 'meal_bill', mb.id, private.biz_cafe()
+  from public.meal_bills mb cross join jsonb_array_elements(mb.lines) l where mb.status = 'paid' and mb.paid_on between p_from and p_to and (l->>'amount')::numeric <> 0 and l->>'b' is distinct from private.biz_cafe()
   union all
   -- Stripe's own fee on online card payments: sales less Stripe fees is what reaches the bank
   select p.day,
@@ -281,6 +278,25 @@ begin
   if part = n then raise notice 'acc_lines: older version (end), skipped'; return; end if; n := part;
   execute n;
   if position('meal_held' in pg_get_functiondef('private.acc_lines(date,date)'::regprocedure)) = 0 then raise exception 'acc_lines patch did not apply'; end if;
+end $p$;
+
+-- databases patched with the first version: paid cafe meal bills become a move between the businesses
+do $p$
+declare d text; n text;
+begin
+  if to_regprocedure('private.acc_lines(date,date)') is null then return; end if;
+  d := pg_get_functiondef('private.acc_lines(date,date)'::regprocedure);
+  if position('Meal plans served, bill #' in d) = 0 then raise notice 'meal bill lines already a move, or not patched here'; return; end if;
+  n := replace(d, $x$  -- cafe meal bills, paid: out of the business that holds the meal plan money, in to the cafe as sales
+  select mb.paid_on, l->>'b', 'Meal plans', 'out', 'Cafe meal bill #' || mb.number || ': ' || (l->>'n') || ' x ' || (l->>'plan'), 'Cafe meals', mb.paid_method, (l->>'amount')::numeric, 'meal_bill', mb.id, null
+  from public.meal_bills mb cross join jsonb_array_elements(mb.lines) l where mb.status = 'paid' and mb.paid_on between p_from and p_to and (l->>'amount')::numeric <> 0
+  union all
+  select mb.paid_on, private.biz_cafe(), private.dept_cafe(), 'in', 'Meal plans served, bill #' || mb.number || ': ' || (l->>'n') || ' x ' || (l->>'plan'), 'Sales', mb.paid_method, (l->>'amount')::numeric, 'meal_bill', mb.id, null
+  from public.meal_bills mb cross join jsonb_array_elements(mb.lines) l where mb.status = 'paid' and mb.paid_on between p_from and p_to and (l->>'amount')::numeric <> 0$x$, $x$  -- cafe meal bills, paid: money moves from the business that holds the meal plan money to the cafe (its income for the meals served)
+  select mb.paid_on, l->>'b', 'Meal plans', 'move', 'Cafe meal bill #' || mb.number || ': ' || (l->>'n') || ' x ' || (l->>'plan'), 'Meal plans served', mb.paid_method, (l->>'amount')::numeric, 'meal_bill', mb.id, private.biz_cafe()
+  from public.meal_bills mb cross join jsonb_array_elements(mb.lines) l where mb.status = 'paid' and mb.paid_on between p_from and p_to and (l->>'amount')::numeric <> 0 and l->>'b' is distinct from private.biz_cafe()$x$);
+  if n = d then raise exception 'meal bill move patch did not apply'; end if;
+  execute n;
 end $p$;
 
 notify pgrst, 'reload schema';

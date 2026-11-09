@@ -927,6 +927,7 @@ var FEATURES=[
   {k:'health_private',g:'Training',n:'Private health records',d:'Health records (member files, health numbers, blood tests and injuries from the About you form) are seen only by the owner of the health records and the people they allow, for one member or for every member. Set who in Settings, General, Health records, and on the Info tab of each customer. Turned off, the member\'s coaches and the managers see them.',def:true,spa:true},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
+  {k:'meal_bills',g:'Selling',n:'Meal plans held until served, cafe meal bills',d:'Money paid for a meal plan comes in as Meal plans held for the business that sold it, not as cafe sales, so it can always be refunded. The kitchen or the cafe till ticks each meal as it is served, and sends a bill for the meals served, for example once a week. A manager marks the bill paid: only then does Accounts show it as cafe sales. Meal plans bought before this was switched on stay as they were.',def:false,spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
   {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
@@ -5727,10 +5728,10 @@ function vAccounts(){
   var period=h('div',{class:'panel pad accbar'},h('div',{class:'row'},h('label',{for:'acc-from'},'From'),from,h('label',{for:'acc-to'},'to'),to),
     h('div',{class:'row'},[['today','Today'],['yesterday','Yesterday'],['week','This week'],['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
     h('div',{class:'ctabs small'},[['all',bizAllLabel()]].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
-  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
+  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].concat(featOn('meal_bills')?[['meals','Meal plans']]:[]).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
   var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
     h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Businesses and departments',accStructDlg),btn('Google Sheet',accSheetDlg),btn('Download for the accountant',function(){ accCsv(all); })));
-  var body=ACC.tab==='invoices'?vInvoices():ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
+  var body=ACC.tab==='meals'?[mealBillsBox(),mealPlansBox()]:ACC.tab==='invoices'?vInvoices():ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
   return [head,period,tabs,body];
 }
 function accOverview(lines,all,d){
@@ -5745,6 +5746,9 @@ function accOverview(lines,all,d){
   var mk=Object.keys(months).sort();
   var notes=[];
   if(Number(d.before_app)) notes.push(accThb(d.before_app)+' was recorded as paid before the app, so it is not counted here (it is in your old spreadsheet).');
+  /* online card payments: what customers paid, Stripe's own fee, and what reaches the bank */
+  var sIn=accSum(ext.filter(function(l){ return l.t==='in'&&l.m==='stripe'; })), sFee=accSum(ext.filter(function(l){ return l.src==='stripe_fee'; }));
+  if(sIn) notes.push('Online card payments (Stripe): '+accThb(sIn)+' paid, less Stripe fees '+accThb(sFee)+', reaches the bank '+accThb(sIn-sFee)+'. Stripe fees are read from Stripe every hour and show in Money out as Bank and card fees.');
   if(d.no_amount) notes.push(d.no_amount+' receipt'+(d.no_amount>1?'s have':' has')+' no amount yet, so '+(d.no_amount>1?'they are':'it is')+' not counted. Use Sort receipts.');
   if(Number(d.room_sales)&&(ACC.biz==='all'||ACC.biz===BIZ_STAY)) notes.push('Rooms sold for nights in this period: '+accThb(d.room_sales)+'. Room money shows here when it is paid. For Booking.com, Agoda or Airbnb, add each payout with Add money in, as "Booking site payout".');
   return [h('div',{class:'acccards'},cards),accDepts(lines),accChecks(),
@@ -7469,6 +7473,7 @@ function vShop(){
   var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
   return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
     head,
+    /cafe/i.test(locName(loc))?mealPlansBox():null,
     pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),
       act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
     waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
@@ -7483,8 +7488,60 @@ function vShop(){
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
         act:[btn('Receipt',function(){ receiptDlg({id:o.id,loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
           o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null,
-          o.status==='paid'||o.status==='room'||o.status==='waiting'?btn('Mistake',function(){ saleMistake(o); },'small'):null]}; }),'No sales yet today.'))];
+          o.status==='paid'||o.status==='room'||o.status==='waiting'?btn('Mistake',function(){ saleMistake(o); },'small'):null]}; }),'No sales yet today.')),
+    /cafe/i.test(locName(loc))?mealBillsBox():null];
 }
+
+/* meal plans held until served, and cafe meal bills (feature meal_bills): the kitchen ticks each meal as it is served,
+   sends a bill for the meals served when it wants to be paid, and a manager marks the bill paid (like coach shares) */
+var MEALS=null, MBILLS=null;
+function mealsLoad(){ if(ui.mealsBusy) return Promise.resolve(); ui.mealsBusy=true;
+  return Promise.all([sb.rpc('meal_plans_today'),sb.rpc('meal_bills_data')]).then(function(r){ ui.mealsBusy=false; ui.mealsAt=Date.now();
+    if(!r[0].error) MEALS=r[0].data||[]; if(!r[1].error) MBILLS=r[1].data||{}; ui.mealsErr=r[0].error||r[1].error?errText(r[0].error||r[1].error):null; if(!document.querySelector('dialog[open]')) schedule(); },
+    function(e){ ui.mealsBusy=false; ui.mealsErr=errText(e); schedule(); }); }
+function mealsNeed(){ if(!featOn('meal_bills')||!me||['manager','admin','front_desk','resort','kitchen'].indexOf(me.role)<0) return false;
+  if((MEALS===null||Date.now()-(ui.mealsAt||0)>60000)&&!ui.mealsBusy) mealsLoad(); return true; }
+function mealsServe(m,b){ if(b) b.disabled=true; sb.rpc('meal_serve',{p_purchase:m.id}).then(must).then(function(){ toast('Meal ticked for '+m.who+'.'); return mealsLoad(); }).catch(function(e){ if(b) b.disabled=false; toast(errText(e)); }); }
+function mealsUnserve(m){ var t=(m.today||[]).filter(function(x){ return !x.billed; }).slice(-1)[0]; if(!t) return;
+  sb.rpc('meal_unserve',{p_checkin:t.id}).then(must).then(function(){ toast('Taken off. The meal is back on the plan.'); return mealsLoad(); }).catch(function(e){ toast(errText(e)); }); }
+function mealPlansBox(){ if(!mealsNeed()||!MEALS) return null;
+  return section('Meal plans today ('+MEALS.length+')',btn('Refresh',mealsLoad,'small'),cards(MEALS.map(function(m){ var n=(m.today||[]).length;
+    return {when:m.room||'Not staying',right:chip(n?n+' served today':'None yet today',n?'ok':null),title:h('span',{class:'notr'},m.who),
+      note:[m.plan,m.left!=null?m.left+(m.limit?' of '+m.limit:'')+' meals left':null,m.until?'Until '+fmtDate(m.until):null,m.not_paid?'Not paid yet':null].filter(Boolean).join('. ')+(m.note?'. ':''),
+      act:[m.note?h('span',{class:'sub notr'},m.note):null,btn('Meal served',function(){ mealsServe(m,this); },'primary small'),(m.today||[]).some(function(x){ return !x.billed; })?btn('Undo',function(){ mealsUnserve(m); },'small'):null]}; }),'Nobody has a meal plan running today.')); }
+function mealBillLines(b){ return (b.lines||[]).map(function(l){ return l.n+' x '+l.plan+(l.b&&BIZ.length>1?' ('+l.b+')':'')+', '+thb(l.amount); }).join('. '); }
+function mealBillsBox(){ if(!mealsNeed()||!MBILLS||MBILLS.off) return null;
+  var d=MBILLS, mgr=!!d.manager, un=d.unbilled||[], bills=d.bills||[];
+  var unN=un.reduce(function(t,x){ return t+Number(x.n||0); },0), unA=un.reduce(function(t,x){ return t+Number(x.amount||0); },0);
+  var waiting=bills.filter(function(b){ return b.status==='waiting'; }), paid=bills.filter(function(b){ return b.status==='paid'; });
+  return [section('Meals to bill',unN?btn('Send the bill',function(){ mealBillSend(un,unN,unA); },'primary small'):null,
+      h('div',{class:'panel pad'},unN?[h('p',null,h('b',null,unN+' meal'+(unN===1?'':'s')+' served, not billed yet: '+thb(unA))),
+          h('ul',{class:'plain'},un.map(function(x){ return h('li',null,x.n+' x '+x.plan+', '+thb(x.amount)+' ('+fmtDate(x.first)+(x.last!==x.first?' to '+fmtDate(x.last):'')+')'); }))]
+        :h('p',{class:'sub'},'Meals ticked as served from meal plans show here. Send the bill when you want to be paid, for example once a week.'),
+        mgr&&d.held?h('p',{class:'sub'},'Held for meals not served yet: '+thb(d.held.thb)+' ('+d.held.meals+' meals on '+d.held.plans+' paid meal plan'+(Number(d.held.plans)===1?'':'s')+'). It can still be refunded.'):null,
+        mgr?h('p',{class:'sub'},'The cafe bills '+d.pct+'% of what the guest paid for each meal'+(Number(d.free_thb)?', and '+thb(d.free_thb)+' for a meal from a free deal':'')+'. Meal plans bought from '+fmtDate(d.from)+' are held until served. ',linkBtn('Change',mealBillsSettings)):null)),
+    waiting.length?section('Meal bills waiting to be paid',null,cards(waiting.map(function(b){
+      return {when:'Bill #'+b.number+', '+fmtDate(cDayOf(b.at)),right:h('b',null,thb(b.amount)),title:b.n+' meals'+(b.first?', '+fmtDate(b.first)+(b.last!==b.first?' to '+fmtDate(b.last):''):''),
+        note:mealBillLines(b)+(b.note?'. '+b.note:'')+(b.by?'. Sent by '+b.by:''),
+        act:mgr?[btn('Paid',function(){ mealBillPay(b); },'primary small'),btn('Remove',function(){ mealBillUndo(b,'Remove bill #'+b.number+'? Its meals go back to Meals to bill.'); },'small')]:chip('Waiting for the manager to pay','warn')}; }),'')):null,
+    paid.length?h('details',{class:'sec'},h('summary',null,'Paid meal bills, last 60 days ('+paid.length+')'),cards(paid.map(function(b){
+      return {when:'Bill #'+b.number+', paid '+fmtDate(b.paid_on),right:thb(b.amount),title:b.n+' meals',note:mealBillLines(b)+(b.method?'. '+payName(b.method):'')+(b.paid_by?', '+b.paid_by:''),
+        act:mgr?btn('Undo paid',function(){ mealBillUndo(b,'Mark bill #'+b.number+' as not paid? It comes off Accounts until it is paid again.'); },'small'):null}; }),'')):null];
+}
+function mealBillSend(un,n,a){ openForm({title:'Send the meal bill',note:n+' meals, '+thb(a)+': '+un.map(function(x){ return x.n+' x '+x.plan; }).join(', ')+'. The manager sees it and marks it paid.',saveLabel:'Send the bill',doneMsg:'Bill sent.',
+  fields:[{key:'note',label:'Note (optional)',hint:'For example the week it covers.'}],onSave:function(v){ return sb.rpc('meal_bill_send',{p_note:v.note||null}).then(must).then(mealsLoad); }}); }
+function mealBillPay(b){ openForm({title:'Bill #'+b.number+' paid',note:b.n+' meals, '+thb(b.amount)+'. Accounts shows it as money out of the business that holds the meal plan money, and money in to the cafe as sales.',saveLabel:'Mark paid',doneMsg:'Marked paid.',
+  values:{day:ymd(new Date())},fields:[{key:'method',label:'Paid by',type:'select',def:'transfer',options:[['transfer','Bank transfer'],['cash','Cash'],['other','Other']]},{key:'day',label:'Day paid',type:'date',required:true}],
+  onSave:function(v){ return sb.rpc('meal_bill_pay',{p_id:b.id,p_method:v.method,p_day:v.day}).then(must).then(mealsLoad); }}); }
+function mealBillUndo(b,q){ openForm({title:'Bill #'+b.number,note:q,saveLabel:'Yes',doneMsg:'Done.',fields:[],onSave:function(){ return sb.rpc('meal_bill_undo',{p_id:b.id}).then(must).then(mealsLoad); }}); }
+function mealBillsSettings(){ var d=MBILLS||{}; openForm({title:'Cafe meal bills',note:'What the cafe bills for each meal it serves from a meal plan.',values:{pct:d.pct,free_thb:d.free_thb},saveLabel:'Save',doneMsg:'Saved.',fields:[
+  {key:'pct',label:'Percent of what the guest paid for the meal',type:'number',required:true,hint:'100 means the cafe gets all of it. 70 means the cafe gets 70% and 30% stays with the business that sold the plan.'},
+  {key:'free_thb',label:'For a meal from a free deal (THB)',type:'number',hint:'What the cafe bills for a meal the guest got free, for example in a deal. 0 for nothing.'}],
+  onSave:function(v){ return sb.rpc('meal_bills_settings_save',{p:{pct:v.pct,free_thb:v.free_thb||0}}).then(must).then(mealsLoad); }}); }
+function mealWaitingToday(){ if(!me||!mealsNeed()||!MBILLS||!MBILLS.manager||!MBILLS.bills) return null;
+  var w=MBILLS.bills.filter(function(b){ return b.status==='waiting'; }); if(!w.length) return null;
+  return section('Cafe meal bill waiting to be paid',null,h('div',{class:'panel pad row'},h('span',null,w.length+' bill'+(w.length===1?'':'s')+', '+thb(w.reduce(function(t,b){ return t+Number(b.amount||0); },0))),
+    btn('Open',function(){ ui.tab='accounts'; ACC.tab='meals'; schedule(); },'primary small'))); }
 
 /* kitchen screen: new orders at the top, tap through Start, Ready, Served */
 var kBeepIds=null;
@@ -7499,7 +7556,7 @@ function vKitchen(){
   if(!KITCHEN){ if(!ui.kitAsked){ ui.kitAsked=true; loadKitchen(); } return [pageHead('Kitchen',''),h('div',{class:'panel empty'},ui.kitErr||'Loading.')]; }
   var next={new:['preparing','Start'],preparing:['ready','Ready'],ready:['done','Served']};
   function mins(at){ var m=Math.round((Date.now()-new Date(at))/60000); return m<1?'just now':m+' min ago'; }
-  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),kitchenControls(),foodToday(),
+  return [pageHead('Kitchen',KITCHEN.length?KITCHEN.length+' orders':'No orders right now',btn('Refresh',loadKitchen,'small')),myJobs(),kitchenControls(),mealPlansBox(),foodToday(),
     h('div',{class:'kitgrid'},KITCHEN.map(function(o){
       var n=next[o.status];
       return h('div',{class:'kcard '+o.status},
@@ -7509,7 +7566,7 @@ function vKitchen(){
         o.note?h('div',{class:'knote'},o.note):null,
         h('div',{class:'row'},n?btn(n[1],function(){ sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:n[0]}).then(must).then(loadKitchen).catch(function(e){ toast(errText(e)); }); },'primary'):null,
           o.status!=='new'?btn('Back',function(){ var back={preparing:'new',ready:'preparing'}[o.status]; sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:back}).then(must).then(loadKitchen); },'small'):null)); })),
-    !KITCHEN.length?h('div',{class:'panel empty'},'New orders from the till and the app show here. A sound plays when one comes in (tap the screen once so the tablet allows sound).'):null];
+    !KITCHEN.length?h('div',{class:'panel empty'},'New orders from the till and the app show here. A sound plays when one comes in (tap the screen once so the tablet allows sound).'):null,mealBillsBox()];
 }
 
 /* food plans: who has a meal plan, breakfast and so on, for which days (on the customer); today's list for the kitchen and the resort */
@@ -8603,7 +8660,7 @@ function vToday(){
     checkin:function(){ return [section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length&&!guestHits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows.concat(guestHits)))]; },
     staff:function(){ return [staffToday(false),coachBoardToday()]; },
-    urgent:function(){ var unp=unpaidToday(); return [agencyToday(),claimsSection(),unp.length?section('Checked in today, not paid',null,h('div',{class:'panel'},unp.map(function(x){
+    urgent:function(){ var unp=unpaidToday(); return [agencyToday(),claimsSection(),mealWaitingToday(),unp.length?section('Checked in today, not paid',null,h('div',{class:'panel'},unp.map(function(x){
         return h('div',{class:'paynow staff'},h('div',null,h('b',null,linkBtn(x.c.name,function(){ openCustomer(x.c.id); })),h('div',{class:'sub'},'Owes '+thb(x.owe))),btn('Take payment',function(){ payCustomer(x.c); },'primary small')); }))):null,orders.length?section('App orders waiting for payment',null,table([
       {label:'Customer',cell:function(p){return linkBtn(nameOf('customers',p.customer_id),function(){ openCustomer(p.customer_id); });}},
       {label:'Package',cell:function(p){return p.package_name;}},
