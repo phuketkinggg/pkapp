@@ -49,7 +49,12 @@ async function mp(path: string, send?: unknown): Promise<any> {
   if ((r.status === 401 || r.status === 403) && !useQuery) { useQuery = true; return mp(path, send); }
   const text = await r.text();
   if (!r.ok) throw new Error(`MotoPress said ${r.status} for ${path.split("?")[0]}: ${text.slice(0, 200)}`);
-  try { return JSON.parse(text); } catch { throw new Error(`MotoPress did not send data for ${path.split("?")[0]}`); }
+  try { return JSON.parse(text); } catch {
+    // some hosts answer a page instead of data when the sign in header is stripped: try the other way once
+    if (!useQuery) { useQuery = true; return mp(path, send); }
+    const title = (text.match(/<title[^>]*>([^<]{0,120})/i)?.[1] ?? text.replace(/\s+/g, " ").slice(0, 120)).trim();
+    throw new Error(`MotoPress did not send data for ${path.split("?")[0]} (${r.status}, ${r.headers.get("content-type") ?? "no type"}: ${title})`);
+  }
 }
 
 // field names and types only, never the values, so no guest details leave the function in inspect mode
