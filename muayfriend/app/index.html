@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=154"></script>
+<script src="changelog.js?v=155"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1018,7 +1018,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=98; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=99; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1596,6 +1596,8 @@ function coachRateLine(cid,packId){ var c=byId('staff',cid); if(!c||!c.private_r
   return c.name+' has their own rate: '+thb(c.private_rate_thb)+'.'+(pk?(ps<c.private_rate_thb?' With this pack the customer pays a '+thb(c.private_rate_thb-ps)+' top up (the pack session is worth '+thb(ps)+').':''):' This is the price without a pack.'); }
 function approvePrivate(p){ editPrivate(Object.assign({},p,{status:'confirmed',coach_id:p.coach_id||p.preferred_coach_id||null}),true); }
 function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates',p.lead_id); if(lp) p=lp; }
+  /* the day and time of a confirmed private: only a manager or admin can move it (the database checks it too) */
+  var lockWhen=!!(p.id&&(p.status==='confirmed'||p.status==='done')&&me&&me.role!=='manager'&&me.role!=='admin');
   var ag=sortBy(S.customers.filter(function(c){ return c.is_agency; }),'name'), cs=ag.concat(sortBy(S.customers.filter(function(c){ return !c.is_agency; }),'name')), ch=coaches(), src=sortBy(S.sources,'name');
   if(!cs.length){ toast('Add a customer first.'); return; }
   if(!ch.length){ toast('Add a coach first, in Staff.'); return; }
@@ -1635,8 +1637,8 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
     {key:'x_coaches',label:'More coaches',type:'checks',hide:!featOn('private_team'),options:ch.map(function(c){ return [c.id,c.name]; }),def:team0.coaches,hint:'Tick any other coaches teaching this private. Each is blocked for that time and sees it in their app. The main coach is the one above.'},
     {key:'x_share',label:'Each extra coach gets (THB)',type:'number',hide:!featOn('private_team'),def:team0.share,hint:'Leave empty to pay each extra coach the same as the main coach.'},
     {key:'x_people',label:'More people',type:'info',hide:!featOn('private_team'),def:peoplePick.node},
-    {key:'date',label:'Date',type:'date',def:ymd(new Date()),required:true,onChange:freeNow},
-    {key:'time',label:'Start time',type:'time',required:true,onChange:freeNow},
+    {key:'date',label:'Date',type:'date',def:ymd(new Date()),required:true,readonly:lockWhen,hint:lockWhen?'Only a manager can move a confirmed private. Ask them, or use Payment received to take payment.':null,onChange:freeNow},
+    {key:'time',label:'Start time',type:'time',required:true,readonly:lockWhen,onChange:freeNow},
     {key:'minutes',label:'Blocks the coach for',type:'select',def:'60',options:[['60','1 hour (standard)'],['90','1 hour 30 minutes'],['120','2 hours'],['150','2 hours 30 minutes'],['180','3 hours'],['240','4 hours'],['300','5 hours']],
       hint:'Make it longer when the private includes transport or runs over. The coach cannot be booked for anything else in that time.',onChange:freeNow},
     {key:'free_note',label:'Coach availability',type:'info'},
@@ -2112,6 +2114,16 @@ function privNow(c){
   editPrivate(p);
 }
 function privArrived(p,name){ setPrivate(p,{arrived_at:new Date().toISOString(),arrived_by:'desk'},(name||'Customer')+' is here.'); }
+/* the desk takes payment for one private: only the payment changes, never the day or time */
+function privOwes(p){ return !!p&&!p.paid&&!p.purchase_id&&p.status!=='cancelled'&&p.method!=='room'&&(Number(p.price_thb)||0)>0; }
+function payPrivate(p){ if(!guard()) return; if(!privOwes(p)){ toast('Nothing to pay on this private.'); return; }
+  var base=Number(p.price_thb)||0, px=pxFields('x_base',{base:base},null,'Customer pays now');
+  openForm({title:'Payment received',note:pWho(p)+', private '+fmtDate(p.date)+(p.time?' '+String(p.time).slice(0,5):'')+', '+thb(base)+' to pay.',saveLabel:'Payment received',doneMsg:'Paid. The private is marked paid.',
+    values:Object.assign({x_base:base},px.values),fields:[{key:'x_base',label:'To pay (THB)',type:'number',readonly:true}].concat(px.fields,[
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}]),
+    onSave:function(v){ var x=pxOf(v);
+      return pxAdd('private',p.id,x).then(function(){ return db.doc('privates/'+p.id).update({paid:true,method:v.method}); }).then(function(){ return reload('privates'); }); }});
+}
 
 /* declining a private request: a reason the customer sees, and up to 3 other times they can take with one tap */
 var DECLINE_REASONS=['No coach is free at that time','The gym is closed at that time','Too short notice, we need more time to arrange it','Your preferred coach is away that day'];
@@ -8547,7 +8559,7 @@ function vToday(){
       right=h('div',{class:'row wrap'},pk2?chip('Private pack: '+left(pk2)+' of '+pk2.class_limit+' left','ok'):null,
         btn(privToday.length?'Another private now':'Private now: check in',function(){ privNow(c); },privToday.length?'small':'primary small')); }
     if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
-      return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length||(target&&target.kind==='private')?right:null);
+      return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),privOwes(x)?btn('Payment received',function(){ payPrivate(x); },'primary small'):null,x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length||(target&&target.kind==='private')?right:null);
     return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),newTag(c),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
       h('small',null,already?'Already checked in today at '+already.time+'. ':'',usable.map(function(x){return purchaseLine(x.p,x.st);}).join(' | '))),right);
   });
@@ -8591,7 +8603,7 @@ function vToday(){
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null),arrivedChip(p));}},
-      {label:'',cell:function(p){return h('span',{class:'row'},!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null);}}],pToday,'No privates booked for today.'))]; },
+      {label:'',cell:function(p){return h('span',{class:'row'},privOwes(p)?btn('Payment received',function(){ payPrivate(p); },'primary small'):null,!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null);}}],pToday,'No privates booked for today.'))]; },
     renewals:function(){ return [renew.length?section('Renewals coming up',null,table([
       {label:'Customer',cell:function(r){return linkBtn(nameOf('customers',r.p.customer_id),function(){ openCustomer(r.p.customer_id); });}},
       {label:'Package',cell:function(r){return r.p.package_name;}},
