@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=159"></script>
+<script src="changelog.js?v=160"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1016,7 +1016,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=103; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=104; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9272,6 +9272,7 @@ function vCommission(){
       {label:'Gym keeps',num:true,cell:function(r){return thb(r.got-r.share);}},
       {label:'',cell:function(r){ return mgr?btn('Paid',function(){ payCommission(r.id,rows); },'primary small'):null; }}],
       rows,'Nothing waiting. Finished privates show here until you mark them paid.',['Total','',T.n,thb(T.got),thb(T.share),thb(T.got-T.share),''])),
+    privTop(),
     open.length?section('Each private not paid yet',null,table([
       {label:'Date',cell:function(p){return fmtDate(p.date);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
@@ -9289,6 +9290,32 @@ function vCommission(){
       paid,'No commission paid in the app yet. When you mark a coach paid, the payment is saved here.')),
     h('div',{class:'row',style:'margin-top:24px;align-items:center'},h('label',{for:'month',class:'sub'},'Package sales for'),h('input',{id:'month',type:'month',value:m,onchange:function(ev){ if(ev.target.value){ ui.month=ev.target.value; schedule(); } }})),
     sourceSales(m)];
+}
+/* Commission: who did the most privates in a week or a month. Week or Month, and arrows to go back (finished privates, not refunded) */
+function privTop(){
+  var by=ui.ptBy==='week'?'week':'month', off=Math.min(0,ui.ptOff||0), day=ymd(new Date()), t=parseYmd(day), from, to, label;
+  if(by==='week'){ from=addDays(day,-((t.getDay()+6)%7)+7*off); to=addDays(from,6); label=fmtDate(from)+' to '+fmtDate(to); }
+  else { var b=new Date(t.getFullYear(),t.getMonth()+off,1); from=ymd(b); to=ymd(new Date(b.getFullYear(),b.getMonth()+1,0)); label=b.toLocaleDateString(LOC(),{month:'long',year:'numeric'}); }
+  var by2={};
+  S.privates.forEach(function(p){ if(!p.coach_id||p.refunded_at||!p.date||p.date<from||p.date>to) return;
+    if(p.status!=='done'&&!(p.status==='confirmed'&&p.date<=day)) return;
+    var r=by2[p.coach_id]||(by2[p.coach_id]={id:p.coach_id,n:0,late:0,mins:0,got:0,share:0});
+    if(p.status==='confirmed'){ r.late++; return; }
+    r.n++; r.mins+=Number(p.minutes)||60; r.got+=netPrice(p)+(Number(p.extra_thb)||0); r.share+=pShare(p); });
+  var rows=Object.keys(by2).map(function(k){ return by2[k]; }).sort(function(a,b){ return b.n-a.n||b.mins-a.mins||b.share-a.share; });
+  var T=rows.reduce(function(a,r){ a.n+=r.n; a.late+=r.late; a.mins+=r.mins; a.got+=r.got; a.share+=r.share; return a; },{n:0,late:0,mins:0,got:0,share:0});
+  var mgr=me&&me.role==='manager', hrs=function(m){ return Math.round(m/6)/10+' h'; };
+  var seg=h('div',{class:'seg',role:'group','aria-label':'Count by'},[['week','Week'],['month','Month']].map(function(o){ return h('button',{type:'button','aria-pressed':by===o[0]?'true':'false',onclick:function(){ ui.ptBy=o[0]; ui.ptOff=0; schedule(); }},o[1]); }));
+  var nav=h('div',{class:'row',style:'align-items:center;gap:8px'},seg,btn('Back',function(){ ui.ptOff=off-1; schedule(); },'small'),h('b',null,label),off<0?btn('Next',function(){ ui.ptOff=off+1; schedule(); },'small'):null,off<0?btn(by==='week'?'This week':'This month',function(){ ui.ptOff=0; schedule(); },'small'):null);
+  return section('Most privates',null,h('div',null,h('div',{class:'pad'},nav),table([
+    {label:'',cell:function(r){ var i=rows.indexOf(r); return i<3&&r.n?chip(String(i+1),i===0?'ok':null):String(i+1); }},
+    {label:'Coach',cell:function(r){ return h('b',null,nameOf('staff',r.id)); }},
+    {label:'Privates',num:true,cell:function(r){ return h('b',null,String(r.n)); }},
+    {label:'Hours',num:true,cell:function(r){ return hrs(r.mins); }}]
+    .concat(mgr?[{label:'You received',num:true,cell:function(r){ return thb(r.got); }},{label:'Coach share',num:true,cell:function(r){ return thb(r.share); }}]:[])
+    .concat([{label:'Not marked done',num:true,cell:function(r){ return r.late?chip(String(r.late),'warn'):''; }}]),
+    rows,'No finished privates in this '+by+'.',['Total','',T.n,hrs(T.mins)].concat(mgr?[thb(T.got),thb(T.share)]:[]).concat([T.late||''])),
+    h('p',{class:'sub'},'Finished privates on these days (marked done, not refunded). Not marked done: past privates still confirmed, not counted until they are marked done.')));
 }
 function sourceSales(m){
   var by={};
