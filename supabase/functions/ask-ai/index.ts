@@ -24,7 +24,7 @@ const ACTIONS: Record<string, string> = {
   stock_item_save: "Add or change a store item (housekeeping or supplies store). args {p: {id, name, unit, min_qty, ...}}",
   stock_adjust: "Store item stock. args {p_item, p_mode: delivery | count | waste, p_qty, p_note}",
   send_email: "Send one email from the business to one person. args {to, subject, body, customer_id (optional)}. To answer an email from the inbox, reply to its sender with subject 'Re: ' plus their subject.",
-  private_add: "Book a private lesson. args {customer_id (or empty and guest_name for someone not in the app), guest_name, coach_id, date (YYYY-MM-DD), time (HH:MM), minutes (default 60), purchase_id (a private pack of that customer, to use one session of it), price_thb (when not from a pack: default the standard private price), paid (true if they already paid), method (cash, card, transfer, qr; only when paid), notes}. Check free times with private_free_times first.",
+  private_add: "Book a private lesson. args {customer_id (or empty and guest_name for someone not in the app), guest_name, coach_id, date (YYYY-MM-DD), time (HH:MM), minutes (default 60), purchase_id (a private pack of that customer, to use one session of it), price_thb (when not from a pack: default the standard private price), paid (true if they already paid), method (cash, card, transfer, qr; only when paid; card adds the card fee), notes}. Check free times with private_free_times first.",
   private_change: "Move, re-coach or cancel a private. args {id, date, time, coach_id, minutes, status (confirmed, done, cancelled), notes}. Send only what changes.",
   customer_add: "Add a new customer. args {name, email, phone, notes}. Read customers first so nobody is added twice.",
 };
@@ -114,7 +114,7 @@ Rules:
 - Emails: short, friendly and plain, signed with the user's first name, never with dashes as punctuation. Use the customer's email from the data.
 - Privates: find the customer (customers, by name, email or phone) and the coach (staff with role coach). Check free times with private_free_times. If the customer has a private pack with sessions left (purchases of a package that covers Privates, not expired), use it; otherwise it is the standard private price unless the user says otherwise. Say the day, time, coach and how it is paid in the proposal.
 - Dates: "today", "tomorrow", "Saturday" are in Thailand time; work out the date yourself. Times are 24 hour (HH:MM).
-- Useful tables: customers, purchases (packages sold, with class_limit, expires_on), packages, privates (date, start_time, coach_id, status), classes (day 0 is Monday), checkins, staff, stays, rooms, shop_products, payments.
+- Useful tables: customers, purchases (packages sold: visit_limit is the number of sessions, expires_on, cancelled), packages, privates (date, start_time, coach_id, status), classes (day 0 is Monday), checkins, staff, stays, rooms, shop_products, payments.
 - Write in plain short sentences. No em dashes. Do not use the & sign. Keep answers short; use a short list when it helps.
 Database tables (name: columns):
 ${Object.entries((schema ?? {}) as Record<string, string>).map(([t, c]) => `${t}: ${c}`).join("\n").slice(0, 60000)}`;
@@ -167,19 +167,29 @@ async function privateAdd(user: ReturnType<typeof createClient>, a: Record<strin
   const minutes = Math.max(15, Math.min(600, Math.round(Number(a.minutes) || 60)));
   let price = 0, paid = !!a.paid, purchase: string | null = null;
   if (a.purchase_id) {
-    const { data: pk } = await user.from("purchases").select("id,customer_id,class_limit,price_thb,fee_thb,tax_thb,adds_thb,expires_on,used_before").eq("id", String(a.purchase_id)).maybeSingle();
+    const { data: pk } = await user.from("purchases").select("id,customer_id,visit_limit,price_thb,fee_thb,tax_thb,expires_on,used_before,cancelled").eq("id", String(a.purchase_id)).maybeSingle();
     if (!pk || pk.customer_id !== cid) return { ok: false, error: "That pack belongs to someone else." };
+    if (pk.cancelled) return { ok: false, error: "That pack was cancelled." };
     const { count } = await user.from("privates").select("id", { count: "exact", head: true }).eq("purchase_id", pk.id).neq("status", "cancelled");
-    if (pk.class_limit && (Number(pk.used_before) || 0) + (count ?? 0) >= pk.class_limit) return { ok: false, error: "That pack has no sessions left." };
+    if (pk.visit_limit && (Number(pk.used_before) || 0) + (count ?? 0) >= pk.visit_limit) return { ok: false, error: "That pack has no sessions left." };
     if (pk.expires_on && date > pk.expires_on) return { ok: false, error: "That pack expires on " + pk.expires_on + ". Book before then." };
-    const net = Math.max(0, (Number(pk.price_thb) || 0) - (Number(pk.fee_thb) || 0) - (Number(pk.tax_thb) || 0) - (Number(pk.adds_thb) || 0));
-    price = pk.class_limit ? Math.round(net / pk.class_limit) : 0; paid = true; purchase = pk.id;
+    const net = Math.max(0, (Number(pk.price_thb) || 0) - (Number(pk.fee_thb) || 0) - (Number(pk.tax_thb) || 0));
+    price = pk.visit_limit ? Math.round(net / pk.visit_limit) : 0; paid = true; purchase = pk.id;
   } else if (a.price_thb != null && a.price_thb !== "") price = Math.max(0, Math.round(Number(a.price_thb) || 0));
   else { const { data: src } = await admin.from("booking_sources").select("price_thb").ilike("name", "direct").maybeSingle(); price = Number(src?.price_thb) || 0; }
+  // paid by card: the card fee goes on top (Settings, Card fee and tax), as at the desk
+  const method = paid && !purchase ? (String(a.method ?? "") || null) : null;
+  let fee = 0;
+  if (method === "card" && price > 0) {
+    const { data: px } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
+    let c: Record<string, unknown> = {}; try { c = JSON.parse(px?.value ?? "{}") ?? {}; } catch { c = {}; }
+    const n = (k: string, d: number) => { const v = Number(c[k]); return c[k] != null && !isNaN(v) ? v : d; };
+    fee = Math.round(price * n("card_pct", 3) / 100) + (n("card_fixed", 10) > 0 && price < n("card_fixed_under", 2000) ? n("card_fixed", 10) : 0);
+  }
   let pct = 50;
   if (coach) { const { data: s } = await user.from("staff").select("commission_pct").eq("id", coach).maybeSingle(); if (s?.commission_pct != null) pct = Number(s.commission_pct); }
   const row: Record<string, unknown> = { customer_id: cid, guest_name: cid ? null : String(a.guest_name).trim().slice(0, 80), coach_id: coach, date, start_time: time, minutes,
-    purchase_id: purchase, price_thb: price, paid, method: paid && !purchase ? (String(a.method ?? "") || null) : null, coach_pct: pct,
+    purchase_id: purchase, price_thb: price + fee, fee_thb: fee, paid, method, coach_pct: pct,
     status: coach ? "confirmed" : "requested", any_coach: !coach, notes: String(a.notes ?? "").trim().slice(0, 500) || "Booked with Ask AI" };
   const { data, error } = await user.from("privates").insert(row).select("id,date,start_time,coach_id,status").single();
   return error ? { ok: false, error: error.message } : { ok: true, result: data };

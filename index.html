@@ -788,6 +788,8 @@ function pxRate(k){ var d={card_pct:3,card_fixed:10,card_fixed_under:2000,tax_pc
 /* card fee: a percent plus a fixed amount; at or above card_fixed_under the fixed part is not charged (we cover it) */
 function cardFixed(b){ var f=pxRate('card_fixed'); return f>0&&(Number(b)||0)<pxRate('card_fixed_under')?f:0; }
 function cardFee(b){ b=Number(b)||0; return b>0?Math.round(b*pxRate('card_pct')/100)+cardFixed(b):0; }
+/* feature card_fee_lock: only a manager can let someone off the card fee (the database checks it too) */
+function feeLocked(){ return featOn('card_fee_lock')&&!rcBoss(); }
 function cardFeeText(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB':''); }
 function cardFeeLong(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB (no '+f+' THB on '+thb(pxRate('card_fixed_under'))+' or more)':''); }
 function mfPicker(){
@@ -814,10 +816,11 @@ function pxFields(baseKey,init,after,totalLabel){ init=init||{};
   function tot(set,get,show){ set('x_total',thb(total(get))||'0 THB'); if(show) show('x_total',!!(get('x_fee')||get('x_tax'))); if(after) after(set,get,show); }
   function re(set,get,show){ if(get('x_fee')) set('fee_thb',cardFee(base(get))); if(get('x_tax')) set('tax_thb',Math.round(base(get)*pxRate('tax_pct')/100)); tot(set,get,show); }
   var f0=Number(init.fee)||0, t0=Number(init.tax)||0;
-  function method(m,set,get,show){ var on=m==='card'; if(!!get('x_fee')===on) return; set('x_fee',on); show('fee_thb',on); set('fee_thb',on?cardFee(base(get)):null); tot(set,get,show); }
+  var cur=init.method||'';
+  function method(m,set,get,show){ cur=m; var on=m==='card'; if(!!get('x_fee')===on) return; set('x_fee',on); show('fee_thb',on); set('fee_thb',on?cardFee(base(get)):null); tot(set,get,show); }
   return {re:re,total:total,method:method,values:{x_fee:f0>0,fee_thb:f0||null,x_tax:t0>0,tax_thb:t0||null,x_total:thb((Number(init.base)||0)+f0+t0)},fields:[
-    {key:'x_fee',label:'Add card payment fee ('+cardFeeText()+')',type:'checkbox',hide:init.hide,hint:'Ticked by itself when they pay by card machine. Untick it to let them off the fee this time.',onChange:function(v,set,get,o,show){ show('fee_thb',v); set('fee_thb',v?cardFee(base(get)):null); tot(set,get,show); }},
-    {key:'fee_thb',label:'Card fee (THB)',type:'number',hide:!(f0>0),hint:'Covers the bank or Stripe fee. Not part of any coach share.',onChange:function(v,set,get,o,show){ tot(set,get,show); }},
+    {key:'x_fee',label:'Add card payment fee ('+cardFeeText()+')',type:'checkbox',hide:init.hide,hint:feeLocked()?'Ticked by itself when they pay by card machine. Only a manager can let them off the fee.':'Ticked by itself when they pay by card machine. Untick it to let them off the fee this time.',onChange:function(v,set,get,o,show){ if(!v&&cur==='card'&&feeLocked()){ v=true; set('x_fee',true); toast('Card payments always have the card fee. Only a manager can let them off it.'); } show('fee_thb',v); set('fee_thb',v?cardFee(base(get)):null); tot(set,get,show); }},
+    {key:'fee_thb',label:'Card fee (THB)',type:'number',hide:!(f0>0),hint:'Covers the bank or Stripe fee. Not part of any coach share.',onChange:function(v,set,get,o,show){ var m=cardFee(base(get)); if(cur==='card'&&feeLocked()&&(Number(v)||0)<m){ set('fee_thb',m); toast('Only a manager can lower the card fee.'); } tot(set,get,show); }},
     {key:'x_tax',label:'Add tax ('+pxRate('tax_pct')+'%)',type:'checkbox',hide:init.hide,onChange:function(v,set,get,o,show){ show('tax_thb',v); set('tax_thb',v?Math.round(base(get)*pxRate('tax_pct')/100):null); tot(set,get,show); }},
     {key:'tax_thb',label:'Tax (THB)',type:'number',hide:!(t0>0),hint:'Not part of any coach share.',onChange:function(v,set,get,o,show){ tot(set,get,show); }},
     {key:'x_total',label:totalLabel||'Customer pays',readonly:true,hide:!(f0||t0)}]};
@@ -942,6 +945,7 @@ var FEATURES=[
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
   {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
+  {k:'card_fee_lock',g:'Selling',n:'Card fee always charged',d:'When someone pays by card, the card fee is always added on and the front desk cannot take it off or lower it. Only a manager can let a customer off the card fee. Off: anyone at the desk can untick it.'},
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
   {k:'cleanup',g:'AI package',n:'Clean up',d:'One tap scans customers, emails, staff, bookings and packages for duplicates, mess and unused things, and makes a report. You choose what to fix.'},
   {k:'reel_covers',g:'Marketing',n:'Reel covers',d:'Choose the cover of a reel: pick a frame, upload a picture, or let the AI suggest covers with a short headline drawn in your colours.'},
@@ -1346,20 +1350,21 @@ function sellCourse(c){
     if(!list.length){ toast('Add a course first, in Courses.'); return; }
     var first=list.filter(function(k){ return !k.open; })[0]||list[0];
     function label(k){ return k.title+(k.status!=='published'?' (draft)':'')+(k.open?' (already has it)':''); }
-    openForm({title:'Add a course for '+c.name,saveLabel:'Add the course',values:{course_id:first.id,price_thb:first.price||null},fields:[
-      {key:'course_id',label:'Course',type:'select',options:list.map(function(k){ return [k.id,label(k)]; }),def:first.id,onChange:function(v,set){ var k=list.filter(function(x){ return x.id===v; })[0]; if(k) set('price_thb',k.price||null); }},
+    var px=pxFields('price_thb',{base:first.price||0});
+    openForm({title:'Add a course for '+c.name,saveLabel:'Add the course',values:Object.assign({course_id:first.id,price_thb:first.price||null},px.values),fields:[
+      {key:'course_id',label:'Course',type:'select',options:list.map(function(k){ return [k.id,label(k)]; }),def:first.id,onChange:function(v,set,get,o,show){ var k=list.filter(function(x){ return x.id===v; })[0]; if(k) set('price_thb',k.price||null); px.re(set,get,show); }},
       {key:'method',label:'Paid by',type:'select',def:'cash',options:[['later','Not paid yet, collect later']].concat(payList(PAYOPTS),freeOk()?[['free','Free, a gift']]:[]),hint:'It opens in their app, in Learn, as soon as it is paid. A gift opens straight away.',
-        onChange:function(v,set,get,o,show){ show('price_thb',v!=='free'); show('free_why',v==='free'); show('free_note',v==='free'); }},
-      {key:'price_thb',label:'Price charged (THB)',type:'number'},
+        onChange:function(v,set,get,o,show){ px.method(v,set,get,show); show('price_thb',v!=='free'); show('free_why',v==='free'); show('free_note',v==='free'); }},
+      {key:'price_thb',label:'Price charged (THB)',type:'number',onChange:function(v,set,get,o,show){ px.re(set,get,show); }}].concat(px.fields,[
       {key:'free_why',label:'Why it is free',type:'select',hide:true,def:'Gift or apology',options:FREEWHY.map(function(x){ return [x,x]; }),hint:'Saved with it. It shows as 0 THB, so it is not counted as money taken.'},
       {key:'free_note',label:'Note (optional)',hide:true},
-      {key:'purchased_on',label:'Date',type:'date',def:ymd(new Date()),required:true}],
+      {key:'purchased_on',label:'Date',type:'date',def:ymd(new Date()),required:true}]),
       onSave:function(v){ var k=list.filter(function(x){ return x.id===v.course_id; })[0]; if(!k) return 'Choose the course.';
         if(k.open) return c.name+' already has this course.';
         var free=v.method==='free'; if(free&&!freeOk()) return 'Only a manager or admin can give a course free.';
         var price=free?0:Math.round(Number(v.price_thb)||0); if(!free&&price<1) return 'Type the price, or choose Free.';
-        var later=v.method==='later';
-        var p={customer_id:c.id,package_id:null,course_id:k.id,package_name:'Online course: '+k.title+(free?' (Free: '+(v.free_why||'Gift or apology')+(v.free_note?', '+String(v.free_note).trim().slice(0,60):'')+')':''),
+        var later=v.method==='later', x=free||later?{fee:0,tax:0}:pxOf(v); price+=x.fee+x.tax;
+        var p={customer_id:c.id,package_id:null,course_id:k.id,fee_thb:x.fee,tax_thb:x.tax,package_name:'Online course: '+k.title+(free?' (Free: '+(v.free_why||'Gift or apology')+(v.free_note?', '+String(v.free_note).trim().slice(0,60):'')+')':''),
           price_thb:price,price_group:c.price_group||'standard',paid:free,paid_thb:later||free?0:price,method:free||later?null:v.method,purchased_on:v.purchased_on,covers:[]};
         return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must)
           .then(function(){ return free?sb.rpc('course_give',{p_course:k.id,p_customer:c.id}).then(must):null; })
@@ -1604,7 +1609,7 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
   function firstPack(cid){ var o=packOpts(cid,p); return o.length>1?o[1][0]:''; }
   var pk0=p.id?(p.purchase_id||''):firstPack(cid0), pack0=byId('purchases',pk0);
   if(!p.id&&pack0){ p=Object.assign({},p,{purchase_id:pk0,price_thb:perSession(pack0)}); }
-  var px=pxFields('price_thb',{base:netPrice(p),fee:p.fee_thb,tax:p.tax_thb,hide:!!p.purchase_id});
+  var px=pxFields('price_thb',{base:netPrice(p),fee:p.fee_thb,tax:p.tax_thb,hide:!!p.purchase_id,method:p.purchase_id?'':p.method});
   var pv=Object.assign({},p,px.values); if(p.id&&(Number(p.fee_thb)||Number(p.tax_thb)||Number(p.adds_thb))) pv.price_thb=netPrice(p);
   var exOn=featOn('private_extras'), adds=pAddsPicker(p.adds||[],function(n){ var el=document.getElementById('f-x_adds_sum'); if(el){ el.value=String(n); el.dispatchEvent(new Event('input')); } });
   pv.x_gross=(pv.price_thb!=null?Number(pv.price_thb)||0:(first?Number(srcPrice(first,groupOf(cid0)))||0:0))+(Number(p.adds_thb)||0); pv.x_adds_sum=Number(p.adds_thb)||0;
@@ -1723,7 +1728,7 @@ function ncSave(r){ var row=r.row, same=(S.customers||[]).filter(function(c){ re
 /* ---------- walk-ins, tourists and agency guests: one form, sold and checked in ---------- */
 function lastSourcePrice(sourceId,packageId){
   var hit=null; S.purchases.forEach(function(p){ if(p.source_id===sourceId&&p.package_id===packageId&&!p.cancelled&&(!hit||p.purchased_on>=hit.purchased_on)) hit=p; });
-  return hit?hit.price_thb:null;
+  return hit?netPrice(hit):null;
 }
 function walkIn(name,target){
   if(!guard()) return;
@@ -1744,25 +1749,27 @@ function walkIn(name,target){
     var last=lastSourcePrice(sId,k.id); return last!=null?last:null;
   }
   function payFor(sId){ var s=byId('sources',sId); return s&&!/^direct$/i.test(s.name)?'agent':'cash'; }
+  var px=pxFields('price_thb',{base:first.price_thb});
   openForm({title:'Walk-in or agency guest',saveLabel:'Sell and check in',doneMsg:'Sold and checked in.',
     note:'For tourists and one time visitors. Makes the customer, records the sale and checks them in, all at once.',
-    values:{name:name||''},fields:[
+    values:Object.assign({name:name||''},px.values),fields:[
     {key:'name',label:'Name',required:true}].concat(ncFields(false),[
     {key:'source_id',label:'Where they came from',type:'select',options:opts(src,'Walk-in, no source'),def:direct?direct.id:'',
-      onChange:function(v,set,get){ set('price_thb',priceFor2(get)); set('method',payFor(v)); }},
+      onChange:function(v,set,get,o,show){ set('price_thb',priceFor2(get)); set('method',payFor(v)); px.method(get('method'),set,get,show); px.re(set,get,show); }},
     {key:'package_id',label:'Package',type:'select',options:ordered.map(function(k){ return [k.id,k.name+' ('+thb(k.price_thb)+')']; }),def:first.id,
-      onChange:function(v,set,get){ set('price_thb',priceFor2(get)); }},
+      onChange:function(v,set,get,o,show){ set('price_thb',priceFor2(get)); px.re(set,get,show); }},
     {key:'price_thb',label:'Price you receive (THB)',type:'number',required:true,def:first.price_thb,
-      hint:'For an agency, what they pay you after their cut. The app remembers it for next time.'},
-    {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS)},
-    {key:'target',label:'Check in for',type:'select',options:targets,def:tdef}]),
+      hint:'For an agency, what they pay you after their cut. The app remembers it for next time.',onChange:function(v,set,get,o,show){ px.re(set,get,show); }},
+    {key:'method',label:'Paid by',type:'select',def:'cash',options:payList(PAYOPTS),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}].concat(px.fields,[
+    {key:'target',label:'Check in for',type:'select',options:targets,def:tdef}])),
     onSave:function(v){
       var k=byId('packages',v.package_id); if(!k) return 'Choose a package.';
+      var x=pxOf(v); v.price_thb=Math.round(Number(v.price_thb)||0)+x.fee+x.tax;
       var nr=ncRow(v,v.name,(byId('sources',v.source_id)||{name:'Walk-in'}).name+' guest, '+fmtDate(day)); if(nr.err) return nr.err;
       var cid=null, pid=null;
       return ncSave(nr).then(function(id){
         cid=id;
-        var p={customer_id:cid,package_id:k.id,package_name:k.name,price_thb:v.price_thb,price_group:'standard',paid:true,method:v.method,source_id:v.source_id||null,purchased_on:day,
+        var p={customer_id:cid,package_id:k.id,package_name:k.name,price_thb:v.price_thb,fee_thb:x.fee,tax_thb:x.tax,price_group:'standard',paid:true,method:v.method,source_id:v.source_id||null,purchased_on:day,
           covers:k.covers||null,times:k.times||null,class_limit:k.class_limit||null,classes_left:k.class_limit||null,per_week_limit:k.per_week_limit||null,duration_days:k.duration_days||null,
           start_by:k.start_within_days?addDays(day,k.start_within_days):null,starts_on:null,expires_on:null};
         if(k.clock==='purchase') Object.assign(p,startPurchase(p,day));
@@ -6922,8 +6929,10 @@ function payDlg(method,waitingOrder){
   function upd(){ var f=fees(); total=base+f.fee+f.tax; totEl.textContent='Total '+thb(total)+(f.fee||f.tax?' ('+thb(base)+(f.fee?' + card fee '+thb(f.fee):'')+(f.tax?' + tax '+thb(f.tax):'')+')':''); if(given&&given.oninput) given.oninput(); if(ppHolder) ppHolder.replaceChildren(ppNode()); }
   if(method==='card'||method==='stripe'||method==='transfer'||method==='qr'){
     fx={fee:fxRow('fee','Add card fee',pxRate('card_pct'),cardFixed),tax:fxRow('tax','Add tax',pxRate('tax_pct'))};
+    var lockFee=(method==='card'||method==='stripe')&&feeLocked();
     if(method==='card'||method==='stripe'){ fx.fee.cb.checked=true; fx.fee.calc(); }
-    extra.push(h('div',{class:'panel pad'},fx.fee.el,fx.tax.el,h('p',{class:'sub'},'Tick, or type the percent, and the amount is worked out. You can also type the amount.')));
+    if(lockFee) fx.fee.el.querySelectorAll('input').forEach(function(i){ if(i.type==='checkbox') i.disabled=true; else i.readOnly=true; });
+    extra.push(h('div',{class:'panel pad'},fx.fee.el,fx.tax.el,h('p',{class:'sub'},lockFee?'Card payments always have the card fee. Only a manager can let them off it.':'Tick, or type the percent, and the amount is worked out. You can also type the amount.')));
   }
   if(method==='stripe'){
     var goLink=function(){ var f=fees(), b=this; if(total<20){ err.textContent='Stripe needs at least 20 THB.'; err.hidden=false; return; } if(b) b.disabled=true;
