@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=161"></script>
+<script src="changelog.js?v=162"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1018,7 +1018,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=104; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=105; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9149,8 +9149,45 @@ function upgSection(){ if(!featOn('upgrades')) return null; var list=upgPaths(),
       {label:'Upgrade to',cell:function(x){ return nameOf('packages',x.to)||'Removed package'; }},
       {label:'Upgrade price',num:true,cell:function(x){ if(x.price!=null) return thb(x.price); var a=byId('packages',x.from), b=byId('packages',x.to); return a&&b?thb(b.price_thb-a.price_thb)+' (difference)':''; }},
       {label:'',cell:function(x){ var i=list.indexOf(x); return man?btn('Change',function(){ upgEdit(i); },'small'):null; }}],list,UPGP===false?'Loading.':'No upgrades yet. For example: a weekly class pass to unlimited for the same months.'))); }
+/* templates (gyms, not spa mode): a ready set of packages or a timetable to start from. Everything can be changed after. */
+var PKG_TPL=[
+  {k:'drop',name:'Drop in, 1 class',price_thb:400,class_limit:1,duration_days:30,covers:['Muay Thai'],clock:'purchase',d:'One class, used within 30 days'},
+  {k:'day',name:'Day pass',price_thb:500,duration_days:1,covers:['Muay Thai'],clock:'first',d:'All classes for one day'},
+  {k:'c10',name:'10 classes',price_thb:3500,class_limit:10,duration_days:90,covers:['Muay Thai'],clock:'first',d:'10 classes within 90 days'},
+  {k:'w1',name:'1 week unlimited',price_thb:2500,duration_days:7,covers:['Muay Thai'],clock:'first',d:'Every class for 7 days'},
+  {k:'m1',name:'1 month unlimited',price_thb:7000,duration_days:30,covers:['Muay Thai'],clock:'first',d:'Every class for 30 days'},
+  {k:'m3',name:'3 months unlimited',price_thb:18000,duration_days:91,covers:['Muay Thai'],clock:'first',d:'Every class for 3 months'},
+  {k:'priv',name:'Private lessons',tiers:'1:900, 5:800, 10:700',covers:['Privates'],duration_days:180,clock:'purchase',d:'The customer picks how many. The more they buy, the less each one costs'}];
+var TT_TPL=[
+  {k:'two',name:'Two a day, Monday to Saturday',days:[0,1,2,3,4,5],slots:[['08:00','09:30','Morning class'],['16:00','17:30','Afternoon class']]},
+  {k:'three',name:'Three a day, Monday to Saturday',days:[0,1,2,3,4,5],slots:[['07:30','09:00','Morning class'],['10:00','11:00','Technique'],['16:30','18:00','Afternoon class']]},
+  {k:'eve',name:'Evenings after work, and Saturday morning',days:[0,1,2,3,4],slots:[['18:00','19:00','Beginners'],['19:00','20:30','All levels']],extra:[[5,'10:00','11:30','Weekend class']]}];
+function pkgTemplates(){
+  var have=S.packages.map(function(p){ return String(p.name||'').toLowerCase(); }), f=[], v={};
+  PKG_TPL.forEach(function(t){ var dup=have.indexOf(t.name.toLowerCase())>=0; v['t_'+t.k]=!dup; v['p_'+t.k]=t.tiers||t.price_thb;
+    f.push({key:'t_'+t.k,label:t.name+(dup?' (you have one)':''),type:'checkbox',hint:t.d+'.'});
+    f.push({key:'p_'+t.k,label:t.tiers?'Prices (how many: price each)':'Price (THB)',type:t.tiers?'text':'number',hint:t.tiers?'For example 1:900, 5:800, 10:700. 1 to 4 privates are 900 each, 5 to 9 are 800 each, 10 or more 700 each.':null}); });
+  openForm({title:'Packages from a template',note:'Tick the packages you want and set your prices. They are added on sale, and you can change everything after: tap a package to edit it.',values:v,fields:f,saveLabel:'Add the packages',doneMsg:'Packages added.',
+    onSave:function(x){ var add=[];
+      for(var i=0;i<PKG_TPL.length;i++){ var t=PKG_TPL[i]; if(!x['t_'+t.k]) continue;
+        var b={name:t.name,covers:t.covers,class_limit:t.class_limit||null,duration_days:t.duration_days||null,clock:t.clock||'first',active:true,audience:'all',per_week_limit:null,times:null,qty_unit:'visits'};
+        if(t.tiers){ var tr; try{ tr=parseTiers(x['p_'+t.k]); }catch(e){ return t.name+': '+e.message; } b.tiers=tr; b.price_thb=tr[0].price; b.qty_default=1; b.class_limit=null; }
+        else { var pr=Math.round(Number(x['p_'+t.k])); if(!(pr>0)) return 'Add a price for '+t.name+'.'; b.price_thb=pr; }
+        add.push(b); }
+      if(!add.length) return 'Tick at least one package.';
+      return add.reduce(function(pr,b){ return pr.then(function(){ return save('packages',null,b); }); },Promise.resolve()).then(function(){ return reload('packages'); }); }}); }
+function ttTemplates(){
+  var dis=DISCIPLINES.filter(function(d){ return d!=='Kids'; });
+  openForm({title:'Timetable from a template',note:S.classes.length?'You have '+S.classes.length+' classes already. These are added next to them, so you may want to remove the old ones after.':'Pick a timetable to start from. Change the times, names and coaches after: tap a class to edit it.',
+    values:{tpl:'two',discipline:dis[0]},fields:[
+    {key:'tpl',label:'Timetable',type:'select',options:TT_TPL.map(function(t){ return [t.k,t.name+': '+t.slots.map(function(x){ return x[0]; }).join(', ')+(t.extra?', Saturday '+t.extra[0][1]:'')]; })},
+    {key:'discipline',label:'Classes are',type:'select',options:dis.map(function(d){ return [d,d]; })}],saveLabel:'Add the classes',doneMsg:'Timetable added.',
+    onSave:function(x){ var t=TT_TPL.filter(function(y){ return y.k===x.tpl; })[0]; if(!t) return 'Pick a timetable.'; var rows=[];
+      t.days.forEach(function(d){ t.slots.forEach(function(sl){ rows.push({day:d,time:sl[0],end:sl[1],title:sl[2]}); }); });
+      (t.extra||[]).forEach(function(e){ rows.push({day:e[0],time:e[1],end:e[2],title:e[3]}); });
+      return rows.reduce(function(pr,r){ return pr.then(function(){ return save('classes',null,Object.assign(r,{discipline:x.discipline,coach_ids:[],no_checkin:false,blocks_privates:false})); }); },Promise.resolve()).then(function(){ return reload('classes'); }); }}); }
 function vPackages(){
-  return [pageHead('Packages',SPA?'Packs of visits customers buy upfront, like 10 gel nail visits or 5 massages. Pay an appointment from a pack on the board.':'What you sell, and the rules the check in follows.',btn(SPA?'Add pack':'Add package',function(){ editPackage(); },'primary')),upgSection(),
+  return [pageHead('Packages',SPA?'Packs of visits customers buy upfront, like 10 gel nail visits or 5 massages. Pay an appointment from a pack on the board.':'What you sell, and the rules the check in follows.',h('div',{class:'row'},SPA?null:btn('Start from a template',pkgTemplates),btn(SPA?'Add pack':'Add package',function(){ editPackage(); },'primary'))),upgSection(),
     table([
       {label:'Name',cell:function(p){return [linkBtn(p.name,function(){ editPackage(p); }),exChip(p),p.badge?chip(p.badge,'warn'):null];}},
       {label:'Standard',num:true,cell:function(p){return thb(p.price_thb);}},
@@ -9168,7 +9205,7 @@ function vPackages(){
       sortBy(S.packages,'name'),'No packages yet. Add your first package, for example a single class or a monthly pass.')];
 }
 function vTimetable(){
-  var out=[pageHead('Timetable','Group classes are turn up and check in. No booking needed. Pause a class to turn it off for a day or a week.',btn('Add class',function(){ editClass(); },'primary'))];
+  var out=[pageHead('Timetable','Group classes are turn up and check in. No booking needed. Pause a class to turn it off for a day or a week.',h('div',{class:'row'},btn('Start from a template',ttTemplates),btn('Add class',function(){ editClass(); },'primary')))];
   if(!S.classes.length){ out.push(h('div',{class:'panel empty'},'No classes yet. Add your first class and it will show for check in on that day.')); return out; }
   DAYS.forEach(function(d,i){
     var rows=sortBy(S.classes.filter(function(c){return Number(c.day)===i;}),'time'); if(!rows.length) return;
@@ -9904,7 +9941,7 @@ function toRow(col,body,isSet){
   m.w.forEach(function(k){
     var has=Object.prototype.hasOwnProperty.call(body,k), v=body[k];
     if(!has||v===undefined){ if(isSet&&m.clear&&m.clear.indexOf(k)>=0) row[m.r[k]||k]=null; return; }
-    if(v===''||(Array.isArray(v)&&!v.length&&k!=='covers'&&k!=='tags'&&k!=='coach_ids')) v=null;
+    if(v===''||(Array.isArray(v)&&!v.length&&k!=='covers'&&k!=='tags'&&k!=='coach_ids'&&k!=='ical_feeds')) v=null;
     if(k==='covers'&&v==null) return;
     row[m.r[k]||k]=v;
   });
