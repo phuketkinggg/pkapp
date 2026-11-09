@@ -104,8 +104,8 @@ begin
   if ci.id is null then raise exception 'That meal was not found.'; end if;
   if ci.meal_bill_id is not null then raise exception 'That meal is already on a bill.'; end if;
   if ci.day <> private.bkk_today() and private.staff_role() <> 'manager' then raise exception 'Only a manager can take off a meal from another day.'; end if;
+  -- the meal goes back on the plan by itself (trigger checkins_restore_visit)
   delete from public.checkins where id = ci.id;
-  if ci.counted then update public.purchases set visits_left = case when visit_limit is not null then least(visit_limit, coalesce(visits_left, 0) + 1) else visits_left end where id = ci.purchase_id; end if;
 end $f$;
 
 -- meals served that can go on a bill: from held meal plans, served up to today, not on a bill yet
