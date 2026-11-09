@@ -15,16 +15,18 @@ const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
 
-// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page
-type CardRule = { pct: number; fixed: number; under: number };
+// customers paying by card pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page.
+// No fee above the online limit (online_free_over), and none on stays when stay_card_fee is false.
+type CardRule = { pct: number; fixed: number; under: number; over: number; stays: boolean };
 // the fee is a percent plus a fixed amount; above "under" baht the fixed part is not charged (we cover it)
 async function cardRule(): Promise<CardRule> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
   let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* defaults */ }
   const n = (v: unknown, d: number, max: number) => { const x = Number(v); return v != null && Number.isFinite(x) && x >= 0 && x <= max ? x : d; };
-  return { pct: n(j.card_pct, 3, 20), fixed: n(j.card_fixed, 10, 1000), under: n(j.card_fixed_under, 2000, 10000000) };
+  // over: no card fee online above this amount (0: always a fee). stays: false means never a card fee on a stay
+  return { pct: n(j.card_pct, 3, 20), fixed: n(j.card_fixed, 10, 1000), under: n(j.card_fixed_under, 2000, 10000000), over: n(j.online_free_over, 0, 10000000), stays: j.stay_card_fee !== false };
 }
-const cardFee = (amount: number, r: CardRule) => amount > 0 ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
+const cardFee = (amount: number, r: CardRule, stay = false) => amount > 0 && !(stay && !r.stays) && !(r.over > 0 && amount > r.over) ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
 const cardLabel = (amount: number, r: CardRule) => `Card fee (${r.pct}%${r.fixed > 0 && amount < r.under ? ` + ${r.fixed} THB` : ""})`;
 const PAGE = "https://new.phuketking.com/prices";
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };

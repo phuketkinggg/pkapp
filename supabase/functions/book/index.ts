@@ -14,16 +14,18 @@ const KEY_MAIN = (Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim();
 const KEY_TH = (Deno.env.get("STRIPE_TH_SECRET_KEY") ?? "").trim();
 const KEY = KEY_TH || KEY_MAIN;
 
-// customers paying by card always pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page
-type CardRule = { pct: number; fixed: number; under: number };
+// customers paying by card pay the card fee (Settings, Card fee and tax, normally 3% + 10 THB, the 10 THB only under 2,000 THB), shown as its own line on the Stripe page.
+// No fee above the online limit (online_free_over), and none on stays when stay_card_fee is false.
+type CardRule = { pct: number; fixed: number; under: number; over: number; stays: boolean };
 // the fee is a percent plus a fixed amount; above "under" baht the fixed part is not charged (we cover it)
 async function cardRule(): Promise<CardRule> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "pay_extras").maybeSingle();
   let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* defaults */ }
   const n = (v: unknown, d: number, max: number) => { const x = Number(v); return v != null && Number.isFinite(x) && x >= 0 && x <= max ? x : d; };
-  return { pct: n(j.card_pct, 3, 20), fixed: n(j.card_fixed, 10, 1000), under: n(j.card_fixed_under, 2000, 10000000) };
+  // over: no card fee online above this amount (0: always a fee). stays: false means never a card fee on a stay
+  return { pct: n(j.card_pct, 3, 20), fixed: n(j.card_fixed, 10, 1000), under: n(j.card_fixed_under, 2000, 10000000), over: n(j.online_free_over, 0, 10000000), stays: j.stay_card_fee !== false };
 }
-const cardFee = (amount: number, r: CardRule) => amount > 0 ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
+const cardFee = (amount: number, r: CardRule, stay = false) => amount > 0 && !(stay && !r.stays) && !(r.over > 0 && amount > r.over) ? Math.round(amount * r.pct / 100) + (r.fixed > 0 && amount < r.under ? r.fixed : 0) : 0;
 const cardLabel = (amount: number, r: CardRule) => `Card fee (${r.pct}%${r.fixed > 0 && amount < r.under ? ` + ${r.fixed} THB` : ""})`;
 const keyFor = (cur: string) => (cur === "thb" ? KEY_TH || KEY_MAIN : KEY_MAIN);
 // Feature stays_main_stripe (on unless the business turns it off in Settings, Features): stay and room payments by card go to the main
@@ -301,7 +303,7 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   });
   p.set("payment_method_types[0]", qr ? "promptpay" : "card");
   p.set("customer_email", email);
-  const rule = await cardRule(), fee = qr ? 0 : cardFee(amount, rule);
+  const rule = await cardRule(), fee = qr ? 0 : cardFee(amount, rule, true);
   if (fee > 0) { const i = lines.length; p.set(`line_items[${i}][quantity]`, "1"); p.set(`line_items[${i}][price_data][currency]`, cur); p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(fee * rate * 100))); p.set(`line_items[${i}][price_data][product_data][name]`, cardLabel(amount, rule)); }
   // amount is always the THB value; the app records the stay in THB whatever currency was charged
   for (const [k, v] of Object.entries({ kind: "stay", id: stayId, amount: String(amount), currency: cur, fee: String(fee), amount_cur: ((lines.reduce((t, l) => t + Math.round(l.amount * rate * 100), 0) + (fee > 0 ? Math.round(fee * rate * 100) : 0)) / 100).toFixed(2) })) { p.set(`metadata[${k}]`, v); p.set(`payment_intent_data[metadata][${k}]`, v); }
@@ -445,7 +447,7 @@ Deno.serve(async (req) => {
         offer: await offer(),
         course: await courseOffer(),
         fx: await fx(),
-        ...(await cardRule().then((r) => ({ card_pct: r.pct, card_fixed: r.fixed, card_fixed_under: r.under }))),
+        ...(await cardRule().then((r) => r.stays ? { card_pct: r.pct, card_fixed: r.fixed, card_fixed_under: r.under } : { card_pct: 0, card_fixed: 0, card_fixed_under: 0 })),
       });
     }
     if (body.mode === "quote") {

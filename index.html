@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=158"></script>
+<script src="changelog.js?v=159"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -784,12 +784,15 @@ var PX=null;
 var FXS=null;
 function loadPayExtras(){ return Promise.all([sb.from('app_settings').select('value').eq('key','pay_extras').maybeSingle(),sb.from('app_settings').select('value').eq('key','fx').maybeSingle()]).then(function(r){ try{ PX=r[0].data&&r[0].data.value?JSON.parse(r[0].data.value):null; }catch(e){ PX=null; } try{ FXS=r[1].data&&r[1].data.value?JSON.parse(r[1].data.value):null; }catch(e){ FXS=null; } },function(){}); }
 function fxMargin(){ var m=FXS&&FXS.margin!=null?Number(FXS.margin):3; return isNaN(m)?3:m; }
-function pxRate(k){ var d={card_pct:3,card_fixed:10,card_fixed_under:2000,tax_pct:7}, v=PX&&PX[k]!=null?Number(PX[k]):d[k]; return isNaN(v)?d[k]:v; }
+function pxRate(k){ var d={card_pct:3,card_fixed:10,card_fixed_under:2000,tax_pct:7,online_free_over:0}, v=PX&&PX[k]!=null?Number(PX[k]):d[k]; return isNaN(v)?d[k]:v; }
 /* card fee: a percent plus a fixed amount; at or above card_fixed_under the fixed part is not charged (we cover it) */
 function cardFixed(b){ var f=pxRate('card_fixed'); return f>0&&(Number(b)||0)<pxRate('card_fixed_under')?f:0; }
 function cardFee(b){ b=Number(b)||0; return b>0?Math.round(b*pxRate('card_pct')/100)+cardFixed(b):0; }
 /* feature card_fee_lock: only a manager can let someone off the card fee (the database checks it too) */
 function feeLocked(){ return featOn('card_fee_lock')&&!rcBoss(); }
+/* paying online (member app, kiosk, website): no card fee above the online limit, and none on stays when that is switched off (Settings, Card fee and tax) */
+function onlineFee(b,stay){ b=Number(b)||0; if(stay&&PX&&PX.stay_card_fee===false) return 0; var o=pxRate('online_free_over'); if(o>0&&b>o) return 0; return cardFee(b); }
+function payCardLabel(b,stay){ return onlineFee(b,stay)?'Pay by card (+'+cardFeeText()+' card fee)':'Pay by card'; }
 function cardFeeText(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB':''); }
 function cardFeeLong(){ var f=pxRate('card_fixed'); return pxRate('card_pct')+'%'+(f>0?' + '+f+' THB (no '+f+' THB on '+thb(pxRate('card_fixed_under'))+' or more)':''); }
 function mfPicker(){
@@ -1013,7 +1016,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=102; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=103; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7925,7 +7928,7 @@ function vCFood(){
     (!kn.open||kn.busy)&&kn.text?h('div',{class:'kbanner '+(kn.open?'warn':'bad')},kn.text):null,
     (!bn.open||bn.busy)&&bn.text?h('div',{class:'kbanner '+(bn.open?'warn':'bad')},bn.text):null,
     mine.length?section('Your orders',null,cards(mine.map(function(o){ var k=o.status==='waiting'&&!o.kitchen_status?['Pay at the counter','warn']:(kst[o.kitchen_status]||['Received','warn']);
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:chip(k[0],k[1]),title:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', '),note:thb(o.total)+(o.status==='room'?', on your room bill':o.status==='waiting'?', pay at the counter or by card':''),act:o.status==='waiting'&&o.id?[btn('PromptPay',function(){ payPromptPay('order',o.id,'cafe'); },'primary small'),o.total>=20?btn(payCardLabel(o.total),function(){ stripePay('order',o.id); },'small'):null]:null}; }),'')):null,
     prods.length?cats.map(group).concat([group(null)]):h('div',{class:'panel empty'},'The menu is not in the app yet.'),
     cart().length?h('div',{class:'panel pad foodcart'},h('b',null,'Your order: '+thb(sub)),
       h('div',null,cart().map(function(l){ return l.qty+' x '+l.name; }).join(', ')),
@@ -9106,7 +9109,7 @@ function upgPopup(o,go){ var done=false;
     h('p',null,'If you want more, you can upgrade right now to '+o.to+' for '+thb(o.price)+', giving you '+(o.get||'everything in '+o.to)+'.'+(o.pro_rata?' The price is for the time you have left.':'')),
     h('p',{class:'sub'},'To do that, simply pay by card now, or pay cash at the counter.'),
     h('div',{class:'row wrap'},btn('Pay by card now',function(){ pick('card'); },'primary'),btn('Pay cash at the counter',function(){ pick('cash'); }),btn('No thanks, just check me in',function(){ pick('no'); })),
-    h('p',{class:'sub'},'Card payments have a card fee of '+cardFeeText()+'.'))); }
+    h('p',{class:'sub'},onlineFee(o.price)?'Card payments have a card fee of '+cardFeeText()+'.':'No card fee.'))); }
 /* after the check in: order the upgrade (card or cash), or note that they said no */
 function upgAfter(o,ch,cid){ delete UPG[cid||'me'];
   if(ch==='no') return sb.rpc('upgrade_seen',{p_purchase:o.purchase_id}).then(function(){},function(){});
@@ -9493,18 +9496,20 @@ function payWaysSection(){
 }
 function pxSettings(){
   return section('Card fee and tax',btn('Change',function(){
-    openForm({title:'Card fee and tax',note:'When you tick Add card payment fee or Add tax on a sale, a private or a payment, these rates fill in the amount. You can still change the amount each time.',values:{card_pct:pxRate('card_pct'),card_fixed:pxRate('card_fixed'),card_fixed_under:pxRate('card_fixed_under'),tax_pct:pxRate('tax_pct')},fields:[
+    openForm({title:'Card fee and tax',note:'When you tick Add card payment fee or Add tax on a sale, a private or a payment, these rates fill in the amount. You can still change the amount each time.',values:{card_pct:pxRate('card_pct'),card_fixed:pxRate('card_fixed'),card_fixed_under:pxRate('card_fixed_under'),tax_pct:pxRate('tax_pct'),online_free_over:pxRate('online_free_over')||'',stay_card_fee:!(PX&&PX.stay_card_fee===false)},fields:[
       {key:'card_pct',label:'Card payment fee (%)',type:'number',required:true,hint:'For example 3 for what the bank or Stripe takes.'},
       {key:'card_fixed',label:'Plus a fixed card fee (THB)',type:'number',required:true,hint:'Added on top of the percent, for example 10. Put 0 for none.'},
       {key:'card_fixed_under',label:'Only add the fixed fee under (THB)',type:'number',required:true,hint:'On this amount or more the customer pays only the percent and we cover the fixed part. For example 2000.'},
+      {key:'online_free_over',label:'Paying online: no card fee above (THB)',type:'number',hint:'In the member app, on the kiosk and on the website, a payment above this amount has no card fee. For example 1000. Leave empty to always add it.'},
+      {key:'stay_card_fee',label:'Add the card fee when a stay is paid online',type:'checkbox',hint:'Untick it and a stay paid by card online (booking page or member app) never has a card fee.'},
       {key:'tax_pct',label:'Tax (%)',type:'number',required:true,hint:'For example 7 for VAT.'},
       {key:'fx_margin',label:'Booking page, extra on US dollars, pounds and euros (%)',type:'number',required:true,def:fxMargin(),hint:'Guests can pay a stay in USD, GBP or EUR. The price is our Thai baht price at today\'s rate plus this much, to cover what the change costs. Thai baht payments go to the Thai Stripe account.'}],
       onSave:function(v){ if(v.card_pct<0||v.card_pct>20||v.card_fixed<0||v.card_fixed>1000||v.card_fixed_under<0||v.tax_pct<0||v.tax_pct>30||v.fx_margin<0||v.fx_margin>10) return 'Check the numbers.';
         var fxv=JSON.stringify(Object.assign({},FXS||{},{margin:Number(v.fx_margin)}));
         sb.from('app_settings').update({value:fxv,updated_at:new Date().toISOString()}).eq('key','fx').select('key').then(function(r){ if(!r.error&&(!r.data||!r.data.length)) sb.from('app_settings').insert({key:'fx',value:fxv}).then(function(){}); FXS=JSON.parse(fxv); });
-        var val=JSON.stringify(Object.assign({},PX||{},{card_pct:Number(v.card_pct),card_fixed:Number(v.card_fixed),card_fixed_under:Number(v.card_fixed_under),tax_pct:Number(v.tax_pct)}));
+        var val=JSON.stringify(Object.assign({},PX||{},{card_pct:Number(v.card_pct),card_fixed:Number(v.card_fixed),card_fixed_under:Number(v.card_fixed_under),tax_pct:Number(v.tax_pct),online_free_over:Math.max(0,Math.round(Number(v.online_free_over)||0)),stay_card_fee:!!v.stay_card_fee}));
         return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','pay_extras').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'pay_extras',value:val}).then(must); }).then(function(){ PX=JSON.parse(val); schedule(); }); }});
-  },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+cardFeeLong()+', tax '+pxRate('tax_pct')+'%. Booking page in USD, GBP and EUR: today\'s rate plus '+fxMargin()+'%.'),
+  },'small'),h('div',{class:'panel pad'},h('p',null,'Card payment fee '+cardFeeLong()+'.'+(pxRate('online_free_over')>0?' Paying online: no card fee above '+thb(pxRate('online_free_over'))+'.':'')+(PX&&PX.stay_card_fee===false?' No card fee on stays paid online.':'')+' Tax '+pxRate('tax_pct')+'%. Booking page in USD, GBP and EUR: today\'s rate plus '+fxMargin()+'%.'),
     h('p',{class:'sub'},'Tick boxes on Sell a package, Book a private and Take payment add them on top of the price. The customer pays them, Accounts shows them as Card fees charged and Tax collected, and they are never part of a coach share.')));
 }
 /* ---------- Settings: Features (switch parts of the app on or off) and What's new (the changelog, changelog.js) ---------- */
@@ -10317,7 +10322,7 @@ function pkgCard(p){
 }
 function orderCard(p){
   return {when:p.package_name,right:thb(p.price_thb),note:'Pay by card now, or at the front desk. It is ready to use as soon as it is paid.',
-    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
+    act:[btn('PromptPay',function(){ payPromptPay('purchase',p.id,'gym'); },'primary small'),btn(payCardLabel(owedOf(p)),function(){ stripePay('purchase',p.id); },'small'),btn('Remove order',function(){ run(cuCall('customer_cancel_order',{p_purchase:p.id}),'Order removed.'); },'small')]};
 }
 function editMe(){
   openForm({title:'My details',values:{name:CU.me.name,phone:CU.me.phone,news:CU.me.marketing_ok!==false},fields:[{key:'name',label:'Name',required:true},{key:'phone',label:'Phone',type:'tel'},{key:'news',label:'Send me the Phuket King newsletter by email',type:'checkbox'}],
@@ -10327,7 +10332,7 @@ function cuStay(){
   var st=CU.stay, lines=st.charges||[];
   var head={when:st.room,right:chip(st.status==='in'?'Staying now':'Booked',st.status==='in'?'ok':null),note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)};
   var items=[head].concat(lines.map(function(c){ return {when:c.what,right:thb(c.amount),note:fmtDate(c.day)}; }));
-  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('stay',st.id); },'small'):null]:null});
+  if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn(payCardLabel(st.due,true),function(){ stripePay('stay',st.id); },'small'):null]:null});
   return section('Your stay',null,cards(items,''));
 }
 /* the guest's room cleaning: what is planned today, and asking for an extra clean, no clean, towels or something else */
@@ -10472,7 +10477,7 @@ function vCHome(){
   return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day),window.pkCanInstall&&window.pkCanInstall()&&!PV?btn('Install app',function(){ window.pkInstall(); },'small'):null),
     readyCard(),
     fighterCard(),
-    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here. Card payments have a card fee of '+cardFeeLong()+'.'),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn('Pay by card (+'+cardFeeText()+' card fee)',function(){ stripePay('customer',null); },'small')):null,
+    CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'+(onlineFee(CU.owes)?' Card payments have a card fee of '+cardFeeLong()+'.':'')),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn(payCardLabel(CU.owes),function(){ stripePay('customer',null); },'small')):null,
     cuCheckInCard(),
     CU.stay?cuStay():null,
     cuHk(),
@@ -11231,7 +11236,7 @@ function kPrivate(c){
   function coachesFor(d){ return allCh.filter(function(x){ return !S.holidays.some(function(hd){ return hd.staff_id===x.id&&hd.status==='approved'&&hd.from<=d&&d<=hd.to; }); }); }
   function paysFor(d){ var pk=byId('purchases',(packOpts(c.id,{date:d}).slice(1).filter(function(o){ var k=byId('purchases',o[0]); return !k.expires_on||k.expires_on>=d; })[0]||[])[0]), st=(S.stays||[]).filter(function(x){ return x.customer_id===c.id&&stayOn(x,d)&&!x.settled; })[0];
     var o=[]; if(pk) o.push(['pack','From my pack ('+(pk.class_limit-packUsed(pk))+' sessions left)']);
-    if(price!=null){ o.push(['card','Pay now by card, '+thb(price)+' + '+thb(cardFee(price))+' card fee'],['qr','Pay now by PromptPay, '+thb(price)]); if(st) o.push(['room','On my room bill, '+thb(price)]); o.push(['desk','Pay at the front desk, '+thb(price)]); }
+    if(price!=null){ o.push(['card','Pay now by card, '+thb(price)+(onlineFee(price)?' + '+thb(onlineFee(price))+' card fee':'')],['qr','Pay now by PromptPay, '+thb(price)]); if(st) o.push(['room','On my room bill, '+thb(price)]); o.push(['desk','Pay at the front desk, '+thb(price)]); }
     return {opts:o,pack:pk}; }
   var d0=days[0][0]; if(!timesFor(d0).length) d0=days[1][0];
   var p0=paysFor(d0), c0=coachesFor(d0);
@@ -11262,7 +11267,7 @@ function kBuy(c){
   var day=ymd(new Date()), group=c.price_group||'standard', st=kStay(c,day);
   var list=sortBy(S.packages.filter(function(p){ return p.active!==false&&canBuy(p,group)&&!tiersFor(p,group)&&Number(priceFor(p,group))>0&&!isMealOnly(p)&&(p.covers||[]).length&&(p.covers||[]).indexOf(MEAL)<0; }),'name');
   if(!list.length){ ui.kerr='Packages can not be bought here yet. See the front desk.'; schedule(); return; }
-  var pays=[['card','Card (scan a code with your phone), +'+cardFeeText()+' card fee'],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk',payOk('card')?'Cash or card at the front desk':'Pay at the front desk']]);
+  var pays=[['card','Card (scan a code with your phone), +'+cardFeeText()+' card fee'+(pxRate('online_free_over')>0?' up to '+thb(pxRate('online_free_over')):'')],['qr','PromptPay QR']].concat(st?[['room','On my room bill']]:[]).concat([['desk',payOk('card')?'Cash or card at the front desk':'Pay at the front desk']]);
   kIdle(120000);
   openForm({title:'Buy a package',note:c.name+(group!=='standard'?', '+GROUPS[group]+' prices':'')+'.',saveLabel:'Buy',values:{package_id:list[0].id,pay:'card'},fields:[
     {key:'package_id',label:'Package',type:'select',options:list.map(function(p){ return [p.id,p.name+', '+thb(priceFor(p,group))]; })},
