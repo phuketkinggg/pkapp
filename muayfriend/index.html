@@ -308,6 +308,12 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
 footer .brand{color:#fff;font-size:20px}
 footer .brand .mark{color:#7FA0F0}
 footer a{color:#C9CFDB}
+
+.tuts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:8px}
+.tut{display:block;width:100%;padding:0;border:0;border-radius:14px;overflow:hidden;background:#17213C;color:#fff;text-align:left;cursor:pointer;font:inherit;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.tut img,.tut video{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:#000}
+.tut span{display:block;padding:12px 14px;font-weight:600}
+.tut span::before{content:"\25B6";color:#ff6b5e;margin-right:8px}
 </style>
 <!-- Meta Pixel (Muay Friend) -->
 <script>
@@ -570,6 +576,13 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <li><h3>Try it yourself</h3><p>Open the <a href="demo/">live demo</a> of Muay Fight Gym, a made up gym, and look around as the owner, the front desk, a coach or a member. Then we show you a demo with your own gym in it.</p></li>
         <li><h3>We set it up for you</h3><p>We bring in your members and packages, set it up the way you work, and show your team how to use it.</p></li>
       </ol>
+    </div>
+  </section>
+
+  <section class="block" id="tutorials">
+    <div class="wrap">
+      <div class="head"><h2>Tutorials</h2><p>Short videos of how to set up your gym in the app. Each one is under a minute.</p></div>
+      <div class="tuts"><button type="button" class="tut" data-v="help/package_templates.mp4"><img src="help/package_templates.jpg" alt="" loading="lazy" width="960" height="540"><span>Packages from a template</span></button><button type="button" class="tut" data-v="help/packages.mp4"><img src="help/packages.jpg" alt="" loading="lazy" width="960" height="540"><span>Set up a package</span></button><button type="button" class="tut" data-v="help/privates.mp4"><img src="help/privates.jpg" alt="" loading="lazy" width="960" height="540"><span>Private lessons, priced by how many</span></button><button type="button" class="tut" data-v="help/timetable.mp4"><img src="help/timetable.jpg" alt="" loading="lazy" width="960" height="540"><span>Set up your timetable</span></button><button type="button" class="tut" data-v="help/staff.mp4"><img src="help/staff.jpg" alt="" loading="lazy" width="960" height="540"><span>Add a staff member</span></button><button type="button" class="tut" data-v="help/customers.mp4"><img src="help/customers.jpg" alt="" loading="lazy" width="960" height="540"><span>Add a customer</span></button><button type="button" class="tut" data-v="help/departments.mp4"><img src="help/departments.jpg" alt="" loading="lazy" width="960" height="540"><span>Add a department</span></button><button type="button" class="tut" data-v="help/rooms.mp4"><img src="help/rooms.jpg" alt="" loading="lazy" width="960" height="540"><span>Add a room</span></button><button type="button" class="tut" data-v="help/webpage.mp4"><img src="help/webpage.jpg" alt="" loading="lazy" width="960" height="540"><span>Make a web page</span></button><button type="button" class="tut" data-v="help/social.mp4"><img src="help/social.jpg" alt="" loading="lazy" width="960" height="540"><span>Make a social media post</span></button></div>
     </div>
   </section>
 
@@ -879,5 +892,6 @@ fbq('init','1689705395897075');fbq('track','PageView');
   cur(c);
 })();
 </script>
+<script>document.querySelectorAll('.tut').forEach(function(b){b.addEventListener('click',function(){var v=document.createElement('video');v.src=b.dataset.v;v.controls=true;v.autoplay=true;v.playsInline=true;var i=b.querySelector('img');if(i)i.replaceWith(v);b.style.cursor='default';},{once:true});});</script>
 </body>
 </html>

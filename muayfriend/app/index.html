@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=162"></script>
+<script src="changelog.js?v=163"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -917,6 +917,7 @@ var FEATURES=[
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
+  {k:'help_videos',g:'',n:'Tutorial videos',d:'A Watch how button on Packages, Timetable, Staff, Customers, Accounts, Stays, Web pages and Social media plays a short video of how to do it.',spa:false},
   {k:'coach_push',g:'Training',n:'Coach notifications for privates',d:'A coach gets a notification on their phone when a private is booked with them, moved or cancelled. The coach turns notifications on once, on their own screen in the app.'},
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
@@ -1023,7 +1024,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=105; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=106; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1149,8 +1150,19 @@ function table(cols,rows,emptyMsg,foot){
     foot?h('tfoot',null,h('tr',null,foot.map(function(f,i){return h('td',{class:cols[i].num?'num':null},f);}))):null));
 }
 function section(title,action,body){ return h('section',{class:'sec'},h('div',{class:'sechead'},h('h2',null,title),action||null),body); }
+/* tutorial videos (feature help_videos): a Watch how button on the pages that have one. The videos sit with the Muay Friend website (muayfriend/help/). */
+var HELPV={packages:['packages','privates','package_templates'],timetable:['timetable'],staff:['staff'],customers:['customers'],accounts:['departments'],webpages:['webpage'],social:['social'],stays:['rooms'],settings:['rooms']};
+var HELPT={packages:'Set up a package',privates:'Private lessons, priced by how many',package_templates:'Packages from a template',timetable:'Set up your timetable',staff:'Add a staff member',customers:'Add a customer',departments:'Add a department',rooms:'Add a room',webpage:'Make a web page',social:'Make a social media post'};
+function helpBase(){ return /muayfriend/.test(location.hostname)?'/help/':'/muayfriend/help/'; }
+function helpBtn(){ if(SPA||!featOn('help_videos')||!me||me.role==='customer'||me.role==='coach'||!HELPV[ui.tab]) return null; var ks=HELPV[ui.tab];
+  return btn('Watch how',function(){ helpPlay(ks,ks[0]); },'small'); }
+function helpPlay(ks,k){ var v=h('video',{controls:'',autoplay:'',playsinline:'',preload:'auto',src:helpBase()+k+'.mp4',poster:helpBase()+k+'.jpg',style:'width:100%;border-radius:12px;background:#000;aspect-ratio:16/9'});
+  shopDlg(h('div',{class:'billbox',style:'max-width:960px'},h('h2',null,HELPT[k]||'How to'),v,
+    ks.length>1?h('div',{class:'row wrap',style:'margin-top:10px;gap:8px'},ks.map(function(x){ return btn(HELPT[x]||x,function(){ helpPlay(ks,x); },x===k?'primary small':'small'); })):null,
+    h('div',{class:'factions'},h('a',{href:(/muayfriend/.test(location.hostname)?'/':'https://muayfriend.com/')+'#tutorials',target:'_blank',rel:'noopener',class:'sub'},'All tutorials'),btn('Close',function(){ $dlg.close(); })))); }
 function pageHead(title,sub,action){ var dt=ALLTABS.concat(window.CTABS||[]).filter(function(x){ return x[0]===ui.tab; })[0];
-  if(dt&&(title===TAB0[ui.tab]||title===dt[1])) title=tname(dt); return h('div',{class:'head'},h('div',null,h('h1',null,title),sub?h('p',{class:'sub'},sub):null),action||null); }
+  if(dt&&(title===TAB0[ui.tab]||title===dt[1])) title=tname(dt); var hb=helpBtn();
+  return h('div',{class:'head'},h('div',null,h('h1',null,title),sub?h('p',{class:'sub'},sub):null),hb?h('div',{class:'row'},hb,action||null):(action||null)); }
 
 /* ---------- forms ---------- */
 function openForm(spec){

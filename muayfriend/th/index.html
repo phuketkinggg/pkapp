@@ -325,6 +325,12 @@ h3{font-size:24px}
 .mlist b{font-size:20px}
 .done h3{font-size:32px}
 .lede{max-width:38em}
+
+.tuts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;margin-top:8px}
+.tut{display:block;width:100%;padding:0;border:0;border-radius:14px;overflow:hidden;background:#17213C;color:#fff;text-align:left;cursor:pointer;font:inherit;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.tut img,.tut video{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;background:#000}
+.tut span{display:block;padding:12px 14px;font-weight:600}
+.tut span::before{content:"\25B6";color:#ff6b5e;margin-right:8px}
 </style>
 <!-- Meta Pixel (Muay Friend) -->
 <script>
@@ -587,6 +593,13 @@ fbq('init','1689705395897075');fbq('track','PageView');
         <li><h3>ลองใช้ด้วยตัวเอง</h3><p>เปิด<a href="../demo/">เดโม</a>ของ Muay Fight Gym ยิมสมมติ แล้วลองดูในฐานะเจ้าของ หน้าเคาน์เตอร์ ครู หรือสมาชิก จากนั้นเราจะสาธิตโดยใช้ข้อมูลยิมของคุณเอง</p></li>
         <li><h3>เราตั้งค่าให้</h3><p>เราย้ายข้อมูลสมาชิกและแพ็กเกจเข้ามา ตั้งค่าให้ตรงกับวิธีทำงานของคุณ และสอนทีมของคุณใช้งาน</p></li>
       </ol>
+    </div>
+  </section>
+
+  <section class="block" id="tutorials">
+    <div class="wrap">
+      <div class="head"><h2>วิดีโอสอนใช้งาน</h2><p>วิดีโอสั้นๆ สอนตั้งค่ายิมในแอป แต่ละคลิปไม่ถึงหนึ่งนาที (คำบรรยายภาษาอังกฤษ)</p></div>
+      <div class="tuts"><button type="button" class="tut" data-v="../help/package_templates.mp4"><img src="../help/package_templates.jpg" alt="" loading="lazy" width="960" height="540"><span>แพ็กเกจจากแม่แบบ</span></button><button type="button" class="tut" data-v="../help/packages.mp4"><img src="../help/packages.jpg" alt="" loading="lazy" width="960" height="540"><span>ตั้งค่าแพ็กเกจ</span></button><button type="button" class="tut" data-v="../help/privates.mp4"><img src="../help/privates.jpg" alt="" loading="lazy" width="960" height="540"><span>ไพรเวท ราคาตามจำนวน</span></button><button type="button" class="tut" data-v="../help/timetable.mp4"><img src="../help/timetable.jpg" alt="" loading="lazy" width="960" height="540"><span>ตั้งตารางเรียน</span></button><button type="button" class="tut" data-v="../help/staff.mp4"><img src="../help/staff.jpg" alt="" loading="lazy" width="960" height="540"><span>เพิ่มพนักงาน</span></button><button type="button" class="tut" data-v="../help/customers.mp4"><img src="../help/customers.jpg" alt="" loading="lazy" width="960" height="540"><span>เพิ่มลูกค้า</span></button><button type="button" class="tut" data-v="../help/departments.mp4"><img src="../help/departments.jpg" alt="" loading="lazy" width="960" height="540"><span>เพิ่มแผนก</span></button><button type="button" class="tut" data-v="../help/rooms.mp4"><img src="../help/rooms.jpg" alt="" loading="lazy" width="960" height="540"><span>เพิ่มห้องพัก</span></button><button type="button" class="tut" data-v="../help/webpage.mp4"><img src="../help/webpage.jpg" alt="" loading="lazy" width="960" height="540"><span>สร้างหน้าเว็บ</span></button><button type="button" class="tut" data-v="../help/social.mp4"><img src="../help/social.jpg" alt="" loading="lazy" width="960" height="540"><span>สร้างโพสต์โซเชียล</span></button></div>
     </div>
   </section>
 
@@ -894,5 +907,6 @@ fbq('init','1689705395897075');fbq('track','PageView');
   cur(c);
 })();
 </script>
+<script>document.querySelectorAll('.tut').forEach(function(b){b.addEventListener('click',function(){var v=document.createElement('video');v.src=b.dataset.v;v.controls=true;v.autoplay=true;v.playsInline=true;var i=b.querySelector('img');if(i)i.replaceWith(v);b.style.cursor='default';},{once:true});});</script>
 </body>
 </html>
