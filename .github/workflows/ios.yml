@@ -120,7 +120,7 @@ jobs:
           BUNDLE=$(node -p "require('./capacitor.config.json').appId")
           BUILD=$(( ${{ github.run_number }} + 100 ))
           # the version shown in the App Store: native/apps/<app>/version (one line, for example 1.1), else 1.0
-          VER=$(cat apps/$APP/version 2>/dev/null | tr -d ' \r\n'); VER=${VER:-1.0}
+          VER=$( (cat apps/$APP/version 2>/dev/null || true) | tr -d ' \r\n'); VER=${VER:-1.0}
           # the archive is built unsigned and signed only when it is exported for the App Store (Apple's cloud signing), so a build never makes
           # a new development certificate: Apple allows only a few, and every cloud Mac used to add one until the account was full
           if [ -d ios/App/App.xcworkspace ]; then TGT="-workspace ios/App/App.xcworkspace"; else TGT="-project ios/App/App.xcodeproj"; fi

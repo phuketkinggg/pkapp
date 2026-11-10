@@ -77,7 +77,7 @@ jobs:
           done
           grep -c uses-permission $M
           VC=$(( ${{ github.run_number }} + 100 ))
-          VER=$(cat apps/$APP/version 2>/dev/null | tr -d ' \r\n'); VER=${VER:-1.0}
+          VER=$( (cat apps/$APP/version 2>/dev/null || true) | tr -d ' \r\n'); VER=${VER:-1.0}
           sed -i -E "s/versionCode [0-9]+/versionCode $VC/; s/versionName \"[^\"]+\"/versionName \"$VER.$VC\"/" android/app/build.gradle
           grep -E "versionCode|versionName|applicationId" android/app/build.gradle
       - name: Signing key
