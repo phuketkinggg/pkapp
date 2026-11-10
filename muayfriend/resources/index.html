@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Muay Friend Resources | Guides and tutorials</title>
+<meta name="description" content="Step by step guides and short videos for Muay Friend gyms: connect Facebook, Instagram, WhatsApp, YouTube and TikTok, turn on AI replies, and set up your gym.">
+<link rel="canonical" href="https://muayfriend.com/resources/">
+<meta name="theme-color" content="#101A2E">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:800;font-display:swap;src:url(../fonts/big-shoulders-display-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/instrument-sans-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/instrument-sans-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Noto Sans Thai';font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/noto-sans-thai-thai-400-normal.woff2) format('woff2');unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+@font-face{font-family:'Noto Sans Thai';font-style:normal;font-weight:600;font-display:swap;src:url(../fonts/noto-sans-thai-thai-600-normal.woff2) format('woff2');unicode-range:U+0E01-0E5B,U+200C-200D,U+25CC}
+:root{--canvas:#ECEDE8;--paper:#F7F7F4;--ink:#101A2E;--ink2:#3C4558;--muted:#5D6474;--red:#D7263D;--blue:#2759DA;--navy:#101A2E;--line:#CED2CA;
+  --display:'Big Shoulders Display','Noto Sans Thai','Arial Narrow',sans-serif;--body:'Instrument Sans','Noto Sans Thai',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink);font:400 17px/1.6 var(--body)}
+[lang=th] body,html[lang=th]{line-height:1.75}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px;border-radius:4px}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:1;margin:0}
+html[lang=th] h1,html[lang=th] h2,html[lang=th] h3{line-height:1.3}
+h1{font-size:clamp(44px,7vw,76px);text-transform:uppercase}
+h2{font-size:34px;margin:36px 0 14px}
+h3{font-size:24px;line-height:1.15}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:999px;font:600 15px var(--body);text-decoration:none;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+.btn:hover{background:var(--red);border-color:var(--red)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:#fff}
+.btn.small{min-height:36px;padding:0 14px;font-size:14px}
+.btn:disabled{opacity:.5;cursor:default}
+.top{position:sticky;top:0;z-index:20;background:rgba(236,237,232,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 22px var(--body);color:#17213C;white-space:nowrap}
+.brand .mark{width:36px;height:28px;color:var(--blue)}
+.top .sp{margin-left:auto}
+.top .btn{white-space:nowrap}
+@media (max-width:420px){.top .btn{min-height:38px;padding:0 14px;font-size:14px}.brand{font-size:19px}.top .wrap{gap:12px}}
+.lang{font-weight:600;font-size:15px;color:var(--ink2);background:none;border:0;cursor:pointer;padding:8px 4px;font-family:var(--body)}
+.help{margin:44px 0;background:var(--navy);color:#fff;border-radius:20px;padding:28px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.help h3{color:#fff}
+.help p{margin:4px 0 0;color:#C9CFDB}
+.help .btn{background:#fff;color:var(--ink);border-color:#fff}
+form.vf{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+form.vf label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+form.vf .full{grid-column:1/-1}
+form.vf input,form.vf textarea,form.vf select{font:15px var(--body);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink)}
+form.vf textarea{min-height:76px;resize:vertical}
+form.vf .hint{font-weight:400;color:var(--muted);font-size:13px}
+form.vf .check{flex-direction:row;align-items:center;gap:8px}
+footer{background:var(--navy);color:#9AA3B5;padding:26px 0;font-size:15px;margin-top:20px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center}
+footer a{color:#C9CFDB}
+footer button{background:none;border:0;color:#9AA3B5;font:15px var(--body);text-decoration:underline;cursor:pointer;padding:0}
+@media (max-width:640px){form.vf{grid-template-columns:1fr}}
+
+.hero{padding:44px 0 8px}.hero p{color:var(--ink2);font-size:19px;max-width:38em}
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px}
+.jump a{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:600 14px var(--body);color:var(--ink2);text-decoration:none}
+.jump a:hover{border-color:var(--ink);color:var(--ink)}
+.sec{font-size:clamp(34px,5vw,48px);text-transform:uppercase;margin:44px 0 6px}
+.guide{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:24px;margin:22px 0;scroll-margin-top:84px}
+.guide h2{margin:0 0 8px;font-size:32px}
+.guide .lede{color:var(--ink2);margin:0 0 16px}
+.guide h4{margin:0 0 6px;font:600 16px var(--body)}
+.need,.tips{background:var(--paper);border-radius:14px;padding:14px 18px;margin:14px 0}
+.need ul,.tips ul{margin:0;padding-left:20px}.need li,.tips li{margin:4px 0}.need p{margin:0}
+.tips{background:#EEF2FC}
+.steps{list-style:none;counter-reset:s;padding:0;margin:18px 0}
+.steps>li{counter-increment:s;position:relative;padding-left:46px;margin:0 0 20px}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--red);color:#fff;font:700 16px/32px var(--body);text-align:center}
+.steps p{margin:3px 0 10px}
+.steps figure{margin:0}.steps img{width:100%;max-width:880px;height:auto;display:block;border-radius:12px;border:1.5px solid var(--line)}
+.vids{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-top:14px}
+.card{background:#fff;border:1.5px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.card video{width:100%;aspect-ratio:16/9;display:block;background:var(--navy)}
+.card .txt{padding:14px 16px 16px}.card .txt p{margin:6px 0 0;color:var(--ink2);font-size:15px}
+.more{margin-top:14px}
+@media (max-width:640px){.guide{padding:18px 16px}.steps>li{padding-left:40px}.top .lang{display:none}}
+</style>
+<script src="/stats.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="../" aria-label="Muay Friend home"><svg class="mark" viewBox="40 66 226 178" aria-hidden="true"><g fill="currentColor" stroke="currentColor" stroke-width="8" stroke-linejoin="round"><path d="M55 95 L145 142 L148 229 L54 170 Z"/><path d="M168 119 L250 79 L251 117 L166 168 Z"/><path d="M172 179 L222 153 L220 195 L169 226 Z"/></g></svg>Muay Friend</a>
+    <span class="sp"></span>
+    <a class="lang" href="../support/">Support</a>
+    <a class="btn" href="../app/">Open your app</a>
+  </div>
+</header>
+<main class="wrap">
+  <section class="hero">
+    <h1>Resources</h1>
+    <p>Step by step guides and short videos for your gym in Muay Friend. Start with connecting your messages and social media.</p>
+    <nav class="jump" aria-label="Guides"><a href="#facebook">Connect Facebook and Instagram</a><a href="#whatsapp">Connect WhatsApp</a><a href="#ai">Turn on AI replies</a><a href="#youtube">Connect YouTube and TikTok</a><a href="#videos">Videos</a></nav>
+  </section>
+  <h2 class="sec">Guides</h2>
+  <article class="guide" id="facebook"><h2>Connect Facebook and Instagram</h2><p class="lede">Messages from your Facebook page and Instagram come into Messages, and Social media posts to both. About 5 minutes.</p><div class="need"><h4>Before you start</h4><ul>
+<li>Your gym has a <b>Facebook page</b> and you are an admin of it (full control).</li>
+<li>Your <b>Instagram is a professional account</b> (business or creator). In the Instagram app: your profile, the menu, <b>Account type and tools</b>, <b>Switch to professional account</b>.</li>
+<li>Your <b>Instagram is linked to the Facebook page</b>. In the Instagram app: <b>Edit profile</b>, <b>Page</b>, and pick your page. Or in Meta Business Suite: Settings, Instagram accounts, Connect.</li>
+<li>You are signed in to the app as the owner or a manager, on a computer if you can (the Meta window is easier on a big screen).</li></ul></div>
+<ol class="steps">
+<li><p>Open <b>Messages</b>. At the top, tap <b>Connect Facebook and Instagram</b>. You can also start from <b>Social media</b>.</p><figure><img src="img/fb_1.jpg" alt="Open Messages. At the top, tap Connect Facebook and Instagram. You can also start from Social media." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>Tap <b>Sign in with Meta</b>. A Meta window opens. If nothing happens, allow pop ups for the app and tap it again.</p><figure><img src="img/fb_2.jpg" alt="Tap Sign in with Meta. A Meta window opens. If nothing happens, allow pop ups for the app and tap it again." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>In the Meta window: sign in with the Facebook account that is an admin of the page, tap <b>Continue</b>, pick your <b>business</b> if asked, then tick <b>your page</b> and <b>your Instagram account</b>. Leave every permission on and tap <b>Save</b>.</p></li>
+<li><p>If your account manages more than one page, the app asks which one. Pick your gym's page and tap <b>Connect</b>.</p><figure><img src="img/fb_3.jpg" alt="If your account manages more than one page, the app asks which one. Pick your gym&#x27;s page and tap Connect." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>Done. Messages shows <b>Connected</b> with your page and Instagram name. New Facebook and Instagram messages now come into Messages, and your team gets a phone notice.</p><figure><img src="img/fb_4.jpg" alt="Done. Messages shows Connected with your page and Instagram name. New Facebook and Instagram messages now come into Messages, and your team gets a phone notice." loading="lazy" width="1440" height="810"></figure></li>
+</ol>
+<div class="need"><h4>For Instagram messages, one more switch</h4><p>In the Instagram app: <b>Settings</b>, <b>Messages and story replies</b>, <b>Message controls</b>, <b>Connected tools</b>, and turn on <b>Allow access to messages</b>. Without it, Instagram messages stay in Instagram only.</p></div>
+<div class="tips"><h4>Good to know</h4><ul>
+<li>Meta lets businesses reply within 24 hours of the customer's last message. After that, the app says it could not be delivered.</li>
+<li>To use a different page, tap <b>Change Facebook page</b>. To stop, tap <b>Disconnect Facebook</b>.</li>
+<li>Posting from Social media uses the same connection. Nothing is posted until a manager approves it.</li></ul></div></article><article class="guide" id="whatsapp"><h2>Connect WhatsApp</h2><p class="lede">WhatsApp chats come into Messages next to Facebook, Instagram and website chat. Your number can stay on the WhatsApp Business app on your phone. About 10 minutes.</p><div class="need"><h4>Before you start</h4><ul>
+<li>Your number is on the <b>WhatsApp Business app</b> (not the normal WhatsApp app), version 2.24.17 or newer. Update it in the App Store or Google Play first.</li>
+<li>Have the phone with that WhatsApp in your hand: you scan a code with it.</li>
+<li>A Facebook account you use for the business. If you connected Facebook above, use the same one.</li>
+<li>Signed in to the app as the owner or a manager, ideally on a computer.</li></ul></div>
+<ol class="steps">
+<li><p>Open <b>Messages</b> and tap <b>Connect WhatsApp</b>.</p><figure><img src="img/wa_1.jpg" alt="Open Messages and tap Connect WhatsApp." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>Choose <b>Keep it on the WhatsApp Business app on my phone too</b>, so you can still use WhatsApp on the phone. Then tap <b>Sign in with Meta</b>.</p><figure><img src="img/wa_2.jpg" alt="Choose Keep it on the WhatsApp Business app on my phone too, so you can still use WhatsApp on the phone. Then tap Sign in with Meta." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>In the Meta window: sign in, tap <b>Get started</b>, pick your <b>business</b> (or create one with your gym's name), and choose <b>Connect your existing WhatsApp Business app</b>.</p></li>
+<li><p>Type your WhatsApp number. Meta shows a <b>QR code</b>. On the phone, WhatsApp Business shows a message about connecting: follow it and scan the code. Choose to <b>share your chat history</b> so recent chats come into the app too.</p></li>
+<li><p>Done. Messages shows WhatsApp <b>Connected</b> with your number. Tap <b>Check</b> any time to see that it is working.</p><figure><img src="img/wa_3.jpg" alt="Done. Messages shows WhatsApp Connected with your number. Tap Check any time to see that it is working." loading="lazy" width="1440" height="810"></figure></li>
+</ol>
+<div class="tips"><h4>Good to know</h4><ul>
+<li>Replies you send from the phone also show in the app, and replies from the app show on the phone.</li>
+<li>WhatsApp lets businesses reply within 24 hours of the customer's last message.</li>
+<li>Keep using the WhatsApp Business app at least once every 14 days, or WhatsApp may disconnect it from the app.</li>
+<li>A brand new number not on any phone? Choose <b>A number only for the app</b> instead.</li></ul></div></article><article class="guide" id="ai"><h2>Turn on AI replies</h2><p class="lede">After connecting, the AI can answer WhatsApp, Facebook and Instagram straight away with your prices and class times. About 3 minutes.</p><ol class="steps">
+<li><p>In <b>Messages</b>, tap <b>AI replies</b>. Set AI replies to <b>On</b> and tick where it answers: WhatsApp, Facebook Messenger, Instagram.</p><figure><img src="img/ai_1.jpg" alt="In Messages, tap AI replies. Set AI replies to On and tick where it answers: WhatsApp, Facebook Messenger, Instagram." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>Choose <b>When</b>: at all times, or only when your website chat shows Away (outside desk hours).</p></li>
+<li><p>Write <b>Notes for the AI</b>: your address and how to get there, opening hours, what to bring, and anything else people ask. Prices and the timetable come from the app by themselves. Tap <b>Save</b>.</p></li>
+</ol>
+<div class="tips"><h4>Good to know</h4><ul>
+<li>When a staff member replies in a chat, the AI stays quiet there.</li>
+<li>For bookings, payments, complaints or anything it does not know, it tells the customer the team will reply and sends your desk a phone notice.</li></ul></div></article><article class="guide" id="youtube"><h2>Connect YouTube and TikTok</h2><p class="lede">Post your reels to YouTube Shorts and TikTok from Social media, with Facebook and Instagram. About 2 minutes each.</p><ol class="steps">
+<li><p>Open <b>Social media</b>. Facebook and Instagram connect here too, the same way as in Messages.</p><figure><img src="img/soc_1.jpg" alt="Open Social media. Facebook and Instagram connect here too, the same way as in Messages." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>Tap <b>Connect YouTube</b>. Google opens: sign in with the account that owns your YouTube channel, pick the channel, and allow the app to upload videos. You come back to the app and it shows your channel name.</p><figure><img src="img/soc_2.jpg" alt="Tap Connect YouTube. Google opens: sign in with the account that owns your YouTube channel, pick the channel, and allow the app to upload videos. You come back to the app and it shows your channel name." loading="lazy" width="1440" height="810"></figure></li>
+<li><p>Tap <b>Connect TikTok</b>. Sign in with your business TikTok account and allow everything asked. Your videos go to your TikTok drafts: open TikTok to add a sound and post.</p><figure><img src="img/soc_3.jpg" alt="Tap Connect TikTok. Sign in with your business TikTok account and allow everything asked. Your videos go to your TikTok drafts: open TikTok to add a sound and post." loading="lazy" width="1440" height="810"></figure></li>
+</ol>
+<div class="tips"><h4>Good to know</h4><ul>
+<li>When you make a post, tick where it goes. A reel can go to all four at once.</li>
+<li>Videos under about 60 MB send best.</li></ul></div></article>
+  <h2 class="sec" id="videos">Videos</h2>
+  <p>Short videos of how to set up your gym. Each one is under a minute.</p>
+  <div class="vids"><article class="card"><video controls preload="none" playsinline poster="../help/package_templates.jpg" src="../help/package_templates.mp4"></video><div class="txt"><h3>Packages from a template</h3><p>Pick ready made packages, set your prices, and they are on sale.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/packages.jpg" src="../help/packages.mp4"></video><div class="txt"><h3>Set up a package</h3><p>A class pass or membership: price, what it covers, visits and how long it lasts.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/privates.jpg" src="../help/privates.mp4"></video><div class="txt"><h3>Private lessons, priced by how many</h3><p>The more lessons someone buys, the less each one costs.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/timetable.jpg" src="../help/timetable.mp4"></video><div class="txt"><h3>Set up your timetable</h3><p>Add your weekly classes, or start from a template.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/staff.jpg" src="../help/staff.mp4"></video><div class="txt"><h3>Add a staff member</h3><p>Coaches and front desk, with what each can see and do.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/customers.jpg" src="../help/customers.mp4"></video><div class="txt"><h3>Add a customer</h3><p>Add a member by hand and sell them a package.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/departments.jpg" src="../help/departments.mp4"></video><div class="txt"><h3>Add a department</h3><p>Split your business, for example gym, cafe and shop.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/rooms.jpg" src="../help/rooms.mp4"></video><div class="txt"><h3>Add a room</h3><p>For camps with rooms: prices and booking site calendars.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/webpage.jpg" src="../help/webpage.mp4"></video><div class="txt"><h3>Make a web page</h3><p>A page on your website, written with AI.</p></div></article><article class="card"><video controls preload="none" playsinline poster="../help/social.jpg" src="../help/social.mp4"></video><div class="txt"><h3>Make a social media post</h3><p>Photos, a caption from AI, approve and it posts on time.</p></div></article></div>
+  <p class="more">More videos, in English and Thai, on the <a href="../support/">Support</a> page.</p>
+  <section class="help">
+    <div><h3>Rather we do it with you?</h3><p>Email us and we connect Facebook, Instagram and WhatsApp with you on a short video call, usually the same day.</p></div>
+    <a class="btn" href="mailto:hello@muayfriend.com">Email hello@muayfriend.com</a>
+  </section>
+</main>
+<footer>
+  <div class="wrap">
+    <span>Muay Friend</span>
+    <a href="../">Home</a>
+    <a href="../support/">Support</a>
+    <a href="mailto:hello@muayfriend.com">hello@muayfriend.com</a>
+  </div>
+</footer>
+<script>
+// one video at a time
+document.addEventListener('play',function(e){ document.querySelectorAll('video').forEach(function(v){ if(v!==e.target) v.pause(); }); },true);
+</script>
+</body>
+</html>

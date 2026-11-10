@@ -22130,5 +22130,589 @@
 "How to": [
 "วิธีทำ",
 "လုပ်နည်း"
+],
+" (you have one)": [
+" (คุณมีแล้ว)",
+" (သင့်တွင် ရှိပြီး)"
+],
+" a day: tick below.": [
+" ต่อวัน: ติ๊กด้านล่าง",
+" တစ်ရက်: အောက်တွင် အမှန်ခြစ်ပါ။"
+],
+" and is paid when the bill is settled. ": [
+" และจ่ายเมื่อชำระบิล ",
+" ဘေလ်ရှင်းသည့်အခါ ပေးချေသည်။ "
+],
+" and your password. Forgot it? Tap Forgot password on the sign in page.": [
+" และรหัสผ่านของคุณ ลืมรหัสผ่าน? แตะ ลืมรหัสผ่าน ที่หน้าเข้าสู่ระบบ",
+" နှင့် သင့်စကားဝှက်ကို သုံးပါ။ မေ့နေပါသလား? ဝင်ရောက်သည့်စာမျက်နှာတွင် စကားဝှက်မေ့နေသည် ကိုနှိပ်ပါ။"
+],
+" classes already. These are added next to them, so you may want to remove the old ones after.": [
+" คลาสอยู่แล้ว คลาสเหล่านี้จะถูกเพิ่มต่อจากคลาสเดิม คุณอาจต้องการลบคลาสเก่าออกภายหลัง",
+" အတန်း ရှိပြီးသားဖြစ်သည်။ ယင်းတို့ဘေးတွင် ထပ်ထည့်မည်ဖြစ်၍ နောက်မှ အဟောင်းများကို ဖယ်ရှားလိုပါက ဖယ်ရှားနိုင်သည်။"
+],
+" is over 50 MB.": [
+" มีขนาดเกิน 50 MB",
+" သည် 50 MB ထက် ကျော်နေသည်။"
+],
+" of at least 1,000 THB, or leave it empty.": [
+" อย่างน้อย 1,000 บาท หรือเว้นว่างไว้",
+" အနည်းဆုံး 1,000 ဘတ်၊ သို့မဟုတ် ဗလာထားပါ။"
+],
+" of shop sales went on room bills and is counted when the bill is paid. ": [
+" ของยอดขายหน้าร้านลงบิลห้อง และนับเมื่อชำระบิลแล้ว ",
+" ဆိုင်ရောင်းအား အခန်းဘေလ်သို့ ရောက်သွားပြီး ဘေလ်ပေးချေသည့်အခါ ရေတွက်သည်။ "
+],
+" on sale": [
+" วางขาย",
+" ရောင်းချနေသည်"
+],
+" on training packages and courses": [
+" สำหรับแพ็กเกจฝึกและคอร์ส",
+" လေ့ကျင့်ရေး ပက်ကေ့ချ်များနှင့် သင်တန်းများအတွက်"
+],
+" products. Only managers can change products and prices.": [
+" รายการ เฉพาะผู้จัดการเท่านั้นที่เปลี่ยนสินค้าและราคาได้",
+" ခု။ မန်နေဂျာများသာ ကုန်ပစ္စည်းနှင့် ဈေးနှုန်းများကို ပြောင်းနိုင်သည်။"
+],
+" room bills": [
+" บิลห้อง",
+" အခန်းဘေလ်"
+],
+" sales made": [
+" รายการขาย",
+" ရောင်းချမှု"
+],
+"\". Done: ": [
+"\" แล้ว เสร็จ: ",
+"\" ကို အတည်ပြုခဲ့သည်။ ပြီးစီး: "
+],
+"% of everything booked through your link": [
+"% ของทุกการจองผ่านลิงก์ของคุณ",
+"% သင့်လင့်ခ်မှ ဘွတ်ကင်အားလုံး၏"
+],
+"% of what is booked or bought through your link": [
+"% ของสิ่งที่จองหรือซื้อผ่านลิงก์ของคุณ",
+"% သင့်လင့်ခ်မှ ဘွတ်ကင် သို့မဟုတ် ဝယ်ယူသမျှ၏"
+],
+"% on anything else": [
+"% สำหรับรายการอื่น",
+"% အခြားအရာများအတွက်"
+],
+"% on rooms": [
+"% สำหรับห้องพัก",
+"% အခန်းများအတွက်"
+],
+") is added for you.": [
+") จะเพิ่มให้อัตโนมัติ",
+") ကို သင့်အတွက် ထည့်ပေးမည်။"
+],
+", Saturday ": [
+", วันเสาร์ ",
+", စနေနေ့ "
+],
+", and ": [
+", และ ",
+", နှင့် "
+],
+"1 month unlimited": [
+"ไม่จำกัด 1 เดือน",
+"၁ လ အကန့်အသတ်မဲ့"
+],
+"1 week unlimited": [
+"ไม่จำกัด 1 สัปดาห์",
+"၁ ပတ် အကန့်အသတ်မဲ့"
+],
+"10 classes": [
+"10 คลาส",
+"အတန်း 10 ခု"
+],
+"10 classes within 90 days": [
+"10 คลาส ภายใน 90 วัน",
+"90 ရက်အတွင်း အတန်း 10 ခု"
+],
+"3 months unlimited": [
+"ไม่จำกัด 3 เดือน",
+"၃ လ အကန့်အသတ်မဲ့"
+],
+"A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.": [
+"ปุ่ม แพ็กต้อนรับ ที่พาร์ทเนอร์แต่ละราย (การแนะนำ): อีเมลเดียวที่มีลิงก์ของเขา สิ่งที่เขาจะได้รับ ลิงก์ไปยังหน้าหลักของคุณ วิธีเข้าสู่ระบบแอปเพื่อดูการจองและรายได้ และเคล็ดลับการใช้ลิงก์ บัญชีแอปจะสร้างจากอีเมลของเขาหากยังไม่มี คุณอ่านแล้วกด ส่ง เปลี่ยนข้อความได้ที่ การแนะนำ, อีเมลต้อนรับ",
+"မိတ်ဖက်တစ်ဦးစီတွင် ကြိုဆိုရေးအစုံ ခလုတ် (ညွှန်းဆိုမှုများ): ၎င်းတို့၏လင့်ခ်၊ ရရှိမည့်ငွေ၊ သင့်အဓိကစာမျက်နှာများသို့ လင့်ခ်များ၊ ဘွတ်ကင်နှင့် ဝင်ငွေကြည့်ရန် အက်ပ်သို့ ဝင်ရောက်နည်းနှင့် လင့်ခ်သုံးရန် အကြံပြုချက်များပါသော အီးမေးလ်တစ်စောင်။ အက်ပ်အကောင့် မရှိသေးပါက ၎င်းတို့၏အီးမေးလ်ဖြင့် ဖွင့်ပေးမည်။ သင်ဖတ်ပြီး ပို့မည် ကိုနှိပ်ပါ။ စာသားကို ညွှန်းဆိုမှုများ၊ ကြိုဆိုအီးမေးလ် တွင် ပြောင်းပါ။"
+],
+"A coach gets a notification on their phone when a private is booked with them, moved or cancelled. The coach turns notifications on once, on their own screen in the app.": [
+"โค้ชจะได้รับการแจ้งเตือนบนโทรศัพท์เมื่อมีการจองไพรเวทกับเขา เลื่อน หรือยกเลิก โค้ชเปิดการแจ้งเตือนครั้งเดียวบนหน้าจอของตัวเองในแอป",
+"သီးသန့်သင်တန်းကို ဘွတ်ကင်လုပ်ခြင်း၊ ရွှေ့ခြင်း သို့မဟုတ် ပယ်ဖျက်ခြင်းရှိသည့်အခါ နည်းပြသည် ဖုန်းတွင် အသိပေးချက် ရရှိသည်။ နည်းပြသည် အက်ပ်ရှိ ကိုယ်ပိုင်စခရင်တွင် အသိပေးချက်ကို တစ်ကြိမ် ဖွင့်ရသည်။"
+],
+"About": [
+"เกี่ยวกับ",
+"အကြောင်း"
+],
+"Add a price for ": [
+"เพิ่มราคาสำหรับ ",
+"ဈေးနှုန်းထည့်ရန် "
+],
+"Afternoon class": [
+"คลาสบ่าย",
+"နေ့လယ်အတန်း"
+],
+"All classes for one day": [
+"ทุกคลาสสำหรับหนึ่งวัน",
+"တစ်ရက်အတွက် အတန်းအားလုံး"
+],
+"All levels": [
+"ทุกระดับ",
+"အဆင့်အားလုံး"
+],
+"All low items are listed above.": [
+"สินค้าที่ใกล้หมดทั้งหมดแสดงอยู่ด้านบน",
+"လက်ကျန်နည်းသော ပစ္စည်းအားလုံးကို အပေါ်တွင် ဖော်ပြထားသည်။"
+],
+"All products": [
+"สินค้าทั้งหมด",
+"ကုန်ပစ္စည်းအားလုံး"
+],
+"Also in API setup. Switches on messages for this account.": [
+"อยู่ใน API setup เช่นกัน เปิดข้อความสำหรับบัญชีนี้",
+"API setup တွင်လည်း ရှိသည်။ ဤအကောင့်အတွက် မက်ဆေ့ချ်များကို ဖွင့်ပေးသည်။"
+],
+"At the top choose setup and tap Run. Allow it to read your Gmail and connect to the app.": [
+"ด้านบนเลือก setup แล้วแตะ Run อนุญาตให้อ่าน Gmail และเชื่อมต่อกับแอป",
+"အပေါ်တွင် setup ကိုရွေးပြီး Run ကိုနှိပ်ပါ။ Gmail ကိုဖတ်ရန်နှင့် အက်ပ်နှင့် ချိတ်ဆက်ရန် ခွင့်ပြုပါ။"
+],
+"Beginners": [
+"ผู้เริ่มต้น",
+"အစပြုသူများ"
+],
+"Best sellers": [
+"ขายดี",
+"အရောင်းရဆုံး"
+],
+"Book by ": [
+"จองภายใน ",
+"ဘွတ်ကင်နောက်ဆုံးရက် "
+],
+"By day": [
+"ตามวัน",
+"နေ့အလိုက်"
+],
+"By month": [
+"ตามเดือน",
+"လအလိုက်"
+],
+"By staff": [
+"ตามพนักงาน",
+"ဝန်ထမ်းအလိုက်"
+],
+"Camp": [
+"Camp",
+"Camp"
+],
+"Cash expected": [
+"เงินสดที่ควรมี",
+"မျှော်မှန်းငွေသား"
+],
+"Categories": [
+"หมวดหมู่",
+"အမျိုးအစားများ"
+],
+"Clean up, booking emails, backups, check in QR code, AI use": [
+"ทำความสะอาด อีเมลการจอง สำรองข้อมูล QR code เช็คอิน การใช้ AI",
+"ရှင်းလင်းခြင်း၊ ဘိုကင် အီးမေးလ်များ၊ အရန်သိမ်းခြင်း၊ ချက်အင် QR code၊ AI အသုံးပြုမှု"
+],
+"Coach notifications for privates": [
+"การแจ้งเตือนโค้ชสำหรับไพรเวท",
+"သီးသန့်သင်တန်းအတွက် နည်းပြ အသိပေးချက်များ"
+],
+"Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.": [
+"อีเมลยืนยันและยกเลิกจากเอเจนซี่และเว็บไซต์จองจะถูก AI อ่านเข้าแอป: แขกคลาสกลุ่มแสดงที่ วันนี้ พร้อม มาแล้ว และ ไม่มา ไพรเวทไปยังโค้ชที่ว่าง (หรือรอโค้ช) และแขกห้องพักจะได้ชื่อ อีเมล และเบอร์โทรจากเว็บไซต์จองลงในการเข้าพัก ตั้งค่าได้ที่ ตั้งค่า, ทั่วไป, อีเมลการจอง",
+"အေဂျင်စီများနှင့် ဘွတ်ကင်ဆိုက်များမှ အတည်ပြုနှင့် ပယ်ဖျက် အီးမေးလ်များကို AI က အက်ပ်ထဲသို့ ဖတ်သွင်းသည်: အုပ်စုအတန်း ဧည့်သည်များ ယနေ့ တွင် ရောက်ပြီး နှင့် မလာ ဖြင့် ပေါ်သည်၊ သီးသန့်သင်တန်းများ အားလပ်သော နည်းပြထံ သွားသည် (သို့မဟုတ် စောင့်သည်)၊ အခန်းဧည့်သည်များ၏ အမည်၊ အီးမေးလ်နှင့် ဖုန်းကို ဘွတ်ကင်ဆိုက်မှ တည်းခိုမှုတွင် ရရှိသည်။ ဆက်တင်များ၊ အထွေထွေ၊ ဘိုကင် အီးမေးလ်များ တွင် စီစဉ်ပါ။"
+],
+"Count": [
+"นับ",
+"ရေတွက်"
+],
+"Count by": [
+"นับตาม",
+"ရေတွက်ပုံ"
+],
+"Counted": [
+"นับแล้ว",
+"ရေတွက်ပြီး"
+],
+"Counted products (": [
+"สินค้าที่นับแล้ว (",
+"ရေတွက်ပြီး ကုန်ပစ္စည်းများ ("
+],
+"Day pass": [
+"บัตรรายวัน",
+"တစ်ရက်လက်မှတ်"
+],
+"Delete what is there, paste the script below, and save it.": [
+"ลบสิ่งที่มีอยู่ วางสคริปต์ด้านล่าง แล้วบันทึก",
+"ရှိနေသည်ကို ဖျက်ပြီး အောက်ပါ script ကို ကူးထည့်ကာ သိမ်းပါ။"
+],
+"Delivery": [
+"ของเข้า",
+"ပစ္စည်းဝင်"
+],
+"Delivery in": [
+"ของเข้า",
+"ပစ္စည်းဝင်"
+],
+"Discounts and refunds": [
+"ส่วนลดและคืนเงิน",
+"လျှော့ဈေးနှင့် ငွေပြန်အမ်းမှုများ"
+],
+"Done. Every 5 minutes new emails from those sites come into the app, and Gmail labels them in-app. Add other agencies to the from list if you use them.": [
+"เสร็จแล้ว ทุก 5 นาที อีเมลใหม่จากเว็บไซต์เหล่านั้นจะเข้าแอป และ Gmail จะติดป้าย in-app ให้ เพิ่มเอเจนซี่อื่นในรายการ from หากคุณใช้",
+"ပြီးပါပြီ။ ၅ မိနစ်တိုင်း ထိုဆိုက်များမှ အီးမေးလ်အသစ်များ အက်ပ်ထဲ ဝင်လာပြီး Gmail က in-app ဟု တံဆိပ်တပ်ပေးသည်။ အခြားအေဂျင်စီများ သုံးပါက from စာရင်းတွင် ထည့်ပါ။"
+],
+"Done. Signing you in with your new password.": [
+"เสร็จแล้ว กำลังเข้าสู่ระบบด้วยรหัสผ่านใหม่",
+"ပြီးပါပြီ။ စကားဝှက်အသစ်ဖြင့် ဝင်ရောက်နေသည်။"
+],
+"Done. This phone gets a notification for new privates and messages.": [
+"เสร็จแล้ว โทรศัพท์นี้จะได้รับการแจ้งเตือนไพรเวทใหม่และข้อความ",
+"ပြီးပါပြီ။ ဤဖုန်းသည် သီးသန့်သင်တန်းအသစ်များနှင့် မက်ဆေ့ချ်များအတွက် အသိပေးချက် ရရှိမည်။"
+],
+"Drop in, 1 class": [
+"Drop in 1 คลาส",
+"Drop in၊ အတန်း 1 ခု"
+],
+"Evenings after work, and Saturday morning": [
+"ตอนเย็นหลังเลิกงาน และเช้าวันเสาร์",
+"အလုပ်ပြီးနောက် ညနေများနှင့် စနေနေ့ နံနက်"
+],
+"Every class for 3 months": [
+"ทุกคลาสเป็นเวลา 3 เดือน",
+"၃ လအတွင်း အတန်းတိုင်း"
+],
+"Every class for 30 days": [
+"ทุกคลาสเป็นเวลา 30 วัน",
+"30 ရက်အတွင်း အတန်းတိုင်း"
+],
+"Every class for 7 days": [
+"ทุกคลาสเป็นเวลา 7 วัน",
+"7 ရက်အတွင်း အတန်းတိုင်း"
+],
+"Everywhere": [
+"ทุกที่",
+"နေရာတိုင်း"
+],
+"Extras a guest books with a room on your website booking plugin (breakfast, a meal plan, training, transfers) come into the app on their stay, paid with the stay. Breakfasts and meal plans can then be ticked as served and billed by the cafe.": [
+"รายการเสริมที่แขกจองพร้อมห้องผ่านปลั๊กอินจองบนเว็บไซต์ (อาหารเช้า แพ็กเกจอาหาร การฝึก รถรับส่ง) จะเข้ามาในแอปที่การเข้าพัก และชำระพร้อมการเข้าพัก อาหารเช้าและแพ็กเกจอาหารสามารถติ๊กว่าเสิร์ฟแล้วและให้คาเฟ่เรียกเก็บได้",
+"ဧည့်သည်က ဝဘ်ဆိုက် ဘွတ်ကင် plugin တွင် အခန်းနှင့်အတူ မှာသော အပိုများ (နံနက်စာ၊ အစားအစာ အစီအစဉ်၊ လေ့ကျင့်ရေး၊ အကြိုအပို့) သည် တည်းခိုမှုတွင် အက်ပ်ထဲ ဝင်လာပြီး တည်းခိုမှုနှင့်အတူ ပေးချေသည်။ နံနက်စာနှင့် အစားအစာ အစီအစဉ်များကို ကျွေးပြီးဟု အမှန်ခြစ်ကာ ကဖေးက ငွေတောင်းနိုင်သည်။"
+],
+"First ": [
+"แรก ",
+"ပထမ "
+],
+"For example 1:900, 5:800, 10:700. 1 to 4 privates are 900 each, 5 to 9 are 800 each, 10 or more 700 each.": [
+"ตัวอย่างเช่น 1:900, 5:800, 10:700 ไพรเวท 1 ถึง 4 ครั้งละ 900 5 ถึง 9 ครั้งละ 800 10 ครั้งขึ้นไปครั้งละ 700",
+"ဥပမာ 1:900, 5:800, 10:700။ သီးသန့်သင်တန်း 1 မှ 4 အထိ တစ်ခုလျှင် 900၊ 5 မှ 9 အထိ တစ်ခုလျှင် 800၊ 10 နှင့်အထက် တစ်ခုလျှင် 700။"
+],
+"For example S, M, L, XL": [
+"ตัวอย่างเช่น S, M, L, XL",
+"ဥပမာ S, M, L, XL"
+],
+"For example:\nNormal milk 0\nOat milk 20\nAlmond milk 25": [
+"ตัวอย่างเช่น:\nนมปกติ 0\nนมโอ๊ต 20\nนมอัลมอนด์ 25",
+"ဥပမာ:\nနို့ပုံမှန် 0\nအုတ်နို့ 20\nဗာဒံနို့ 25"
+],
+"Get a notification on this phone when a private is booked with you.": [
+"รับการแจ้งเตือนบนโทรศัพท์นี้เมื่อมีการจองไพรเวทกับคุณ",
+"သင်နှင့် သီးသန့်သင်တန်း ဘွတ်ကင်လုပ်သည့်အခါ ဤဖုန်းတွင် အသိပေးချက် ရယူပါ။"
+],
+"Gym Plus": [
+"Gym Plus",
+"Gym Plus"
+],
+"How many are there now?": [
+"ตอนนี้มีกี่ชิ้น?",
+"ယခု ဘယ်နှစ်ခု ရှိသနည်း?"
+],
+"How many came in?": [
+"เข้ามากี่ชิ้น?",
+"ဘယ်နှစ်ခု ဝင်လာသနည်း?"
+],
+"How many to take off? (broken, expired, staff use)": [
+"ตัดออกกี่ชิ้น? (เสีย หมดอายุ พนักงานใช้)",
+"ဘယ်နှစ်ခု နုတ်မည်နည်း? (ပျက်စီး၊ သက်တမ်းကုန်၊ ဝန်ထမ်းသုံး)"
+],
+"I confirmed \"": [
+"ฉันยืนยัน \"",
+"ကျွန်ုပ် \""
+],
+"In stock": [
+"มีสินค้า",
+"လက်ကျန်ရှိ"
+],
+"Low on stock (": [
+"สินค้าใกล้หมด (",
+"လက်ကျန်နည်း ("
+],
+"Master": [
+"Master",
+"Master"
+],
+"Months": [
+"เดือน",
+"လ"
+],
+"Morning class": [
+"คลาสเช้า",
+"နံနက်အတန်း"
+],
+"No category": [
+"ไม่มีหมวดหมู่",
+"အမျိုးအစားမရှိ"
+],
+"No money in.": [
+"ไม่มีเงินเข้า",
+"ငွေဝင်မရှိ။"
+],
+"No products are counted here yet. Tap Start counting on a product below, or use Count stock when you edit a product.": [
+"ยังไม่มีสินค้าที่นับที่นี่ แตะ เริ่มนับ ที่สินค้าด้านล่าง หรือใช้ นับสต็อก เมื่อแก้ไขสินค้า",
+"ဤနေရာတွင် ရေတွက်ထားသော ကုန်ပစ္စည်း မရှိသေးပါ။ အောက်ရှိ ကုန်ပစ္စည်းတွင် ရေတွက်မှု စတင်မည် ကိုနှိပ်ပါ၊ သို့မဟုတ် ကုန်ပစ္စည်းပြင်ဆင်ရာတွင် လက်ကျန်ရေတွက်ရန် ကိုသုံးပါ။"
+],
+"No products yet. Add them here, or send me the Loyverse export to load them all.": [
+"ยังไม่มีสินค้า เพิ่มที่นี่ หรือส่งไฟล์ export จาก Loyverse มาให้ฉันเพื่อโหลดทั้งหมด",
+"ကုန်ပစ္စည်း မရှိသေးပါ။ ဤနေရာတွင် ထည့်ပါ၊ သို့မဟုတ် အားလုံးတင်ရန် Loyverse export ကို ကျွန်ုပ်ထံ ပို့ပါ။"
+],
+"No sales.": [
+"ไม่มียอดขาย",
+"ရောင်းချမှု မရှိပါ။"
+],
+"Not counted (": [
+"ยังไม่ได้นับ (",
+"မရေတွက်ရသေး ("
+],
+"Nothing here yet.": [
+"ยังไม่มีอะไรที่นี่",
+"ဤနေရာတွင် ဘာမျှ မရှိသေးပါ။"
+],
+"On a computer, open script.google.com signed in to the Gmail account the booking emails arrive in, and tap New project.": [
+"บนคอมพิวเตอร์ เปิด script.google.com โดยเข้าสู่ระบบด้วยบัญชี Gmail ที่รับอีเมลการจอง แล้วแตะ New project",
+"ကွန်ပျူတာတွင် ဘွတ်ကင်အီးမေးလ်များ ရောက်သော Gmail အကောင့်ဖြင့် ဝင်ထားပြီး script.google.com ကိုဖွင့်ကာ New project ကိုနှိပ်ပါ။"
+],
+"One class, used within 30 days": [
+"หนึ่งคลาส ใช้ภายใน 30 วัน",
+"အတန်းတစ်ခု၊ 30 ရက်အတွင်း သုံးရန်"
+],
+"Online course: ": [
+"คอร์สออนไลน์: ",
+"အွန်လိုင်းသင်တန်း: "
+],
+"Optional. For example the supplier.": [
+"ไม่บังคับ ตัวอย่างเช่น ผู้จัดจำหน่าย",
+"မဖြစ်မနေမဟုတ်။ ဥပမာ ပေးသွင်းသူ။"
+],
+"Packages, privates and room bills paid": [
+"แพ็กเกจ ไพรเวท และบิลห้องที่ชำระแล้ว",
+"ပေးချေပြီး ပက်ကေ့ချ်များ၊ သီးသန့်သင်တန်းများနှင့် အခန်းဘေလ်များ"
+],
+"Partner": [
+"พาร์ทเนอร์",
+"မိတ်ဖက်"
+],
+"Phone or WhatsApp": [
+"โทรศัพท์หรือ WhatsApp",
+"ဖုန်း သို့မဟုတ် WhatsApp"
+],
+"Prices": [
+"ราคา",
+"ဈေးနှုန်းများ"
+],
+"Prices (how many: price each)": [
+"ราคา (จำนวน: ราคาต่อหน่วย)",
+"ဈေးနှုန်းများ (အရေအတွက်: တစ်ခုချင်းဈေး)"
+],
+"Private lessons": [
+"ไพรเวท",
+"သီးသန့်သင်တန်းများ"
+],
+"Product": [
+"สินค้า",
+"ကုန်ပစ္စည်း"
+],
+"Refund: ": [
+"คืนเงิน: ",
+"ငွေပြန်အမ်း: "
+],
+"Sales and money in": [
+"ยอดขายและเงินเข้า",
+"ရောင်းအားနှင့် ငွေဝင်"
+],
+"Shifts": [
+"กะ",
+"ဆိုင်းများ"
+],
+"Showing 60. Search to find the rest.": [
+"แสดง 60 รายการ ค้นหาเพื่อดูที่เหลือ",
+"60 ခု ပြသထားသည်။ ကျန်ရှိသည်ကို ရှာဖွေပါ။"
+],
+"Sign in with ": [
+"เข้าสู่ระบบด้วย ",
+"ဝင်ရောက်ရန် "
+],
+"Sold": [
+"ขายแล้ว",
+"ရောင်းပြီး"
+],
+"Stock count": [
+"นับสต็อก",
+"လက်ကျန်ရေတွက်ခြင်း"
+],
+"Taken by": [
+"รับโดย",
+"လက်ခံသူ"
+],
+"Tap Create account and use this email: ": [
+"แตะ สร้างบัญชี และใช้อีเมลนี้: ",
+"အကောင့် ဖွင့်မည် ကိုနှိပ်ပြီး ဤအီးမေးလ်ကို သုံးပါ: "
+],
+"The customer picks how many. The more they buy, the less each one costs": [
+"ลูกค้าเลือกจำนวนเอง ยิ่งซื้อมาก ราคาต่อหน่วยยิ่งถูก",
+"ဖောက်သည်က အရေအတွက် ရွေးသည်။ များများဝယ်လေ တစ်ခုချင်းဈေး သက်သာလေ"
+],
+"The long number under the phone number in API setup.": [
+"ตัวเลขยาวใต้เบอร์โทรศัพท์ใน API setup",
+"API setup တွင် ဖုန်းနံပါတ်အောက်ရှိ နံပါတ်ရှည်။"
+],
+"Three a day, Monday to Saturday": [
+"วันละสามคลาส จันทร์ถึงเสาร์",
+"တစ်ရက် သုံးကြိမ်၊ တနင်္လာမှ စနေ"
+],
+"Tours": [
+"ทัวร์",
+"ခရီးစဉ်များ"
+],
+"Two a day, Monday to Saturday": [
+"วันละสองคลาส จันทร์ถึงเสาร์",
+"တစ်ရက် နှစ်ကြိမ်၊ တနင်္လာမှ စနေ"
+],
+"Type a number.": [
+"พิมพ์ตัวเลข",
+"နံပါတ် ရိုက်ထည့်ပါ။"
+],
+"Typed in": [
+"พิมพ์เอง",
+"ရိုက်ထည့်"
+],
+"Walk-in, bought at the till ": [
+"วอล์กอิน ซื้อที่เคาน์เตอร์ ",
+"Walk-in၊ ငွေကောင်တာတွင် ဝယ်ယူ "
+],
+"Waste": [
+"ของเสีย",
+"အလေအလွင့်"
+],
+"Waste or used": [
+"ของเสียหรือใช้แล้ว",
+"အလေအလွင့် သို့မဟုတ် သုံးပြီး"
+],
+"Website booking extras on the stay": [
+"รายการเสริมจากการจองบนเว็บไซต์ในการเข้าพัก",
+"တည်းခိုမှုတွင် ဝဘ်ဆိုက် ဘွတ်ကင် အပိုများ"
+],
+"Weekend class": [
+"คลาสวันหยุดสุดสัปดาห์",
+"စနေတနင်္ဂနွေ အတန်း"
+],
+"Weeks": [
+"สัปดาห์",
+"ပတ်"
+],
+"You have ": [
+"คุณมี ",
+"သင့်တွင် "
+],
+"refunded in Stripe": [
+"คืนเงินใน Stripe แล้ว",
+"Stripe တွင် ငွေပြန်အမ်းပြီး"
+],
+"th of it for each extra night. Used only when it is cheaper than the nightly price. Change ": [
+"ส่วนของราคานี้สำหรับแต่ละคืนที่เพิ่ม ใช้เฉพาะเมื่อถูกกว่าราคาต่อคืน เปลี่ยน ",
+"ပုံ တစ်ပုံ ညတစ်ညစီအတွက်။ ညစဉ်ဈေးထက် သက်သာမှသာ သုံးသည်။ ပြောင်းရန် "
+],
+"the changes": [
+"การเปลี่ยนแปลง",
+"အပြောင်းအလဲများ"
+],
+" (Instagram @": [
+" (Instagram @",
+" (Instagram @"
+],
+" (no Instagram linked)": [
+" (ไม่ได้เชื่อม Instagram)",
+" (Instagram မချိတ်ထားပါ)"
+],
+"A Meta window opens. Sign in with the Facebook account that is an admin of your page, tick your page and its Instagram account, and allow everything asked. Your Instagram must be a business or creator account linked to the page.": [
+"หน้าต่าง Meta จะเปิดขึ้น เข้าสู่ระบบด้วยบัญชี Facebook ที่เป็นแอดมินของเพจ ติ๊กเพจของคุณและบัญชี Instagram ของเพจ แล้วอนุญาตทุกอย่างที่ขอ Instagram ของคุณต้องเป็นบัญชีธุรกิจหรือครีเอเตอร์ที่เชื่อมกับเพจ",
+"Meta ဝင်းဒိုး ပွင့်လာမည်။ သင့်စာမျက်နှာ၏ admin ဖြစ်သော Facebook အကောင့်ဖြင့် ဝင်ပါ၊ သင့်စာမျက်နှာနှင့် ၎င်း၏ Instagram အကောင့်ကို အမှန်ခြစ်ပြီး တောင်းသမျှကို ခွင့်ပြုပါ။ သင့် Instagram သည် စာမျက်နှာနှင့် ချိတ်ထားသော business သို့မဟုတ် creator အကောင့် ဖြစ်ရမည်။"
+],
+"A manager connects your Facebook page and Instagram from the app, with a Meta sign in, in Messages or Social media. Their messages come into Messages and Social media posts to them. Off: the page is connected for you by the team that runs your app.": [
+"ผู้จัดการเชื่อมต่อเพจ Facebook และ Instagram ของคุณจากแอป ด้วยการเข้าสู่ระบบ Meta ใน ข้อความ หรือ โซเชียลมีเดีย ข้อความที่ส่งถึงเพจจะเข้ามาใน ข้อความ และโพสต์จาก โซเชียลมีเดีย จะไปที่เพจ ปิด: ทีมที่ดูแลแอปของคุณจะเชื่อมต่อเพจให้",
+"မန်နေဂျာက သင့် Facebook စာမျက်နှာနှင့် Instagram ကို အက်ပ်မှ Meta ဖြင့် ဝင်ရောက်ကာ မက်ဆေ့ချ်များ သို့မဟုတ် ဆိုရှယ်မီဒီယာ တွင် ချိတ်ဆက်သည်။ ၎င်းတို့၏ မက်ဆေ့ချ်များ မက်ဆေ့ချ်များ ထဲသို့ ဝင်လာပြီး ဆိုရှယ်မီဒီယာ မှ ပို့စ်များ ၎င်းတို့ထံ တင်သည်။ ပိတ်: သင့်အက်ပ်ကို လုပ်ဆောင်ပေးသော အဖွဲ့က စာမျက်နှာကို ချိတ်ဆက်ပေးသည်။"
+],
+"Change Facebook page": [
+"เปลี่ยนเพจ Facebook",
+"Facebook စာမျက်နှာ ပြောင်းရန်"
+],
+"Connect Facebook and Instagram": [
+"เชื่อมต่อ Facebook และ Instagram",
+"Facebook နှင့် Instagram ချိတ်ဆက်ရန်"
+],
+"Connected. Messages may need one more step in Meta: ": [
+"เชื่อมต่อแล้ว ข้อความอาจต้องทำอีกหนึ่งขั้นตอนใน Meta: ",
+"ချိတ်ဆက်ပြီး။ မက်ဆေ့ချ်များအတွက် Meta တွင် နောက်ထပ်အဆင့်တစ်ခု လိုနိုင်သည်: "
+],
+"Could not reach Meta. Try again.": [
+"ติดต่อ Meta ไม่ได้ ลองอีกครั้ง",
+"Meta ကို ဆက်သွယ်၍ မရပါ။ ထပ်စမ်းကြည့်ပါ။"
+],
+"Disconnect Facebook": [
+"ยกเลิกการเชื่อมต่อ Facebook",
+"Facebook ချိတ်ဆက်မှု ဖြုတ်ရန်"
+],
+"Disconnect the Facebook page? Messages and posts stop until you connect again.": [
+"ยกเลิกการเชื่อมต่อเพจ Facebook? ข้อความและโพสต์จะหยุดจนกว่าคุณจะเชื่อมต่ออีกครั้ง",
+"Facebook စာမျက်နှာ ချိတ်ဆက်မှု ဖြုတ်မလား? ပြန်ချိတ်ဆက်သည်အထိ မက်ဆေ့ချ်များနှင့် ပို့စ်များ ရပ်မည်။"
+],
+"Disconnected. The page set up for you before is used again.": [
+"ยกเลิกการเชื่อมต่อแล้ว จะกลับไปใช้เพจที่ตั้งค่าไว้ให้คุณก่อนหน้านี้",
+"ချိတ်ဆက်မှု ဖြုတ်ပြီး။ ယခင်က သင့်အတွက် စီစဉ်ပေးထားသော စာမျက်နှာကို ပြန်သုံးမည်။"
+],
+"Facebook and Instagram": [
+"Facebook และ Instagram",
+"Facebook နှင့် Instagram"
+],
+"Facebook and Instagram connected.": [
+"เชื่อมต่อ Facebook และ Instagram แล้ว",
+"Facebook နှင့် Instagram ချိတ်ဆက်ပြီး။"
+],
+"Facebook and Instagram disconnected.": [
+"ยกเลิกการเชื่อมต่อ Facebook และ Instagram แล้ว",
+"Facebook နှင့် Instagram ချိတ်ဆက်မှု ဖြုတ်ပြီး။"
+],
+"Facebook sign in configuration ID": [
+"Configuration ID สำหรับเข้าสู่ระบบ Facebook",
+"Facebook ဝင်ရောက်မှု configuration ID"
+],
+"In Meta for Developers, your app, App settings, Basic.": [
+"ใน Meta for Developers, แอปของคุณ, App settings, Basic",
+"Meta for Developers၊ သင့်အက်ပ်၊ App settings၊ Basic တွင်။"
+],
+"In your Meta app: Facebook Login for Business, Configurations, the one for pages and Instagram.": [
+"ในแอป Meta ของคุณ: Facebook Login for Business, Configurations, อันที่ใช้สำหรับเพจและ Instagram",
+"သင့် Meta အက်ပ်တွင်: Facebook Login for Business၊ Configurations၊ စာမျက်နှာများနှင့် Instagram အတွက် တစ်ခု။"
+],
+"One moment.": [
+"รอสักครู่",
+"ခဏစောင့်ပါ။"
+],
+"Which Facebook page?": [
+"เพจ Facebook ไหน?",
+"မည်သည့် Facebook စာမျက်နှာ?"
 ]
 }

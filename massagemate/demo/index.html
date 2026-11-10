@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=164"></script>
+<script src="changelog.js?v=165"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -941,6 +941,7 @@ var FEATURES=[
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'coach_docs',g:'Training',n:'Coaching documents',d:'A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.'},
   {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
+  {k:'meta_connect',g:'Messages',n:'Connect Facebook and Instagram',d:'A manager connects your Facebook page and Instagram from the app, with a Meta sign in, in Messages or Social media. Their messages come into Messages and Social media posts to them. Off: the page is connected for you by the team that runs your app.',def:true,spa:true},
   {k:'whatsapp_inbox',g:'Messages',n:'WhatsApp in Messages',d:'Connect your business WhatsApp number in Messages. WhatsApp chats come into the app next to website chat, Facebook and Instagram, the desk gets a phone notice, and staff read and reply from the app. Your number can stay on the WhatsApp Business app on your phone at the same time.',def:false},
   {k:'ai_reply',g:'Messages',n:'AI replies to customers',d:'An AI answers WhatsApp, Facebook and Instagram messages straight away, in the customer\'s language, using your prices, class times and notes from the app. It stays quiet in a chat once a staff member replies, and hands over to the team (with a phone notice) for bookings, payments, complaints and anything it does not know. Choose always, or only when the desk is away. Uses your AI allowance.',def:false},
   {k:'chat_report',g:'Messages',n:'Report a message',d:'Anyone in a chat can report a message someone else wrote, with a reason if they want. Managers and the front desk get a notice that opens the chat. App stores ask for this in apps with group chats.'},
@@ -1020,7 +1021,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=106; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=107; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3775,20 +3776,30 @@ function webChatHours(){
     onSave:function(v){ return sb.rpc('web_chat_settings_save',{p_on:v.on==='1',p_from:String(v.from).slice(0,5),p_to:String(v.to).slice(0,5)}).then(must).then(function(d){ WEBCHAT=d; schedule(); }); }});
 }
 /* ---------- WhatsApp in Messages and AI replies (features whatsapp_inbox and ai_reply) ---------- */
-var WA=null, AIR=null;
+var WA=null, AIR=null, FBL=null, METACFG=null;
+function metaCall(body){ return sb.functions.invoke('meta',{body:body}).then(function(r){ var d=r.data||{}; if(r.error&&!d.error) throw new Error('Could not reach Meta. Try again.'); if(d.error) throw new Error(d.error); return d; }); }
+// the Meta app ID and sign in configuration IDs (from the app's secrets, or typed in once by a manager)
+function loadMetaCfg(){ if(METACFG) return Promise.resolve(METACFG); return metaCall({mode:'meta_cfg'}).then(function(d){ METACFG=d; return d; },function(){ METACFG={}; return METACFG; }); }
 function loadWa(){
-  return Promise.all([featOn('whatsapp_inbox')?sb.rpc('wa_status'):Promise.resolve({data:null}),featOn('ai_reply')?sb.rpc('ai_reply_settings'):Promise.resolve({data:null})]).then(function(r){
-    WA=r[0].error?{connected:false}:(r[0].data||{connected:false}); AIR=r[1].error?null:r[1].data; schedule(); },function(){});
+  var mgr=me&&me.role==='manager';
+  return Promise.all([featOn('whatsapp_inbox')?sb.rpc('wa_status'):Promise.resolve({data:null}),featOn('ai_reply')?sb.rpc('ai_reply_settings'):Promise.resolve({data:null}),
+    mgr&&featOn('meta_connect')?metaCall({mode:'fb_check'}).catch(function(e){ return {connected:false,err:errText(e)}; }):Promise.resolve(null),
+    mgr&&(featOn('meta_connect')||featOn('whatsapp_inbox'))?loadMetaCfg():Promise.resolve(null)]).then(function(r){
+    WA=r[0].error?{connected:false}:(r[0].data||{connected:false}); AIR=r[1].error?null:r[1].data; FBL=r[2]; schedule(); },function(){});
 }
 function waBox(){
-  if(!isDeskRole()||(!featOn('whatsapp_inbox')&&!featOn('ai_reply'))) return null;
+  if(!isDeskRole()||(!featOn('whatsapp_inbox')&&!featOn('ai_reply')&&!featOn('meta_connect'))) return null;
   if(!WA){ if(!ui.waAsked){ ui.waAsked=true; loadWa(); } return null; }
   var mgr=me.role==='manager', parts=[];
+  if(mgr&&featOn('meta_connect')&&FBL) parts.push(h('div',{class:'chatrow'},h('b',null,'Facebook and Instagram'),chip(FBL.connected?'Connected':'Not connected',FBL.connected?'ok':'')),
+    h('p',{class:'sub',style:'margin:6px 0'},FBL.connected?'Facebook page: '+(FBL.page||'')+'. Instagram: '+(FBL.instagram?'@'+FBL.instagram:'not linked to the page')+'. Messages from both come in here.':'Connect your Facebook page and Instagram to read and reply to their messages here, and to post from Social media.'));
   if(featOn('whatsapp_inbox')) parts.push(h('div',{class:'chatrow'},h('b',null,'WhatsApp'),chip(WA.connected?'Connected':'Not connected',WA.connected?'ok':'')),
     h('p',{class:'sub',style:'margin:6px 0'},WA.connected?(WA.name?WA.name+', ':'')+(WA.number||'')+(WA.coexist?'. Also works in the WhatsApp Business app on your phone.':'. WhatsApp messages to this number come into Messages.'):'Connect your business WhatsApp number to read and reply to WhatsApp chats here.'));
   if(featOn('ai_reply')) parts.push(h('p',{class:'sub',style:'margin:6px 0'},h('b',null,'AI replies: '),!AIR||!AIR.on?'off.':'on for '+((AIR.channels||[]).map(function(k){ return {wa:'WhatsApp',fb:'Facebook',ig:'Instagram'}[k]; }).join(', ')||'no channels')+(AIR.when==='away'?', only when website chat shows Away':', at all times')+'. Quiet for '+AIR.pause_h+' hours after a staff reply.'));
   return h('div',{class:'panel',style:'padding:12px 14px;margin-bottom:12px'},parts,
     mgr?h('div',{class:'row'},
+      featOn('meta_connect')&&FBL?btn(FBL.connected?'Change Facebook page':'Connect Facebook and Instagram',fbConnect,FBL.connected?'small':'primary small'):null,
+      featOn('meta_connect')&&FBL&&FBL.in_app?btn('Disconnect Facebook',fbDisconnect,'small'):null,
       featOn('whatsapp_inbox')?btn(WA.connected?'Reconnect WhatsApp':'Connect WhatsApp',waConnect,WA.connected?'small':'primary small'):null,
       featOn('whatsapp_inbox')&&WA.connected?btn('Check',waCheck,'small'):null,
       featOn('ai_reply')?btn('AI replies',aiReplyForm,'small'):null):null);
@@ -3810,15 +3821,18 @@ function fbSdk(appId){
   });
 }
 function waConnect(){
-  var cfg=(WA&&WA.meta)||{};
+  if(!METACFG){ toast('One moment.'); loadMetaCfg().then(waConnect); return; }
+  var typed=(WA&&WA.meta)||{}, mc=METACFG||{}, cfg={app_id:mc.app_id||typed.app_id||'',config_id:mc.wa_config||typed.config_id||''}, fixed=mc.set&&mc.set.app_id&&mc.set.wa_config;
   if(cfg.app_id) fbSdk(cfg.app_id).catch(function(){});
+  var fields=[{key:'coexist',label:'Your number',type:'select',def:'1',options:[['1','Keep it on the WhatsApp Business app on my phone too'],['0','A number only for the app (not on a phone)']],hint:'Keeping it on the phone needs WhatsApp Business app version 2.24.17 or newer. In the Meta window you scan a code with the phone.'}];
+  if(!fixed) fields.push({key:'app_id',label:'Meta app ID',def:cfg.app_id||'',required:true,hint:'In Meta for Developers, your app, App settings, Basic.'},
+      {key:'config_id',label:'WhatsApp sign in configuration ID',def:cfg.config_id||'',required:true,hint:'In your Meta app: Facebook Login for Business, Configurations, the WhatsApp Embedded Signup one.'});
   openForm({title:'Connect WhatsApp',saveLabel:'Sign in with Meta',
     note:'A Meta window opens. Sign in with the Facebook account that manages your business, pick your business and your WhatsApp number, and allow access. Your messages then come into Messages.',
-    fields:[{key:'coexist',label:'Your number',type:'select',def:'1',options:[['1','Keep it on the WhatsApp Business app on my phone too'],['0','A number only for the app (not on a phone)']],hint:'Keeping it on the phone needs WhatsApp Business app version 2.24.17 or newer. In the Meta window you scan a code with the phone.'},
-      {key:'app_id',label:'Meta app ID',def:cfg.app_id||'',required:true,hint:'In Meta for Developers, your app, App settings, Basic.'},
-      {key:'config_id',label:'WhatsApp sign in configuration ID',def:cfg.config_id||'',required:true,hint:'In your Meta app: Facebook Login for Business, Configurations, the WhatsApp Embedded Signup one.'}],
+    fields:fields,
     extraBtn:['Set up by hand',function(){ $dlg.close(); waManual(); }],doneMsg:'WhatsApp connected.',
     onSave:function(v){
+      if(fixed){ v.app_id=cfg.app_id; v.config_id=cfg.config_id; }
       // the Meta window must open straight from the tap (phones block pop ups that open later), so the sign in script is loaded first
       if(!window.FB||FBSDK_APP!==v.app_id){ fbSdk(v.app_id).catch(function(e){ toast(errText(e)); }); return 'One moment, the Meta sign in is loading. Tap Sign in with Meta again.'; }
       var coexist=v.coexist==='1', session={};
@@ -3832,7 +3846,7 @@ function waConnect(){
         },{config_id:v.config_id,response_type:'code',override_default_response_type:true,extras:coexist?{setup:{},featureType:'whatsapp_business_app_onboarding',sessionInfoVersion:'3'}:{setup:{},sessionInfoVersion:'3'}});
       });
       return gotCode.then(function(code){
-        return sb.rpc('wa_meta_save',{p_app_id:v.app_id,p_config_id:v.config_id}).then(must).then(function(){ if(WA) WA.meta={app_id:v.app_id,config_id:v.config_id};
+        return (fixed?Promise.resolve():sb.rpc('wa_meta_save',{p_app_id:v.app_id,p_config_id:v.config_id}).then(must)).then(function(){ if(WA&&!fixed) WA.meta={app_id:v.app_id,config_id:v.config_id}; METACFG=null;
           return sb.functions.invoke('meta',{body:{mode:'wa_connect',code:code,waba_id:session.waba_id||'',phone_id:session.phone_number_id||'',coexist:coexist}}); });
       }).then(function(r){ window.removeEventListener('message',onMsg); var d=r.data||{};
         if(r.error||d.error) throw new Error(d.error||'Could not connect WhatsApp.');
@@ -3848,6 +3862,43 @@ function waManual(){
     onSave:function(v){ return sb.functions.invoke('meta',{body:{mode:'wa_manual',phone_id:v.phone_id,waba_id:v.waba_id}}).then(function(r){ var d=r.data||{};
       if(r.error||d.error) throw new Error(d.error||'Could not connect.'); WA=null; ui.waAsked=false; schedule(); }); }});
 }
+// Facebook page and Instagram (feature meta_connect): Meta's own sign in window, then the app connects the page
+function fbConnect(){
+  if(!METACFG){ toast('One moment.'); loadMetaCfg().then(fbConnect); return; }
+  var mc=METACFG||{}, fixed=mc.set&&mc.set.app_id&&mc.set.fb_config, cfg={app_id:mc.app_id||'',config_id:mc.fb_config||''};
+  if(cfg.app_id) fbSdk(cfg.app_id).catch(function(){});
+  var fields=fixed?[]:[{key:'app_id',label:'Meta app ID',def:cfg.app_id,required:true,hint:'In Meta for Developers, your app, App settings, Basic.'},
+    {key:'config_id',label:'Facebook sign in configuration ID',def:cfg.config_id,required:true,hint:'In your Meta app: Facebook Login for Business, Configurations, the one for pages and Instagram.'}];
+  openForm({title:'Connect Facebook and Instagram',saveLabel:'Sign in with Meta',
+    note:'A Meta window opens. Sign in with the Facebook account that is an admin of your page, tick your page and its Instagram account, and allow everything asked. Your Instagram must be a business or creator account linked to the page.',
+    fields:fields,doneMsg:'Facebook and Instagram connected.',
+    onSave:function(v){
+      if(fixed){ v.app_id=cfg.app_id; v.config_id=cfg.config_id; }
+      if(!window.FB||FBSDK_APP!==v.app_id){ fbSdk(v.app_id).catch(function(e){ toast(errText(e)); }); return 'One moment, the Meta sign in is loading. Tap Sign in with Meta again.'; }
+      var gotCode=new Promise(function(res,rej){
+        FB.login(function(resp){ var code=resp&&resp.authResponse&&resp.authResponse.code;
+          if(!code) return rej(new Error('The Meta window was closed before the end. Nothing was changed.')); res(code); },
+          {config_id:v.config_id,response_type:'code',override_default_response_type:true});
+      });
+      return gotCode.then(function(code){
+        return (fixed?Promise.resolve():sb.rpc('meta_login_save',{p_app_id:v.app_id,p_fb_config:v.config_id}).then(must)).then(function(){ METACFG=null; return metaCall({mode:'fb_connect',code:code}); });
+      }).then(function(d){
+        if(d.choose){ setTimeout(function(){ fbPick(d.choose); },50); return; }
+        fbDone(d);
+      });
+    }});
+}
+function fbPick(list){
+  openForm({title:'Which Facebook page?',saveLabel:'Connect',doneMsg:'Facebook and Instagram connected.',
+    fields:[{key:'page',label:'Page',type:'select',def:list[0].id,options:list.map(function(x){ return [x.id,x.name+(x.instagram?' (Instagram @'+x.instagram+')':' (no Instagram linked)')]; })}],
+    onSave:function(v){ return metaCall({mode:'fb_pick',page_id:v.page}).then(fbDone); }});
+}
+function fbDone(d){
+  WA=null; FBL=null; ui.waAsked=false; if(typeof SOC!=='undefined'&&SOC) SOC.cfg=null; if(typeof socCheck==='function'&&SOC&&SOC.list) socCheck(); schedule();
+  if(d&&d.warn&&d.warn.length) setTimeout(function(){ toast('Connected. Messages may need one more step in Meta: '+d.warn[0]); },400);
+}
+function fbDisconnect(){ if(!confirm('Disconnect the Facebook page? Messages and posts stop until you connect again.')) return;
+  metaCall({mode:'fb_disconnect'}).then(function(d){ fbDone(); toast(d.still?'Disconnected. The page set up for you before is used again.':'Facebook and Instagram disconnected.'); }).catch(function(e){ toast(errText(e)); }); }
 function aiReplyForm(){
   var c=AIR||{};
   openForm({title:'AI replies',saveLabel:'Save',doneMsg:'AI replies saved.',
@@ -6130,7 +6181,8 @@ function vSocial(){
       {label:'',cell:function(p){ return socStatus(p); }}],list,empty); }
   var L=SOC.list, up=L.filter(function(p){ return p.status==='scheduled'||p.status==='posting'; }).sort(function(a,b){ return Date.parse(a.post_at)-Date.parse(b.post_at); });
   if(SOCTIME===null){ SOCTIME=''; loadSocTime().then(schedule); }
-  return [pageHead('Social media',conn,h('div',{class:'row'},btn('Posting time, '+socTime(),socTimeEdit,'small'),ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,ttOn()&&c&&!c.err?(c.tiktok?btn('Disconnect TikTok',ttDisconnect,'small'):btn('Connect TikTok',ttConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
+  var fbBtn=featOn('meta_connect')&&me.role==='manager'&&c&&!c.err?btn(c.meta?'Change Facebook page':'Connect Facebook and Instagram',fbConnect,c.meta?'small':'primary small'):null;
+  return [pageHead('Social media',conn,h('div',{class:'row'},fbBtn,btn('Posting time, '+socTime(),socTimeEdit,'small'),ytOn()&&c&&!c.err?(c.youtube?btn('Disconnect YouTube',ytDisconnect,'small'):btn('Connect YouTube',ytConnect,'small')):null,ttOn()&&c&&!c.err?(c.tiktok?btn('Disconnect TikTok',ttDisconnect,'small'):btn('Connect TikTok',ttConnect,'small')):null,btn('New post',function(){ socEdit(); },'primary'))),
     section('Coming up',null,rows(up,'Nothing approved yet. Approved posts go out on their own at the time you set.')),
     section('Drafts',null,rows(L.filter(function(p){ return p.status==='draft'; }),'No drafts.')),
     section('Posted',null,rows(L.filter(function(p){ return p.status==='posted'||p.status==='failed'; }).slice(0,40),'Nothing posted from the app yet.')),
