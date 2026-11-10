@@ -126,10 +126,11 @@ jobs:
           if [ -d ios/App/App.xcworkspace ]; then TGT="-workspace ios/App/App.xcworkspace"; else TGT="-project ios/App/App.xcodeproj"; fi
           xcodebuild $TGT -scheme App -configuration Release -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/App.xcarchive" archive $AUTH \
-            DEVELOPMENT_TEAM=$TEAM_ID CODE_SIGN_STYLE=Manual PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="-" PROVISIONING_PROFILE_SPECIFIER="" \
-            CODE_SIGN_ENTITLEMENTS=App/App.entitlements \
+            DEVELOPMENT_TEAM=$TEAM_ID CODE_SIGN_STYLE=Automatic PRODUCT_BUNDLE_IDENTIFIER=$BUNDLE CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             CURRENT_PROJECT_VERSION=$BUILD MARKETING_VERSION=$VER TARGETED_DEVICE_FAMILY="1,2" > "$RUNNER_TEMP/archive.log" 2>&1 || { report archive; exit 1; }
-          # the push entitlement must be in the archive, so the App Store signing keeps it
+          # the push entitlement must be in the archive, so the App Store signing keeps it: a temporary local signature carrying
+          # only the entitlements (the export below signs it properly with Apple's cloud signing)
+          codesign --force --sign - --entitlements ios/App/App/App.entitlements "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" || echo "::warning title=$APP::Could not add the push entitlement"
           if codesign -d --entitlements - "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" 2>/dev/null | grep -q aps-environment; then echo "::notice title=$APP::Push entitlement in the archive"; else echo "::warning title=$APP::No push entitlement in the archive"; fi
           cat > "$RUNNER_TEMP/export.plist" <<PL
           <?xml version="1.0" encoding="UTF-8"?>
