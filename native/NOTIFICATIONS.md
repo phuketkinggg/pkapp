@@ -14,19 +14,18 @@ notifications plugin built in, and the server needs Apple's and Google's keys. D
    - APNS_TEAM_ID: the Team ID
    - APNS_TOPIC: com.phuketking.app
    One key works for all your apps; APNS_TOPIC is the bundle ID of the app in that Supabase project.
-4. On the Mac, in this native folder:
-   npm install
-   npx cap sync ios
-   Open the iOS project in Xcode, the app target, Signing and Capabilities, + Capability:
-   Push Notifications, and + Capability: Background Modes, tick Remote notifications.
-5. Raise the version to 1.1 (build number +1), Product, Archive, upload to App Store Connect.
+4. Nothing to build by hand: GitHub builds the apps with notifications switched on (Actions, iOS apps) and uploads them
+   to TestFlight. The version is in native/apps/<app>/version (Phuket King 1.1).
 
 ## Android (Google Firebase)
-1. console.firebase.google.com, Add project (or use one you have), then Add app, Android,
-   package name com.phuketking.app. Download google-services.json and put it in android/app/.
-2. Project settings, Service accounts, Generate new private key. It downloads a JSON file.
-3. Supabase, Edge Functions, Secrets, add FCM_SERVICE_ACCOUNT: the whole text of that JSON file.
-4. npx cap sync android, raise versionCode and versionName (1.1), build the release bundle, upload to Google Play.
+1. console.firebase.google.com, Add project, then Add app, Android, once for each app: com.phuketking.app,
+   com.pangeaglobalwellness.app, com.muayfriend.muayapp. Download google-services.json after adding the last one
+   (it then holds all of them).
+2. GitHub, the repo, Settings, Secrets and variables, Actions, New repository secret: GOOGLE_SERVICES_JSON with the
+   whole text of that file. The Android builds then include notifications (until then they are built without them).
+3. Project settings, Service accounts, Generate new private key. Supabase, Edge Functions, Secrets: add
+   FCM_SERVICE_ACCOUNT with the whole text of that JSON file.
+4. GitHub, Actions, Android apps, Run workflow. Download the .aab from the run and upload it to Google Play.
 
 ## Check it works
 Open the new app, sign in, Messages, Turn on notifications on this phone, Allow. The app then shows in the
