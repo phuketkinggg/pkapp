@@ -42,7 +42,7 @@ begin
   elsif p_kind = 'book_class' then
     select * into a from public.agency_bookings where id = p_id; if a.id is null then return null; end if;
     t := 'จองคลาสใหม่ / New class booking';
-    b := coalesce(a.guest_name, 'A guest') || coalesce(', ' || a.people || ' people', '') || ': ' || coalesce(to_char(a.date, 'Dy DD Mon'), '') || coalesce(' ' || a.time::text, '')
+    b := coalesce(a.guest_name, 'A guest') || case when a.people > 1 then ', ' || a.people || ' people' else '' end || ': ' || coalesce(to_char(a.date, 'Dy DD Mon'), '') || coalesce(' ' || left(a.time::text, 5), '')
       || coalesce(' (' || a.source_name || ')', '') || '.';
   else return null; end if;
   return jsonb_build_object('title', t, 'body', left(b, 180), 'tag', p_kind || '-' || p_id, 'url', url,
