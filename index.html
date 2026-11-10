@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=167"></script>
+<script src="changelog.js?v=168"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -61,6 +61,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15p
 #nav{display:flex;flex-direction:column;gap:2px}
 #nav button{appearance:none;border:0;background:transparent;color:var(--ink);font:500 15px var(--body);text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:44px;white-space:nowrap}
 #nav button:hover{background:var(--surface)}
+#nav button.navsrch{border:1px solid var(--line);background:var(--sunken);color:var(--muted,inherit);margin-bottom:6px}
+.srchbox{width:100%;box-sizing:border-box}.srchin{width:100%;box-sizing:border-box;font:16px var(--body);padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);margin:10px 0}
+.srchres{max-height:60vh;overflow:auto}.srchgrp h3{font:700 12px var(--body);letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin:12px 0 4px}
+.srchrow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);padding:9px 10px;border-radius:8px;cursor:pointer;font:15px var(--body)}
+.srchrow:hover,.srchrow:focus{background:var(--surface);outline:none}.srchrow .sub{font-size:13px}
 #nav button.navgrp{display:flex;justify-content:space-between;align-items:center;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;opacity:.75;margin-top:8px;min-height:40px}#nav button.navgrp:first-child{margin-top:0}#nav .navcar{font-size:13px;opacity:.8}#nav button.navin{padding-left:22px}#nav button.shut{display:none}
 .navedit{display:flex;flex-direction:column;gap:4px;max-height:55vh;overflow:auto}.navrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}.navrow.grp{background:var(--surface)}.affrules{max-height:60vh;overflow:auto}.affrule{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 4px;border-bottom:1px solid var(--line)}.affrule.grp{background:var(--surface);padding:8px;margin-top:6px;border-radius:6px}.affrule.sub2{padding-left:26px}.affrule .check{margin:0}
 .navname{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1;min-width:0}.navname select{max-width:160px;font-size:13px;padding:4px 6px}.navrow.grp input{font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex:1;min-width:0}
@@ -940,6 +945,7 @@ var FEATURES=[
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'coach_docs',g:'Training',n:'Coaching documents',d:'A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.'},
   {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
+  {k:'app_search',g:'Team',n:'Search',d:'A Search button at the top of the menu (or Ctrl K, or the / key) finds pages, settings and features, customers by name, email or phone, staff, packages, rooms, stays and shop or menu items. Tap a result to open it.',def:true,spa:true},
   {k:'booking_push',g:'Messages',n:'Notifications for new bookings',d:'Staff phones get a notification for every new booking that did not come from the team: a private, a room, a package bought online, or a group class guest from an agency. Choose who gets them and for what in Messages, Booking notifications. Each person turns notifications on once on their own phone.',def:true,spa:true},
   {k:'meta_connect',g:'Messages',n:'Connect Facebook and Instagram',d:'A manager connects your Facebook page and Instagram from the app, with a Meta sign in, in Messages or Social media. Their messages come into Messages and Social media posts to them. Off: the page is connected for you by the team that runs your app.',def:true,spa:true},
   {k:'whatsapp_inbox',g:'Messages',n:'WhatsApp in Messages',d:'Connect your business WhatsApp number in Messages. WhatsApp chats come into the app next to website chat, Facebook and Instagram, the desk gets a phone notice, and staff read and reply from the app. Your number can stay on the WhatsApp Business app on your phone at the same time.',def:false},
@@ -1021,7 +1027,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=109; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=110; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9935,16 +9941,82 @@ function renderNav(){
   var open=navOpen(), grp=null, shut={}, curG=null;
   rest.forEach(function(x){ if(x.g) grp=x.g; else if(grp&&x.t[0]===ui.tab) curG=grp; });
   grp=null;
-  $nav.replaceChildren.apply($nav,chatT.map(function(t){ return {t:t}; }).concat(rest).map(function(x){
+  var srch=searchOn()?h('button',{type:'button',class:'navsrch',onclick:appSearch,title:'Search (Ctrl K)'},h('span',{'aria-hidden':'true'},'\u2315 '),'Search'):null;
+  $nav.replaceChildren.apply($nav,(srch?[srch]:[]).concat(chatT.map(function(t){ return {t:t}; }).concat(rest).map(function(x){
     if(x.g){ grp=x.g; var isOpen=open.indexOf(x.g)>=0||(curG===x.g&&ui.navShut!==x.g+'|'+ui.tab); shut[x.g]=!isOpen;
       return h('button',{type:'button',class:'navgrp','aria-expanded':isOpen?'true':'false',onclick:function(){ var o=navOpen(), i=o.indexOf(x.g);
         /* a tap always closes an open group, also the one with the page you are on (it opens again when you go to another page in it) */
         if(isOpen){ if(i>=0) o.splice(i,1); ui.navShut=curG===x.g?x.g+'|'+ui.tab:null; } else { if(i<0) o.push(x.g); ui.navShut=null; }
         pref('pk_navopen',JSON.stringify(o)); renderNav(); }},h('span',null,x.g),h('span',{class:'navcar','aria-hidden':'true'},isOpen?'\u25BE':'\u25B8')); }
-    var t=x.t, hid=grp&&shut[grp]; return h('button',{type:'button',class:(t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):'')+(grp?' navin':'')+(hid?' shut':''),'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[0]==='chat'?t[1]:tname(t),t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); }));
+    var t=x.t, hid=grp&&shut[grp]; return h('button',{type:'button',class:(t[0]==='chat'?'navmsg'+(CHAT.unread>0?' has':''):'')+(grp?' navin':'')+(hid?' shut':''),'aria-current':ui.tab===t[0]?'page':null,onclick:function(){ ui.tab=t[0]; if(t[0]==='customers') ui.customerId=null; if(t[0]==='chat') chatRefresh(); if(me&&me.role==='customer'&&Date.now()-lastLoad>4000) loadCustomer().catch(function(){}); try{ history.replaceState(null,'','#'+t[0]); }catch(e){} schedule(); }},t[0]==='chat'?t[1]:tname(t),t[0]==='chat'&&CHAT.unread>0?h('span',{class:'navbadge','aria-label':CHAT.unread+' unread'},String(CHAT.unread)):null); })));
   var lp=langPick(); if(lp) $nav.appendChild(lp);
   var cur=$nav.querySelector('[aria-current]'); if(cur&&$nav.scrollWidth>$nav.clientWidth) $nav.scrollLeft=cur.offsetLeft-($nav.clientWidth-cur.offsetWidth)/2;
 }
+/* Search (feature app_search): one box that finds pages, settings, customers, staff, packages, rooms, stays and shop or menu items.
+   Opens from the Search button at the top of the menu, or Ctrl K (Cmd K on a Mac), or / when not typing */
+function searchOn(){ return !!me&&me.role!=='customer'&&TABS.length>3&&featOn('app_search'); }
+function srchNorm(x){ return String(x==null?'':x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function srchHit(words,hay){ var t=srchNorm(hay); try{ if(typeof trWord==='function'){ var tr=trWord(String(hay)); if(tr!==hay) t+=' '+srchNorm(tr); } }catch(e){}
+  /* each word typed must start a word (so "sa" finds Sarah and sales, not "pass"); numbers and Thai or Myanmar text match anywhere */
+  var toks=' '+t.replace(/[^a-z0-9@.\u0e00-\u0e7f\u1000-\u109f]+/g,' ')+' ', digits=t.replace(/\D/g,'');
+  for(var i=0;i<words.length;i++){ var w=words[i];
+    if(/^\d+$/.test(w)){ if(digits.indexOf(w)<0&&t.indexOf(w)<0) return false; }
+    else if(/[\u0e00-\u0e7f\u1000-\u109f]/.test(w)){ if(t.indexOf(w)<0) return false; }
+    else if(toks.indexOf(' '+w)<0&&!(w.indexOf('@')>=0&&t.indexOf(w)>=0)) return false; }
+  return true; }
+function srchGo(fn){ try{ $dlg.close(); }catch(e){} setTimeout(function(){ fn(); schedule(); window.scrollTo(0,0); },60); }
+function srchTab(k){ ui.tab=k; if(k==='customers') ui.customerId=null; try{ history.replaceState(null,'','#'+k); }catch(e){} }
+function srchResults(q){
+  var words=srchNorm(q).trim().split(/\s+/).filter(Boolean), out=[], mgr=me.role==='manager';
+  if(!words.length) return out;
+  function grp(title,list,max){ if(list.length) out.push({title:title,items:list.slice(0,max||6),more:Math.max(0,list.length-(max||6))}); }
+  var tabs=TABS.filter(function(t){ return tabOn(t[0]); });
+  grp('Pages',tabs.filter(function(t){ return srchHit(words,tname(t)+' '+t[0]); }).map(function(t){ return {name:tname(t),go:function(){ srchTab(t[0]); }}; }),8);
+  if(tabOn('settings')) grp('Settings',setTabs().filter(function(t){ return srchHit(words,t[1]+' '+(t[2]||'')); }).map(function(t){ return {name:'Settings, '+t[1],sub:t[2],go:function(){ srchTab('settings'); setGo(t[0]); }}; }).concat(
+    mgr?FEATURES.filter(function(f){ return srchHit(words,f.n)||(srchNorm(q).length>=5&&srchHit(words,f.d||'')); }).map(function(f){ return {name:f.n,sub:'Feature, '+(featOn(f.k)?'on':'off')+'. '+String(f.d||'').slice(0,90),go:function(){ srchTab('settings'); setGo('features'); }}; }):[]),8);
+  if(tabOn('customers')) grp('Customers',(S.customers||[]).filter(function(c){ return srchHit(words,[c.name,c.email,c.phone,c.nickname].join(' ')); })
+    .map(function(c){ return {name:c.name||'(no name)',sub:[c.email,c.phone].filter(Boolean).join(', '),go:function(){ openCustomer(c.id); }}; }),8);
+  if(tabOn('staff')) grp('Staff',(S.staff||[]).filter(function(x){ return srchHit(words,[x.name,x.nickname,x.role,x.email,x.phone].join(' ')); })
+    .map(function(x){ return {name:x.name,sub:String(x.role||'').replace('_',' ')+(x.active===false?', not active':''),go:function(){ srchTab('staff'); if(mgr) setTimeout(function(){ editStaff(x); },80); }}; }));
+  if(tabOn('packages')) grp('Packages',(S.packages||[]).filter(function(x){ return srchHit(words,[x.name,x.description].join(' ')); })
+    .map(function(x){ return {name:x.name,sub:(x.price_thb!=null?Number(x.price_thb).toLocaleString()+' THB':'')+(x.active===false?', not on sale':''),go:function(){ srchTab('packages'); if(mgr) setTimeout(function(){ editPackage(x); },80); }}; }));
+  if(tabOn('stays')){
+    grp('Rooms',(S.rooms||[]).filter(function(x){ return srchHit(words,x.name); }).map(function(x){ return {name:x.name,go:function(){ srchTab('stays'); if(mgr) setTimeout(function(){ editRoom(x); },80); }}; }));
+    var today=ymd(new Date());
+    grp('Stays',(S.stays||[]).filter(function(x){ return x.status!=='cancelled'&&x.check_out>=today&&srchHit(words,[nameOf('customers',x.customer_id,''),nameOf('rooms',x.room_id,''),x.guest_names].join(' ')); })
+      .map(function(x){ return {name:nameOf('customers',x.customer_id,'Guest')+', '+nameOf('rooms',x.room_id,'room'),sub:x.check_in+' to '+x.check_out,go:function(){ srchTab('stays'); setTimeout(function(){ editStay(x); },80); }}; }));
+  }
+  if(tabOn('shop')||tabOn('kitchen')){
+    if(!SHOP&&!ui.shopBusy) loadShop().then(function(){ if(ui.srchRedraw) ui.srchRedraw(); },function(){});
+    grp('Shop and menu',((SHOP&&SHOP.products)||[]).filter(function(x){ return srchHit(words,[x.name,x.grp,x.sku,x.description].join(' ')); })
+      .map(function(x){ return {name:x.name,sub:(x.price!=null?Number(x.price).toLocaleString()+' THB':'')+(x.active===false?', not on sale':''),go:function(){ srchTab(tabOn('shop')?'shop':'kitchen'); if(mgr&&tabOn('shop')) setTimeout(function(){ editProduct(x); },80); }}; }),8);
+  }
+  var order=['Pages','Customers','Staff','Packages','Shop and menu','Rooms','Stays','Settings'];
+  return out.sort(function(x,y){ return order.indexOf(x.title)-order.indexOf(y.title); });
+}
+function appSearch(){
+  if(!searchOn()) return;
+  var input=h('input',{type:'search',class:'srchin',placeholder:'Search customers, staff, packages, menu, settings',autocomplete:'off','aria-label':'Search'}),
+    box=h('div',{class:'srchres',role:'list'}), first=null;
+  function draw(){ var q=input.value, res=srchResults(q); first=null;
+    if(!q.trim()){ box.replaceChildren(h('p',{class:'sub'},'Type a name, an email or phone number, a package, a menu item or a page. Enter opens the first result.')); return; }
+    if(!res.length){ box.replaceChildren(h('p',{class:'sub'},'Nothing found for "'+q+'".')); return; }
+    box.replaceChildren.apply(box,res.map(function(g){ return h('div',{class:'srchgrp'},h('h3',null,g.title),g.items.map(function(it){ var b=h('button',{type:'button',class:'srchrow',role:'listitem',onclick:function(){ srchGo(it.go); }},h('b',{class:'notr'},it.name),it.sub?h('span',{class:'sub notr'},it.sub):null); if(!first) first=it; return b; }),
+      g.more?h('p',{class:'sub'},g.more+' more: type more of the name.'):null); })); }
+  ui.srchRedraw=draw;
+  input.addEventListener('input',draw);
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&first){ e.preventDefault(); srchGo(first.go); } if(e.key==='ArrowDown'){ var b=box.querySelector('.srchrow'); if(b){ e.preventDefault(); b.focus(); } } });
+  box.addEventListener('keydown',function(e){ if(e.key!=='ArrowDown'&&e.key!=='ArrowUp') return; var all=[].slice.call(box.querySelectorAll('.srchrow')), i=all.indexOf(document.activeElement); if(i<0) return; e.preventDefault(); var j=i+(e.key==='ArrowDown'?1:-1); if(j<0) input.focus(); else if(all[j]) all[j].focus(); });
+  $dlg.replaceChildren(h('div',{class:'billbox srchbox'},h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h2',null,'Search'),btn('Close',function(){ $dlg.close(); },'small')),input,box));
+  draw();
+  if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
+  setTimeout(function(){ input.focus(); },30);
+}
+document.addEventListener('keydown',function(e){
+  if(!searchOn()||($dlg&&$dlg.open)) return;
+  var typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||'')||(e.target&&e.target.isContentEditable);
+  if(((e.ctrlKey||e.metaKey)&&String(e.key).toLowerCase()==='k')||(e.key==='/'&&!typing)){ e.preventDefault(); appSearch(); }
+});
 var raf=0;
 function schedule(){ if(raf) return; raf=requestAnimationFrame(function(){ raf=0; render(); }); }
 function render(){
