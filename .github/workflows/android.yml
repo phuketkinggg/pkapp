@@ -52,12 +52,18 @@ jobs:
         with: { distribution: temurin, java-version: '21' }
       - name: Make the Android project
         working-directory: native
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           set -eo pipefail
           cp apps/$APP/capacitor.config.json capacitor.config.json
           rm -rf www && cp -R apps/$APP/www www
           npm install --no-audit --no-fund
+          # phone notifications need Firebase (secret GOOGLE_SERVICES_JSON: the google-services.json file with every app's package name).
+          # Without it the notifications plugin is left out, so the app never crashes asking Firebase for a code.
+          if [ -z "$GSJ" ]; then npm uninstall --no-audit --no-fund @capacitor/push-notifications; echo "::warning title=$APP::No GOOGLE_SERVICES_JSON secret: built without phone notifications"; fi
           npx cap add android
+          if [ -n "$GSJ" ]; then printf '%s' "$GSJ" > android/app/google-services.json; echo "::notice title=$APP::Built with phone notifications (Firebase)"; fi
           mkdir -p assets
           cp apps/$APP/icon.png assets/icon.png
           cp apps/$APP/icon.png assets/icon-only.png
@@ -71,7 +77,8 @@ jobs:
           done
           grep -c uses-permission $M
           VC=$(( ${{ github.run_number }} + 100 ))
-          sed -i -E "s/versionCode [0-9]+/versionCode $VC/; s/versionName \"[^\"]+\"/versionName \"1.0.$VC\"/" android/app/build.gradle
+          VER=$(cat apps/$APP/version 2>/dev/null | tr -d ' \r\n'); VER=${VER:-1.0}
+          sed -i -E "s/versionCode [0-9]+/versionCode $VC/; s/versionName \"[^\"]+\"/versionName \"$VER.$VC\"/" android/app/build.gradle
           grep -E "versionCode|versionName|applicationId" android/app/build.gradle
       - name: Signing key
         id: key
