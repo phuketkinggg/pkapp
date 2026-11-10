@@ -10162,7 +10162,7 @@ function srchResults(q){
     grp('Rooms',(S.rooms||[]).filter(function(x){ return srchHit(words,x.name); }).map(function(x){ return {name:x.name,go:function(){ srchTab('stays'); if(mgr) setTimeout(function(){ editRoom(x); },80); }}; }));
     var today=ymd(new Date());
     grp('Stays',(S.stays||[]).filter(function(x){ return x.status!=='cancelled'&&x.check_out>=today&&srchHit(words,[nameOf('customers',x.customer_id,''),nameOf('rooms',x.room_id,''),x.guest_names].join(' ')); })
-      .map(function(x){ return {name:nameOf('customers',x.customer_id,'Guest')+', '+nameOf('rooms',x.room_id,'room'),sub:x.check_in+' to '+x.check_out,go:function(){ srchTab('stays'); setTimeout(function(){ editStay(x); },80); }}; }));
+      .map(function(x){ return {name:nameOf('customers',x.customer_id,'Guest')+', '+nameOf('rooms',x.room_id,'room'),sub:x.check_in+' to '+x.check_out,go:function(){ srchTab('stays'); setTimeout(function(){ stayDialog(x); },80); }}; }));
   }
   if(tabOn('shop')||tabOn('kitchen')){
     if(!SHOP&&!ui.shopBusy) loadShop().then(function(){ if(ui.srchRedraw) ui.srchRedraw(); },function(){});
