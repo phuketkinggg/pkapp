@@ -1028,7 +1028,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=114; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=115; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1826,8 +1826,9 @@ function deskSell(c,name){
         if(!k){ pr.class_limit=null; pr.classes_left=null; pr.starts_on=day; pr.expires_on=day; }
         return sb.from('purchases').insert(toRow('purchases',pr,true)).select('id').single().then(must).then(function(r){
           if(w!=='group'||!v.target) return null; var t=v.target.slice(2), cls=v.target.charAt(0)==='c';
-          return sb.rpc('check_in',{p_customer:cid,p_purchase:r.id,p_class:cls?t:null,p_facility:cls?null:t}).then(must);
-        }).then(function(){ return Promise.all([reload('purchases'),reload('customers')]); }).then(function(){ setTimeout(function(){ toast(w==='group'&&v.target?'Sold and checked in.':'Sold and paid.'); },60); });
+          /* the sale is saved: a check in problem is only told, so nobody sells it twice */
+          return sb.rpc('check_in',{p_customer:cid,p_purchase:r.id,p_class:cls?t:null,p_facility:cls?null:t}).then(must).then(function(){ return 'in'; },function(e){ return 'Sold and paid, but not checked in: '+errText(e); });
+        }).then(function(ci){ return Promise.all([reload('purchases'),reload('customers')]).then(function(){ setTimeout(function(){ toast(typeof ci==='string'&&ci!=='in'?ci:(ci==='in'?'Sold and checked in.':'Sold and paid.')); },60); }); });
       });
     }});
   if(!PAV&&!ui.pavBusy&&isDeskRole()) privAvailLoad();
