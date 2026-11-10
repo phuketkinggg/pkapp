@@ -8,7 +8,12 @@
 // POST {mode:'wa_connect', code, waba_id?, phone_id?, coexist?} a manager, after the Meta sign in in the app: connects the WhatsApp number
 // POST {mode:'wa_manual', phone_id, waba_id} a manager: connects a number set up by hand in Meta (token in the WA_TOKEN secret)
 // POST {mode:'wa_check'|'wa_disconnect'} a manager: is WhatsApp working / stop using it in the app
-// Secrets: META_PAGE_TOKEN (system user or page token), META_APP_SECRET, META_APP_ID, WA_TOKEN (optional: a system user token with WhatsApp rights),
+// POST {mode:'meta_cfg'} a manager: the Meta app ID and sign in configuration IDs for the app's Connect buttons
+// POST {mode:'fb_connect', code} a manager, after the Meta sign in in the app: finds the Facebook pages (and their Instagram);
+//      one page is connected at once, more than one comes back as {choose:[...]} for {mode:'fb_pick', page_id}
+// POST {mode:'fb_check'|'fb_disconnect'} a manager: which page and Instagram are connected / stop using the page connected in the app
+// Secrets: META_PAGE_TOKEN (optional when the page is connected in the app), META_APP_SECRET, META_APP_ID, WA_TOKEN (optional: a system user token with WhatsApp rights),
+//          META_FB_CONFIG and META_WA_CONFIG (optional: the sign in configuration IDs, so managers do not type them),
 //          ANTHROPIC_API_KEY (AI replies). The webhook verify token is kept in the database (private.sync_settings 'meta_verify').
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
@@ -21,9 +26,19 @@ const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 
 // ---------- Graph ----------
+// the page connected in the app (private.meta_link) comes first, then the META_PAGE_TOKEN secret
+type MetaLink = { page_id?: string; page_name?: string; token?: string; ig_id?: string; ig_name?: string; pages?: { id: string; name: string; access_token: string; ig?: string | null; ig_name?: string | null }[] | null };
+let link: MetaLink = {};
+async function loadLink() {
+  const { data } = await admin.rpc("meta_link_get");
+  const l = (data ?? {}) as MetaLink;
+  if ((l.token ?? "") !== (link.token ?? "")) page = null; // another page was connected since: forget the old one
+  link = l;
+}
+const pageToken = () => link.token || env("META_PAGE_TOKEN");
 let page: { id: string; name: string; token: string; ig: string | null; ig_name: string | null } | null = null;
 async function call(path: string, params: Record<string, string>, method = "GET", token?: string, body?: unknown) {
-  const q = new URLSearchParams({ ...params, access_token: token ?? env("META_PAGE_TOKEN") });
+  const q = new URLSearchParams({ ...params, access_token: token ?? pageToken() });
   const r = await fetch(`${G}/${path}?${q}`, method === "GET" ? {} : { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));
   if (!r.ok || j.error) throw new Error(j?.error?.error_user_msg ?? j?.error?.message ?? `Meta said ${r.status}`);
@@ -31,10 +46,12 @@ async function call(path: string, params: Record<string, string>, method = "GET"
 }
 async function thePage() {
   if (page) return page;
+  if (link.page_id && link.token) { page = { id: link.page_id, name: link.page_name ?? "", token: link.token, ig: link.ig_id ?? null, ig_name: link.ig_name ?? null }; return page; }
+  if (!pageToken()) throw new Error("Facebook and Instagram are not connected yet.");
   const me = await call("me", { fields: "id,name" });
   try {
     const p = await call(me.id, { fields: "id,name,instagram_business_account{id,username}" });
-    page = { id: p.id, name: p.name, token: env("META_PAGE_TOKEN"), ig: p.instagram_business_account?.id ?? null, ig_name: p.instagram_business_account?.username ?? null };
+    page = { id: p.id, name: p.name, token: pageToken(), ig: p.instagram_business_account?.id ?? null, ig_name: p.instagram_business_account?.username ?? null };
   } catch {
     const acc = await call("me/accounts", { fields: "id,name,access_token,instagram_business_account{id,username}" });
     const p = (acc.data ?? [])[0];
@@ -111,7 +128,7 @@ async function incoming(body: { object?: string; entry?: { id?: string; messagin
 type WaLink = { phone_id?: string; waba_id?: string; number?: string; name?: string; token?: string; coexist?: boolean; synced?: Record<string, unknown> };
 let wa: WaLink | null = null;
 async function waLink(fresh = false): Promise<WaLink> { if (wa && !fresh) return wa; const { data } = await admin.rpc("wa_get"); wa = (data ?? {}) as WaLink; return wa; }
-const waTok = (l: WaLink) => l.token || env("WA_TOKEN") || env("META_PAGE_TOKEN");
+const waTok = (l: WaLink) => l.token || env("WA_TOKEN") || pageToken();
 type WaMsg = { from?: string; to?: string; id?: string; timestamp?: string; type?: string; text?: { body?: string }; button?: { text?: string };
   interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } }; image?: { caption?: string }; video?: { caption?: string };
   document?: { caption?: string; filename?: string }; location?: { name?: string; address?: string }; reaction?: unknown };
@@ -247,6 +264,50 @@ async function waSubs() {
     fields: "messages,smb_message_echoes,history,smb_app_state_sync", include_values: "true" }, "POST", tok); return null; }
   catch (e) { return (e as Error).message; }
 }
+// ---------- Facebook page and Instagram, connected in the app ----------
+async function metaCfg() {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "wa_meta").maybeSingle();
+  let typed: Record<string, string> = {}; try { typed = JSON.parse(data?.value ?? "{}") ?? {}; } catch { /* nothing typed */ }
+  const app = env("META_APP_ID"), fb = env("META_FB_CONFIG"), wa = env("META_WA_CONFIG");
+  return { app_id: app || typed.app_id || "", fb_config: fb || typed.fb_config_id || "", wa_config: wa || typed.config_id || "",
+    set: { app_id: !!app, fb_config: !!fb, wa_config: !!wa }, ready: !!env("META_APP_SECRET") };
+}
+type Pg = { id: string; name: string; access_token: string; ig: string | null; ig_name: string | null };
+async function fbFinish(p: Pg) {
+  await admin.rpc("meta_link_set", { p: { page_id: p.id, page_name: p.name, token: p.access_token, ig_id: p.ig ?? "", ig_name: p.ig_name ?? "", pages: null } });
+  await loadLink(); page = null;
+  // messages from the page and its Instagram come to the app (best effort: posting works without it)
+  const warn: string[] = [];
+  try { await call(`${p.id}/subscribed_apps`, { subscribed_fields: "messages,message_echoes,standby" }, "POST", p.access_token); } catch (e) { warn.push("Facebook messages: " + (e as Error).message); }
+  const appId = env("META_APP_ID") || (await metaCfg()).app_id, secret = env("META_APP_SECRET");
+  if (appId && secret) {
+    const { data: v } = await admin.rpc("meta_verify_value");
+    for (const [object, fields] of [["page", "messages,message_echoes,standby"], ["instagram", "messages,standby"]]) {
+      try { await call(`${appId}/subscriptions`, { object, callback_url: Deno.env.get("SUPABASE_URL") + "/functions/v1/meta", verify_token: String(v ?? ""), fields, include_values: "true" }, "POST", `${appId}|${secret}`); }
+      catch (e) { warn.push(object + ": " + (e as Error).message); }
+    }
+  }
+  return { ok: true, page: p.name, instagram: p.ig_name, warn };
+}
+async function fbConnect(b: Record<string, unknown>) {
+  const cfg = await metaCfg(), secret = env("META_APP_SECRET");
+  if (!secret || !cfg.app_id) return { error: "The Meta app is not set up yet (META_APP_SECRET and the app ID). Email us and we connect it for you." };
+  const code = String(b.code ?? ""); if (!code) return { error: "No sign in code from Meta. Try again." };
+  const t = await fetch(`${G}/oauth/access_token?` + new URLSearchParams({ client_id: cfg.app_id, client_secret: secret, code }));
+  const tj = await t.json().catch(() => ({}));
+  if (!tj.access_token) return { error: "Meta did not give access: " + (tj?.error?.message ?? t.status) };
+  // a long lived sign in, so the page tokens from it do not run out
+  let user = tj.access_token as string;
+  try { const l = await fetch(`${G}/oauth/access_token?` + new URLSearchParams({ grant_type: "fb_exchange_token", client_id: cfg.app_id, client_secret: secret, fb_exchange_token: user })).then((r) => r.json());
+    if (l.access_token) user = l.access_token; } catch { /* the short one still works for now */ }
+  const acc = await call("me/accounts", { fields: "id,name,access_token,instagram_business_account{id,username}", limit: "100" }, "GET", user);
+  const pages: Pg[] = ((acc.data ?? []) as { id: string; name: string; access_token: string; instagram_business_account?: { id: string; username: string } }[])
+    .filter((x) => x.access_token).map((x) => ({ id: x.id, name: x.name, access_token: x.access_token, ig: x.instagram_business_account?.id ?? null, ig_name: x.instagram_business_account?.username ?? null }));
+  if (!pages.length) return { error: "Meta did not share any Facebook page. Try again and tick your page (and its Instagram) in the Meta window." };
+  if (pages.length === 1) return await fbFinish(pages[0]);
+  await admin.rpc("meta_link_set", { p: { pages } });
+  return { choose: pages.map((x) => ({ id: x.id, name: x.name, instagram: x.ig_name })) };
+}
 async function manager(req: Request) {
   const tok = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!tok) return false;
@@ -367,20 +428,35 @@ Deno.serve(async (req) => {
     // answer Meta at once; AI replies finish in the background
     const rt = (globalThis as any).EdgeRuntime; // deno-lint-ignore no-explicit-any
     const later = (p: Promise<unknown>) => { if (rt?.waitUntil) rt.waitUntil(p); };
+    try { await loadLink(); } catch { /* the secret still works */ }
     try { const j = JSON.parse(raw); if (j.object === "whatsapp_business_account") await incomingWa(j, later); else await incoming(j, later); }
     catch (e) { console.error("webhook", (e as Error).message); }
     return new Response("ok", { status: 200 });
   }
   const b = (() => { try { return JSON.parse(raw); } catch { return {}; } })();
   // from the app: a manager connects or checks WhatsApp
-  if (typeof b.mode === "string" && b.mode.startsWith("wa_")) {
+  if (typeof b.mode === "string" && /^(wa|fb|meta)_/.test(b.mode)) {
     if (!(await manager(req))) return json({ error: "Only a manager can do this." }, 401);
     try {
+      await loadLink();
+      if (b.mode === "meta_cfg") return json(await metaCfg());
+      if (b.mode === "fb_connect") return json(await fbConnect(b));
+      if (b.mode === "fb_pick") {
+        const p = (link.pages ?? []).find((x) => x.id === String(b.page_id ?? ""));
+        if (!p) return json({ error: "That page is no longer in the list. Tap Connect again." });
+        return json(await fbFinish({ id: p.id, name: p.name, access_token: p.access_token, ig: p.ig ?? null, ig_name: p.ig_name ?? null }));
+      }
+      if (b.mode === "fb_check") {
+        if (!pageToken()) return json({ connected: false, in_app: false });
+        const p = await thePage();
+        return json({ connected: true, in_app: !!link.page_id, page: p.name, instagram: p.ig_name });
+      }
+      if (b.mode === "fb_disconnect") { await admin.rpc("meta_link_set", { p: { page_id: "", page_name: "", token: "", ig_id: "", ig_name: "", pages: null } }); await loadLink(); page = null; return json({ ok: true, still: !!env("META_PAGE_TOKEN") }); }
       if (b.mode === "wa_connect") return json(await waConnect(b));
       if (b.mode === "wa_manual") {
         const phone = String(b.phone_id ?? "").trim(), waba = String(b.waba_id ?? "").trim();
         if (!/^\d{6,}$/.test(phone)) return json({ error: "The phone number ID is the long number in Meta, WhatsApp, API setup." });
-        const tok = env("WA_TOKEN") || env("META_PAGE_TOKEN");
+        const tok = env("WA_TOKEN") || pageToken();
         const n = await call(phone, { fields: "display_phone_number,verified_name" }, "GET", tok);
         if (/^\d{6,}$/.test(waba)) { try { await call(`${waba}/subscribed_apps`, {}, "POST", tok); } catch (e) { return json({ error: "Could not switch on messages for that account: " + (e as Error).message }); } }
         await admin.rpc("wa_set", { p: { phone_id: phone, waba_id: waba, number: n.display_phone_number, name: n.verified_name, token: "", coexist: false } });
@@ -400,6 +476,7 @@ Deno.serve(async (req) => {
   const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
   if (ok !== true) return json({ error: "Not allowed." }, 401);
   try {
+    await loadLink();
     if (b.mode === "send") return json(await send(String(b.id ?? "")));
     if (b.mode === "check") {
       const p = await thePage();

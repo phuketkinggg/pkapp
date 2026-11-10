@@ -16,7 +16,13 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const admin = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const AI_KEY = () => (Deno.env.get("ANTHROPIC_API_KEY") ?? "").trim();
-const PAGE_TOKEN = () => (Deno.env.get("META_PAGE_TOKEN") ?? "").trim();
+// the Facebook page connected in the app (Messages or Social media, Connect Facebook and Instagram) comes first, then the META_PAGE_TOKEN secret
+let LINK_TOK = "";
+const PAGE_TOKEN = () => LINK_TOK || (Deno.env.get("META_PAGE_TOKEN") ?? "").trim();
+async function loadLink() {
+  try { const { data } = await admin.rpc("meta_link_get"); const t = String((data as { token?: string } | null)?.token ?? "");
+    if (t !== LINK_TOK) { LINK_TOK = t; acct = null; pageTok = ""; } } catch { /* the secret still works */ }
+}
 const MODEL = "claude-sonnet-5-5";
 const G = "https://graph.facebook.com/v23.0";
 const MEDIA = URL_ + "/storage/v1/object/public/social/";
@@ -453,7 +459,7 @@ async function run() {
   const posts = (data ?? []) as Post[];
   if (!posts.length) return { ok: true, posts: 0 };
   let a: Awaited<ReturnType<typeof account>> | null = null, aErr = "";
-  if (!PAGE_TOKEN()) aErr = "Facebook and Instagram are not connected yet. Add META_PAGE_TOKEN in Supabase.";
+  if (!PAGE_TOKEN()) aErr = "Facebook and Instagram are not connected yet. Connect them in Social media.";
   else { try { a = await account(); } catch (e) { aErr = "Meta did not accept the page token: " + (e as Error).message; } }
   const done: string[] = [];
   // one big video upload (TikTok or YouTube) per run: two in one run can go over the function's CPU time; the next run does the next one
@@ -495,6 +501,7 @@ Deno.serve(async (req) => {
   if (req.method === "GET") { const u = new URL(req.url); if (u.pathname.endsWith("/tiktok")) return await ttCallback(u); if (u.searchParams.has("state")) return await ytCallback(u); }
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   const b = await req.json().catch(() => ({}));
+  await loadLink();
   try {
     // numbers for the last Instagram posts (from the app or not): views, reach, likes, comments, saves, shares
     if (b.mode === "stats") {
