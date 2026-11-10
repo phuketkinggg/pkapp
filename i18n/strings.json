@@ -22830,5 +22830,21 @@
 "Update the app from the App Store or Google Play to turn on notifications.": [
 "อัปเดตแอปจาก App Store หรือ Google Play เพื่อเปิดการแจ้งเตือน",
 "အသိပေးချက်ဖွင့်ရန် App Store သို့မဟုတ် Google Play မှ အက်ပ်ကို အပ်ဒိတ်လုပ်ပါ။"
+],
+"The phone did not answer. Close the app, open it again and try once more.": [
+"โทรศัพท์ไม่ตอบสนอง ปิดแอปแล้วเปิดใหม่ และลองอีกครั้ง",
+"ဖုန်းက မတုံ့ပြန်ပါ။ အက်ပ်ကို ပိတ်ပြီး ပြန်ဖွင့်ကာ ထပ်ကြိုးစားပါ။"
+],
+"The phone did not give a notification code. Try again.": [
+"โทรศัพท์ไม่ได้ให้รหัสการแจ้งเตือน ลองอีกครั้ง",
+"ဖုန်းက အသိပေးကုဒ် မပေးပါ။ ထပ်ကြိုးစားပါ။"
+],
+"The phone did not give a notification code: ": [
+"โทรศัพท์ไม่ได้ให้รหัสการแจ้งเตือน: ",
+"ဖုန်းက အသိပေးကုဒ် မပေးပါ: "
+],
+"try again": [
+"ลองอีกครั้ง",
+"ထပ်ကြိုးစားပါ"
 ]
 }
