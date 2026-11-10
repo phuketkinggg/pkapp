@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=165"></script>
+<script src="changelog.js?v=166"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1021,7 +1021,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=107; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=108; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3793,7 +3793,10 @@ function waBox(){
   var mgr=me.role==='manager', parts=[];
   if(mgr&&featOn('meta_connect')&&FBL) parts.push(h('div',{class:'chatrow'},h('b',null,'Facebook and Instagram'),chip(FBL.connected?'Connected':'Not connected',FBL.connected?'ok':'')),
     h('p',{class:'sub',style:'margin:6px 0'},FBL.connected?'Facebook page: '+(FBL.page||'')+'. Instagram: '+(FBL.instagram?'@'+FBL.instagram:'not linked to the page')+'. Messages from both come in here.':'Connect your Facebook page and Instagram to read and reply to their messages here, and to post from Social media.'));
-  if(featOn('whatsapp_inbox')) parts.push(h('div',{class:'chatrow'},h('b',null,'WhatsApp'),chip(WA.connected?'Connected':'Not connected',WA.connected?'ok':'')),
+  // a number connected with the Meta sign in: Meta's access lasts 60 days, so ask for Reconnect WhatsApp from day 50
+  var waLeft=WA.connected&&WA.signin&&WA.at?60-Math.floor((Date.now()-Date.parse(WA.at))/864e5):null, waWarn=waLeft!=null&&waLeft<=10;
+  if(featOn('whatsapp_inbox')) parts.push(h('div',{class:'chatrow'},h('b',null,'WhatsApp'),chip(!WA.connected?'Not connected':waLeft!=null&&waLeft<=0?'Reconnect now':waWarn?'Reconnect soon':'Connected',!WA.connected?'':waWarn?'bad':'ok')),
+    waWarn?h('p',{class:'sub',style:'margin:6px 0;color:var(--bad)'},waLeft<=0?'Meta\'s access to WhatsApp ran out, so WhatsApp messages no longer come in. Tap Reconnect WhatsApp: it takes a minute and your chats stay.':'Meta\'s access to WhatsApp runs out in '+waLeft+' day'+(waLeft===1?'':'s')+'. Tap Reconnect WhatsApp to keep messages coming in: it takes a minute and your chats stay.'):null,
     h('p',{class:'sub',style:'margin:6px 0'},WA.connected?(WA.name?WA.name+', ':'')+(WA.number||'')+(WA.coexist?'. Also works in the WhatsApp Business app on your phone.':'. WhatsApp messages to this number come into Messages.'):'Connect your business WhatsApp number to read and reply to WhatsApp chats here.'));
   if(featOn('ai_reply')) parts.push(h('p',{class:'sub',style:'margin:6px 0'},h('b',null,'AI replies: '),!AIR||!AIR.on?'off.':'on for '+((AIR.channels||[]).map(function(k){ return {wa:'WhatsApp',fb:'Facebook',ig:'Instagram'}[k]; }).join(', ')||'no channels')+(AIR.when==='away'?', only when website chat shows Away':', at all times')+'. Quiet for '+AIR.pause_h+' hours after a staff reply.'));
   return h('div',{class:'panel',style:'padding:12px 14px;margin-bottom:12px'},parts,

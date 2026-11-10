@@ -22714,5 +22714,25 @@
 "Which Facebook page?": [
 "เพจ Facebook ไหน?",
 "မည်သည့် Facebook စာမျက်နှာ?"
+],
+"Meta's access to WhatsApp ran out, so WhatsApp messages no longer come in. Tap Reconnect WhatsApp: it takes a minute and your chats stay.": [
+"สิทธิ์เข้าถึง WhatsApp ของ Meta หมดอายุแล้ว ข้อความ WhatsApp จึงไม่เข้ามาอีก แตะ Reconnect WhatsApp ใช้เวลาแค่หนึ่งนาที และแชทของคุณยังอยู่ครบ",
+"Meta ၏ WhatsApp ဝင်ခွင့် သက်တမ်းကုန်သွားပြီဖြစ်၍ WhatsApp မက်ဆေ့ချ်များ ဝင်မလာတော့ပါ။ Reconnect WhatsApp ကို နှိပ်ပါ။ တစ်မိနစ်သာ ကြာပြီး သင့်ချတ်များ ရှိနေဆဲဖြစ်သည်။"
+],
+"Meta's access to WhatsApp runs out in ": [
+"สิทธิ์เข้าถึง WhatsApp ของ Meta จะหมดอายุในอีก ",
+"Meta ၏ WhatsApp ဝင်ခွင့် သက်တမ်းကုန်ရန် "
+],
+"Reconnect now": [
+"เชื่อมต่อใหม่ตอนนี้",
+"ယခု ပြန်ချိတ်ပါ"
+],
+"Reconnect soon": [
+"เชื่อมต่อใหม่เร็วๆ นี้",
+"မကြာမီ ပြန်ချိတ်ပါ"
+],
+". Tap Reconnect WhatsApp to keep messages coming in: it takes a minute and your chats stay.": [
+" แตะ Reconnect WhatsApp เพื่อให้ข้อความยังเข้ามา ใช้เวลาแค่หนึ่งนาที และแชทของคุณยังอยู่ครบ",
+" အတွင်း ကုန်ပါမည်။ မက်ဆေ့ချ်များ ဆက်ဝင်လာစေရန် Reconnect WhatsApp ကို နှိပ်ပါ။ တစ်မိနစ်သာ ကြာပြီး သင့်ချတ်များ ရှိနေဆဲဖြစ်သည်။"
 ]
 }
