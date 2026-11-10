@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=166"></script>
+<script src="changelog.js?v=167"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -941,6 +941,7 @@ var FEATURES=[
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'coach_docs',g:'Training',n:'Coaching documents',d:'A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.'},
   {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
+  {k:'booking_push',g:'Messages',n:'Notifications for new bookings',d:'Staff phones get a notification for every new booking that did not come from the team: a private, a room, a package bought online, or a group class guest from an agency. Choose who gets them and for what in Messages, Booking notifications. Each person turns notifications on once on their own phone.',def:true,spa:true},
   {k:'meta_connect',g:'Messages',n:'Connect Facebook and Instagram',d:'A manager connects your Facebook page and Instagram from the app, with a Meta sign in, in Messages or Social media. Their messages come into Messages and Social media posts to them. Off: the page is connected for you by the team that runs your app.',def:true,spa:true},
   {k:'whatsapp_inbox',g:'Messages',n:'WhatsApp in Messages',d:'Connect your business WhatsApp number in Messages. WhatsApp chats come into the app next to website chat, Facebook and Instagram, the desk gets a phone notice, and staff read and reply from the app. Your number can stay on the WhatsApp Business app on your phone at the same time.',def:false},
   {k:'ai_reply',g:'Messages',n:'AI replies to customers',d:'An AI answers WhatsApp, Facebook and Instagram messages straight away, in the customer\'s language, using your prices, class times and notes from the app. It stays quiet in a chat once a staff member replies, and hands over to the team (with a phone notice) for bookings, payments, complaints and anything it does not know. Choose always, or only when the desk is away. Uses your AI allowance.',def:false},
@@ -1021,7 +1022,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=108; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=109; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3788,7 +3789,7 @@ function loadWa(){
     WA=r[0].error?{connected:false}:(r[0].data||{connected:false}); AIR=r[1].error?null:r[1].data; FBL=r[2]; schedule(); },function(){});
 }
 function waBox(){
-  if(!isDeskRole()||(!featOn('whatsapp_inbox')&&!featOn('ai_reply')&&!featOn('meta_connect'))) return null;
+  if(!isDeskRole()||(!featOn('whatsapp_inbox')&&!featOn('ai_reply')&&!featOn('meta_connect')&&!(featOn('booking_push')&&me.role==='manager'))) return null;
   if(!WA){ if(!ui.waAsked){ ui.waAsked=true; loadWa(); } return null; }
   var mgr=me.role==='manager', parts=[];
   if(mgr&&featOn('meta_connect')&&FBL) parts.push(h('div',{class:'chatrow'},h('b',null,'Facebook and Instagram'),chip(FBL.connected?'Connected':'Not connected',FBL.connected?'ok':'')),
@@ -3805,7 +3806,8 @@ function waBox(){
       featOn('meta_connect')&&FBL&&FBL.in_app?btn('Disconnect Facebook',fbDisconnect,'small'):null,
       featOn('whatsapp_inbox')?btn(WA.connected?'Reconnect WhatsApp':'Connect WhatsApp',waConnect,WA.connected?'small':'primary small'):null,
       featOn('whatsapp_inbox')&&WA.connected?btn('Check',waCheck,'small'):null,
-      featOn('ai_reply')?btn('AI replies',aiReplyForm,'small'):null):null);
+      featOn('ai_reply')?btn('AI replies',aiReplyForm,'small'):null,
+      featOn('booking_push')?btn('Booking notifications',bookPushForm,'small'):null):null);
 }
 function waCheck(){
   sb.functions.invoke('meta',{body:{mode:'wa_check'}}).then(function(r){ var d=r.data||{};
@@ -3902,6 +3904,16 @@ function fbDone(d){
 }
 function fbDisconnect(){ if(!confirm('Disconnect the Facebook page? Messages and posts stop until you connect again.')) return;
   metaCall({mode:'fb_disconnect'}).then(function(d){ fbDone(); toast(d.still?'Disconnected. The page set up for you before is used again.':'Facebook and Instagram disconnected.'); }).catch(function(e){ toast(errText(e)); }); }
+// new bookings not made by the team (feature booking_push): who gets the phone notification, and for what
+function bookPushForm(){
+  sb.rpc('booking_push_settings').then(must).then(function(c){ c=c||{};
+    openForm({title:'Booking notifications',saveLabel:'Save',doneMsg:'Saved.',
+      note:'A phone notification for every new booking that did not come from your team: online, in the member app, from booking sites and agency emails. Each person turns notifications on once on their own phone: Messages, Turn on notifications on this phone. Coaches get their own privates anyway.',
+      fields:[{key:'kinds',label:'Notify for',type:'checks',def:c.kinds||['private','stay','package','class'],options:[['private','Privates booked'],['stay','Rooms booked'],['package','Packages bought online'],['class','Group class guests from agencies']]},
+        {key:'roles',label:'Who gets them',type:'checks',def:c.roles||['manager','front_desk'],options:[['manager','Managers'],['admin','Admins'],['front_desk','Front desk'],['resort','Resort staff'],['kitchen','Kitchen']]}],
+      onSave:function(v){ return sb.rpc('booking_push_settings_save',{p:{kinds:v.kinds||[],roles:v.roles||[]}}).then(must); }});
+  }).catch(function(e){ toast(errText(e)); });
+}
 function aiReplyForm(){
   var c=AIR||{};
   openForm({title:'AI replies',saveLabel:'Save',doneMsg:'AI replies saved.',
@@ -3939,7 +3951,7 @@ function pushOn(){
     if(!k) throw new Error('Notifications are not ready yet. Try again in a minute.');
     return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription().then(function(old){ return old||reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k)}); }); });
   }).then(function(sub){ var j=sub.toJSON(); return sb.rpc('push_sub_save',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}).then(must); })
-  .then(function(){ PUSH.on=true; toast(isDeskRole()?'Done. This phone gets a notification for new messages and website chats.':me&&me.role==='coach'?(coLang()==='th'?'เรียบร้อย โทรศัพท์นี้จะได้รับการแจ้งเตือนเมื่อมีการจองไพรเวทและข้อความใหม่':'Done. This phone gets a notification for new privates and messages.'):'Done. This phone gets a notification for new messages.'); })
+  .then(function(){ PUSH.on=true; toast(isDeskRole()?'Done. This phone gets a notification for new messages, website chats and new bookings.':me&&me.role==='coach'?(coLang()==='th'?'เรียบร้อย โทรศัพท์นี้จะได้รับการแจ้งเตือนเมื่อมีการจองไพรเวทและข้อความใหม่':'Done. This phone gets a notification for new privates and messages.'):'Done. This phone gets a notification for new messages.'); })
   .catch(function(e){ toast(errText(e)); }).then(function(){ PUSH.busy=false; schedule(); });
 }
 function pushOff(){
