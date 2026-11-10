@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=170"></script>
+<script src="changelog.js?v=171"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1034,7 +1034,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=115; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=116; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2894,6 +2894,26 @@ function addOnLine(p){ var bits=[p.package_name||'Extra'];
   if(p.starts_on&&p.expires_on&&p.duration_days) bits.push(fmtDate(p.starts_on)+' to '+fmtDate(p.expires_on));
   var owe=owedOf(p); if(owe>0) bits.push(p.method==='room'?'on the room bill':'not paid, '+thb(owe));
   return bits.join(', '); }
+/* everything bought for a stay (meal plans, breakfast, training, extras), with Edit and Remove on each, and the guest's file */
+function stayItemsDlg(st){
+  var g=byId('customers',st.customer_id)||{}, mgr=me&&me.role==='manager', day=ymd(new Date());
+  var meal=mealPlanOf(st.customer_id,day), list=stayAddOns(st); if(meal&&!list.some(function(p){ return p.id===meal.id; })) list.unshift(meal);
+  function cancelIt(p){ if(!confirm('Take '+(p.package_name||'this')+' off the stay? It stays in the history as cancelled, and nothing is charged for it.')) return;
+    sb.from('purchases').update({cancelled:true}).eq('id',p.id).select('id').then(must)
+      .then(function(){ return sb.from('food_plans').update({removed:true}).eq('purchase_id',p.id).then(function(){},function(){}); })
+      .then(reloadMoney).then(function(){ FPSTAY={}; FPSTAYK=''; loadFpStays(S.stays||[]); $dlg.close(); toast((p.package_name||'It')+' is taken off the stay.'); })
+      .catch(function(e){ toast(errText(e)); }); }
+  function row(p){ var paid=Number(p.paid_thb)||0;
+    return h('div',{class:'hit'},h('div',{class:'who'},h('b',null,p.package_name||'Extra'),h('small',null,addOnLine(p)+(Number(p.price_thb)?'. '+thb(p.price_thb)+(paid?', '+thb(paid)+' paid':''):''))),
+      h('div',{class:'row wrap'},btn('Edit',function(){ $dlg.close(); setTimeout(function(){ editPurchase(p); },60); },'small'),
+        paid&&!mgr?null:btn('Remove',function(){ if(mgr&&paid){ $dlg.close(); setTimeout(function(){ deletePurchase(p); },60); } else cancelIt(p); },'small'),
+        paid&&!mgr?h('span',{class:'sub'},'Paid: a manager can remove it, or give the money back with Refund in the guest file.'):null)); }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Meals and extras: '+(g.name||'Guest')),
+    h('p',{class:'sub'},nameOf('rooms',st.room_id)+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+'. Edit or remove anything added to this stay. Everything they bought, paid and checked in is in their file.'),
+    list.length?h('div',{class:'panel'},list.map(row)):h('div',{class:'panel empty'},'Nothing added to this stay.'),
+    FPSTAY[st.id]?h('p',{class:'sub'},'Food plan on the kitchen list: '+FPSTAY[st.id]+'. Change or end it in the guest file, Food plans.'):null,
+    h('div',{class:'factions'},g.id?btn('Open the guest file',function(){ $dlg.close(); openCustomer(g.id); },'primary'):h('span'),btn('Close',function(){ $dlg.close(); }))));
+}
 function stayCard(st,day){
   var g=byId('customers',st.customer_id)||{}, total=billTotal(st), meal=mealPlanOf(st.customer_id,day), acts=[];
   var status=st.hold_until&&st.status==='booked'?chip('Website, waiting for card payment','warn'):st.status==='booked'?(st.check_in<=day?chip(st.check_in===day?'Arriving today':'Not checked in yet','warn'):chip('Booked')):st.status==='out'?chip('Checked out'):st.status==='cancelled'?chip('Cancelled','warn'):st.check_out===day?chip('Leaves today','warn'):chip('In house','ok');
@@ -2903,6 +2923,8 @@ function stayCard(st,day){
   if(!st.settled&&featOn('stay_sell')&&g.id&&(st.status==='booked'||st.status==='in')) acts.push(btn('Add package',function(){ sellPackage(g,{stay:st}); },'small'));
   if(!st.settled&&featOn('stay_extras')&&needRates()&&(RATES.extras||[]).length) acts.push(btn('Add extras',function(){ stayExDlg(st); },'small'));
   acts.push(btn('Bill',function(){ openBill(st); },'small'));
+  if(g.id) acts.push(btn('Guest file',function(){ openCustomer(g.id); },'small'));
+  if(stayAddOns(st).length||meal) acts.push(btn('Meals and extras',function(){ stayItemsDlg(st); },'small'));
   if(st.status==='in') acts.push(btn('Check out',function(){ checkOutStay(st); },'small'));
   if(st.status==='booked'||st.status==='in') acts.push(btn('Extend',function(){ extendStay(st); },'small'));
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
@@ -3363,7 +3385,7 @@ function vStayExtras(here,day){
       {label:'Food plan',cell:function(r){ return r.fp||h('span',{class:'sub'},'None'); }},
       {label:'Meals',cell:function(r){ return r.meals.length?h('div',null,r.meals.map(function(p){ return h('div',null,addOnLine(p)); })):h('span',{class:'sub'},'None'); }},
       {label:'Extras',cell:function(r){ return r.other.length?h('div',null,r.other.map(function(p){ return h('div',null,addOnLine(p)); })):h('span',{class:'sub'},'None'); }},
-      {label:'',cell:function(r){ return h('span',{class:'row'},btn('Open',function(){ stayDialog(r.st); },'small'),!r.st.settled&&featOn('stay_extras')&&needRates()&&(RATES.extras||[]).length?btn('Add extras',function(){ stayExDlg(r.st); },'small'):null); }}],
+      {label:'',cell:function(r){ return h('span',{class:'row'},btn('Open',function(){ stayDialog(r.st); },'small'),r.meals.length||r.other.length?btn('Change or remove',function(){ stayItemsDlg(r.st); },'small'):null,!r.st.settled&&featOn('stay_extras')&&needRates()&&(RATES.extras||[]).length?btn('Add extras',function(){ stayExDlg(r.st); },'small'):null); }}],
       rows,'Nobody staying or arriving in the next 7 days.'))];
 }
 function vStays(){
