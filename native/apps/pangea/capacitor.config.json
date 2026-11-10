@@ -20,5 +20,14 @@
   "android": {
     "backgroundColor": "#F2EFE7"
   },
-  "appendUserAgent": "PangeaApp"
+  "appendUserAgent": "PangeaApp",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  }
 }

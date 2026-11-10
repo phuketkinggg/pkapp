@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=168"></script>
+<script src="changelog.js?v=169"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1027,7 +1027,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=110; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=111; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3932,10 +3932,38 @@ function aiReplyForm(){
     onSave:function(v){ return sb.rpc('ai_reply_save',{p:{on:v.on==='1',channels:v.channels,when:v.when,pause_h:v.pause_h==null?null:Math.round(v.pause_h),notes:v.notes,site:v.site}}).then(must).then(function(d){ AIR=d; schedule(); }); }});
 }
 /* phone notifications (web push). iPhone: only after "Add to Home Screen" and opening the app from there. */
-var PUSH={can:'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window,on:null,busy:false};
+/* phone notifications: in the store apps (iPhone and Android) through Apple's and Google's own service, the token saved as apns:... or fcm:...;
+   in a browser or home screen app through web push */
+function natPush(){ try{ var C=window.Capacitor; return C&&C.isNativePlatform&&C.isNativePlatform()&&C.Plugins&&C.Plugins.PushNotifications||null; }catch(e){ return null; } }
+function inStoreApp(){ try{ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }catch(e){ return false; } }
+var NATTOK=null;
+try{ NATTOK=localStorage.getItem('pk_nat_push')||null; }catch(e){}
+var PUSH={can:!!natPush()||(!inStoreApp()&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window),on:null,busy:false,nat:!!natPush()};
+/* the store app: tapping a notification opens its page */
+function pushOpenUrl(u){ var m=String(u||'').match(/#(.*)$/); if(!m) return; var hsh=m[1], c=hsh.match(/^chat=([0-9a-f-]{36})$/);
+  if(c){ ui.tab='chat'; ui.openChatId=c[1]; CHAT.list=null; chatRefresh(); } else if(VIEWS[hsh]&&tabOn(hsh)){ ui.tab=hsh; if(hsh==='kitchen') loadKitchen(); } schedule(); }
+(function(){ var P=natPush(); if(!P) return;
+  try{ P.addListener('pushNotificationActionPerformed',function(a){ var d=(a&&a.notification&&a.notification.data)||{}; setTimeout(function(){ pushOpenUrl(d.url); },allReady?0:2500); }); }catch(e){}
+  try{ P.addListener('pushNotificationReceived',function(n){ if(n&&(n.title||n.body)) toast((n.title?n.title+': ':'')+(n.body||'')); }); }catch(e){}
+})();
+function natRegister(){ var P=natPush();
+  return new Promise(function(ok,no){ var done=false, hs=[];
+    function fin(f,v){ if(done) return; done=true; hs.forEach(function(h){ try{ h.remove(); }catch(e){} }); f(v); }
+    Promise.resolve(P.addListener('registration',function(t){ fin(ok,t&&t.value); })).then(function(h){ hs.push(h); });
+    Promise.resolve(P.addListener('registrationError',function(e){ fin(no,new Error('The phone did not give a notification code: '+((e&&e.error)||'try again'))); })).then(function(h){ hs.push(h); });
+    P.register().catch(function(e){ fin(no,e); });
+    setTimeout(function(){ fin(no,new Error('The phone did not answer. Close the app, open it again and try once more.')); },20000); }); }
 function b64u(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; var r=atob(s), a=new Uint8Array(r.length); for(var i=0;i<r.length;i++) a[i]=r.charCodeAt(i); return a; }
 function pushState(){
   if(!PUSH.can) return;
+  if(PUSH.nat){ var P=natPush();
+    P.checkPermissions().then(function(p){ if(!p||p.receive!=='granted'||!NATTOK){ PUSH.on=false; schedule(); return; }
+      /* the phone can change its code: register again quietly and keep the saved one up to date */
+      return natRegister().then(function(t){ var plat=window.Capacitor.getPlatform()==='ios'?'apns:':'fcm:', ep=plat+t;
+        return (ep!==NATTOK?sb.rpc('push_sub_save',{p_endpoint:ep,p_p256dh:'',p_auth:''}).then(must).then(function(){ NATTOK=ep; try{ localStorage.setItem('pk_nat_push',ep); }catch(e){} }):Promise.resolve())
+          .then(function(){ return sb.rpc('push_sub_status',{p_endpoint:ep}); }).then(function(r){ PUSH.on=!r.error&&!!r.data; schedule(); }); }); })
+      .catch(function(){ PUSH.on=false; schedule(); });
+    return; }
   setTimeout(function(){ if(PUSH.on===null){ PUSH.on=false; schedule(); } },4000);
   navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
     if(!sub){ PUSH.on=false; schedule(); return; }
@@ -3943,12 +3971,20 @@ function pushState(){
   }).catch(function(){ PUSH.on=false; schedule(); });
 }
 function pushBtn(){
+  if(!PUSH.can&&inStoreApp()) return h('span',{class:'sub'},'Update the app from the App Store or Google Play to turn on notifications.');
   if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'For message notifications on iPhone: Share, Add to Home Screen, then open the app from the home screen.':'This browser cannot show notifications.');
   if(PUSH.on===null) return null;
   return PUSH.on?btn('Notifications on this phone: ON',pushOff,'small'):btn('Turn on notifications on this phone',pushOn,'primary small');
 }
 function pushOn(){
   if(PUSH.busy) return; PUSH.busy=true;
+  if(PUSH.nat){ var P=natPush();
+    P.requestPermissions().then(function(p){ if(!p||p.receive!=='granted') throw new Error('Notifications are blocked. Allow them for this app in your phone settings, then try again.'); return natRegister(); })
+    .then(function(t){ if(!t) throw new Error('The phone did not give a notification code. Try again.'); var ep=(window.Capacitor.getPlatform()==='ios'?'apns:':'fcm:')+t;
+      return sb.rpc('push_sub_save',{p_endpoint:ep,p_p256dh:'',p_auth:''}).then(must).then(function(){ NATTOK=ep; try{ localStorage.setItem('pk_nat_push',ep); }catch(e){} }); })
+    .then(function(){ PUSH.on=true; toast(isDeskRole()?'Done. This phone gets a notification for new messages, website chats and new bookings.':me&&me.role==='coach'?(coLang()==='th'?'เรียบร้อย โทรศัพท์นี้จะได้รับการแจ้งเตือนเมื่อมีการจองไพรเวทและข้อความใหม่':'Done. This phone gets a notification for new privates and messages.'):'Done. This phone gets a notification for new messages.'); })
+    .catch(function(e){ toast(errText(e)); }).then(function(){ PUSH.busy=false; schedule(); });
+    return; }
   Notification.requestPermission().then(function(p){
     if(p!=='granted') throw new Error('Notifications are blocked. Allow them for this app in your phone settings, then try again.');
     return sb.rpc('push_public_key').then(must);
@@ -3960,6 +3996,7 @@ function pushOn(){
   .catch(function(e){ toast(errText(e)); }).then(function(){ PUSH.busy=false; schedule(); });
 }
 function pushOff(){
+  if(PUSH.nat){ if(!NATTOK){ PUSH.on=false; schedule(); return; } sb.rpc('push_sub_off',{p_endpoint:NATTOK}).then(function(){ PUSH.on=false; toast('Notifications off on this phone.'); schedule(); }).catch(function(e){ toast(errText(e)); }); return; }
   navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); }).then(function(sub){
     if(!sub) return; return sb.rpc('push_sub_off',{p_endpoint:sub.endpoint}).then(function(){ return sub.unsubscribe(); });
   }).then(function(){ PUSH.on=false; toast('Notifications off on this phone.'); schedule(); }).catch(function(e){ toast(errText(e)); });

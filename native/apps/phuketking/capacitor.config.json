@@ -20,5 +20,14 @@
   "android": {
     "backgroundColor": "#101311"
   },
-  "appendUserAgent": "PhuketKingApp"
+  "appendUserAgent": "PhuketKingApp",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  }
 }

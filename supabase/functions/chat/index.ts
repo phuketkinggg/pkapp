@@ -4,6 +4,7 @@
 // send / contact / poll: need the id and key. Poll returns only this chat's messages.
 // Each visitor message sends a notification to desk staff phones that switched notifications on in the app.
 // app: a new message in an app chat (the database calls it with the sync token) notifies the other members' phones.
+// Phones in the store apps (iPhone and Android) get the same notices through Apple and Google (see nativePush).
 // order: a new food or drink order from the app (the database calls it with the sync token) notifies staff phones; tapping opens the kitchen screen.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
@@ -31,6 +32,71 @@ async function vapid() {
   return keys;
 }
 type Sub = { endpoint: string; p256dh: string; auth: string };
+// ---------- store app notifications: Apple (iPhone) and Google Firebase (Android) ----------
+// A phone in the store app is saved in push_subs with endpoint "apns:<token>" or "fcm:<token>".
+// Secrets: APNS_KEY (the .p8 file's text), APNS_KEY_ID, APNS_TEAM_ID, APNS_TOPIC (the app's bundle ID);
+//          FCM_SERVICE_ACCOUNT (the Firebase service account JSON). Missing secrets: those phones are skipped.
+const nenv = (k: string) => (Deno.env.get(k) ?? "").trim();
+const b64url = (b: ArrayBuffer | Uint8Array | string) => {
+  const u = typeof b === "string" ? new TextEncoder().encode(b) : b instanceof Uint8Array ? b : new Uint8Array(b);
+  let s = ""; for (const x of u) s += String.fromCharCode(x);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+const pemBytes = (pem: string) => Uint8Array.from(atob(pem.replace(/-----[^-]+-----/g, "").replace(/\\n/g, "").replace(/\s+/g, "")), (c) => c.charCodeAt(0));
+let apnsJwt: { tok: string; at: number } | null = null;
+async function apnsToken() {
+  if (apnsJwt && Date.now() - apnsJwt.at < 40 * 60e3) return apnsJwt.tok;
+  const key = await crypto.subtle.importKey("pkcs8", pemBytes(nenv("APNS_KEY")), { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const head = b64url(JSON.stringify({ alg: "ES256", kid: nenv("APNS_KEY_ID") })), body = b64url(JSON.stringify({ iss: nenv("APNS_TEAM_ID"), iat: Math.floor(Date.now() / 1000) }));
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(head + "." + body));
+  apnsJwt = { tok: head + "." + body + "." + b64url(sig), at: Date.now() };
+  return apnsJwt.tok;
+}
+let fcmAuth: { tok: string; exp: number; project: string } | null = null;
+async function fcmToken() {
+  if (fcmAuth && Date.now() < fcmAuth.exp) return fcmAuth;
+  const sa = JSON.parse(nenv("FCM_SERVICE_ACCOUNT")) as { client_email: string; private_key: string; project_id: string };
+  const key = await crypto.subtle.importKey("pkcs8", pemBytes(sa.private_key), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" })), body = b64url(JSON.stringify({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/firebase.messaging", aud: "https://oauth2.googleapis.com/token", iat: now, exp: now + 3600 }));
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(head + "." + body));
+  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: head + "." + body + "." + b64url(sig) }) });
+  const j = await r.json();
+  if (!j.access_token) throw new Error("Firebase sign in: " + JSON.stringify(j).slice(0, 200));
+  fcmAuth = { tok: j.access_token, exp: Date.now() + 50 * 60e3, project: sa.project_id };
+  return fcmAuth;
+}
+// returns "gone" when the phone no longer has the app (the caller removes it)
+async function nativePush(endpoint: string, m: { title: string; body: string; tag?: string; url?: string }): Promise<"ok" | "gone" | "skip" | "fail"> {
+  try {
+    if (endpoint.startsWith("apns:")) {
+      if (!nenv("APNS_KEY") || !nenv("APNS_KEY_ID") || !nenv("APNS_TEAM_ID") || !nenv("APNS_TOPIC")) return "skip";
+      const tok = endpoint.slice(5), jwt = await apnsToken();
+      const payload = JSON.stringify({ aps: { alert: { title: m.title, body: m.body }, sound: "default", "thread-id": (m.tag ?? "").slice(0, 60) }, url: m.url ?? "" });
+      const go = (host: string) => fetch(`https://${host}/3/device/${tok}`, { method: "POST", body: payload,
+        headers: { authorization: "bearer " + jwt, "apns-topic": nenv("APNS_TOPIC"), "apns-push-type": "alert", "apns-priority": "10", "apns-expiration": String(Math.floor(Date.now() / 1000) + 3600) } });
+      let r = await go("api.push.apple.com");
+      // a phone running a build from Xcode uses Apple's test service
+      if (r.status === 400 && /BadDeviceToken/.test(await r.clone().text())) r = await go("api.sandbox.push.apple.com");
+      if (r.status === 410) return "gone";
+      if (!r.ok) { const t = await r.text(); if (/BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(t)) return "gone"; console.error("apns", r.status, t.slice(0, 200)); return "fail"; }
+      return "ok";
+    }
+    if (endpoint.startsWith("fcm:")) {
+      if (!nenv("FCM_SERVICE_ACCOUNT")) return "skip";
+      const a = await fcmToken();
+      const r = await fetch(`https://fcm.googleapis.com/v1/projects/${a.project}/messages:send`, { method: "POST", headers: { Authorization: "Bearer " + a.tok, "Content-Type": "application/json" },
+        body: JSON.stringify({ message: { token: endpoint.slice(4), notification: { title: m.title, body: m.body }, data: { url: m.url ?? "", tag: m.tag ?? "" },
+          android: { priority: "high", ttl: "3600s", notification: { tag: (m.tag ?? "").slice(0, 60) || undefined, sound: "default" } } } }) });
+      if (r.ok) return "ok";
+      const t = await r.text();
+      if (r.status === 404 || /UNREGISTERED|registration-token-not-registered/.test(t)) return "gone";
+      console.error("fcm", r.status, t.slice(0, 200)); return "fail";
+    }
+    return "skip";
+  } catch (e) { console.error("native push", (e as Error).message); return "fail"; }
+}
 async function notify(p: { title: string; body: string; chat: string }) {
   try {
     const { data } = await admin.rpc("web_push_targets");
@@ -42,6 +108,11 @@ async function send(subs: Sub[], p: { title: string; body: string; chat: string;
     await vapid();
     const msg = JSON.stringify({ title: p.title, body: p.body, tag: p.tag ?? "chat-" + p.chat, url: p.url ?? "https://app.phuketking.com/#chat=" + p.chat });
     await Promise.all(subs.map(async (s) => {
+      if (/^(apns|fcm):/.test(s.endpoint)) {
+        const r = await nativePush(s.endpoint, { title: p.title, body: p.body, tag: p.tag ?? "chat-" + p.chat, url: p.url ?? "https://app.phuketking.com/#chat=" + p.chat });
+        if (r === "gone") await admin.rpc("web_push_gone", { p_endpoint: s.endpoint });
+        return;
+      }
       try {
         await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, msg, { TTL: 3600, urgency: "high" });
       } catch (e) {

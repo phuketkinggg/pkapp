@@ -19,5 +19,14 @@
   "android": {
     "backgroundColor": "#101A2E"
   },
-  "appendUserAgent": "MuayApp"
+  "appendUserAgent": "MuayApp",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  }
 }
