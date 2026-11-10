@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=169"></script>
+<script src="changelog.js?v=170"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -951,6 +951,7 @@ var FEATURES=[
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'coach_docs',g:'Training',n:'Coaching documents',d:'A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.'},
   {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
+  {k:'desk_sell',g:'Customers',n:'New customer at the desk',d:'Check in shows New customer and, on every customer, Sell or book: one simple form for full name, email and phone, then a private lesson, a group class or anything else, and the payment. The coach of a private can stay empty and be added later. Agency guests keep their own button.',def:true,spa:false},
   {k:'app_search',g:'Team',n:'Search',d:'A Search button at the top of the menu (or Ctrl K, or the / key) finds pages, settings and features, customers by name, email or phone, staff, packages, rooms, stays and shop or menu items. Tap a result to open it.',def:true,spa:true},
   {k:'booking_push',g:'Messages',n:'Notifications for new bookings',d:'Staff phones get a notification for every new booking that did not come from the team: a private, a room, a package bought online, or a group class guest from an agency. Choose who gets them and for what in Messages, Booking notifications. Each person turns notifications on once on their own phone.',def:true,spa:true},
   {k:'meta_connect',g:'Messages',n:'Connect Facebook and Instagram',d:'A manager connects your Facebook page and Instagram from the app, with a Meta sign in, in Messages or Social media. Their messages come into Messages and Social media posts to them. Off: the page is connected for you by the team that runs your app.',def:true,spa:true},
@@ -1033,7 +1034,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=112; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=114; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1759,6 +1760,84 @@ function ncSave(r){ var row=r.row, same=(S.customers||[]).filter(function(c){ re
   if(same){ var up={}; if(row.email&&!same.email) up.email=row.email; if(row.phone&&!same.phone) up.phone=row.phone; if(row.marketing_ok===false){ up.marketing_ok=false; up.unsubscribed_at=row.unsubscribed_at; }
     return (Object.keys(up).length?sb.from('customers').update(up).eq('id',same.id).then(must):Promise.resolve()).then(function(){ return same.id; }); }
   return sb.from('customers').insert(row).select('id').single().then(must).then(function(d){ return reload('customers').then(function(){ return d.id; }); }); }
+/* ---------- the desk, one simple form (feature desk_sell): full name, email and phone, then what they came for (a private, a group
+   class or anything else), and the money taken. The coach of a private can be left empty and added once it is known. ---------- */
+function deskSell(c,name){
+  if(!guard()) return;
+  c=c||null; var day=ymd(new Date()), wd=(new Date().getDay()+6)%7, d=new Date(), mm=d.getMinutes(), hh=d.getHours();
+  if(mm<15) mm=0; else if(mm<45) mm=30; else { mm=0; hh=Math.min(23,hh+1); }
+  var now=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+  var act=S.packages.filter(function(k){ return k.active!==false&&k.price_thb!=null&&!hasTiers(k.tiers); });
+  var grp=sortBy(act.filter(function(k){ return (k.audience||'all')==='all'&&!(k.covers&&k.covers.indexOf('Privates')>=0); }),'name');
+  var short=grp.filter(function(k){ return k.class_limit===1||(k.duration_days!=null&&k.duration_days<=7); }); grp=short.concat(grp.filter(function(k){ return short.indexOf(k)<0; }));
+  var other=sortBy(act,'name');
+  var src=sortBy(S.sources||[],'name'), direct=src.filter(function(x){ return /^direct$/i.test(x.name); })[0]||src[0]||null;
+  var privPrice=direct?Number(srcPrice(direct,(c&&c.price_group)||'standard'))||0:0;
+  var ch=coaches(), freeNow={}; ((PAV&&PAV.list)||[]).forEach(function(x){ freeNow[x.id]=x.now; });
+  var targets=sortBy(S.classes.filter(function(k){ return Number(k.day)===wd&&!classOff(k,day)&&!k.no_checkin; }),'time').map(function(k){ return ['c:'+k.id,(k.time?k.time+' ':'')+k.title]; })
+    .concat(FACILITIES.map(function(f){ return ['f:'+f,f]; })); targets.push(['','Do not check in yet']);
+  var needContact=!c||!c.email||!c.phone, firstG=grp[0]||null, firstO=other[0]||null;
+  function priceOf(get){ var w=get('what');
+    if(w==='private') return privPrice*((Number(get('minutes'))||60)/60);
+    if(w==='group'){ var k=byId('packages',get('g_pack')); return k?k.price_thb:0; }
+    if(get('o_pack')==='custom') return Number(get('o_price'))||0;
+    var k2=byId('packages',get('o_pack')); return k2?k2.price_thb:0; }
+  var px=pxFields('price_thb',{base:privPrice});
+  function whatShow(w,show){ ['coach_id','time','minutes'].forEach(function(k){ show(k,w==='private'); }); ['g_pack','target'].forEach(function(k){ show(k,w==='group'); });
+    show('o_pack',w==='other'); }
+  var contact=(c?(needContact?ncFields(false).filter(function(f){ return f.key!=='nc_no'; }):[]):ncFields(false)).map(function(f){ f=Object.assign({},f);
+    if(f.key==='nc_email') f.hint='Needed: for the app, receipts and offers.'; if(f.key==='nc_phone') f.hint='Needed. Without the country code, for example 81 234 5678.'; if(f.key==='nc_contact') f.hint='Needed.'; return f; });
+  openForm({title:c?'Sell or book: '+c.name:'New customer at the desk',saveLabel:'Take payment and save',doneMsg:'Done.',
+    note:c?null:'Fill in all three: full name, email and phone. Then pick what they came for and take the money.',
+    values:Object.assign({name:name||'',what:'private',coach_id:'none',time:now,minutes:'60',price_thb:privPrice,method:'cash',g_pack:firstG?firstG.id:'',o_pack:firstO?firstO.id:'custom',target:targets[0][0]},px.values),
+    fields:(c?[]:[{key:'name',label:'Full name',required:true,hint:'First and last name.'}]).concat(contact,[
+      {key:'what',label:'What did they come for?',type:'select',options:[['private','A private lesson'],['group','A group class or the gym'],['other','Something else (spa, shop, any package)']],
+        onChange:function(v,set,get,o,show){ whatShow(v,show); set('price_thb',priceOf(get)); px.re(set,get,show); }},
+      {key:'coach_id',label:'Coach',type:'select',options:[['none','Not decided yet (add the coach later)']].concat(ch.map(function(x){ return [x.id,x.name+(freeNow[x.id]==='free'?' (free now)':freeNow[x.id]==='snoozed'?' (not available now)':freeNow[x.id]==='private'?' (in a private now)':'')]; })),
+        hint:'Leave it as Not decided yet if you do not know. The private is saved and paid, and you pick the coach later in Privates.'},
+      {key:'time',label:'Start time',type:'time'},
+      {key:'minutes',label:'How long',type:'select',options:[['30','30 minutes'],['60','1 hour'],['90','1 hour 30'],['120','2 hours']],onChange:function(v,set,get,o,show){ set('price_thb',priceOf(get)); px.re(set,get,show); }},
+      {key:'g_pack',label:'Package',type:'select',hide:true,options:grp.map(function(k){ return [k.id,k.name+' ('+thb(k.price_thb)+')']; }),onChange:function(v,set,get,o,show){ set('price_thb',priceOf(get)); px.re(set,get,show); }},
+      {key:'target',label:'Check in for',type:'select',hide:true,options:targets},
+      {key:'o_pack',label:'What',type:'select',hide:true,options:other.map(function(k){ return [k.id,k.name+' ('+thb(k.price_thb)+')']; }).concat([['custom','Something not in the list (type it)']]),
+        onChange:function(v,set,get,o,show){ show('o_what',v==='custom'); if(v!=='custom') set('price_thb',priceOf(get)); px.re(set,get,show); }},
+      {key:'o_what',label:'What they bought',hide:true,hint:'For example: Hand wraps, a drink, a day pass.'},
+      {key:'price_thb',label:'Price (THB)',type:'number',required:true,onChange:function(v,set,get,o,show){ px.re(set,get,show); }},
+      {key:'method',label:'Paid by',type:'select',options:payList(PAYOPTS),onChange:function(v,set,get,o,show){ px.method(v,set,get,show); }}].concat(px.fields)),
+    onSave:function(v){
+      if(v.coach_id==='none') v.coach_id='';
+      var w=v.what, x=pxOf(v), base=Math.round(Number(v.price_thb)||0);
+      if(base<0) return 'Check the price.';
+      if(!c){ if(!String(v.name||'').trim()||String(v.name).trim().indexOf(' ')<0) return 'Write their full name: first and last name.'; }
+      if(needContact&&featOn('new_cust_details')){ if(!String(v.nc_email||'').trim()&&!(c&&c.email)) return 'Add their email.'; if(!String(v.nc_phone||'').trim()&&!(c&&c.phone)) return 'Add their phone number.'; }
+      if(w==='private'&&v.coach_id){ var busy=coachBusy(v.coach_id,day,v.time,null,Number(v.minutes)||60); if(busy) return busy+' Pick another coach or Not decided yet.'; }
+      if(w==='other'&&v.o_pack==='custom'&&!String(v.o_what||'').trim()) return 'Write what they bought.';
+      var cidP;
+      if(c){ if(needContact){ var nr0=ncRow(v,c.name); if(nr0.err) return nr0.err; var up={}; if(nr0.row.email&&!c.email) up.email=nr0.row.email; if(nr0.row.phone&&!c.phone) up.phone=nr0.row.phone;
+          cidP=(Object.keys(up).length?sb.from('customers').update(up).eq('id',c.id).then(must).then(function(){ return reload('customers'); }):Promise.resolve()).then(function(){ return c.id; }); }
+        else cidP=Promise.resolve(c.id); }
+      else { var nr=ncRow(v,v.name,'Came to the desk, '+fmtDate(day)); if(nr.err) return nr.err; cidP=ncSave(nr); }
+      return cidP.then(function(cid){
+        if(w==='private'){
+          var row={customer_id:cid,coach_id:v.coach_id||null,date:day,start_time:v.time||now,minutes:Number(v.minutes)||60,source_id:direct?direct.id:null,price_thb:base+x.fee+x.tax,fee_thb:x.fee,tax_thb:x.tax,
+            paid:true,method:v.method,status:v.coach_id?'confirmed':'requested',any_coach:!v.coach_id,arrived_at:new Date().toISOString(),arrived_by:'desk',notes:v.coach_id?null:'Coach to be added at the desk'};
+          return sb.from('privates').insert(row).select('id').single().then(must).then(function(){ return reload('privates'); }).then(function(){ setTimeout(function(){ toast(v.coach_id?'Private saved, paid and checked in.':'Private saved and paid. Add the coach in Privates once you know.'); },60); });
+        }
+        var k=w==='group'?byId('packages',v.g_pack):(v.o_pack==='custom'?null:byId('packages',v.o_pack));
+        if(w==='group'&&!k) throw {plain:true,message:'Choose a package.'};
+        var pr={customer_id:cid,package_id:k?k.id:null,package_name:k?k.name:String(v.o_what).trim().slice(0,120),price_thb:base+x.fee+x.tax,fee_thb:x.fee,tax_thb:x.tax,price_group:'standard',paid:true,method:v.method,
+          source_id:direct?direct.id:null,purchased_on:day,covers:k?(k.covers||null):null,times:k?(k.times||null):null,class_limit:k?(k.class_limit||null):null,classes_left:k?(k.class_limit||null):null,
+          per_week_limit:k?(k.per_week_limit||null):null,duration_days:k?(k.duration_days||null):null,start_by:k&&k.start_within_days?addDays(day,k.start_within_days):null,starts_on:null,expires_on:null};
+        if(k&&k.clock==='purchase') Object.assign(pr,startPurchase(pr,day));
+        if(!k){ pr.class_limit=null; pr.classes_left=null; pr.starts_on=day; pr.expires_on=day; }
+        return sb.from('purchases').insert(toRow('purchases',pr,true)).select('id').single().then(must).then(function(r){
+          if(w!=='group'||!v.target) return null; var t=v.target.slice(2), cls=v.target.charAt(0)==='c';
+          return sb.rpc('check_in',{p_customer:cid,p_purchase:r.id,p_class:cls?t:null,p_facility:cls?null:t}).then(must);
+        }).then(function(){ return Promise.all([reload('purchases'),reload('customers')]); }).then(function(){ setTimeout(function(){ toast(w==='group'&&v.target?'Sold and checked in.':'Sold and paid.'); },60); });
+      });
+    }});
+  if(!PAV&&!ui.pavBusy&&isDeskRole()) privAvailLoad();
+}
 /* ---------- walk-ins, tourists and agency guests: one form, sold and checked in ---------- */
 function lastSourcePrice(sourceId,packageId){
   var hit=null; S.purchases.forEach(function(p){ if(p.source_id===sourceId&&p.package_id===packageId&&!p.cancelled&&(!hit||p.purchased_on>=hit.purchased_on)) hit=p; });
@@ -6825,6 +6904,36 @@ function coachBoardToday(){
   var list=x.d.sessions.filter(function(s2){ return s2.day===t; }); if(!list.length) return null;
   return section('Coaches, group classes today',btn('All days',function(){ ui.tab='hours'; schedule(); },'small'),cbGrid(list,Date.now()));
 }
+/* coaches for privates: free right now or not, their private hours this week, and a snooze or Available again for the desk */
+var PAV=null;
+function privAvailLoad(){ ui.pavBusy=true; return sb.rpc('coach_avail_now').then(must).then(function(d){ PAV={list:d||[],at:Date.now()}; ui.pavBusy=false; schedule(); },function(e){ PAV={err:errText(e),list:[]}; ui.pavBusy=false; schedule(); }); }
+function privAvailBoard(){
+  if(!isDeskRole()) return null;
+  if((!PAV||Date.now()-PAV.at>60000)&&!ui.pavBusy) privAvailLoad();
+  if(!PAV) return section('Coaches for privates',null,h('div',{class:'panel empty'},'Loading.'));
+  if(PAV.err) return section('Coaches for privates',null,h('div',{class:'panel empty'},PAV.err));
+  var dw=(new Date().getDay()+6)%7, mgr=me.role==='manager';
+  function st(c){ var now=c.now;
+    if(now==='snoozed') return chip('Not available until '+snoozeTime(c.off_until),'bad');
+    if(now==='closed') return chip('Closed now','bad');
+    if(now==='private'){ var t=ymd(new Date()), m=new Date().toTimeString().slice(0,5), p=(c.privates_today||[]).filter(function(x){ return x.time<=m&&x.to>m; })[0]; return chip('In a private'+(p?' until '+p.to:''),'warn'); }
+    if(now==='free') return chip('Free now','ok');
+    return chip('Not in their hours');
+  }
+  function hoursOn(c,d){ var l=(c.hours||[]).filter(function(x){ return Number(x.dow)===d; }); return l.length?l.map(function(x){ return x.from+' to '+x.to; }).join(', '):'Off'; }
+  function snz(c){ var sel=h('select',{'aria-label':'Not available for'},[[30,'30 min'],[60,'1 hour'],[120,'2 hours'],[240,'4 hours'],[-1,'Rest of today']].map(function(o){ return h('option',{value:String(o[0])},o[1]); }));
+    function go(m){ sb.rpc('coach_snooze',{p_minutes:m,p_staff:c.id}).then(must).then(function(){ toast(m?c.name+' is not available for privates for now.':c.name+' is available for privates again.'); privAvailLoad(); },function(e){ toast(errText(e)); }); }
+    return c.off_until?btn('Available again',function(){ go(0); },'small'):h('span',{class:'row'},sel,btn('Snooze',function(){ go(Number(sel.value)); },'small')); }
+  var list=PAV.list;
+  return [section('Coaches for privates, right now',h('div',{class:'row'},btn('Refresh',privAvailLoad,'small'),mgr?btn('Set hours',function(){ mgrHours(); },'small'):null),h('div',null,
+    h('p',{class:'sub'},'Who you can book a private with now. A coach who is not available is only blocked until the time shown: later today, the next days and privates already done can still be booked.'),
+    table([{label:'Coach',cell:function(c){ return h('b',null,c.name); }},
+      {label:'Now',cell:st},
+      {label:'Hours today',cell:function(c){ return hoursOn(c,dw)+((c.closed_today||[]).length?'. Closed '+(c.closed_today||[]).map(function(x){ return x.from?x.from+' to '+x.to:'all day'; }).join(', '):''); }},
+      {label:'Privates today',cell:function(c){ var l=c.privates_today||[]; return l.length?h('span',null,l.map(function(x){ return x.time+' '+x.who; }).join(', ')):h('span',{class:'sub'},'None'); }},
+      {label:'',cell:snz}],list,'No coaches take privates yet. Set their hours in Staff hours, Set hours.'))),
+    section('Private hours this week',null,table([{label:'Coach',cell:function(c){ return h('b',null,c.name); }}].concat(DAYS.map(function(dn,i){ return {label:dn.slice(0,3),cell:function(c){ var v=hoursOn(c,i); return h('span',{class:v==='Off'?'sub':null,style:i===dw?'font-weight:600':null},v.replace(/ to /g,'-')); }}; })),list,''))];
+}
 function coachBoard(){
   var today=ymd(new Date()), from=ui.hFrom||weekStart(today), to=ui.hTo||today, x=cbGet(from,to);
   if(x.err) return null;
@@ -6873,6 +6982,7 @@ function vHours(){
       h('div',{class:'row'},btn('Office QR poster',function(){ ui.hPoster=true; schedule(); },'small'),btn('Add hours',function(){ editHours(); },'primary'))),
     ui.hPoster?staffPoster():null,
     (!ui.hTo||ui.hTo>=ymd(new Date()))?staffToday(true):null,
+    featOn('privates')?privAvailBoard():null,
     coachBoard(),
     h('div',{class:'row wrap'},staffSel,h('label',{class:'row sub'},'From ',from),h('label',{class:'row sub'},'to ',to)),
     !HOURS?h('div',{class:'panel empty'},'Loading.'):null,
@@ -8776,12 +8886,14 @@ function vToday(){
     if(usable.length) right=h('div',{class:'row'},usable.map(function(x){ return btn((already?'Check in again: ':'Check in: ')+x.p.package_name,function(){ checkIn(c,x.p,target); },'primary small'); }));
     else { var live=ps.filter(function(x){return x.st.ok;})[0], pk=S.purchases.filter(function(p){ return p.customer_id===c.id&&isPrivatePack(p)&&!p.cancelled&&stateOf(p,day).ok; })[0];
       right=h('div',{class:'row'},pk&&!ps.length?chip('Privates only: '+left(pk)+' of '+pk.class_limit+' left to book'):chip(live?live.p.package_name+' '+live.can.reason:(ps.length?ps[ps.length-1].st.label:'No group package'),'bad'),btn('Sell a package',function(){ sellPackage(c); },'small')); }
-    var privToday=sortBy(S.privates.filter(function(x){ return !x.lead_id&&x.customer_id===c.id&&x.date===day&&(x.status==='confirmed'||x.status==='done'); }),'time');
+    var privToday=sortBy(S.privates.filter(function(x){ return !x.lead_id&&x.customer_id===c.id&&x.date===day&&(x.status==='confirmed'||x.status==='done'||(x.status==='requested'&&x.arrived_at&&!x.coach_id)); }),'time');
     if(target&&target.kind==='private'){ var pk2=S.purchases.filter(function(p){ return p.customer_id===c.id&&isPrivatePack(p)&&!p.cancelled&&stateOf(p,day).ok; })[0];
       right=h('div',{class:'row wrap'},pk2?chip('Private pack: '+left(pk2)+' of '+pk2.class_limit+' left','ok'):null,
         btn(privToday.length?'Another private now':'Private now: check in',function(){ privNow(c); },privToday.length?'small':'primary small')); }
     if(privToday.length) right=h('div',{class:'row wrap'},privToday.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'';
+      if(!x.coach_id) return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')),chip('Coach not decided','warn'),x.paid?chip('Paid','ok'):null,btn('Add the coach',function(){ editPrivate(Object.assign({},x,{status:'confirmed'})); },'primary small'));
       return h('span',{class:'row'},h('b',null,'Private '+(x.time||'')+who),privOwes(x)?btn('Payment received',function(){ payPrivate(x); },'primary small'):null,x.arrived_at?arrivedChip(x):btn('Arrived',function(){ privArrived(x,c.name); },'primary small'),x.status==='done'?chip('Done','ok'):btn('Mark done',function(){ setPrivate(x,{status:'done'},'Private marked done for '+c.name+'.'); },'small')); }),usable.length||(target&&target.kind==='private')?right:null);
+    if(featOn('desk_sell')) right=h('div',{class:'row wrap'},right,btn('Sell or book',function(){ deskSell(c); },'small'));
     return h('div',{class:'hit'},h('div',{class:'who'},h('span',null,h('b',null,c.name),newTag(c),' ',chip(TIERS[c.tier]||'Train'),exChip(c)),
       h('small',null,already?'Already checked in today at '+already.time+'. ':'',usable.map(function(x){return purchaseLine(x.p,x.st);}).join(' | '))),right);
   });
@@ -8790,8 +8902,8 @@ function vToday(){
     var why=[]; if(p.expires_on&&p.expires_on<=soon) why.push('expires '+fmtDate(p.expires_on)); if(p.class_limit&&left(p)<=2) why.push(left(p)+' visits left');
     if(why.length) renew.push({p:p,why:why.join(', ')}); });
   var PART={
-    checkin:function(){ return [section('Check someone in',target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
-      q&&!hits.length&&!guestHits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},target&&target.kind==='private'?null:btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows.concat(guestHits)))]; },
+    checkin:function(){ return [section('Check someone in',featOn('desk_sell')?h('div',{class:'row'},btn('New customer',function(){ deskSell(null,ui.q.trim()); },'primary small'),btn('Agency guest',function(){ walkIn(ui.q.trim(),target); },'small')):target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
+      q&&!hits.length&&!guestHits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},featOn('desk_sell')?btn('New customer',function(){ deskSell(null,ui.q.trim()); },'primary small'):null,target&&target.kind==='private'?null:btn(featOn('desk_sell')?'Agency guest':'Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },featOn('desk_sell')?'small':'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows.concat(guestHits)))]; },
     staff:function(){ return [staffToday(false),coachBoardToday()]; },
     urgent:function(){ var unp=unpaidToday(); return [agencyToday(),claimsSection(),mealWaitingToday(),unp.length?section('Checked in today, not paid',null,h('div',{class:'panel'},unp.map(function(x){
         return h('div',{class:'paynow staff'},h('div',null,h('b',null,linkBtn(x.c.name,function(){ openCustomer(x.c.id); })),h('div',{class:'sub'},'Owes '+thb(x.owe))),btn('Take payment',function(){ payCustomer(x.c); },'primary small')); }))):null,orders.length?section('App orders waiting for payment',null,table([
@@ -10258,6 +10370,8 @@ function coachBookFor(c){
 /* private hours: when a coach takes privates (each weekday, with an optional break) and closed days or hours. Used in the coach app and by the desk. */
 var HT={
   en:{avOn:'Taking privates',avOff:'Not taking privates',avOnNote:'Customers can book you in your hours below.',avOffNote:'Nobody can book a private with you until you switch back on. Privates already booked stay.',avTurnOff:'Not available',avTurnOn:'Available again',avToday:'Not available today',avDoneOff:'You are not available for privates.',avDoneOn:'You are available for privates again.',avDoneToday:'Closed for the rest of today.',
+    avFor:'Not available for',avPick:{30:'30 minutes',60:'1 hour',120:'2 hours',240:'4 hours','-1':'Rest of today'},avUntil:function(t){ return 'Not taking privates until '+t; },
+    avSnoozeNote:'Nobody can book a private with you until then. Later today, the next days and privates already booked are not affected. You are available again by yourself after that.',avSnoozed:function(t){ return 'Not available until '+t+'.'; },
     hTitle:'My private hours',hMgr:'Private hours',hSet:'Set hours',hClose:'Close a day or hours',hNone:'No hours set yet. Customers cannot book this coach online until hours are set.',
     hEdit:'Hours for privates',hEditNote:'Customers can book a private in these hours. Booked, waiting and closed times are blocked by themselves.',hOn:'Open',hFrom:'From',hTo:'to',hBreak:'Break',hCopy:'Copy Monday to every open day',hSave:'Save hours',hSaved:'Hours saved.',
     hOrder:function(d){ return d+': the finish time is before the start time.'; },hBreakIn:function(d){ return d+': the break must be inside the hours.'; },hNeed:function(d){ return d+': add both times.'; },
@@ -10267,6 +10381,8 @@ var HT={
     req:'Private requests for you',reqAcc:'Accept',reqNo:'I cannot take it',reqAny:'Another coach is OK',reqOnly:'Wants you only',reqBk:'Backup time',reqDone:'Confirmed. It is on your list.',reqSent:'Sent back to a manager.',reqWhy:'Reason (optional)',reqNoT:'Cannot take this private',reqNoSave:'Send to a manager',lvl:'Level',
     lv:{complete:'Complete beginner',beginner:'Beginner',intermediate:'Intermediate',advanced:'Advanced'},cancel:'Cancel',coach:'Coach'},
   th:{avOn:'รับสอนคลาสส่วนตัว',avOff:'ไม่รับสอนคลาสส่วนตัว',avOnNote:'ลูกค้าจองคุณได้ในเวลาด้านล่าง',avOffNote:'จะไม่มีใครจองคลาสส่วนตัวกับคุณได้ จนกว่าคุณจะเปิดอีกครั้ง คลาสที่จองไว้แล้วยังอยู่',avTurnOff:'ไม่ว่าง',avTurnOn:'ว่างอีกครั้ง',avToday:'ไม่ว่างวันนี้',avDoneOff:'ตอนนี้คุณไม่รับคลาสส่วนตัว',avDoneOn:'คุณรับคลาสส่วนตัวอีกครั้งแล้ว',avDoneToday:'ปิดถึงสิ้นวันนี้แล้ว',
+    avFor:'ไม่ว่างเป็นเวลา',avPick:{30:'30 นาที',60:'1 ชั่วโมง',120:'2 ชั่วโมง',240:'4 ชั่วโมง','-1':'ถึงสิ้นวันนี้'},avUntil:function(t){ return 'ไม่รับคลาสส่วนตัวถึง '+t; },
+    avSnoozeNote:'จะไม่มีใครจองคลาสส่วนตัวกับคุณได้จนถึงเวลานั้น เวลาหลังจากนั้นของวันนี้ วันต่อๆ ไป และคลาสที่จองไว้แล้ว ไม่ได้รับผลกระทบ หลังจากนั้นคุณจะว่างอีกครั้งเอง',avSnoozed:function(t){ return 'ไม่ว่างถึง '+t; },
     hTitle:'เวลารับสอนคลาสส่วนตัว',hMgr:'เวลารับสอนคลาสส่วนตัว',hSet:'ตั้งเวลา',hClose:'ปิดวันหรือช่วงเวลา',hNone:'ยังไม่ได้ตั้งเวลา ลูกค้าจะจองออนไลน์ไม่ได้จนกว่าจะตั้งเวลา',
     hEdit:'เวลารับสอนคลาสส่วนตัว',hEditNote:'ลูกค้าจองได้ในช่วงเวลานี้ เวลาที่มีคนจองแล้ว รอยืนยัน หรือปิดไว้ จะถูกบล็อกเอง',hOn:'เปิด',hFrom:'ตั้งแต่',hTo:'ถึง',hBreak:'พัก',hCopy:'ใช้เวลาวันจันทร์กับทุกวันที่เปิด',hSave:'บันทึกเวลา',hSaved:'บันทึกเวลาแล้ว',
     hOrder:function(d){ return d+': เวลาเลิกอยู่ก่อนเวลาเริ่ม'; },hBreakIn:function(d){ return d+': เวลาพักต้องอยู่ในช่วงเวลาสอน'; },hNeed:function(d){ return d+': ใส่เวลาให้ครบ'; },
@@ -10315,15 +10431,16 @@ function closeDlg(staffId,after){
       return sb.rpc('coach_close',{p_staff:staffId||null,p_from:v.day,p_to:v.last||null,p_from_t:v.all?null:v.start,p_to_t:v.all?null:v.end,p_note:v.note||null}).then(must)
         .then(function(r){ setTimeout(function(){ toast(r.kept&&r.kept.length?hT('clKept')(r.kept.length):hT('clDone')); },50); after(); }); }});
 }
-/* the one tap switch: available or not for privates, and closed for the rest of today */
+/* available or snoozed: Not available is for a set time only (30 minutes up to the rest of today), then available again by itself */
+function snoozeTime(iso){ if(!iso) return ''; var d=String(iso).slice(0,10), t=String(iso).slice(11,16), today=ymd(new Date());
+  return d===today?t:(d===addDays(today,1)&&t==='00:00'?(hL()==='th'?'สิ้นวันนี้':'the end of today'):hDate(d)+' '+t); }
 function availBox(av,staffId,after){
   var off=!!av.off;
-  function set(v){ sb.rpc('coach_privates_set',{p_off:v,p_staff:staffId||null}).then(must).then(function(){ toast(hT(v?'avDoneOff':'avDoneOn')); after(); },function(e){ toast(errText(e)); }); }
-  function today(){ var bk=new Date(Date.now()+7*3600e3), t=bk.toISOString().slice(11,16);
-    sb.rpc('coach_close',{p_staff:staffId||null,p_from:bk.toISOString().slice(0,10),p_to:null,p_from_t:t<'23:00'?t:null,p_to_t:t<'23:00'?'23:59':null,p_note:'Not available today'}).then(must).then(function(){ toast(hT('avDoneToday')); after(); },function(e){ toast(errText(e)); }); }
+  function set(m){ sb.rpc('coach_snooze',{p_minutes:m,p_staff:staffId||null}).then(must).then(function(r){ toast(m?hT('avSnoozed')(snoozeTime(r&&r.off_until)):hT('avDoneOn')); after(); },function(e){ toast(errText(e)); }); }
+  var pick=hT('avPick'), sel=h('select',{'aria-label':hT('avFor')},[30,60,120,240,-1].map(function(m){ return h('option',{value:String(m),selected:m===60?true:null},pick[String(m)]); }));
   return h('div',{class:'panel pad availbox'+(off?' off':'')},
-    h('div',{class:'row',style:'justify-content:space-between'},h('div',null,h('b',{class:'availst'},hT(off?'avOff':'avOn')),h('div',{class:'sub'},hT(off?'avOffNote':'avOnNote'))),
-      h('div',{class:'row'},off?btn(hT('avTurnOn'),function(){ set(false); },'primary'):btn(hT('avTurnOff'),function(){ set(true); }),off?null:btn(hT('avToday'),today,'small'))));
+    h('div',{class:'row wrap',style:'justify-content:space-between;gap:10px'},h('div',null,h('b',{class:'availst'},off?hT('avUntil')(snoozeTime(av.off_until)):hT('avOn')),h('div',{class:'sub'},hT(off?'avSnoozeNote':'avOnNote'))),
+      off?btn(hT('avTurnOn'),function(){ set(0); },'primary'):h('div',{class:'row'},h('span',{class:'sub'},hT('avFor')),sel,btn(hT('avTurnOff'),function(){ set(Number(sel.value)); }))));
 }
 function hoursSection(av,staffId,after,title){
   var lines=hoursLines(av), closed=(av.closed||[]).map(function(c){ return {when:hDate(c.day),title:hT('hClosed')+': '+(c.from?c.from+' '+hT('hTo')+' '+c.to:hT('hAllDay')),note:c.note,

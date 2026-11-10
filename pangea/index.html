@@ -546,14 +546,22 @@ function fileCards(){
   var back=f.consent_at?h('p',{class:'sub center'},'You agreed to us keeping your health details on '+niceT(f.consent_at)+'. ',h('button',{class:'btn link',onclick:function(){ if(!confirm('Take back your agreement? Your coaches keep what is there, but we will ask before using it.')) return; rpc('my_consent',{p_on:false}).then(function(){ loadFile(); }); }},'Take it back')):null;
   return [consent,details,diary,docList,back];
 }
+function inStoreApp(){ try{ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }catch(e){ return false; } }
+/* members can delete their account in the app (an App Store and Google Play rule): the same as in the Phuket King app */
+function deleteMe(){
+  var t=prompt('This deletes your login, your contact details and everything in your file and coaching (photos, diary, habits and messages). It cannot be undone. Packages you still have are lost. We keep a record of past payments without your name, because the law requires it.\n\nType DELETE to confirm.');
+  if(t==null) return; if(String(t).trim().toUpperCase()!=='DELETE'){ alert('Nothing was deleted. Type DELETE to confirm.'); return; }
+  rpc('customer_delete_me',{p_confirm:'DELETE'}).then(function(){ alert('Your account is deleted.'); return sb.auth.signOut({scope:'local'}); },function(e){ alert(errText(e)); });
+}
 function meView(){
   var d=S.data, lv=LEVELS[d.me.level||'app'];
   return h('div',null,h('h1',null,d.me.name||'Me'),h('p',{class:'sub'},d.me.email||''),
     h('div',{class:'card'},h('div',{class:'row between'},h('div',null,h('div',{class:'sub'},'Your level'),h('h3',null,lv[0])),h('span',{class:'pill gold'},'Member')),h('p',{class:'sub',style:'margin:6px 0 0'},lv[1])),
     fileCards(),
     h('div',{class:'card'},h('h3',null,'Phuket King'),h('p',{class:'sub'},'Check in, book privates, classes and your room in the Phuket King app. Same account.'),h('a',{class:'btn ghost small',href:'https://app.phuketking.com/',style:'display:inline-block;text-decoration:none;line-height:20px'},'Open Phuket King')),
-    h('div',{class:'card'},h('p',{class:'sub',style:'margin-top:0'},'Add Pangea to your home screen: in Safari tap Share, then Add to Home Screen.'),
-      h('button',{class:'btn ghost small',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out')),
+    h('div',{class:'card'},inStoreApp()?null:h('p',{class:'sub',style:'margin-top:0'},'Add Pangea to your home screen: in Safari tap Share, then Add to Home Screen.'),
+      h('div',{class:'row',style:'gap:8px;flex-wrap:wrap'},h('button',{class:'btn ghost small',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out'),
+        h('button',{class:'btn ghost small',onclick:deleteMe},'Delete my account'))),
     h('p',{class:'sub center'},'Pangea Global Wellness · People | Places | Longer Lives'));
 }
 
