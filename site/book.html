@@ -68,7 +68,8 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .ex.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}.ex h3{margin:0;font:700 19px/1.15 var(--display);text-transform:uppercase}
 .exrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.exrow input[type=number]{width:80px;min-height:40px}.exrow label{flex-direction:row;align-items:center;gap:6px;font-weight:500}
 .exrow input[type=checkbox]{width:20px;height:20px;min-height:0}.step{display:flex;align-items:center;gap:6px}.step .btn{min-height:40px;width:44px;padding:0}
-.step b{min-width:24px;text-align:center}.exprice{font-weight:700}.totals{display:grid;gap:4px;margin:6px 0}.totals div{display:flex;justify-content:space-between;gap:10px}
+.step b{min-width:24px;text-align:center}.exprice{font-weight:700}.totals{display:grid;gap:4px;margin:6px 0}
+.nudge{margin:10px 0 2px;padding:12px 14px;border-radius:12px;background:#F6F1E4;border:1px solid #E6DCC3;font-size:15px;line-height:1.5}.nudge p{margin:0}.nudge p+p{margin-top:6px}.totals div{display:flex;justify-content:space-between;gap:10px}
 .done{text-align:center;padding:30px 16px}.done .big{font:700 40px var(--display);text-transform:uppercase}
 /* Phuket King menu bar */
 .pkt{position:sticky;top:0;z-index:50;background:rgba(10,12,16,.95);color:#fff;border-bottom:1px solid rgba(255,255,255,.06)}
@@ -437,6 +438,9 @@ function summary(){
   var of=INFO.offer||{}; if(of.gift&&of.gift_nights&&Q.nights>=of.gift_nights) lines.push(el('div',{cls:'offnote'},el('span',null,of.gift.charAt(0).toUpperCase()+of.gift.slice(1)),el('span',null,'Free')));
   (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) lines.push(el('div',null,el('span',null,e.name+(ppl(e,EX[e.id])>1?', '+(GUESTS===2?'both guests':GUESTS+' guests'):'')),el('span',null,thb(pr)))); });
   if(crsPrice()) lines.push(el('div',null,el('span',null,'Online course: '+INFO.course.title),el('span',null,thb(crsPrice()))));
+  /* a thank you gift for a bigger booking (Settings, Website offer) */
+  var vg=(INFO.offer||{}).vgift, gets=vg&&tot>=vg.over;
+  if(gets) lines.push(el('div',{cls:'offnote'},el('span',null,'Thank you gift: '+vg.text),el('span',null,'Free')));
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); }); if(crsPrice()) amts.push(crsPrice());
   var plan=depPlan(r.total,ex,!!r.monthly); $('howmuch').hidden=!plan;
@@ -448,8 +452,15 @@ function summary(){
   var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&now<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=now>0&&payWith()==='card'?Math.round(now*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,dep?'You pay now by card':'You pay by card'),el('b',null,thb(now+fee)))); amts.push(fee); }
   var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
   $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';
+  /* a kind word before they pay: what this booking saves them, and the thank you gift */
+  var nd=[], save=r.full>r.total?r.full-r.total:0, of2=INFO.offer||{};
+  if(save>0&&of2.nudge!==false){ var pr=(of2.promos||[]).filter(function(p){ return r.promo&&p.name===r.promo; })[0], more='';
+    if(pr&&pr.left!=null&&pr.left<=5) more=' There '+(pr.left===1?'is only 1 place':'are only '+pr.left+' places')+' left at this price.';
+    else if(pr&&pr.book_by) more=' The offer is open until '+fmt(pr.book_by).replace(/, \d{4}$/,'')+'.';
+    nd.push(el('p',null,'Good news: '+(r.promo?'the '+r.promo.replace(/[.\s]+$/,'')+' offer':'booking with us directly')+' saves you '+thb(save)+' on this stay.'+more)); }
+  if(gets) nd.push(el('p',null,'As a thank you for booking with us, we would love to give you '+vg.text.replace(/^an? /i,function(m){ return m.toLowerCase(); })+'. It will be waiting for you when you arrive.'));
   $('chosen').innerHTML='';
-  $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines)));
+  $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines),nd.length?el('div',{cls:'nudge'},nd):null));
   $('paywith').hidden=cur()!=='thb'; pick.how=payWith()==='pp'?' with Thai QR':' by card';
   $('pay').textContent='Pay '+(dep?'deposit ':'')+(fc||thb(now+fee))+pick.how; pick.total=tot; pick.dep=!!dep; pick.label=(dep?'deposit ':'')+(fc||thb(now+fee));
   askBar(rr,tot);

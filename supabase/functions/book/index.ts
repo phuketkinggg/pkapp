@@ -123,7 +123,8 @@ function quote(R: Rates, g: Group, from: string, to: string) {
 // extras in full; the rest is due balance_days days before arrival. Monthly price stays pay at least the first month.
 type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number };
 type Promo = { id: string; name: string; text: string; from: string; to: string; pct: number; book_by: string; limit: number; free: string; left: number | null };
-type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean; promos: Promo[] };
+type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean; promos: Promo[];
+  nudge: boolean; vgift: { over: number; text: string } | null };
 async function offer(): Promise<Offer> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
   let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* none */ }
@@ -136,6 +137,9 @@ async function offer(): Promise<Offer> {
     deposit: { on: j.dep_on === true, nights: clampN(j.dep_nights, 14, 1, 90), pct: clampN(j.dep_pct, 30, 5, 95), high_pct: clampN(j.dep_high_pct, 50, 5, 95),
       min_nights: clampN(j.dep_min_nights, 7, 0, 60), balance_days: clampN(j.dep_balance_days, 14, 0, 90) },
     quote: j.quote_on !== false,
+    // a kind line with what they save, and a thank you gift for bookings over an amount (not part of the offer switch)
+    nudge: j.nudge_on !== false,
+    vgift: j.vgift_on === true && Number(j.vgift_over) > 0 && String(j.vgift ?? "").trim() ? { over: Math.round(Number(j.vgift_over)), text: String(j.vgift).trim().slice(0, 80) } : null,
     // dated offers (Settings, Website offer, Offers for dates): nights between from and to get their own % off instead of the book direct discount.
     // Shown on the booking page until they end. Not part of the offer switch.
     // book_by: the offer can be booked until this day; limit: only the first so many bookings get it; free: an extra given free for the stay
@@ -487,13 +491,15 @@ Deno.serve(async (req) => {
       try { const ci = await courseItem(body, items, from, to); if (ci) items.push(ci); } catch (e) { return json({ error: (e as Error).message }); }
       if (fr) items.push(fr);
       const total = q.total + items.reduce((t, i) => t + i.price, 0);
+      // the thank you gift for a bigger booking, written on the stay for the front desk
+      const giftNote = O.vgift && total >= O.vgift.over ? `Thank you gift: ${O.vgift.text} (booking of ${total} THB).` : "";
       const plan = body.deposit ? depositPlan(R, O, from, nightsN, q.total, total - q.total, rp.monthly) : null;
       if (body.deposit && !plan) return json({ error: "A deposit is not available for this stay. Pay the whole stay, or WhatsApp us." });
       const payNow = plan ? plan.now : total, STAY = await bizStay();
       const depNote = plan ? `Website deposit ${plan.now} THB of ${total} THB. ${plan.rest} THB left, ${plan.monthly ? "month by month, each month 7 days before it starts" : "due by " + plan.due}.` : "";
       await admin.rpc("web_holds_cleanup");
       const { data, error } = await admin.rpc("web_reserve", { p_room: roomId, p_from: from, p_to: to, p_price: q.total, p_name: String(body.name ?? ""), p_email: String(body.email ?? ""),
-        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote, depNote].filter(Boolean).join("\n") });
+        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote, giftNote, depNote].filter(Boolean).join("\n") });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
       if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref), p_at: isNaN(Date.parse(String(body.ref_at ?? ""))) ? null : new Date(String(body.ref_at)).toISOString() });
