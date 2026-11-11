@@ -32,7 +32,7 @@ begin
   -- a paid website stay says what was paid
   n := replace(n, $x$|| coalesce(' (' || src || ')', '') || '.';
     url := '#stays';$x$, $x$|| coalesce(' (' || src || ')', '')
-      || coalesce(', paid ' || to_char(nullif((select sum(x.amount_thb) from public.payments x where x.stay_id = s.id and not x.voided), 0), 'FM999,999,990') || ' THB', '') || '.';
+      || coalesce(', paid ' || to_char(nullif((select sum(x.amount_thb) from public.payments x where not x.voided and (x.stay_id = s.id or x.purchase_id in (select q.id from public.purchases q where q.for_stay = s.id))), 0), 'FM999,999,990') || ' THB', '') || '.';
     url := '#stays';$x$);
   if n = d then raise notice 'booking_push: older version, skipped'; return; end if;
   execute n;
@@ -48,6 +48,16 @@ begin
   n := replace(d, $x$(select case when s.value ~ '^\s*\{' then s.value::jsonb->>'from' end from public.app_settings s where s.key = 'welcome_email')$x$, $x$(select case when w.value ~ '^\s*\{' then w.value::jsonb->>'from' end from public.app_settings w where w.key = 'welcome_email')$x$);
   if n <> d then execute n; end if;
   if position('s.value' in pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure)) > 0 then raise exception 'booking_push fix did not apply'; end if;
+end $p$;
+
+-- the paid amount counts what was paid for the extras booked with the room too
+do $p$
+declare d text; n text;
+begin
+  if to_regprocedure('private.booking_push(text,uuid)') is null then return; end if;
+  d := pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure);
+  n := replace(d, $x$(select sum(x.amount_thb) from public.payments x where x.stay_id = s.id and not x.voided)$x$, $x$(select sum(x.amount_thb) from public.payments x where not x.voided and (x.stay_id = s.id or x.purchase_id in (select q.id from public.purchases q where q.for_stay = s.id)))$x$);
+  if n <> d then execute n; end if;
 end $p$;
 
 -- the trigger: a website stay waiting for payment waits; it is sent when the payment comes in. And it is sent when an email is set,
