@@ -28,7 +28,7 @@ begin
   if position('''email''' in d) > 0 then raise notice 'booking_push already patched'; return; end if;
   n := replace(d, $x$return jsonb_build_object('title', t, 'body', left(b, 180), 'tag', p_kind || '-' || p_id, 'url', url,$x$,
     $x$return jsonb_build_object('title', t, 'body', left(b, 180), 'tag', p_kind || '-' || p_id, 'url', url,
-    'email', nullif(cfg->>'email', ''), 'from', (select case when s.value ~ '^\s*\{' then s.value::jsonb->>'from' end from public.app_settings s where s.key = 'welcome_email'),$x$);
+    'email', nullif(cfg->>'email', ''), 'from', (select case when w.value ~ '^\s*\{' then w.value::jsonb->>'from' end from public.app_settings w where w.key = 'welcome_email'),$x$);
   -- a paid website stay says what was paid
   n := replace(n, $x$|| coalesce(' (' || src || ')', '') || '.';
     url := '#stays';$x$, $x$|| coalesce(' (' || src || ')', '')
@@ -37,6 +37,17 @@ begin
   if n = d then raise notice 'booking_push: older version, skipped'; return; end if;
   execute n;
   if position('''email''' in pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure)) = 0 then raise exception 'booking_push patch did not apply'; end if;
+end $p$;
+
+-- fix for databases patched with the first version of this file (the settings row was named like the stay variable)
+do $p$
+declare d text; n text;
+begin
+  if to_regprocedure('private.booking_push(text,uuid)') is null then return; end if;
+  d := pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure);
+  n := replace(d, $x$(select case when s.value ~ '^\s*\{' then s.value::jsonb->>'from' end from public.app_settings s where s.key = 'welcome_email')$x$, $x$(select case when w.value ~ '^\s*\{' then w.value::jsonb->>'from' end from public.app_settings w where w.key = 'welcome_email')$x$);
+  if n <> d then execute n; end if;
+  if position('s.value' in pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure)) > 0 then raise exception 'booking_push fix did not apply'; end if;
 end $p$;
 
 -- the trigger: a website stay waiting for payment waits; it is sent when the payment comes in. And it is sent when an email is set,
