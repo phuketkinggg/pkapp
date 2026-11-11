@@ -1,89 +1,84 @@
--- Email the office when a new booking comes in:
---   stays: website bookings once paid, MotoPress, Booking.com, Airbnb and Agoda (anything not typed in by staff)
---   website orders: packages and courses bought on the website, once paid
--- Each booking is emailed once (private.booking_mails). The address is app_settings 'booking_email' (default hello@phuketking.com).
+-- New bookings by email too (feature booking_push): every booking that did not come from the team is also emailed to the
+-- address in Messages, Booking notifications (app_settings booking_push "email"), even when nobody turned on phone notifications.
+-- And a room booked on the website counts once it is paid (or held for a bank transfer check), not when the guest opens the payment
+-- page, so an abandoned payment never sends a "new booking".
+-- Needs booking_push.sql. Patches check they applied and skip cleanly where a database is older.
 
-create table if not exists private.booking_mails (
-  kind text not null,
-  ref uuid not null,
-  queued_at timestamptz not null default now(),
-  sent_at timestamptz,
-  error text,
-  primary key (kind, ref)
-);
-
-create or replace function private.booking_mail(p_kind text, p_ref uuid) returns void language plpgsql security definer set search_path='' as $f$
-declare tok text;
+-- the email address: kept with the other booking notification settings
+do $p$
+declare d text; n text;
 begin
-  insert into private.booking_mails(kind, ref) values (p_kind, p_ref) on conflict do nothing;
-  if not found then return; end if;
-  select value into tok from private.sync_settings where key = 'sync_token';
-  perform net.http_post(url := 'https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/notify',
-    body := jsonb_build_object('kind', p_kind, 'id', p_ref),
-    headers := jsonb_build_object('Content-Type', 'application/json', 'x-sync-token', coalesce(tok, '')));
-exception when others then null;  -- never block a booking because of an email
-end $f$;
+  if to_regprocedure('public.booking_push_settings_save(jsonb)') is null then raise notice 'no booking_push here, skipped'; return; end if;
+  d := pg_get_functiondef('public.booking_push_settings_save(jsonb)'::regprocedure);
+  if position('''email''' in d) > 0 then raise notice 'booking_push_settings_save already patched'; return; end if;
+  n := replace(d, $x$'kinds', coalesce((select jsonb_agg(k) from jsonb_array_elements_text(coalesce(p->'kinds','[]'::jsonb)) k where k in ('private','stay','package','class')), '[]'::jsonb));$x$,
+    $x$'kinds', coalesce((select jsonb_agg(k) from jsonb_array_elements_text(coalesce(p->'kinds','[]'::jsonb)) k where k in ('private','stay','package','class')), '[]'::jsonb),
+    'email', case when coalesce(p->>'email','') ~ '^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$' then lower(trim(p->>'email')) end);$x$);
+  if n = d then raise notice 'booking_push_settings_save: older version, skipped'; return; end if;
+  execute n;
+  if position('''email''' in pg_get_functiondef('public.booking_push_settings_save(jsonb)'::regprocedure)) = 0 then raise exception 'booking_push_settings_save patch did not apply'; end if;
+end $p$;
 
--- a new stay that staff did not type in themselves
-create or replace function private.stay_mail_new() returns trigger language plpgsql security definer set search_path='' as $f$
+-- what the chat function gets: the email address and the sender too
+do $p$
+declare d text; n text;
 begin
-  if new.status <> 'cancelled' and new.hold_until is null and auth.uid() is null then perform private.booking_mail('stay', new.id); end if;
-  return null;
-end $f$;
-drop trigger if exists stays_mail_new on public.stays;
-create trigger stays_mail_new after insert on public.stays for each row execute function private.stay_mail_new();
+  if to_regprocedure('private.booking_push(text,uuid)') is null then return; end if;
+  d := pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure);
+  if position('''email''' in d) > 0 then raise notice 'booking_push already patched'; return; end if;
+  n := replace(d, $x$return jsonb_build_object('title', t, 'body', left(b, 180), 'tag', p_kind || '-' || p_id, 'url', url,$x$,
+    $x$return jsonb_build_object('title', t, 'body', left(b, 180), 'tag', p_kind || '-' || p_id, 'url', url,
+    'email', nullif(cfg->>'email', ''), 'from', (select case when s.value ~ '^\s*\{' then s.value::jsonb->>'from' end from public.app_settings s where s.key = 'welcome_email'),$x$);
+  -- a paid website stay says what was paid
+  n := replace(n, $x$|| coalesce(' (' || src || ')', '') || '.';
+    url := '#stays';$x$, $x$|| coalesce(' (' || src || ')', '')
+      || coalesce(', paid ' || to_char(nullif((select sum(x.amount_thb) from public.payments x where x.stay_id = s.id and not x.voided), 0), 'FM999,999,990') || ' THB', '') || '.';
+    url := '#stays';$x$);
+  if n = d then raise notice 'booking_push: older version, skipped'; return; end if;
+  execute n;
+  if position('''email''' in pg_get_functiondef('private.booking_push(text,uuid)'::regprocedure)) = 0 then raise exception 'booking_push patch did not apply'; end if;
+end $p$;
 
--- a website booking once it is paid (the hold is cleared)
-create or replace function private.stay_mail_paid() returns trigger language plpgsql security definer set search_path='' as $f$
+-- the trigger: a website stay waiting for payment waits; it is sent when the payment comes in. And it is sent when an email is set,
+-- even with no phone signed up for notifications.
+create or replace function private.booking_push_send() returns trigger language plpgsql security definer set search_path to '' as $f$
+declare k text; tok text; base text; cfg jsonb;
 begin
-  if old.hold_until is not null and new.hold_until is null and new.status <> 'cancelled' then perform private.booking_mail('stay', new.id); end if;
-  return null;
-end $f$;
-drop trigger if exists stays_mail_paid on public.stays;
-create trigger stays_mail_paid after update of hold_until on public.stays for each row execute function private.stay_mail_paid();
-
--- website package or course orders once paid
-create or replace function private.webpkg_mail() returns trigger language plpgsql security definer set search_path='' as $f$
-begin
-  if new.status = 'paid' and coalesce(old.status, '') <> 'paid' then perform private.booking_mail('webpkg', new.id); end if;
-  return null;
-end $f$;
-drop trigger if exists web_pkg_orders_mail on public.web_pkg_orders;
-create trigger web_pkg_orders_mail after update of status on public.web_pkg_orders for each row execute function private.webpkg_mail();
-
--- the function reads everything it needs from here (service role only)
-create or replace function public.booking_mail_data(p_kind text, p_id uuid) returns jsonb language plpgsql stable security definer set search_path='' as $f$
-declare r jsonb;
-begin
-  if p_kind = 'stay' then
-    select jsonb_build_object('kind','stay','id', s.id, 'guest', c.name, 'email', c.email, 'phone', c.phone, 'room', rm.name,
-      'from', s.check_in, 'to', s.check_out, 'nights', s.check_out - s.check_in, 'guests', s.guests, 'status', s.status,
-      'source', coalesce(bs.name, case when s.external_id like 'web:%' then 'Website (phuketking.com)' when s.external_id like 'mphb:%' then 'Website (MotoPress)'
-                                        when s.ical_feed is not null then 'Booking site calendar' else 'Direct' end),
-      'price', s.room_price_thb, 'paid', coalesce(s.room_paid_thb,0)
-               + coalesce((select sum(p.amount_thb) from public.payments p where p.stay_id = s.id and not p.voided),0),
-      'training', s.training_included, 'notes', s.notes, 'affiliate', af.name,
-      'extras', coalesce((select jsonb_agg(jsonb_build_object('name', k.package_name, 'price', k.price_thb, 'paid', k.paid_thb) order by k.created_at)
-         from public.purchases k where k.for_stay = s.id and not k.cancelled), '[]'::jsonb)
-                || coalesce((select jsonb_agg(jsonb_build_object('name', rc.description, 'price', rc.amount_thb, 'paid', 0) order by rc.created_at)
-         from public.room_charges rc where rc.stay_id = s.id and not coalesce(rc.voided,false)), '[]'::jsonb),
-      'to_email', coalesce((select nullif(value,'') from public.app_settings where key = 'booking_email'), 'hello@phuketking.com'))
-    into r
-    from public.stays s left join public.customers c on c.id = s.customer_id left join public.rooms rm on rm.id = s.room_id
-      left join public.booking_sources bs on bs.id = s.source_id left join public.affiliates af on af.id = s.affiliate_id
-    where s.id = p_id;
-  elsif p_kind = 'webpkg' then
-    select jsonb_build_object('kind','webpkg','id', o.id, 'what', o.package_name, 'price', o.price_thb, 'guest', o.name, 'email', o.email, 'phone', o.phone,
-      'start', o.start_on, 'note', o.note, 'paid_at', o.paid_at, 'course', o.course_id is not null,
-      'method', case when o.stripe_session like 'claim:%' then 'PromptPay (desk to check)' else 'Card online' end,
-      'to_email', coalesce((select nullif(value,'') from public.app_settings where key = 'booking_email'), 'hello@phuketking.com'))
-    into r from public.web_pkg_orders o where o.id = p_id;
+  if private.my_staff_id() is not null then return null; end if;
+  if not private.feature('booking_push', true) then return null; end if;
+  if tg_table_name = 'privates' then
+    if tg_op <> 'INSERT' or new.status in ('cancelled','done') or new.date < private.bkk_today() then return null; end if; k := 'book_private';
+  elsif tg_table_name = 'stays' then
+    if new.status = 'cancelled' or new.check_out < private.bkk_today() then return null; end if;
+    if tg_op = 'INSERT' then if new.hold_until is not null then return null; end if;
+    elsif not (old.hold_until is not null and new.hold_until is null) then return null; end if;
+    k := 'book_stay';
+  elsif tg_table_name = 'purchases' then
+    if new.for_stay is not null or new.stay_id is not null or not coalesce(new.paid, false) then return null; end if;
+    if tg_op = 'UPDATE' and coalesce(old.paid, false) then return null; end if;
+    k := 'book_package';
+  elsif tg_table_name = 'agency_bookings' then
+    if tg_op <> 'INSERT' or new.kind <> 'class' or new.status = 'cancelled' then return null; end if; k := 'book_class';
   end if;
-  return r;
+  if k is null then return null; end if;
+  cfg := private.booking_push_cfg();
+  if not (cfg->'kinds') ? substr(k, 6) then return null; end if;
+  if coalesce(cfg->>'email', '') = '' and not exists (select 1 from public.push_subs x join public.staff st on st.id = x.staff_id where x.off_at is null and st.active
+    and st.role = any (array(select jsonb_array_elements_text(cfg->'roles')))) then return null; end if;
+  select value into tok from private.sync_settings where key = 'sync_token';
+  select value into base from private.sync_settings where key = 'functions_url';
+  perform net.http_post(url := coalesce(base, 'https://jijnshwduhgegacfvpkh.supabase.co/functions/v1') || '/chat',
+    body := jsonb_build_object('mode', 'push', 'kind', k, 'id', new.id),
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-sync-token', coalesce(tok, '')));
+  return null;
+exception when others then return null;
 end $f$;
-revoke all on function public.booking_mail_data(text, uuid) from public, anon, authenticated;
 
-create or replace function public.booking_mail_done(p_kind text, p_id uuid, p_error text) returns void language sql security definer set search_path='' as $f$
-  update private.booking_mails set sent_at = case when p_error is null then now() end, error = p_error where kind = p_kind and ref = p_id
-$f$;
-revoke all on function public.booking_mail_done(text, uuid, text) from public, anon, authenticated;
+do $p$
+begin
+  if to_regclass('public.stays') is null or to_regclass('public.push_subs') is null then return; end if;
+  drop trigger if exists stays_booking_push on public.stays;
+  create trigger stays_booking_push after insert or update of hold_until on public.stays for each row execute function private.booking_push_send();
+end $p$;
+
+notify pgrst, 'reload schema';

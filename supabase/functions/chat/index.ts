@@ -122,6 +122,21 @@ async function send(subs: Sub[], p: { title: string; body: string; chat: string;
     }));
   } catch (_e) { /* notifications are best effort */ }
 }
+const RESEND = () => (Deno.env.get("RESEND_API_KEY") ?? "").trim();
+const esc = (x: string) => x.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+async function bookingMail(to: string, from: string | null, title: string, body: string, link: string) {
+  if (!RESEND()) return false;
+  const subject = title.replace(/^.*\/\s*/, ""), head = subject;
+  const text = [body, "", "Open it in the app: " + link].join("\n");
+  const html = `<div style="font-family:system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;color:#111"><h2 style="margin:0 0 8px">${esc(head)}</h2><p>${esc(body)}</p><p><a href="${esc(link)}">Open it in the app</a></p></div>`;
+  try {
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${RESEND()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: from || "Bookings <hello@app.phuketking.com>", to: [to], subject, html, text }) });
+    const j = await r.json().catch(() => ({}));
+    await admin.from("sent_emails").insert({ to_email: to, subject, body: text, status: r.ok ? "sent" : "failed", error: r.ok ? null : String(j?.message ?? r.status).slice(0, 300), resend_id: j?.id ?? null, sent_at: r.ok ? new Date().toISOString() : null, campaign: "booking_alert" });
+    return r.ok;
+  } catch (_e) { return false; }
+}
 async function ipHash(req: Request) {
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
   if (!ip) return "";
@@ -157,9 +172,12 @@ Deno.serve(async (req) => {
     const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
     if (ok !== true) return json({ error: "Not allowed." }, 401);
     const { data: t } = await admin.rpc("push_targets", { p_kind: str(b.kind, 20), p_id: str(b.id, 40) });
-    const tg = t as { title: string; body: string; tag: string; url: string; subs: Sub[] } | null;
+    const tg = t as { title: string; body: string; tag: string; url: string; subs: Sub[]; email?: string | null; from?: string | null } | null;
     if (tg && tg.subs?.length) await send(tg.subs, { title: tg.title, body: tg.body, chat: "", tag: tg.tag, url: "https://app.phuketking.com/" + (tg.url || "") });
-    return json({ ok: true, sent: tg?.subs?.length ?? 0 });
+    // new bookings are also emailed to the address set in Messages, Booking notifications
+    let mailed = false;
+    if (tg?.email && /^book_/.test(str(b.kind, 20))) mailed = await bookingMail(tg.email, tg.from ?? null, tg.title, tg.body, "https://app.phuketking.com/" + (tg.url || ""));
+    return json({ ok: true, sent: tg?.subs?.length ?? 0, mailed });
   }
   if (!["status", "start", "send", "contact", "poll"].includes(mode)) return json({ error: "Unknown request." }, 400);
   const p: Record<string, string> = { mode };

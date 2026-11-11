@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=171"></script>
+<script src="changelog.js?v=172"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1034,7 +1034,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=116; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=117; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4023,8 +4023,10 @@ function bookPushForm(){
     openForm({title:'Booking notifications',saveLabel:'Save',doneMsg:'Saved.',
       note:'A phone notification for every new booking that did not come from your team: online, in the member app, from booking sites and agency emails. Each person turns notifications on once on their own phone: Messages, Turn on notifications on this phone. Coaches get their own privates anyway.',
       fields:[{key:'kinds',label:'Notify for',type:'checks',def:c.kinds||['private','stay','package','class'],options:[['private','Privates booked'],['stay','Rooms booked'],['package','Packages bought online'],['class','Group class guests from agencies']]},
-        {key:'roles',label:'Who gets them',type:'checks',def:c.roles||['manager','front_desk'],options:[['manager','Managers'],['admin','Admins'],['front_desk','Front desk'],['resort','Resort staff'],['kitchen','Kitchen']]}],
-      onSave:function(v){ return sb.rpc('booking_push_settings_save',{p:{kinds:v.kinds||[],roles:v.roles||[]}}).then(must); }});
+        {key:'roles',label:'Who gets them',type:'checks',def:c.roles||['manager','front_desk'],options:[['manager','Managers'],['admin','Admins'],['front_desk','Front desk'],['resort','Resort staff'],['kitchen','Kitchen']]},
+        {key:'email',label:'Also email every new booking to',type:'email',def:c.email||'',hint:'Optional. For example your business email. Leave empty for phone notifications only.'}],
+      onSave:function(v){ var em=String(v.email||'').trim(); if(em&&!/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(em)) return 'Check the email address, or leave it empty.';
+        return sb.rpc('booking_push_settings_save',{p:{kinds:v.kinds||[],roles:v.roles||[],email:em}}).then(must); }});
   }).catch(function(e){ toast(errText(e)); });
 }
 function aiReplyForm(){
