@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=5"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=174"></script>
+<script src="changelog.js?v=175"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -244,6 +244,7 @@ body.till #view{max-width:none}
 .tillleft input[type=search]{width:100%;box-sizing:border-box}
 .catchips{gap:6px}
 .tillgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.tabgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.tabbtn span{font-size:17px;font-weight:700}.cartbox.tabmode{outline:3px solid var(--accent,#c8102e)}.tabact .btn{flex:1}.ktab{font-size:20px}
 .tillbtn{display:flex;flex-direction:column;justify-content:space-between;gap:6px;min-height:78px;padding:10px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;cursor:pointer;font:inherit;color:inherit}
 .tillbtn:hover{border-color:var(--gold)}
 .tillbtn:active{transform:scale(.98)}
@@ -944,6 +945,7 @@ var FEATURES=[
   {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
   {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
+  {k:'shop_tabs',g:'Selling',n:'Tabs at the till',d:'Running tabs for tables or people: put an order on Table 1, the kitchen gets it and the till is free for the next customer. Add more to the tab any time, then bring it up at the end, print the bill and take payment. A line added in the last 10 minutes can be taken off; after that a manager uses their PIN.'},
   {k:'coach_docs',g:'Training',n:'Coaching documents',d:'A library in Coaching for PDFs, Word, Excel and PowerPoint files. Upload once, then use them in action groups and in Education lessons.'},
   {k:'package_pause',g:'Selling',n:'Pause a package',d:'The owner can pause a member\'s package, for example for an injury, with a reason, who authorised it and their password. While paused it cannot be used to check in, and the days are added to the end date.'},
   {k:'desk_sell',g:'Customers',n:'New customer at the desk',d:'Check in shows New customer and, on every customer, Sell or book: one simple form for full name, email and phone, then a private lesson, a group class or anything else, and the payment. The coach of a private can stay empty and be added later. Agency guests keep their own button.',def:true,spa:false},
@@ -1029,7 +1031,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=118; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=119; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -7303,7 +7305,8 @@ function payDlg(method,waitingOrder){
     var first=custSel&&!custSel.value&&!go.newCid?sb.from('customers').insert({name:custNew.value.trim(),tier:'train',price_group:'standard'}).select('id').single().then(must).then(function(d){ go.newCid=d.id; reload('customers'); return d.id; }):Promise.resolve(custSel?(custSel.value||go.newCid):null);
     first.then(function(cid){ if(cid) p.customer_id=cid; return sb.rpc('shop_sell',{p:p}); }).then(must).then(function(r){
       if(method==='bill'){ clearCart(); $dlg.close(); toast('Sale #'+r.number+' is on '+(custSel.value?nameOf('customers',custSel.value):custNew.value.trim())+'\'s bill.'); shopRefresh(); loadShop(); if(hadPk) reload('purchases'); return; }
-      var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:null}; }):cart().slice();
+      var lines=waitingOrder?waitingOrder.items.map(function(i){ return {name:i.name,qty:i.qty,price:i.price!=null?i.price:null}; }):cart().slice();
+      if(waitingOrder&&ui.tabTarget&&ui.tabTarget.id===waitingOrder.id) ui.tabTarget=null;
       var disc=waitingOrder?0:cartDisc(); if(!waitingOrder) clearCart();
       $dlg.close(); toast('Sale #'+r.number+' done.'+(r.change?' Change '+thb(r.change)+'.':''));
       receiptDlg({id:r.id,loc:locName(shopLoc()),number:r.number,at:new Date().toISOString(),items:lines,subtotal:base+disc,discount:disc,fee:p.fee||0,tax:p.tax||0,total:r.total,method:method,change:r.change,cash_given:p.cash_given});
@@ -7318,7 +7321,7 @@ function receiptNode(o){
   var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
   return h('div',{id:'receipt',class:'receipt'},
     h('div',{class:'rc-head'},h('b',null,(/cafe/i.test(o.loc||'')?DEPT_CAFE:BIZ_MAIN.replace(/ gym$/i,'')).toUpperCase()),h('span',null,[o.loc,(RCINFO&&RCINFO.address)||(RCINFO?'':'Chiang Mai')].filter(Boolean).join(', '))),
-    h('div',{class:'rc-meta'},'Receipt #'+o.number+'  '+new Date(o.at).toLocaleString(LOC(),{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
+    h('div',{class:'rc-meta'},(o.bill?'Bill'+(o.tab?', '+o.tab:'')+' #':'Receipt #')+o.number+'  '+new Date(o.at).toLocaleString(LOC(),{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})),
     h('table',null,h('tbody',null,(o.items||[]).map(function(l){ return h('tr',null,h('td',null,l.qty+' x '+l.name+(l.note?' ('+l.note+')':'')),h('td',{class:'num'},l.price!=null?thb(l.price*l.qty):'')); }))),
     h('div',{class:'rc-tot'},
       o.discount?h('div',null,h('span',null,'Subtotal'),h('span',null,thb(o.subtotal))):null,
@@ -7327,7 +7330,7 @@ function receiptNode(o){
       o.tax?h('div',null,h('span',null,'Tax'),h('span',null,thb(o.tax))):null,
       h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(o.total))),
       vat?h('div',null,h('span',null,'Includes VAT '+vat.rate+'%'),h('span',null,thb(Math.round(o.total*vat.rate/(100+vat.rate))))):null,
-      h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
+      o.bill?h('div',null,h('span',null,'Not paid yet'),h('span')):h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
       o.change?h('div',null,h('span',null,'Change'),h('span',null,thb(o.change))):null),
     h('div',{class:'rc-foot'},(RCINFO&&RCINFO.footer)||'Thank you. Work hard, fight easy.'));
 }
@@ -7450,6 +7453,7 @@ function editProduct(p){
     {key:'sort',label:'Order on the till',type:'number'},
     {key:'description',label:'Description for the app menu and website shop',type:'textarea'},
     {key:'sku',label:'Code or barcode',hint:'Optional.'}].filter(Boolean),
+    onDelete:p.id?function(){ return sb.rpc('shop_product_delete',{p_id:p.id}).then(must).then(function(r){ if(r&&!r.deleted) setTimeout(function(){ toast(r.note); },100); return loadShop(); }); }:null,
     onSave:function(v){ var mods=v.mods; delete v.mods; return sb.rpc('shop_product_save',{p:Object.assign({id:p.id||null},v,{image_url:imgs[0]||null})}).then(must)
       .then(function(id){ var pid=id||p.id; return sb.rpc('shop_product_images_save',{p_id:pid,p_images:imgs}).then(must).then(function(){ return mods?sb.rpc('shop_product_mods',{p_product:pid,p_ids:mods}).then(must):null; }); }).then(loadShop); }});
   // product photos for the website shop and the app: add several, the first one is the main photo
@@ -7679,6 +7683,56 @@ function vStaffTabs(){
           {label:'',cell:function(c){ return c.voided?chip('Removed'):c.settled_at?chip('Settled, '+(how[c.settled_how]||c.settled_how)+', '+fmtDate(String(c.settled_at).slice(0,10)),'ok'):!c.till?btn('Remove',function(){ if(guard()) run(sb.rpc('staff_charge_remove',{p_id:c.id}).then(must).then(function(){ TABS_ST=null; schedule(); }),'Removed.'); },'small'):chip('Owed','warn'); }}],t.charges,'')); }),
     TABS_ST.some(function(t){ return t.charges.length; })?null:h('div',{class:'panel empty'},'Nobody has anything on their tab yet. On the till, tap Staff tab to pay, or Add to a staff tab here.')];
 }
+/* running tabs (feature shop_tabs): Table 1, Table 2 or a name. The order goes to the kitchen, the till is free for the next
+   customer, more is added any time, and the tab is paid at the end like an order waiting for payment */
+function tabAge(o){ var m=Math.max(0,Math.round((Date.now()-new Date(o.at))/60000)); return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'; }
+function tabsBox(tabs){ if(!featOn('shop_tabs')||!tabs.length) return null;
+  return section('Open tabs ('+tabs.length+')',null,h('div',{class:'tabgrid'},sortBy(tabs.slice(),'tab').map(function(o){ var n=o.items.reduce(function(t,i){ return t+Number(i.qty||0); },0);
+    return h('button',{type:'button',class:'tillbtn tabbtn'+(ui.tabTarget&&ui.tabTarget.id===o.id?' on':''),onclick:function(){ tabDlg(o); }},
+      h('span',{class:'notr'},o.tab),h('small',null,n+' item'+(n===1?'':'s')+', '+tabAge(o)),h('b',null,thb(o.total))); }))); }
+function tabSend(t,b){
+  if(!cart().length){ toast('Tap products first.'); return Promise.resolve(); }
+  if(cart().some(function(l){ return l.pkg; })){ toast('Training packages cannot go on a tab. Sell them on their own.'); return Promise.resolve(); }
+  var p={location_id:shopLoc(),items:cartItems(),discount:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null};
+  if(t.id) p.order_id=t.id; else p.name=t.name;
+  if(b) b.disabled=true;
+  return sb.rpc('shop_tab_add',{p:p}).then(must).then(function(r){ clearCart(); ui.tabTarget=null;
+    toast((t.id?'Added to ':'Tab opened: ')+r.name+', now '+thb(r.total)+(r.kitchen?'. Sent to the kitchen.':'.')); shopRefresh(); loadShop(); },
+    function(e){ if(b) b.disabled=false; toast(errText(e)); }); }
+function tabPick(tabs){
+  if(!cart().length){ toast('Tap products first, then put them on a tab.'); return; }
+  var used=tabs.map(function(o){ return String(o.tab).toLowerCase(); }), free=[];
+  for(var i=1;free.length<12&&i<=99;i++) if(used.indexOf('table '+i)<0) free.push('Table '+i);
+  var name=h('input',{id:'tab-name',type:'text',maxlength:'40',autocomplete:'off',placeholder:'For example Sam, Bar 2, Pool'}), err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
+  function go(t){ if(busy) return; busy=true; err.hidden=true;
+    var job=t.id?sb.rpc('shop_tab_add',{p:{order_id:t.id,location_id:shopLoc(),items:cartItems(),discount:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null}}).then(must)
+      :sb.rpc('shop_tab_add',{p:{name:t.name,location_id:shopLoc(),items:cartItems(),discount:cartDisc(),discount_reason:ui.cartDisc&&ui.cartDisc.reason||null,pin:ui.cartDisc&&ui.cartDisc.pin||null,approval_id:ui.cartDisc&&ui.cartDisc.approval_id||null}}).then(must);
+    job.then(function(r){ $dlg.close(); clearCart(); ui.tabTarget=null; toast((t.id?'Added to ':'Tab opened: ')+r.name+', now '+thb(r.total)+(r.kitchen?'. Sent to the kitchen.':'.')); shopRefresh(); loadShop(); },
+      function(e){ busy=false; err.textContent=errText(e); err.hidden=false; }); }
+  if(cart().some(function(l){ return l.pkg; })){ toast('Training packages cannot go on a tab. Sell them on their own.'); return; }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Put on a tab'),h('p',{class:'sub'},cart().length+' line'+(cart().length===1?'':'s')+', '+thb(cartSub()-cartDisc())+'. It goes to the kitchen now and is paid when the tab is closed.'),
+    tabs.length?[h('h3',null,'Add to an open tab'),h('div',{class:'optgrid'},sortBy(tabs.slice(),'tab').map(function(o){ return h('button',{type:'button',class:'tillbtn',onclick:function(){ go({id:o.id}); }},h('span',{class:'notr'},o.tab),h('b',null,thb(o.total))); }))]:null,
+    h('h3',null,'Open a new tab'),h('div',{class:'optgrid'},free.map(function(n){ return h('button',{type:'button',class:'tillbtn',onclick:function(){ go({name:n}); }},h('span',null,n)); })),
+    field('tab-name','Or a name',name),err,
+    h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),btn('Open this tab',function(){ var v=name.value.trim(); if(!v){ err.textContent='Type a name, or tap a table.'; err.hidden=false; return; } go({name:v}); },'primary')))); }
+function tabRename(o){ openForm({title:'Rename or move '+o.tab,values:{name:o.tab},saveLabel:'Save',doneMsg:'Saved.',fields:[{key:'name',label:'New name',required:true,hint:'For example Table 4, when they move.'}],
+  onSave:function(v){ return sb.rpc('shop_tab_rename',{p_order:o.id,p_name:v.name}).then(must).then(shopRefresh); }}); }
+function tabDlg(o){
+  var shift=curShift(), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function off(i,b){ b.disabled=true; err.hidden=true;
+    sb.rpc('shop_tab_remove',{p_item:i.id}).then(must).then(function(r){ $dlg.close(); toast(r.closed?'Taken off. Nothing is left, so the tab is closed.':'Taken off.'); shopRefresh(); loadShop(); },function(e){ b.disabled=false;
+      if(/PIN/.test(errText(e))) mistakeDlg(o.tab+': '+i.qty+' x '+i.name,'Stock goes back and it comes off the tab.',function(pin,why){ return sb.rpc('shop_mistake',{p_order:o.id,p_item:i.id,p_pin:pin,p_reason:why}).then(must).then(function(){ shopRefresh(); loadShop(); }); });
+      else { err.textContent=errText(e); err.hidden=false; } }); }
+  shopDlg(h('div',{class:'billbox'},h('h2',{class:'notr'},o.tab),h('p',{class:'sub'},'Tab #'+o.number+', open '+tabAge(o)+(o.customer?', '+o.customer:'')),
+    h('div',{class:'cartlines'},o.items.map(function(i){ return h('div',{class:'cartline'},h('div',{class:'cl-name'},i.qty+' x '+i.name,i.note?h('span',{class:'sub'},' '+i.note):null),
+      h('div',{class:'cl-amt'},i.price!=null?thb(i.price*i.qty):''),i.id?h('button',{type:'button',class:'link',onclick:function(){ off(i,this); }},'Take off'):h('span')); })),
+    h('div',{class:'carttot'},o.discount?h('div',null,h('span',null,'Discount'),h('span',null,'-'+thb(o.discount))):null,h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(o.total)))),err,
+    h('div',{class:'row wrap'},btn('Add more',function(){ ui.tabTarget={id:o.id,name:o.tab}; $dlg.close(); schedule(); toast('Tap products, then Add to '+o.tab+'.'); },'primary'),
+      btn('Print the bill',function(){ receiptDlg({bill:true,tab:o.tab,loc:locName(o.location_id||shopLoc()),number:o.number,at:new Date().toISOString(),items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total}); }),
+      btn('Rename or move',function(){ tabRename(o); })),
+    h('h3',null,'Close the tab and take payment'),
+    shift?h('div',{class:'paybtns'},payList(PAYS).filter(function(m){ return m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary':''); })):chip('Open a shift to take payment','warn'),
+    h('div',{class:'factions'},btn('Remove the whole tab',function(){ saleMistake(o); },'small'),btn('Close',function(){ $dlg.close(); })))); }
 function vShop(){
   if(!SHOP){
     if(ui.shopErr) return [pageHead('Shop',''),h('div',{class:'panel empty'},ui.shopErr,' ',btn('Try again',function(){ ui.shopErr=null; loadShop(); },'small'))];
@@ -7699,6 +7753,8 @@ function vShop(){
   var prods=pkMode?[]:prodByCat(q?null:ui.shopCat).filter(function(p){ return !q||p.name.toLowerCase().indexOf(q)>=0||(p.sku||'').toLowerCase()===q||(p.grp||'').toLowerCase().indexOf(q)>=0; });
   var pend=(APPROVALS||[]).filter(function(a){ return a.status==='pending'; });
   var waiting=(SALES&&SALES.waiting||[]).filter(function(o){ return !o.location_id||o.location_id===loc; });
+  var tabs=featOn('shop_tabs')?waiting.filter(function(o){ return o.tab; }):[]; if(tabs.length) waiting=waiting.filter(function(o){ return !o.tab; });
+  if(ui.tabTarget&&SALES&&!tabs.some(function(o){ return o.id===ui.tabTarget.id; })) ui.tabTarget=null;
   var head=h('div',{class:'row wrap'},
     L.length>1?btn(locName(loc)+' (change)',function(){ ui.shopLoc=null; try{ localStorage.removeItem('pk_shop_loc'); }catch(e){} schedule(); },'small'):null,
     shift?chip('Shift: '+(shift.by||'')+' since '+new Date(shift.opened_at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})+', started with '+(thb(shift.opening_cash)||'0 THB'),'ok'):chip('No shift open','warn'),
@@ -7722,7 +7778,8 @@ function vShop(){
       return h('button',{type:'button',class:'tillbtn grp'+(g.items[0].kitchen?' k':''),onclick:function(){ pickOption(g.grp,g.items,tillTap); }},h('span',null,g.grp),h('small',null,g.items.length+' options'),h('b',null,priceRange(g.items))); })
     :h('div',{class:'panel empty'},(SHOP.products||[]).length?'Nothing matches.':me.role==='manager'?'No products yet. Tap Products to add them, or send the Loyverse export to load them all.':'No products yet. A manager adds them.'));
   var sub=cartSub(), disc=cartDisc(), tot=sub-disc;
-  var cartBox=h('div',{class:'cartbox panel'},h('div',{class:'carthead'},h('b',null,'Sale'),cart().length?btn('Clear',clearCart,'small'):null),
+  var tt=featOn('shop_tabs')?ui.tabTarget:null;
+  var cartBox=h('div',{class:'cartbox panel'+(tt?' tabmode':'')},h('div',{class:'carthead'},h('b',null,tt?'Adding to ':'Sale'),tt?h('b',{class:'notr'},tt.name):null,tt?btn('Stop adding',function(){ ui.tabTarget=null; schedule(); },'small'):null,cart().length?btn('Clear',clearCart,'small'):null),
     cart().length?h('div',{class:'cartlines'},cart().map(function(l,i){
       if(l.pkg) return h('div',{class:'cartline'},h('div',{class:'cl-name'},l.name,h('span',{class:'sub'},' for '+nameOf('customers',l.pkg.customer_id))),h('div',{class:'cl-qty'},btn('Remove',function(){ cart().splice(i,1); if(cartDisc()>cartSub()) ui.cartDisc=null; schedule(); },'small')),h('div',{class:'cl-amt'},thb(l.price)),h('span'));
       return h('div',{class:'cartline'},h('div',{class:'cl-name'},l.name,l.note?h('span',{class:'sub'},' '+l.note):null),
@@ -7735,15 +7792,17 @@ function vShop(){
       disc?h('div',null,h('span',null,'Discount'+(ui.cartDisc.reason?' ('+ui.cartDisc.reason+')':'')),h('span',null,'-'+thb(disc))):null,
       h('div',{class:'big'},h('span',null,'Total'),h('span',null,thb(tot)||'0 THB'))),
     h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small'),btn('Other item',miscDlg,'small')),
-    shift?h('div',{class:'paybtns'},payList(PAYS).map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); }))
+    shift&&featOn('shop_tabs')?h('div',{class:'row wrap tabact'},tt?btn('Add to '+tt.name,function(){ tabSend({id:tt.id,name:tt.name},this); },'primary'):btn('Put on a tab',function(){ tabPick(tabs); })):null,
+    shift?(tt?null:h('div',{class:'paybtns'},payList(PAYS).map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); })))
       :h('div',{class:'panel pad'},h('p',null,'Open a shift before you sell. Count the change in the till first.'),btn('Open shift',shiftDlg,'primary')));
   var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
   return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
     head,
+    tabsBox(tabs),
     /cafe/i.test(locName(loc))?mealPlansBox():null,
     pend.length&&isBoss()?section('Waiting for your approval',null,cards(pend.map(function(a){ return {when:(a.kind==='refund'?'Refund ':'Discount ')+thb(a.amount)+(a.order?' on sale #'+a.order:''),title:a.reason,note:'Asked by '+(a.by||'staff')+' at '+new Date(a.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),
       act:[btn('Approve',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:true}).then(must).then(shopRefresh),'Approved.'); },'primary small'),btn('Decline',function(){ run(sb.rpc('shop_decide',{p_id:a.id,p_ok:false}).then(must).then(shopRefresh),'Declined.'); },'small')]}; }),'')):null,
-    waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
+    waiting.length?section('Waiting for payment',null,cards(waiting.map(function(o){ return {when:'#'+o.number+' '+(ymd(new Date(o.at))===ymd(new Date())?'':fmtDate(ymd(new Date(o.at)))+' ')+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:h('span',null,o.billed?chip('On their bill','warn'):null,' ',thb(o.total)),title:(o.tab?o.tab+', ':'')+(o.customer||'Guest')+(o.deliver_to?', '+o.deliver_to:''),
       note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.note?'. '+o.note:''),
       act:[shift?payList(PAYS).filter(function(m){ return m[0]!=='room'&&m[0]!=='bill'; }).map(function(m){ return btn(m[1],function(){ payDlg(m[0],o); },m[0]==='cash'?'primary small':'small'); }):chip('Open a shift to take payment','warn'),btn('Cancel order',function(){ refundDlg(o); },'small')]}; }),'')):null,
     h('div',{class:'till'},h('div',{class:'tillleft'},search,topRow,cats.length||gymTill(loc)?h('div',{class:'row wrap catchips'},btn('All',function(){ ui.shopCat=''; schedule(); },!ui.shopCat?'primary small':'small'),
@@ -7751,7 +7810,7 @@ function vShop(){
         gymTill(loc)?btn('Training packages',function(){ ui.shopCat='__pk'; ui.shopQ=''; schedule(); },pkMode?'primary small':'small'):null):null,grid),cartBox),
     section('Sales today',null,cards(today.slice(0,40).map(function(o){
       var st=o.status==='refunded'?chip('Refunded','bad'):o.status==='waiting'?chip(o.billed?'On their bill':'Not paid','warn'):chip(payName(o.method)+(o.fee?', card fee '+thb(o.fee):''),'ok');
-      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
+      return {when:'#'+o.number+' '+new Date(o.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'}),right:st,title:thb(o.total)+(o.tab?', '+o.tab:'')+(o.room?', '+o.room:o.customer?', '+o.customer:'')+(o.source==='app'?' (app)':''),
         note:o.items.map(function(i){ return i.qty+' x '+i.name; }).join(', ')+(o.discount?'. Discount '+thb(o.discount)+(o.approved_by?' approved by '+o.approved_by:''):'')+(o.refund_reason?'. Refund: '+o.refund_reason:'')+'. By '+(o.by||'app'),
         act:[btn('Receipt',function(){ receiptDlg({id:o.id,loc:locName(o.location_id),number:o.number,at:o.at,items:o.items,subtotal:o.subtotal,discount:o.discount,fee:o.fee,tax:o.tax,total:o.total,method:o.method,change:o.cash_given?o.cash_given-o.total:null}); },'small'),
           o.status==='paid'||o.status==='room'?btn('Refund',function(){ refundDlg(o); },'small'):null,
@@ -7828,8 +7887,8 @@ function vKitchen(){
       var n=next[o.status];
       return h('div',{class:'kcard '+o.status},
         h('div',{class:'ktop'},h('b',null,'#'+o.number),h('span',null,mins(o.at))),
-        h('div',{class:'kwho'},o.room?o.room+(o.who?', '+o.who:''):(o.who||'Counter'),o.deliver_to?h('span',null,' '+o.deliver_to):null,o.source==='app'?chip('App','ok'):null,!o.paid?chip('Not paid yet','warn'):null),
-        h('ul',null,o.items.map(function(i){ return h('li',null,h('b',null,i.qty+' x '),i.name,i.note?h('div',{class:'knote'},i.note):null); })),
+        h('div',{class:'kwho'},o.tab?h('b',{class:'notr ktab'},o.tab):(o.room?o.room+(o.who?', '+o.who:''):(o.who||'Counter')),o.deliver_to&&o.deliver_to!==o.tab?h('span',null,' '+o.deliver_to):null,o.source==='app'?chip('App','ok'):null,!o.paid&&!o.tab?chip('Not paid yet','warn'):null),
+        h('ul',null,o.items.map(function(i){ return h('li',null,h('b',null,i.qty+' x '),i.name,i.added?[' ',chip('Added','warn')]:null,i.note?h('div',{class:'knote'},i.note):null); })),
         o.note?h('div',{class:'knote'},o.note):null,
         h('div',{class:'row'},n?btn(n[1],function(){ sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:n[0]}).then(must).then(loadKitchen).catch(function(e){ toast(errText(e)); }); },'primary'):null,
           o.status!=='new'?btn('Back',function(){ var back={preparing:'new',ready:'preparing'}[o.status]; sb.rpc('shop_kitchen_set',{p_order:o.id,p_status:back}).then(must).then(loadKitchen); },'small'):null)); })),

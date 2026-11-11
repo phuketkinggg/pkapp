@@ -23,11 +23,12 @@ end $f$;
 drop trigger if exists shop_orders_kdone on public.shop_orders;
 create trigger shop_orders_kdone before update of kitchen_status on public.shop_orders for each row execute function private.shop_kdone();
 
--- open a tab, or add to one: p {order_id (to add to a tab) or name (a new tab), location_id, items:[...like shop_sell], customer_id}
+-- open a tab, or add to one: p {order_id (to add to a tab) or name (a new tab), location_id, items:[...like shop_sell], customer_id,
+--   discount, discount_reason, pin, approval_id: a discount on these items, approved like a till discount}
 create or replace function public.shop_tab_add(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare me_s uuid := private.my_staff_id(); oid uuid := nullif(p->>'order_id','')::uuid; o public.shop_orders%rowtype; loc uuid := nullif(p->>'location_id','')::uuid;
   shift uuid; nm text := left(btrim(coalesce(p->>'name','')), 40); it jsonb; pr public.shop_products%rowtype; qty int; mn text; mp numeric; md jsonb;
-  anyk boolean := false; rnd int; sub int;
+  anyk boolean := false; rnd int; sub int; added int := 0; disc int := greatest(coalesce(nullif(p->>'discount','')::numeric::int, 0), 0); appr uuid;
 begin
   if not private.shop_till() then raise exception 'Only the front desk and managers can use the till.'; end if;
   if not private.feature('shop_tabs', true) then raise exception 'Tabs are switched off in Settings, Features.'; end if;
@@ -58,6 +59,7 @@ begin
       begin mp := round((it->>'price')::numeric); exception when others then mp := null; end;
       if mp is null or mp < 0 or mp > 1000000 then raise exception 'Type the price for %.', mn; end if;
       insert into public.shop_order_items (order_id, product_id, name, price_thb, qty, note, kitchen, added_at) values (o.id, null, mn, mp::int, qty, nullif(btrim(it->>'note'),''), false, now());
+      added := added + mp::int * qty;
       continue;
     end if;
     select * into pr from public.shop_products where id = (it->>'product_id')::uuid and active;
@@ -71,8 +73,14 @@ begin
       values (o.id, pr.id, left(pr.name || coalesce(' (' || nullif(md->>'label', '') || ')', ''), 200), pr.price_thb, qty, nullif(btrim(it->>'note'),''), pr.kitchen, md->'list',
               case when pr.kitchen then rnd end, now());
     if pr.track_stock then perform private.shop_stock_move(pr.id, loc, -qty, 'sale', o.id); end if;
-    anyk := anyk or pr.kitchen;
+    anyk := anyk or pr.kitchen; added := added + pr.price_thb * qty;
   end loop;
+  if disc > added then raise exception 'The discount is more than what is being added.'; end if;
+  if disc > 0 then
+    appr := private.shop_approver('discount', disc, p->>'pin', nullif(p->>'approval_id','')::uuid, o.id);
+    update public.shop_orders set discount_thb = coalesce(discount_thb, 0) + disc, approved_by = coalesce(appr, approved_by),
+      discount_reason = left(concat_ws('; ', discount_reason, nullif(btrim(coalesce(p->>'discount_reason','')), '')), 300) where id = o.id returning * into o;
+  end if;
   select coalesce(sum(i.price_thb * i.qty), 0) into sub from public.shop_order_items i where i.order_id = o.id and not i.removed;
   update public.shop_orders set subtotal_thb = sub, total_thb = greatest(sub - coalesce(discount_thb, 0), 0) + coalesce(fee_thb, 0) + coalesce(tax_thb, 0),
     kitchen_status = case when anyk then 'new' else kitchen_status end where id = o.id returning * into o;
