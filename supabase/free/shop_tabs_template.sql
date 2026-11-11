@@ -121,36 +121,36 @@ end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1196005, 11, 'patch', 'shop_tabs:1196005', $TPL$revoke all on function __P__.shop_tab_rename(uuid, text) from public, anon;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1196006, 11, 'patch', 'shop_tabs:1196006', $TPL$grant execute on function __P__.shop_tab_rename(uuid, text) to authenticated;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1000402, 10, 'patch', 'shop_tabs:1000402', $TPL$do $p$
-declare d text; n text;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000403, 10, 'patch', 'shop_tabs:1000403', $TPL$begin
-  if to_regprocedure('__P__.shop_sales(date,date)') is null then raise notice 'no shop_sales here, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000404, 10, 'patch', 'shop_tabs:1000404', $TPL$d := pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000405, 10, 'patch', 'shop_tabs:1000405', $TPL$if position('tab_name' in d) > 0 then raise notice 'shop_sales already patched'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000406, 10, 'patch', 'shop_tabs:1000406', $TPL$n := replace(d, $x$'deliver_to', o.deliver_to, 'note', o.note,$x$, $x$'deliver_to', o.deliver_to, 'note', o.note, 'tab', o.tab_name,$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000407, 10, 'patch', 'shop_tabs:1000407', $TPL$n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty)), '[]'::jsonb)$x$,
-    $x$jsonb_build_object('id', i.id, 'name', i.name, 'qty', i.qty, 'price', i.price_thb, 'note', i.note, 'kitchen', i.kitchen, 'at', i.added_at) order by i.added_at nulls first), '[]'::jsonb)$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000408, 10, 'patch', 'shop_tabs:1000408', $TPL$n := replace(n, $x$'kitchen_status', o.kitchen_status,$x$, $x$'kitchen_status', o.kitchen_status, 'tab', o.tab_name,$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000409, 10, 'patch', 'shop_tabs:1000409', $TPL$if n = d then raise notice 'shop_sales: older version, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000410, 10, 'patch', 'shop_tabs:1000410', $TPL$execute n;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000411, 10, 'patch', 'shop_tabs:1000411', $TPL$if position('tab_name' in pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure)) = 0 then raise exception 'shop_sales patch did not apply'; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000412, 10, 'patch', 'shop_tabs:1000412', $TPL$end $p$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000413, 10, 'patch', 'shop_tabs:1000413', $TPL$do $p$
-declare d text; n text;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000414, 10, 'patch', 'shop_tabs:1000414', $TPL$begin
-  if to_regprocedure('__P__.shop_kitchen()') is null then raise notice 'no shop_kitchen here, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000415, 10, 'patch', 'shop_tabs:1000415', $TPL$d := pg_get_functiondef('__P__.shop_kitchen()'::regprocedure);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000416, 10, 'patch', 'shop_tabs:1000416', $TPL$if position('kdone_round' in d) > 0 then raise notice 'shop_kitchen already patched'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000417, 10, 'patch', 'shop_tabs:1000417', $TPL$n := replace(d, $x$'id', o.id, 'number', o.number, 'at', o.created_at,$x$,
+declare d text; n text;
+begin
+  if to_regprocedure('__P__.shop_sales(date,date)') is null then raise notice 'no shop_sales here, skipped'; return; end if;
+  d := pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure);
+  if position('tab_name' in d) > 0 then raise notice 'shop_sales already patched'; return; end if;
+  n := replace(d, $x$'deliver_to', o.deliver_to, 'note', o.note,$x$, $x$'deliver_to', o.deliver_to, 'note', o.note, 'tab', o.tab_name,$x$);
+  n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty)), '[]'::jsonb)$x$,
+    $x$jsonb_build_object('id', i.id, 'name', i.name, 'qty', i.qty, 'price', i.price_thb, 'note', i.note, 'kitchen', i.kitchen, 'at', i.added_at) order by i.added_at nulls first), '[]'::jsonb)$x$);
+  n := replace(n, $x$'kitchen_status', o.kitchen_status,$x$, $x$'kitchen_status', o.kitchen_status, 'tab', o.tab_name,$x$);
+  if n = d then raise notice 'shop_sales: older version, skipped'; return; end if;
+  execute n;
+  if position('tab_name' in pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure)) = 0 then raise exception 'shop_sales patch did not apply'; end if;
+end $p$;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000403, 10, 'patch', 'shop_tabs:1000403', $TPL$do $p$
+declare d text; n text;
+begin
+  if to_regprocedure('__P__.shop_kitchen()') is null then raise notice 'no shop_kitchen here, skipped'; return; end if;
+  d := pg_get_functiondef('__P__.shop_kitchen()'::regprocedure);
+  if position('kdone_round' in d) > 0 then raise notice 'shop_kitchen already patched'; return; end if;
+  n := replace(d, $x$'id', o.id, 'number', o.number, 'at', o.created_at,$x$,
     $x$'id', o.id, 'number', o.number, 'tab', o.tab_name,
-      'at', coalesce((select min(i.added_at) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0)), o.created_at),$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000418, 10, 'patch', 'shop_tabs:1000418', $TPL$n := replace(n, $x$'deliver_to', o.deliver_to,$x$, $x$'deliver_to', coalesce(o.deliver_to, o.tab_name),$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000419, 10, 'patch', 'shop_tabs:1000419', $TPL$n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note) order by i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen)$x$,
-    $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note, 'added', coalesce(i.kround, 0) > 1) order by i.kround nulls first, i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0))$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000420, 10, 'patch', 'shop_tabs:1000420', $TPL$n := replace(n, $x$o.created_at > now() - interval '24 hours'$x$, $x$(o.created_at > now() - interval '24 hours' or o.tab_name is not null)$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000421, 10, 'patch', 'shop_tabs:1000421', $TPL$if n = d then raise notice 'shop_kitchen: older version, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000422, 10, 'patch', 'shop_tabs:1000422', $TPL$execute n;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000423, 10, 'patch', 'shop_tabs:1000423', $TPL$if position('kdone_round' in pg_get_functiondef('__P__.shop_kitchen()'::regprocedure)) = 0 then raise exception 'shop_kitchen patch did not apply'; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000424, 10, 'patch', 'shop_tabs:1000424', $TPL$end $p$;$TPL$);
+      'at', coalesce((select min(i.added_at) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0)), o.created_at),$x$);
+  n := replace(n, $x$'deliver_to', o.deliver_to,$x$, $x$'deliver_to', coalesce(o.deliver_to, o.tab_name),$x$);
+  n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note) order by i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen)$x$,
+    $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note, 'added', coalesce(i.kround, 0) > 1) order by i.kround nulls first, i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0))$x$);
+  n := replace(n, $x$o.created_at > now() - interval '24 hours'$x$, $x$(o.created_at > now() - interval '24 hours' or o.tab_name is not null)$x$);
+  if n = d then raise notice 'shop_kitchen: older version, skipped'; return; end if;
+  execute n;
+  if position('kdone_round' in pg_get_functiondef('__P__.shop_kitchen()'::regprocedure)) = 0 then raise exception 'shop_kitchen patch did not apply'; end if;
+end $p$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (402005, 4, 'patch', 'shop_tabs:402005', $TPL$create or replace function __P__.shop_product_delete(p_id uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare nm text;
 begin

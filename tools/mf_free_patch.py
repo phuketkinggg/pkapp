@@ -13,6 +13,8 @@ for l in body.split('\n'):
     if tagq is None:
         m = re.search(r'\bas (\$[a-z]*\$)', buf)
         if m and buf.count(m.group(1)) == 1 and re.search(r'create or replace function', buf): tagq = m.group(1)
+        d = re.match(r'\s*do (\$[a-z]*\$)', buf)
+        if d and buf.count(d.group(1)) == 1: tagq = d.group(1)
     if tagq:
         if buf.count(tagq) >= 2 and l.rstrip().endswith(';'): stmts.append(buf.strip()); buf = ''; tagq = None
     elif l.rstrip().endswith(';'): stmts.append(buf.strip()); buf = ''

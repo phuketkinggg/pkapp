@@ -28,20 +28,20 @@ insert into mf.template (ord, phase, kind, name, sql) values (402103, 4, 'patch'
        from __P__.coach_closed c where c.staff_id = p_coach and c.day >= __Q__.bkk_today()), '[]'::jsonb))
 $$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1000502, 10, 'patch', 'coach_snooze:1000502', $TPL$do $p$
-declare s text; n text;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000503, 10, 'patch', 'coach_snooze:1000503', $TPL$begin
-  if to_regprocedure('__Q__.coach_holds(uuid,date,uuid)') is null then raise notice 'no coach_holds here, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000504, 10, 'patch', 'coach_snooze:1000504', $TPL$s := pg_get_functiondef('__Q__.coach_holds(uuid,date,uuid)'::regprocedure);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000505, 10, 'patch', 'coach_snooze:1000505', $TPL$if position('privates_off_until' in s) > 0 then raise notice 'coach_holds already patched'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000506, 10, 'patch', 'coach_snooze:1000506', $TPL$n := replace(s, $a$select time '00:00', time '23:59:59' from __P__.staff so where so.id = p_coach and so.privates_off$a$,
+declare s text; n text;
+begin
+  if to_regprocedure('__Q__.coach_holds(uuid,date,uuid)') is null then raise notice 'no coach_holds here, skipped'; return; end if;
+  s := pg_get_functiondef('__Q__.coach_holds(uuid,date,uuid)'::regprocedure);
+  if position('privates_off_until' in s) > 0 then raise notice 'coach_holds already patched'; return; end if;
+  n := replace(s, $a$select time '00:00', time '23:59:59' from __P__.staff so where so.id = p_coach and so.privates_off$a$,
     $a$select case when p_date = __Q__.bkk_today() then (now() at time zone 'Asia/Bangkok')::time else time '00:00' end,
          case when p_date = (so.privates_off_until at time zone 'Asia/Bangkok')::date then (so.privates_off_until at time zone 'Asia/Bangkok')::time else time '23:59:59' end
     from __P__.staff so where so.id = p_coach and so.privates_off_until > now()
-     and p_date between __Q__.bkk_today() and (so.privates_off_until at time zone 'Asia/Bangkok')::date$a$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000507, 10, 'patch', 'coach_snooze:1000507', $TPL$if n = s then raise notice 'coach_holds: older version, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000508, 10, 'patch', 'coach_snooze:1000508', $TPL$execute n;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000509, 10, 'patch', 'coach_snooze:1000509', $TPL$if position('privates_off_until' in pg_get_functiondef('__Q__.coach_holds(uuid,date,uuid)'::regprocedure)) = 0 then raise exception 'coach_holds patch did not apply'; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000510, 10, 'patch', 'coach_snooze:1000510', $TPL$end $p$;$TPL$);
+     and p_date between __Q__.bkk_today() and (so.privates_off_until at time zone 'Asia/Bangkok')::date$a$);
+  if n = s then raise notice 'coach_holds: older version, skipped'; return; end if;
+  execute n;
+  if position('privates_off_until' in pg_get_functiondef('__Q__.coach_holds(uuid,date,uuid)'::regprocedure)) = 0 then raise exception 'coach_holds patch did not apply'; end if;
+end $p$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (402104, 4, 'patch', 'coach_snooze:402104', $TPL$create or replace function __P__.coach_avail_now() returns jsonb language plpgsql stable security definer set search_path to '' as $$
 declare d date := __Q__.bkk_today(); t time := (now() at time zone 'Asia/Bangkok')::time; dw int := extract(isodow from __Q__.bkk_today())::int - 1;
 begin
