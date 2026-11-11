@@ -73,7 +73,7 @@ begin
     if pr.track_stock then perform private.shop_stock_move(pr.id, loc, -qty, 'sale', o.id); end if;
     anyk := anyk or pr.kitchen;
   end loop;
-  select coalesce(sum(price_thb * qty), 0) into sub from public.shop_order_items where order_id = o.id and not removed;
+  select coalesce(sum(i.price_thb * i.qty), 0) into sub from public.shop_order_items i where i.order_id = o.id and not i.removed;
   update public.shop_orders set subtotal_thb = sub, total_thb = greatest(sub - coalesce(discount_thb, 0), 0) + coalesce(fee_thb, 0) + coalesce(tax_thb, 0),
     kitchen_status = case when anyk then 'new' else kitchen_status end where id = o.id returning * into o;
   return jsonb_build_object('id', o.id, 'number', o.number, 'name', o.tab_name, 'total', o.total_thb, 'kitchen', anyk);
@@ -97,8 +97,8 @@ begin
   if it.product_id is not null and exists (select 1 from public.shop_products x where x.id = it.product_id and x.track_stock) then
     perform private.shop_stock_move(it.product_id, o.location_id, it.qty, 'mistake', o.id); end if;
   update public.shop_order_items set removed = true where id = it.id;
-  select coalesce(sum(price_thb * qty), 0) into sub from public.shop_order_items where order_id = o.id and not removed;
-  if sub = 0 and not exists (select 1 from public.shop_order_items where order_id = o.id and not removed) then
+  select coalesce(sum(i.price_thb * i.qty), 0) into sub from public.shop_order_items i where i.order_id = o.id and not i.removed;
+  if not exists (select 1 from public.shop_order_items i where i.order_id = o.id and not i.removed) then
     update public.shop_orders set status = 'void', subtotal_thb = 0, total_thb = 0, refunded_at = now(), refund_reason = 'Tab emptied',
       kitchen_status = case when kitchen_status in ('new','preparing','ready') then 'done' else kitchen_status end where id = o.id;
     return jsonb_build_object('closed', true);
