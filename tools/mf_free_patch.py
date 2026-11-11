@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Turns a supabase/sql/<name>.sql patch into SQL for the shared free database (bnglnfdgptvnmugntiom):
 rows added to the gym template (mf.template), then run on every ready gym's schemas. Storage changes run once.
-Usage: python3 tools/mf_free_patch.py supabase/sql/coach_docs.sql > out.sql"""
+Usage: python3 tools/mf_free_patch.py supabase/sql/coach_docs.sql [3=302000,4=402000,9=900600,10=1000400,11=1196000] > out.sql
+(check select phase, max(ord) from mf.template group by 1 first: each number must be free)"""
 import re, sys
 src = open(sys.argv[1]).read(); tag = sys.argv[1].split('/')[-1].replace('.sql', '')
 body = '\n'.join(l for l in src.split('\n') if not l.startswith('--'))
@@ -16,7 +17,10 @@ for l in body.split('\n'):
         if buf.count(tagq) >= 2 and l.rstrip().endswith(';'): stmts.append(buf.strip()); buf = ''; tagq = None
     elif l.rstrip().endswith(';'): stmts.append(buf.strip()); buf = ''
 def tpl(s): return re.sub(r'\bprivate\.(?=["a-z_])', '__Q__.', re.sub(r'\bpublic\.(?=["a-z_])', '__P__.', s))
-base = {3: 300600, 4: 400900, 9: 900300, 10: 1000300, 11: 1103500}; cnt = {}; out = [f"delete from mf.template where name like '{tag}:%';"]; once = []
+base = {3: 300600, 4: 400900, 9: 900300, 10: 1000300, 11: 1103500}
+# numbers already used in mf.template: pass free ones, for example 3=302000,4=402000,9=900600,10=1000400,11=1196000
+if len(sys.argv) > 2: base.update({int(k): int(v) for k, v in (x.split('=') for x in sys.argv[2].split(','))})
+cnt = {}; out = [f"delete from mf.template where name like '{tag}:%';"]; once = []
 for s in stmts:
     if s.startswith('notify'): continue
     if 'storage.' in s: once.append(s); continue

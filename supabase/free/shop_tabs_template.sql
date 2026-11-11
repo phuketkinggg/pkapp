@@ -1,19 +1,19 @@
 delete from mf.template where name like 'shop_tabs:%';
-insert into mf.template (ord, phase, kind, name, sql) values (300601, 3, 'patch', 'shop_tabs:300601', $TPL$alter table __P__.shop_orders add column if not exists tab_name text;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (300602, 3, 'patch', 'shop_tabs:300602', $TPL$alter table __P__.shop_orders add column if not exists kdone_round integer;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (300603, 3, 'patch', 'shop_tabs:300603', $TPL$alter table __P__.shop_order_items add column if not exists kround integer;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (300604, 3, 'patch', 'shop_tabs:300604', $TPL$alter table __P__.shop_order_items add column if not exists added_at timestamptz default now();$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000301, 10, 'patch', 'shop_tabs:1000301', $TPL$create index if not exists shop_orders_tabs on __P__.shop_orders (location_id) where status = 'waiting' and tab_name is not null;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (400901, 4, 'patch', 'shop_tabs:400901', $TPL$create or replace function __Q__.shop_kdone() returns trigger language plpgsql security definer set search_path to '' as $f$
+insert into mf.template (ord, phase, kind, name, sql) values (302001, 3, 'patch', 'shop_tabs:302001', $TPL$alter table __P__.shop_orders add column if not exists tab_name text;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (302002, 3, 'patch', 'shop_tabs:302002', $TPL$alter table __P__.shop_orders add column if not exists kdone_round integer;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (302003, 3, 'patch', 'shop_tabs:302003', $TPL$alter table __P__.shop_order_items add column if not exists kround integer;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (302004, 3, 'patch', 'shop_tabs:302004', $TPL$alter table __P__.shop_order_items add column if not exists added_at timestamptz default now();$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000401, 10, 'patch', 'shop_tabs:1000401', $TPL$create index if not exists shop_orders_tabs on __P__.shop_orders (location_id) where status = 'waiting' and tab_name is not null;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (402001, 4, 'patch', 'shop_tabs:402001', $TPL$create or replace function __Q__.shop_kdone() returns trigger language plpgsql security definer set search_path to '' as $f$
 begin
   if new.kitchen_status = 'done' and old.kitchen_status is distinct from 'done' then
     new.kdone_round := coalesce((select max(i.kround) from __P__.shop_order_items i where i.order_id = new.id), 0);
   end if;
   return new;
 end $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (900301, 9, 'patch', 'shop_tabs:900301', $TPL$drop trigger if exists shop_orders_kdone on __P__.shop_orders;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (900302, 9, 'patch', 'shop_tabs:900302', $TPL$create trigger shop_orders_kdone before update of kitchen_status on __P__.shop_orders for each row execute function __Q__.shop_kdone();$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (400902, 4, 'patch', 'shop_tabs:400902', $TPL$create or replace function __P__.shop_tab_add(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
+insert into mf.template (ord, phase, kind, name, sql) values (900601, 9, 'patch', 'shop_tabs:900601', $TPL$drop trigger if exists shop_orders_kdone on __P__.shop_orders;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (900602, 9, 'patch', 'shop_tabs:900602', $TPL$create trigger shop_orders_kdone before update of kitchen_status on __P__.shop_orders for each row execute function __Q__.shop_kdone();$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (402002, 4, 'patch', 'shop_tabs:402002', $TPL$create or replace function __P__.shop_tab_add(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare me_s uuid := __Q__.my_staff_id(); oid uuid := nullif(p->>'order_id','')::uuid; o __P__.shop_orders%rowtype; loc uuid := nullif(p->>'location_id','')::uuid;
   shift uuid; nm text := left(btrim(coalesce(p->>'name','')), 40); it jsonb; pr __P__.shop_products%rowtype; qty int; mn text; mp numeric; md jsonb;
   anyk boolean := false; rnd int; sub int; added int := 0; disc int := greatest(coalesce(nullif(p->>'discount','')::numeric::int, 0), 0); appr uuid;
@@ -74,9 +74,9 @@ begin
     kitchen_status = case when anyk then 'new' else kitchen_status end where id = o.id returning * into o;
   return jsonb_build_object('id', o.id, 'number', o.number, 'name', o.tab_name, 'total', o.total_thb, 'kitchen', anyk);
 end $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103501, 11, 'patch', 'shop_tabs:1103501', $TPL$revoke all on function __P__.shop_tab_add(jsonb) from public, anon;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103502, 11, 'patch', 'shop_tabs:1103502', $TPL$grant execute on function __P__.shop_tab_add(jsonb) to authenticated;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (400903, 4, 'patch', 'shop_tabs:400903', $TPL$create or replace function __P__.shop_tab_remove(p_item uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
+insert into mf.template (ord, phase, kind, name, sql) values (1196001, 11, 'patch', 'shop_tabs:1196001', $TPL$revoke all on function __P__.shop_tab_add(jsonb) from public, anon;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1196002, 11, 'patch', 'shop_tabs:1196002', $TPL$grant execute on function __P__.shop_tab_add(jsonb) to authenticated;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (402003, 4, 'patch', 'shop_tabs:402003', $TPL$create or replace function __P__.shop_tab_remove(p_item uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare it __P__.shop_order_items%rowtype; o __P__.shop_orders%rowtype; sub int;
 begin
   if not __Q__.shop_till() then raise exception 'Not allowed.'; end if;
@@ -104,9 +104,9 @@ begin
     total_thb = greatest(sub - least(coalesce(discount_thb, 0), sub), 0) + coalesce(fee_thb, 0) + coalesce(tax_thb, 0) where id = o.id returning * into o;
   return jsonb_build_object('closed', false, 'total', o.total_thb);
 end $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103503, 11, 'patch', 'shop_tabs:1103503', $TPL$revoke all on function __P__.shop_tab_remove(uuid) from public, anon;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103504, 11, 'patch', 'shop_tabs:1103504', $TPL$grant execute on function __P__.shop_tab_remove(uuid) to authenticated;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (400904, 4, 'patch', 'shop_tabs:400904', $TPL$create or replace function __P__.shop_tab_rename(p_order uuid, p_name text) returns jsonb language plpgsql security definer set search_path to '' as $f$
+insert into mf.template (ord, phase, kind, name, sql) values (1196003, 11, 'patch', 'shop_tabs:1196003', $TPL$revoke all on function __P__.shop_tab_remove(uuid) from public, anon;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1196004, 11, 'patch', 'shop_tabs:1196004', $TPL$grant execute on function __P__.shop_tab_remove(uuid) to authenticated;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (402004, 4, 'patch', 'shop_tabs:402004', $TPL$create or replace function __P__.shop_tab_rename(p_order uuid, p_name text) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare o __P__.shop_orders%rowtype; nm text := left(btrim(coalesce(p_name,'')), 40);
 begin
   if not __Q__.shop_till() then raise exception 'Not allowed.'; end if;
@@ -118,40 +118,40 @@ begin
   update __P__.shop_orders set tab_name = nm where id = o.id;
   return jsonb_build_object('id', o.id, 'name', nm);
 end $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103505, 11, 'patch', 'shop_tabs:1103505', $TPL$revoke all on function __P__.shop_tab_rename(uuid, text) from public, anon;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103506, 11, 'patch', 'shop_tabs:1103506', $TPL$grant execute on function __P__.shop_tab_rename(uuid, text) to authenticated;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000302, 10, 'patch', 'shop_tabs:1000302', $TPL$do $p$
+insert into mf.template (ord, phase, kind, name, sql) values (1196005, 11, 'patch', 'shop_tabs:1196005', $TPL$revoke all on function __P__.shop_tab_rename(uuid, text) from public, anon;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1196006, 11, 'patch', 'shop_tabs:1196006', $TPL$grant execute on function __P__.shop_tab_rename(uuid, text) to authenticated;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000402, 10, 'patch', 'shop_tabs:1000402', $TPL$do $p$
 declare d text; n text;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000303, 10, 'patch', 'shop_tabs:1000303', $TPL$begin
+insert into mf.template (ord, phase, kind, name, sql) values (1000403, 10, 'patch', 'shop_tabs:1000403', $TPL$begin
   if to_regprocedure('__P__.shop_sales(date,date)') is null then raise notice 'no shop_sales here, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000304, 10, 'patch', 'shop_tabs:1000304', $TPL$d := pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000305, 10, 'patch', 'shop_tabs:1000305', $TPL$if position('tab_name' in d) > 0 then raise notice 'shop_sales already patched'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000306, 10, 'patch', 'shop_tabs:1000306', $TPL$n := replace(d, $x$'deliver_to', o.deliver_to, 'note', o.note,$x$, $x$'deliver_to', o.deliver_to, 'note', o.note, 'tab', o.tab_name,$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000307, 10, 'patch', 'shop_tabs:1000307', $TPL$n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty)), '[]'::jsonb)$x$,
+insert into mf.template (ord, phase, kind, name, sql) values (1000404, 10, 'patch', 'shop_tabs:1000404', $TPL$d := pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure);$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000405, 10, 'patch', 'shop_tabs:1000405', $TPL$if position('tab_name' in d) > 0 then raise notice 'shop_sales already patched'; return; end if;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000406, 10, 'patch', 'shop_tabs:1000406', $TPL$n := replace(d, $x$'deliver_to', o.deliver_to, 'note', o.note,$x$, $x$'deliver_to', o.deliver_to, 'note', o.note, 'tab', o.tab_name,$x$);$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000407, 10, 'patch', 'shop_tabs:1000407', $TPL$n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty)), '[]'::jsonb)$x$,
     $x$jsonb_build_object('id', i.id, 'name', i.name, 'qty', i.qty, 'price', i.price_thb, 'note', i.note, 'kitchen', i.kitchen, 'at', i.added_at) order by i.added_at nulls first), '[]'::jsonb)$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000308, 10, 'patch', 'shop_tabs:1000308', $TPL$n := replace(n, $x$'kitchen_status', o.kitchen_status,$x$, $x$'kitchen_status', o.kitchen_status, 'tab', o.tab_name,$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000309, 10, 'patch', 'shop_tabs:1000309', $TPL$if n = d then raise notice 'shop_sales: older version, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000310, 10, 'patch', 'shop_tabs:1000310', $TPL$execute n;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000311, 10, 'patch', 'shop_tabs:1000311', $TPL$if position('tab_name' in pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure)) = 0 then raise exception 'shop_sales patch did not apply'; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000312, 10, 'patch', 'shop_tabs:1000312', $TPL$end $p$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000313, 10, 'patch', 'shop_tabs:1000313', $TPL$do $p$
+insert into mf.template (ord, phase, kind, name, sql) values (1000408, 10, 'patch', 'shop_tabs:1000408', $TPL$n := replace(n, $x$'kitchen_status', o.kitchen_status,$x$, $x$'kitchen_status', o.kitchen_status, 'tab', o.tab_name,$x$);$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000409, 10, 'patch', 'shop_tabs:1000409', $TPL$if n = d then raise notice 'shop_sales: older version, skipped'; return; end if;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000410, 10, 'patch', 'shop_tabs:1000410', $TPL$execute n;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000411, 10, 'patch', 'shop_tabs:1000411', $TPL$if position('tab_name' in pg_get_functiondef('__P__.shop_sales(date,date)'::regprocedure)) = 0 then raise exception 'shop_sales patch did not apply'; end if;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000412, 10, 'patch', 'shop_tabs:1000412', $TPL$end $p$;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000413, 10, 'patch', 'shop_tabs:1000413', $TPL$do $p$
 declare d text; n text;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000314, 10, 'patch', 'shop_tabs:1000314', $TPL$begin
+insert into mf.template (ord, phase, kind, name, sql) values (1000414, 10, 'patch', 'shop_tabs:1000414', $TPL$begin
   if to_regprocedure('__P__.shop_kitchen()') is null then raise notice 'no shop_kitchen here, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000315, 10, 'patch', 'shop_tabs:1000315', $TPL$d := pg_get_functiondef('__P__.shop_kitchen()'::regprocedure);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000316, 10, 'patch', 'shop_tabs:1000316', $TPL$if position('kdone_round' in d) > 0 then raise notice 'shop_kitchen already patched'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000317, 10, 'patch', 'shop_tabs:1000317', $TPL$n := replace(d, $x$'id', o.id, 'number', o.number, 'at', o.created_at,$x$,
+insert into mf.template (ord, phase, kind, name, sql) values (1000415, 10, 'patch', 'shop_tabs:1000415', $TPL$d := pg_get_functiondef('__P__.shop_kitchen()'::regprocedure);$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000416, 10, 'patch', 'shop_tabs:1000416', $TPL$if position('kdone_round' in d) > 0 then raise notice 'shop_kitchen already patched'; return; end if;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000417, 10, 'patch', 'shop_tabs:1000417', $TPL$n := replace(d, $x$'id', o.id, 'number', o.number, 'at', o.created_at,$x$,
     $x$'id', o.id, 'number', o.number, 'tab', o.tab_name,
       'at', coalesce((select min(i.added_at) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0)), o.created_at),$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000318, 10, 'patch', 'shop_tabs:1000318', $TPL$n := replace(n, $x$'deliver_to', o.deliver_to,$x$, $x$'deliver_to', coalesce(o.deliver_to, o.tab_name),$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000319, 10, 'patch', 'shop_tabs:1000319', $TPL$n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note) order by i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen)$x$,
+insert into mf.template (ord, phase, kind, name, sql) values (1000418, 10, 'patch', 'shop_tabs:1000418', $TPL$n := replace(n, $x$'deliver_to', o.deliver_to,$x$, $x$'deliver_to', coalesce(o.deliver_to, o.tab_name),$x$);$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000419, 10, 'patch', 'shop_tabs:1000419', $TPL$n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note) order by i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen)$x$,
     $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note, 'added', coalesce(i.kround, 0) > 1) order by i.kround nulls first, i.name), '[]'::jsonb) from __P__.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0))$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000320, 10, 'patch', 'shop_tabs:1000320', $TPL$n := replace(n, $x$o.created_at > now() - interval '24 hours'$x$, $x$(o.created_at > now() - interval '24 hours' or o.tab_name is not null)$x$);$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000321, 10, 'patch', 'shop_tabs:1000321', $TPL$if n = d then raise notice 'shop_kitchen: older version, skipped'; return; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000322, 10, 'patch', 'shop_tabs:1000322', $TPL$execute n;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000323, 10, 'patch', 'shop_tabs:1000323', $TPL$if position('kdone_round' in pg_get_functiondef('__P__.shop_kitchen()'::regprocedure)) = 0 then raise exception 'shop_kitchen patch did not apply'; end if;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1000324, 10, 'patch', 'shop_tabs:1000324', $TPL$end $p$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (400905, 4, 'patch', 'shop_tabs:400905', $TPL$create or replace function __P__.shop_product_delete(p_id uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
+insert into mf.template (ord, phase, kind, name, sql) values (1000420, 10, 'patch', 'shop_tabs:1000420', $TPL$n := replace(n, $x$o.created_at > now() - interval '24 hours'$x$, $x$(o.created_at > now() - interval '24 hours' or o.tab_name is not null)$x$);$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000421, 10, 'patch', 'shop_tabs:1000421', $TPL$if n = d then raise notice 'shop_kitchen: older version, skipped'; return; end if;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000422, 10, 'patch', 'shop_tabs:1000422', $TPL$execute n;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000423, 10, 'patch', 'shop_tabs:1000423', $TPL$if position('kdone_round' in pg_get_functiondef('__P__.shop_kitchen()'::regprocedure)) = 0 then raise exception 'shop_kitchen patch did not apply'; end if;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1000424, 10, 'patch', 'shop_tabs:1000424', $TPL$end $p$;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (402005, 4, 'patch', 'shop_tabs:402005', $TPL$create or replace function __P__.shop_product_delete(p_id uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare nm text;
 begin
   if coalesce(__Q__.staff_role(),'') <> 'manager' then raise exception 'Only a manager can delete products.'; end if;
@@ -165,9 +165,9 @@ begin
     return jsonb_build_object('deleted', false, 'name', nm, 'note', 'It is still used somewhere, so it was taken off sale instead.');
   end;
 end $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103507, 11, 'patch', 'shop_tabs:1103507', $TPL$revoke all on function __P__.shop_product_delete(uuid) from public, anon;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103508, 11, 'patch', 'shop_tabs:1103508', $TPL$grant execute on function __P__.shop_product_delete(uuid) to authenticated;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (400906, 4, 'patch', 'shop_tabs:400906', $TPL$create or replace function __P__.shop_menu_build(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
+insert into mf.template (ord, phase, kind, name, sql) values (1196007, 11, 'patch', 'shop_tabs:1196007', $TPL$revoke all on function __P__.shop_product_delete(uuid) from public, anon;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1196008, 11, 'patch', 'shop_tabs:1196008', $TPL$grant execute on function __P__.shop_product_delete(uuid) to authenticated;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (402006, 4, 'patch', 'shop_tabs:402006', $TPL$create or replace function __P__.shop_menu_build(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare cid uuid; cname text := btrim(coalesce(p->'category'->>'name', p->>'category', '')); m jsonb; o jsonb; opts jsonb; om __P__.shop_modifiers%rowtype; mid uuid;
   modmap jsonb := '{}'::jsonb; allmods uuid[] := '{}'; pr jsonb; pid uuid; ids uuid[]; nm text; made text[] := '{}'; changed text[] := '{}'; mods text[] := '{}';
 begin
@@ -215,8 +215,8 @@ begin
   end loop;
   return jsonb_build_object('category', nullif(cname, ''), 'new_products', to_jsonb(made), 'updated_products', to_jsonb(changed), 'modifiers', to_jsonb(mods));
 end $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103509, 11, 'patch', 'shop_tabs:1103509', $TPL$revoke all on function __P__.shop_menu_build(jsonb) from public, anon;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1103510, 11, 'patch', 'shop_tabs:1103510', $TPL$grant execute on function __P__.shop_menu_build(jsonb) to authenticated;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1196009, 11, 'patch', 'shop_tabs:1196009', $TPL$revoke all on function __P__.shop_menu_build(jsonb) from public, anon;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1196010, 11, 'patch', 'shop_tabs:1196010', $TPL$grant execute on function __P__.shop_menu_build(jsonb) to authenticated;$TPL$);
 do $$ declare g record; r record; begin
   for g in select * from mf.gyms where status = 'ready' loop
     for r in select sql from mf.template where name like 'shop_tabs:%' order by ord loop
