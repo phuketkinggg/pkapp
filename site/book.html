@@ -457,7 +457,7 @@ function summary(){
   if(save>0&&of2.nudge!==false){ var pr=(of2.promos||[]).filter(function(p){ return r.promo&&p.name===r.promo; })[0], more='';
     if(pr&&pr.left!=null&&pr.left<=5) more=' There '+(pr.left===1?'is only 1 place':'are only '+pr.left+' places')+' left at this price.';
     else if(pr&&pr.book_by) more=' The offer is open until '+fmt(pr.book_by).replace(/, \d{4}$/,'')+'.';
-    nd.push(el('p',null,'Good news: '+(r.promo?'the '+r.promo.replace(/[.\s]+$/,'')+' offer':'booking with us directly')+' saves you '+thb(save)+' on this stay.'+more)); }
+    nd.push(el('p',null,'Good news: '+(r.promo?'the '+String(r.promo).split(/\.{2,}|\u2026|,| - /)[0].replace(/\s*offer\s*$/i,'').trim()+' offer':'booking with us directly')+' saves you '+thb(save)+' on this stay.'+more)); }
   if(gets) nd.push(el('p',null,'As a thank you for booking with us, we would love to give you '+vg.text.replace(/^an? /i,function(m){ return m.toLowerCase(); })+'. It will be waiting for you when you arrive.'));
   $('chosen').innerHTML='';
   $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines),nd.length?el('div',{cls:'nudge'},nd):null));
