@@ -1,0 +1,240 @@
+-- Shop: running tabs (feature shop_tabs), deleting a product for good, and building a menu in one go (for Ask AI).
+--
+-- Tabs: a table or a person orders, the order goes on a named tab (Table 1, Table 2, Sam), the kitchen gets it, and the
+-- till is free for the next customer. More can be added to the tab any time; each new round goes to the kitchen on its own.
+-- At the end the tab is brought up and paid like any order waiting for payment (shop_sell with order_id).
+-- A tab is a shop_orders row with status 'waiting' and a tab_name. Stock comes off when the items go on the tab.
+-- Needs the shop (shop_sell, shop_mods). Patches check they applied and skip cleanly where a database is older.
+
+alter table public.shop_orders add column if not exists tab_name text;
+alter table public.shop_orders add column if not exists kdone_round integer;
+alter table public.shop_order_items add column if not exists kround integer;
+alter table public.shop_order_items add column if not exists added_at timestamptz default now();
+create index if not exists shop_orders_tabs on public.shop_orders (location_id) where status = 'waiting' and tab_name is not null;
+
+-- served in the kitchen: remember which rounds are done, so the next round shows on its own
+create or replace function private.shop_kdone() returns trigger language plpgsql security definer set search_path to '' as $f$
+begin
+  if new.kitchen_status = 'done' and old.kitchen_status is distinct from 'done' then
+    new.kdone_round := coalesce((select max(i.kround) from public.shop_order_items i where i.order_id = new.id), 0);
+  end if;
+  return new;
+end $f$;
+drop trigger if exists shop_orders_kdone on public.shop_orders;
+create trigger shop_orders_kdone before update of kitchen_status on public.shop_orders for each row execute function private.shop_kdone();
+
+-- open a tab, or add to one: p {order_id (to add to a tab) or name (a new tab), location_id, items:[...like shop_sell], customer_id}
+create or replace function public.shop_tab_add(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
+declare me_s uuid := private.my_staff_id(); oid uuid := nullif(p->>'order_id','')::uuid; o public.shop_orders%rowtype; loc uuid := nullif(p->>'location_id','')::uuid;
+  shift uuid; nm text := left(btrim(coalesce(p->>'name','')), 40); it jsonb; pr public.shop_products%rowtype; qty int; mn text; mp numeric; md jsonb;
+  anyk boolean := false; rnd int; sub int;
+begin
+  if not private.shop_till() then raise exception 'Only the front desk and managers can use the till.'; end if;
+  if not private.feature('shop_tabs', true) then raise exception 'Tabs are switched off in Settings, Features.'; end if;
+  if coalesce(jsonb_typeof(p->'items'), '') <> 'array' or jsonb_array_length(p->'items') = 0 then raise exception 'Add something first.'; end if;
+  if oid is not null then
+    select * into o from public.shop_orders where id = oid for update;
+    if o.id is null or o.status <> 'waiting' or o.tab_name is null then raise exception 'That tab is already paid or closed.'; end if;
+    loc := o.location_id;
+  else
+    if loc is null then raise exception 'Choose which shop this till is. Reload the app.'; end if;
+    if nm = '' then raise exception 'Give the tab a name, for example Table 1.'; end if;
+    if exists (select 1 from public.shop_orders x where x.status = 'waiting' and x.location_id = loc and lower(x.tab_name) = lower(nm)) then
+      raise exception '% already has an open tab. Tap it to add more.', nm; end if;
+  end if;
+  select id into shift from public.shop_shifts where location_id = loc and closed_at is null;
+  if shift is null then raise exception 'Open a shift first, with the cash in the till.'; end if;
+  if o.id is null then
+    insert into public.shop_orders (created_by, source, customer_id, status, subtotal_thb, total_thb, shift_id, location_id, tab_name, billed)
+      values (me_s, 'till', nullif(p->>'customer_id','')::uuid, 'waiting', 0, 0, shift, loc, nm, false) returning * into o;
+  end if;
+  rnd := coalesce((select max(i.kround) from public.shop_order_items i where i.order_id = o.id), 0) + 1;
+  for it in select * from jsonb_array_elements(p->'items') loop
+    if it ? 'package' then raise exception 'Training packages cannot go on a tab. Sell them on their own.'; end if;
+    qty := greatest(coalesce((it->>'qty')::int, 1), 1);
+    if coalesce((it->>'misc')::boolean, false) then
+      mn := left(btrim(coalesce(it->>'name','')), 120);
+      if mn = '' then raise exception 'Type what the other item is.'; end if;
+      begin mp := round((it->>'price')::numeric); exception when others then mp := null; end;
+      if mp is null or mp < 0 or mp > 1000000 then raise exception 'Type the price for %.', mn; end if;
+      insert into public.shop_order_items (order_id, product_id, name, price_thb, qty, note, kitchen, added_at) values (o.id, null, mn, mp::int, qty, nullif(btrim(it->>'note'),''), false, now());
+      continue;
+    end if;
+    select * into pr from public.shop_products where id = (it->>'product_id')::uuid and active;
+    if pr.id is null then raise exception 'A product on the order is not on the menu any more.'; end if;
+    if pr.open_price then
+      if nullif(it->>'price','') is null or (it->>'price')::numeric < 0 then raise exception 'Type the price for %.', pr.name; end if;
+      pr.price_thb := round((it->>'price')::numeric);
+    end if;
+    md := private.shop_mods(pr.id, it->'mods'); pr.price_thb := pr.price_thb + coalesce((md->>'extra')::int, 0);
+    insert into public.shop_order_items (order_id, product_id, name, price_thb, qty, note, kitchen, mods, kround, added_at)
+      values (o.id, pr.id, left(pr.name || coalesce(' (' || nullif(md->>'label', '') || ')', ''), 200), pr.price_thb, qty, nullif(btrim(it->>'note'),''), pr.kitchen, md->'list',
+              case when pr.kitchen then rnd end, now());
+    if pr.track_stock then perform private.shop_stock_move(pr.id, loc, -qty, 'sale', o.id); end if;
+    anyk := anyk or pr.kitchen;
+  end loop;
+  select coalesce(sum(price_thb * qty), 0) into sub from public.shop_order_items where order_id = o.id and not removed;
+  update public.shop_orders set subtotal_thb = sub, total_thb = greatest(sub - coalesce(discount_thb, 0), 0) + coalesce(fee_thb, 0) + coalesce(tax_thb, 0),
+    kitchen_status = case when anyk then 'new' else kitchen_status end where id = o.id returning * into o;
+  return jsonb_build_object('id', o.id, 'number', o.number, 'name', o.tab_name, 'total', o.total_thb, 'kitchen', anyk);
+end $f$;
+revoke all on function public.shop_tab_add(jsonb) from public, anon;
+grant execute on function public.shop_tab_add(jsonb) to authenticated;
+
+-- take a line off an open tab: free within 10 minutes (and before the kitchen starts it), after that a manager uses Mistake with their PIN
+create or replace function public.shop_tab_remove(p_item uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
+declare it public.shop_order_items%rowtype; o public.shop_orders%rowtype; sub int;
+begin
+  if not private.shop_till() then raise exception 'Not allowed.'; end if;
+  select * into it from public.shop_order_items where id = p_item and not removed;
+  if it.id is null then raise exception 'That line is not on the tab.'; end if;
+  select * into o from public.shop_orders where id = it.order_id for update;
+  if o.status <> 'waiting' or o.tab_name is null then raise exception 'That tab is already paid or closed.'; end if;
+  if coalesce(it.added_at, o.created_at) < now() - interval '10 minutes'
+     or (it.kitchen and not (o.kitchen_status = 'new' and coalesce(it.kround, 0) > coalesce(o.kdone_round, 0))) then
+    raise exception 'A manager has to remove this one with their PIN (it was added a while ago, or the kitchen has started it).';
+  end if;
+  if it.product_id is not null and exists (select 1 from public.shop_products x where x.id = it.product_id and x.track_stock) then
+    perform private.shop_stock_move(it.product_id, o.location_id, it.qty, 'mistake', o.id); end if;
+  update public.shop_order_items set removed = true where id = it.id;
+  select coalesce(sum(price_thb * qty), 0) into sub from public.shop_order_items where order_id = o.id and not removed;
+  if sub = 0 and not exists (select 1 from public.shop_order_items where order_id = o.id and not removed) then
+    update public.shop_orders set status = 'void', subtotal_thb = 0, total_thb = 0, refunded_at = now(), refund_reason = 'Tab emptied',
+      kitchen_status = case when kitchen_status in ('new','preparing','ready') then 'done' else kitchen_status end where id = o.id;
+    return jsonb_build_object('closed', true);
+  end if;
+  if it.kitchen and not exists (select 1 from public.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0)) then
+    update public.shop_orders set kitchen_status = 'done' where id = o.id;
+  end if;
+  update public.shop_orders set subtotal_thb = sub, discount_thb = least(coalesce(discount_thb, 0), sub),
+    total_thb = greatest(sub - least(coalesce(discount_thb, 0), sub), 0) + coalesce(fee_thb, 0) + coalesce(tax_thb, 0) where id = o.id returning * into o;
+  return jsonb_build_object('closed', false, 'total', o.total_thb);
+end $f$;
+revoke all on function public.shop_tab_remove(uuid) from public, anon;
+grant execute on function public.shop_tab_remove(uuid) to authenticated;
+
+-- rename or move a tab (Table 1 moved to Table 4)
+create or replace function public.shop_tab_rename(p_order uuid, p_name text) returns jsonb language plpgsql security definer set search_path to '' as $f$
+declare o public.shop_orders%rowtype; nm text := left(btrim(coalesce(p_name,'')), 40);
+begin
+  if not private.shop_till() then raise exception 'Not allowed.'; end if;
+  if nm = '' then raise exception 'Give the tab a name, for example Table 1.'; end if;
+  select * into o from public.shop_orders where id = p_order for update;
+  if o.id is null or o.status <> 'waiting' or o.tab_name is null then raise exception 'That tab is already paid or closed.'; end if;
+  if exists (select 1 from public.shop_orders x where x.id <> o.id and x.status = 'waiting' and x.location_id = o.location_id and lower(x.tab_name) = lower(nm)) then
+    raise exception '% already has an open tab.', nm; end if;
+  update public.shop_orders set tab_name = nm where id = o.id;
+  return jsonb_build_object('id', o.id, 'name', nm);
+end $f$;
+revoke all on function public.shop_tab_rename(uuid, text) from public, anon;
+grant execute on function public.shop_tab_rename(uuid, text) to authenticated;
+
+-- the sales list: open tabs carry their name, and their lines with id and price (patched, checking it applied)
+do $p$
+declare d text; n text;
+begin
+  if to_regprocedure('public.shop_sales(date,date)') is null then raise notice 'no shop_sales here, skipped'; return; end if;
+  d := pg_get_functiondef('public.shop_sales(date,date)'::regprocedure);
+  if position('tab_name' in d) > 0 then raise notice 'shop_sales already patched'; return; end if;
+  n := replace(d, $x$'deliver_to', o.deliver_to, 'note', o.note,$x$, $x$'deliver_to', o.deliver_to, 'note', o.note, 'tab', o.tab_name,$x$);
+  n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty)), '[]'::jsonb)$x$,
+    $x$jsonb_build_object('id', i.id, 'name', i.name, 'qty', i.qty, 'price', i.price_thb, 'note', i.note, 'kitchen', i.kitchen, 'at', i.added_at) order by i.added_at nulls first), '[]'::jsonb)$x$);
+  n := replace(n, $x$'kitchen_status', o.kitchen_status,$x$, $x$'kitchen_status', o.kitchen_status, 'tab', o.tab_name,$x$);
+  if n = d then raise notice 'shop_sales: older version, skipped'; return; end if;
+  execute n;
+  if position('tab_name' in pg_get_functiondef('public.shop_sales(date,date)'::regprocedure)) = 0 then raise exception 'shop_sales patch did not apply'; end if;
+end $p$;
+
+-- the kitchen: a tab shows its table and only the rounds not served yet, timed from when that round came in
+do $p$
+declare d text; n text;
+begin
+  if to_regprocedure('public.shop_kitchen()') is null then raise notice 'no shop_kitchen here, skipped'; return; end if;
+  d := pg_get_functiondef('public.shop_kitchen()'::regprocedure);
+  if position('kdone_round' in d) > 0 then raise notice 'shop_kitchen already patched'; return; end if;
+  n := replace(d, $x$'id', o.id, 'number', o.number, 'at', o.created_at,$x$,
+    $x$'id', o.id, 'number', o.number, 'tab', o.tab_name,
+      'at', coalesce((select min(i.added_at) from public.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0)), o.created_at),$x$);
+  n := replace(n, $x$'deliver_to', o.deliver_to,$x$, $x$'deliver_to', coalesce(o.deliver_to, o.tab_name),$x$);
+  n := replace(n, $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note) order by i.name), '[]'::jsonb) from public.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen)$x$,
+    $x$jsonb_build_object('name', i.name, 'qty', i.qty, 'note', i.note, 'added', coalesce(i.kround, 0) > 1) order by i.kround nulls first, i.name), '[]'::jsonb) from public.shop_order_items i where i.order_id = o.id and not i.removed and i.kitchen and coalesce(i.kround, 0) > coalesce(o.kdone_round, 0))$x$);
+  n := replace(n, $x$o.created_at > now() - interval '24 hours'$x$, $x$(o.created_at > now() - interval '24 hours' or o.tab_name is not null)$x$);
+  if n = d then raise notice 'shop_kitchen: older version, skipped'; return; end if;
+  execute n;
+  if position('kdone_round' in pg_get_functiondef('public.shop_kitchen()'::regprocedure)) = 0 then raise exception 'shop_kitchen patch did not apply'; end if;
+end $p$;
+
+-- delete a product for good (a manager). Past sales keep the name and price. If something still holds on to it, it is taken off sale instead.
+create or replace function public.shop_product_delete(p_id uuid) returns jsonb language plpgsql security definer set search_path to '' as $f$
+declare nm text;
+begin
+  if coalesce(private.staff_role(),'') <> 'manager' then raise exception 'Only a manager can delete products.'; end if;
+  select name into nm from public.shop_products where id = p_id;
+  if nm is null then raise exception 'That product was not found.'; end if;
+  begin
+    delete from public.shop_products where id = p_id;
+    return jsonb_build_object('deleted', true, 'name', nm);
+  exception when foreign_key_violation then
+    update public.shop_products set active = false, in_app = false, on_web = false where id = p_id;
+    return jsonb_build_object('deleted', false, 'name', nm, 'note', 'It is still used somewhere, so it was taken off sale instead.');
+  end;
+end $f$;
+revoke all on function public.shop_product_delete(uuid) from public, anon;
+grant execute on function public.shop_product_delete(uuid) to authenticated;
+
+-- build or extend a menu in one go (a manager, and Ask AI after they tap Confirm). Finds things by name, so running it again updates instead of copying.
+-- p {category:{name}, modifiers:[{name, required, multi, options:[{name, price}]}],
+--    products:[{name, price, description, kitchen, in_app, grp, modifiers:[names]}]}
+-- A product without "modifiers" gets all the modifiers in this call.
+create or replace function public.shop_menu_build(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
+declare cid uuid; cname text := btrim(coalesce(p->'category'->>'name', p->>'category', '')); m jsonb; o jsonb; opts jsonb; om public.shop_modifiers%rowtype; mid uuid;
+  modmap jsonb := '{}'::jsonb; allmods uuid[] := '{}'; pr jsonb; pid uuid; ids uuid[]; nm text; made text[] := '{}'; changed text[] := '{}'; mods text[] := '{}';
+begin
+  if coalesce(private.staff_role(),'') <> 'manager' then raise exception 'Only a manager can change the menu.'; end if;
+  if cname <> '' then
+    select id into cid from public.shop_categories where lower(name) = lower(cname) order by active desc limit 1;
+    if cid is null then
+      insert into public.shop_categories (name, sort, active) values (left(cname, 60), coalesce((select max(sort) + 1 from public.shop_categories), 0), true) returning id into cid;
+    else update public.shop_categories set active = true where id = cid; end if;
+  end if;
+  for m in select * from jsonb_array_elements(case when jsonb_typeof(p->'modifiers') = 'array' then p->'modifiers' else '[]'::jsonb end) loop
+    nm := btrim(coalesce(m->>'name','')); if nm = '' then continue; end if;
+    select * into om from public.shop_modifiers where lower(name) = lower(nm) order by active desc limit 1;
+    opts := '[]'::jsonb;
+    for o in select * from jsonb_array_elements(case when jsonb_typeof(m->'options') = 'array' then m->'options' else '[]'::jsonb end) loop
+      opts := opts || jsonb_build_object('id', (select x->>'id' from jsonb_array_elements(coalesce(om.options, '[]'::jsonb)) x where lower(x->>'name') = lower(btrim(coalesce(o->>'name',''))) limit 1),
+        'name', o->>'name', 'price', coalesce(nullif(o->>'price',''), '0'));
+    end loop;
+    mid := public.shop_modifier_save(jsonb_build_object('id', om.id, 'name', nm, 'required', coalesce((m->>'required')::boolean, false), 'multi', coalesce((m->>'multi')::boolean, false), 'options', opts));
+    modmap := modmap || jsonb_build_object(lower(nm), mid); allmods := allmods || mid; mods := mods || nm;
+    om := null;
+  end loop;
+  for pr in select * from jsonb_array_elements(case when jsonb_typeof(p->'products') = 'array' then p->'products' else '[]'::jsonb end) loop
+    nm := left(btrim(coalesce(pr->>'name','')), 120); if nm = '' then continue; end if;
+    if nullif(pr->>'price','') is null or (pr->>'price')::numeric < 0 then raise exception 'Give % a price.', nm; end if;
+    if jsonb_typeof(pr->'modifiers') = 'array' then
+      select coalesce(array_agg(z), '{}') into ids from (select coalesce((modmap->>lower(btrim(x)))::uuid,
+        (select s.id from public.shop_modifiers s where lower(s.name) = lower(btrim(x)) and s.active limit 1)) z from jsonb_array_elements_text(pr->'modifiers') x) q where z is not null;
+    else ids := allmods; end if;
+    select id into pid from public.shop_products where lower(name) = lower(nm) and (cid is null or category_id = cid) order by active desc limit 1;
+    if pid is null then
+      insert into public.shop_products (name, category_id, price_thb, kitchen, in_app, active, sort, description, grp, modifier_ids)
+        values (nm, cid, round((pr->>'price')::numeric), coalesce((pr->>'kitchen')::boolean, false), coalesce((pr->>'in_app')::boolean, false), true,
+                coalesce((select max(sort) + 1 from public.shop_products where category_id is not distinct from cid), 0), nullif(btrim(coalesce(pr->>'description','')), ''),
+                nullif(btrim(coalesce(pr->>'grp','')), ''), ids) returning id into pid;
+      made := made || nm;
+    else
+      update public.shop_products set price_thb = round((pr->>'price')::numeric), active = true,
+        kitchen = coalesce((pr->>'kitchen')::boolean, kitchen), in_app = coalesce((pr->>'in_app')::boolean, in_app),
+        description = coalesce(nullif(btrim(coalesce(pr->>'description','')), ''), description), grp = case when pr ? 'grp' then nullif(btrim(coalesce(pr->>'grp','')), '') else grp end,
+        modifier_ids = (select coalesce(array_agg(distinct x), '{}') from unnest(coalesce(modifier_ids, '{}') || ids) x) where id = pid;
+      changed := changed || nm;
+    end if;
+    pid := null;
+  end loop;
+  return jsonb_build_object('category', nullif(cname, ''), 'new_products', to_jsonb(made), 'updated_products', to_jsonb(changed), 'modifiers', to_jsonb(mods));
+end $f$;
+revoke all on function public.shop_menu_build(jsonb) from public, anon;
+grant execute on function public.shop_menu_build(jsonb) to authenticated;
+
+notify pgrst, 'reload schema';
