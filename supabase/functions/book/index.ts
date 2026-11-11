@@ -325,6 +325,19 @@ const RESEND = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
 const escH = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const T = (n: number) => Math.round(n).toLocaleString("en-US") + " THB";
 const dayW = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+// a person who left their email on the booking page: found by email, or added as a contact tagged lead
+async function leadContact(email: string, name: string, phone: string, note: string): Promise<string | null> {
+  const { data: same } = await admin.from("customers").select("id,name,phone,tags,notes").ilike("email", email).limit(1).maybeSingle();
+  const day = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  if (same) {
+    const tags = Array.from(new Set([...(same.tags ?? []), "lead"]));
+    await admin.from("customers").update({ tags, phone: same.phone || phone || null, notes: [same.notes, day + ": " + note].filter(Boolean).join("\n").slice(0, 2000) }).eq("id", same.id);
+    return same.id;
+  }
+  const nice = name || email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const { data: made } = await admin.from("customers").insert({ name: nice.slice(0, 80), email, phone: phone || null, tags: ["lead"], lead_source: "Website, price email", notes: day + ": " + note }).select("id").single();
+  return made?.id ?? null;
+}
 async function mailQuote(R: Rates, body: Record<string, unknown>) {
   const O = await offer(); if (!O.quote) return json({ error: "Not available." });
   const email = String(body.email ?? "").trim().toLowerCase(), name = String(body.name ?? "").trim().slice(0, 80);
@@ -373,7 +386,10 @@ ${notes.map((n) => `<p style="color:${MUT};margin:6px 0">${escH(n)}</p>`).join("
   await admin.from("sent_emails").insert({ to_email: email, to_name: name || null, subject, body: text, status: ok ? "sent" : "failed", error: err, resend_id: rid, sent_at: ok ? new Date().toISOString() : null, campaign: "stay_quote" });
   if (!ok) return json({ error: "The email could not be sent. WhatsApp us for your price." });
   const phone = String(body.phone ?? "").trim().slice(0, 30);
-  await admin.from("notices").insert({ kind: "stay", title: `Price sent: ${name || email}, ${roomName}`,
+  // they become a contact (Contacts, tag "lead"), so the team can find them and follow up. Not a yes to newsletters.
+  let cid: string | null = null;
+  try { cid = await leadContact(email, name, phone, `Asked for the price of ${roomName}, ${dayW(from)} to ${dayW(to)} (${T(total)}) on the booking page.`); } catch (_e) { /* the notice still goes */ }
+  await admin.from("notices").insert({ kind: "stay", customer_id: cid, title: `Price sent: ${name || email}, ${roomName}`,
     detail: `${dayW(from)} to ${dayW(to)}, ${nights} nights, ${T(total)}. ${email}${phone ? ", " + phone : ""}. They have not booked yet: follow up in a day or two.` });
   return json({ ok: true });
 }
