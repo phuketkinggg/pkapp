@@ -56,5 +56,15 @@ documents, Pangea levels, habits, programs, food diary, measurements). Steps:
 5. Build the Phuket King read link.
 
 ## Done so far
+- 12 Nov 2026: Supabase project "Pangea Global" made: tqqfhahchjwihwknyiwo, Singapore (ap-southeast-1).
+  Publishable key sb_publishable_ei0gMLn3YmXoOO-3O6t_Og_qECOjLb1 (public, fine in the app).
+  Whole structure of the live app copied in (6150 statements, 0 errors): 132 tables, 769 functions, defaults, keys, indexes,
+  triggers, row security, policies, grants. Supabase's default "anon and authenticated can do everything" grants were
+  revoked, so rights are exactly the live app's (checked: function rights identical; table rights identical except mf_leads,
+  which is left out on purpose). Project references in functions point at the Pangea project. 7 storage buckets and their
+  policies as live. No data yet. The build schema (build.template, build.run) holds the copy log and is not exposed.
+  Still to do: app_settings and features for Pangea, sync_settings (functions_url, sync_token), auth settings (site URL,
+  email sender, MFA), edge functions deployed to this project, the back office build, regions, doctor role, access log,
+  member move, Phuket King read link.
 - 12 Nov 2026: the consent tick box with the full terms in the Pangea app; the record keeps the terms version
   (health_consent_terms.sql); the Pangea privacy page says the data stays theirs and is never sold.
