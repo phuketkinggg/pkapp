@@ -12,8 +12,9 @@ The apps are built for durability and utility: wherever a business could want it
    default on or off, and the default in spa mode). Check it with `featOn('key')`. Server side, check `private.feature('key', default)`.
 3. Add an entry at the top of `changelog.js`: date, title, what it does in plain words, and the feature key if it can be switched.
    Write it for any business (say "the gym", "your business"), never Phuket King names.
-4. Database changes go in `supabase/sql/<name>.sql` and are applied to all three databases:
+4. Database changes go in `supabase/sql/<name>.sql` and are applied to every database:
    live `jijnshwduhgegacfvpkh`, Muay Friend demo `yojllgjjekitbktzblcc`, Massage Mate demo `phjekupadmjwzrocahiv`.
+   And to Pangea Global `tqqfhahchjwihwknyiwo` (Pangea's own database, same structure as live), and the free gyms (supabase/free, tools/mf_free_patch.py).
    Patches that edit an existing function must check that they applied, and skip cleanly where a demo has an older version.
 5. New or changed text people read: the app is in English, Thai and Myanmar. Run `python3 tools/build_i18n.py --missing`,
    add Thai and Myanmar for those texts to `i18n/strings.json` (English -> [Thai, Myanmar]), then `python3 tools/build_i18n.py` and bump `I18N_V` in `index.html`.
