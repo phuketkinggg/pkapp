@@ -1,5 +1,5 @@
 {
- "at": "2026-11-09T11:45:24Z",
+ "at": "2026-11-12T11:27:14Z",
  "classes": [
   {
    "day": 0,
@@ -222,6 +222,14 @@
   },
   {
    "covers": [
+    "Fitness zone",
+    "Open gym"
+   ],
+   "name": "Fitness Zone 1 time",
+   "price": 200
+  },
+  {
+   "covers": [
     "Muay Thai",
     "Striking"
    ],
@@ -230,11 +238,10 @@
   },
   {
    "covers": [
-    "Fitness zone",
-    "Open gym"
+    "Spa"
    ],
-   "name": "Fitness Zone 1 time",
-   "price": 200
+   "name": "Spa Access, Full spa 1 time",
+   "price": 300
   },
   {
    "covers": [
@@ -246,16 +253,14 @@
   },
   {
    "covers": [
-    "Spa"
-   ],
-   "name": "Spa Access, Full spa 1 time",
-   "price": 300
-  },
-  {
-   "covers": [
     "Yoga"
    ],
    "name": "Yoga, 1 Session",
+   "price": 400
+  },
+  {
+   "covers": [],
+   "name": "Hand Wraps",
    "price": 400
   },
   {
@@ -263,11 +268,6 @@
     "Muay Thai"
    ],
    "name": "Training Only, 1 Session",
-   "price": 400
-  },
-  {
-   "covers": [],
-   "name": "Hand Wraps",
    "price": 400
   },
   {
@@ -330,6 +330,13 @@
   },
   {
    "covers": [
+    "Spa"
+   ],
+   "name": "Spa Access, 1 Week",
+   "price": 1800
+  },
+  {
+   "covers": [
     "Muay Thai",
     "Kids"
    ],
@@ -346,17 +353,9 @@
   },
   {
    "covers": [
-    "Spa"
+    "Muay Thai"
    ],
-   "name": "Spa Access, 1 Week",
-   "price": 1800
-  },
-  {
-   "covers": [
-    "Muay Thai",
-    "Kids"
-   ],
-   "name": "Kids monthly, All classes",
+   "name": "Training Only, 1 Week",
    "price": 2500
   },
   {
@@ -368,9 +367,10 @@
   },
   {
    "covers": [
-    "Muay Thai"
+    "Muay Thai",
+    "Kids"
    ],
-   "name": "Training Only, 1 Week",
+   "name": "Kids monthly, All classes",
    "price": 2500
   },
   {
@@ -386,6 +386,14 @@
    ],
    "name": "Training Only, 10 Sessions",
    "price": 3500
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Kids"
+   ],
+   "name": "2+1 Free for kids",
+   "price": 3600
   },
   {
    "covers": [
@@ -482,13 +490,6 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 6 Months Lite",
-   "price": 18000
-  },
-  {
-   "covers": [
-    "Muay Thai"
-   ],
    "name": "Training Only, 3 Month",
    "price": 18000
   },
@@ -496,8 +497,8 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 9 Months Lite",
-   "price": 24000
+   "name": "DTV 6 Months Lite",
+   "price": 18000
   },
   {
    "covers": [
@@ -508,11 +509,10 @@
   },
   {
    "covers": [
-    "Muay Thai",
-    "Spa"
+    "Muay Thai"
    ],
-   "name": "Training + Recovery, 3 Month",
-   "price": 28000
+   "name": "DTV 9 Months Lite",
+   "price": 24000
   },
   {
    "covers": [
@@ -521,6 +521,14 @@
     "Open gym"
    ],
    "name": "DTV 6 Months Unlimited",
+   "price": 28000
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Spa"
+   ],
+   "name": "Training + Recovery, 3 Month",
    "price": 28000
   },
   {
