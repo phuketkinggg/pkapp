@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=178"></script>
+<script src="changelog.js?v=179"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -963,6 +963,7 @@ var FEATURES=[
   {k:'partners',g:'Marketing',n:'Partner programme',d:'A Partners page on your website where people apply to send you customers, at levels you set (for example Affiliate, Creator and Ambassador, each with its own share and perks). Applications come into Affiliates, where you approve them at a level.'},
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
   {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
+  {k:'desk_code',g:'Selling',n:'Front desk code',d:'A 6 digit code a manager sets in Settings, Money. On the check in screen the front desk types it to confirm what you allow: mark cash or PromptPay as paid so the person can check in, let someone check in now and pay later, and leave desk mode. After 5 wrong codes it locks for 15 minutes, and every use is listed for the manager.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
   {k:'card_fee_lock',g:'Selling',n:'Card fee always charged',d:'When someone pays by card, the card fee is always added on and the front desk cannot take it off or lower it. Only a manager can let a customer off the card fee. Off: anyone at the desk can untick it.'},
   {k:'pay_first',g:'Selling',n:'Pay first to check in',d:'At the check in screen, someone who owes for a package or private must pay before they can check in. Off: they check in and are asked to pay. Staff can always check anyone in.'},
@@ -1032,7 +1033,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=122; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=123; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1938,11 +1939,44 @@ function unpaidToday(){ if(!featOn('pay_prompt')) return []; var day=ymd(new Dat
   S.privates.forEach(function(x){ if(x.customer_id&&x.date===day&&x.arrived_at&&x.status!=='cancelled') ids[x.customer_id]=1; });
   return Object.keys(ids).map(function(id){ return {c:byId('customers',id),owe:owesNow(id)}; }).filter(function(x){ return x.c&&x.owe>0; }); }
 function payFirst(){ return featOn('pay_prompt')&&featOn('pay_first'); }
+/* the front desk code (feature desk_code): on the check in screen the desk confirms cash or PromptPay, or lets someone in to pay later */
+function kioskOn(){ return document.body.classList.contains('kiosk'); }
+function deskCodeIn(){ return h('input',{id:'dc-code',type:'password',inputmode:'numeric',autocomplete:'off',maxlength:'6',placeholder:'6 numbers',style:'font-size:22px;letter-spacing:6px;max-width:200px'}); }
+function deskPaidDlg(c,owe){
+  var m='cash', code=deskCodeIn(), err=h('p',{class:'ferr',role:'alert',hidden:true}), qr=h('div'), busy=false;
+  var bc=btn('Cash',function(){ pick('cash'); },'primary'), bq=btn('PromptPay',function(){ pick('qr'); });
+  function pick(x){ m=x; bc.className='btn'+(x==='cash'?' primary':''); bq.className='btn'+(x==='qr'?' primary':'');
+    qr.replaceChildren(); if(x==='qr'){ var go2=function(){ var acc=ppFor('gym'); if(acc) qr.appendChild(ppBox(acc,owe)); qr.appendChild(h('p',{class:'sub'},'Check the money is in the bank app before you confirm.')); }; if(!PP) loadPP().then(go2); else go2(); } }
+  var ok=btn('Confirm paid',function(){ if(busy) return; var v=String(code.value||'').trim(); err.hidden=true;
+    if(!/^\d{6}$/.test(v)){ err.textContent='Type the 6 number front desk code.'; err.hidden=false; return; }
+    busy=true; ok.disabled=true;
+    sb.rpc('desk_code_pay',{p_customer:c.id,p_amount:owe,p_method:m,p_code:v}).then(must).then(function(r){
+      if(!r||r.ok===false){ busy=false; ok.disabled=false; code.value=''; err.textContent='That code is not right.'; err.hidden=false; return; }
+      $dlg.close(); toast('Paid '+thb(owe)+' by '+(m==='cash'?'cash':'PromptPay')+'. They can check in now.'); return Promise.all([reload('purchases'),reload('privates'),reload('stays')]).then(schedule);
+    }).catch(function(e){ busy=false; ok.disabled=false; err.textContent=errText(e); err.hidden=false; }); },'primary');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,c.name+' paid at the desk'),h('p',{class:'paytotal'},thb(owe)),
+    h('div',{class:'row'},bc,bq),qr,field('dc-code','Front desk code',code,'Staff only.'),err,
+    h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),ok)));
+  setTimeout(function(){ code.focus(); },60); }
+function deskLetIn(c){
+  var code=deskCodeIn(), err=h('p',{class:'ferr',role:'alert',hidden:true}), busy=false;
+  var ok=btn('Let them check in',function(){ if(busy) return; var v=String(code.value||'').trim(); err.hidden=true;
+    if(!/^\d{6}$/.test(v)){ err.textContent='Type the 6 number front desk code.'; err.hidden=false; return; }
+    busy=true; ok.disabled=true;
+    sb.rpc('desk_code_check',{p_code:v,p_what:'checkin_unpaid',p_customer:c.id}).then(must).then(function(r){
+      if(!r){ busy=false; ok.disabled=false; code.value=''; err.textContent='That code is not right.'; err.hidden=false; return; }
+      (ui.kletin=ui.kletin||{})[c.id]=true; $dlg.close(); toast(c.name+' can check in now. What they owe stays on their account.'); schedule();
+    }).catch(function(e){ busy=false; ok.disabled=false; err.textContent=errText(e); err.hidden=false; }); },'primary');
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Check in now, pay later'),h('p',{class:'sub'},c.name+' owes '+thb(owesNow(c.id))+'. It stays on their account and shows under Needs action now until they pay.'),
+    field('dc-code','Front desk code',code,'Staff only.'),err,h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),ok)));
+  setTimeout(function(){ code.focus(); },60); }
 function payNowBox(c,owe,big){
   var first=payFirst()&&!big;
   return h('div',{class:'paynow'+(big?' big':''),role:'alert'},h('div',null,h('b',{class:'paynowt'},(first?'Please pay first to check in: ':'Please pay now: ')+thb(owe)),
       h('div',null,first?'Pay here by card or QR, or at the front desk. Then tap I have paid.':'Pay at the front desk before you train, or pay by card or QR here.')),
-    h('div',{class:'row'},h('button',{type:'button',class:'btn primary',onclick:function(){ stripePay('customer',c.id,c.name); }},'Pay '+thb(owe)+' now'),
+    h('div',{class:'row wrap'},h('button',{type:'button',class:'btn primary',onclick:function(){ stripePay('customer',c.id,c.name); }},'Pay '+thb(owe)+' now'),
+      kioskOn()&&featOn('desk_code')?h('button',{type:'button',class:'btn',onclick:function(){ deskPaidDlg(c,owe); }},'Paid at the desk (staff)'):null,
+      kioskOn()&&featOn('desk_code')&&first?h('button',{type:'button',class:'btn',onclick:function(){ deskLetIn(c); }},'Check in now, pay later (staff)'):null,
       first?h('button',{type:'button',class:'btn',onclick:function(){ toast('Checking your payment.'); Promise.all([reload('purchases'),reload('privates')]).then(function(){ if(owesNow(c.id)>0) toast('Not paid yet. Pay here, or see the front desk.'); else toast('Paid. Thank you, you can check in now.'); schedule(); }); }},'I have paid'):null)); }
 function pastCheckIn(c){
   var today=ymd(new Date()), y=addDays(today,-1);
@@ -10109,6 +10143,28 @@ function ownHand(){ var ms=S.staff.filter(function(x){ return x.active!==false&&
   if(!ms.length){ toast('There is no other manager with a sign in to hand over to.'); return; }
   openForm({title:'Hand over the business',note:'The new owner gets the owner rights and makes their own recovery codes. Your codes stop working. You stay a manager.',fields:[{key:'who',label:'New owner',type:'select',options:ms.map(function(x){ return [x.id,x.name]; })}],
     onSave:function(v){ if(!confirm('Hand over the business? You can not undo this yourself.')) return 'Not handed over.'; return sb.rpc('owner_set',{p_staff:v.who}).then(must).then(function(){ ownLoad(); }); },doneMsg:'Handed over.'}); }
+/* the front desk code: set it, choose what it can confirm, see who used it */
+var DESKC=null;
+function deskCodeSection(){
+  if(DESKC===null){ DESKC=false; Promise.all([sb.rpc('desk_code_settings'),sb.rpc('desk_code_uses')]).then(function(r){ DESKC={s:r[0].data||{},uses:r[1].data||[]}; schedule(); }); }
+  if(!DESKC) return section('Front desk code',null,h('p',{class:'sub'},'Loading.'));
+  var s=DESKC.s, uses=DESKC.uses, names={pay:'Mark cash or PromptPay as paid',checkin_unpaid:'Check in now, pay later',kiosk_exit:'Leave desk mode'};
+  return section('Front desk code',btn(s.set?'Change':'Set the code',deskCodeEdit,s.set?'small':'primary small'),h('div',{class:'panel pad'},
+    h('p',null,s.set?chip('Set','ok'):chip('Not set yet','warn'),' ',s.set&&s.updated_at?'Changed '+fmtDate(cDayOf(s.updated_at))+(s.by?' by '+s.by:'')+'.':''),
+    h('p',{class:'sub'},'A 6 number code for the front desk team. On the check in screen they type it to confirm: '+((s.allow||[]).map(function(k){ return names[k]; }).filter(Boolean).join(', ')||'nothing yet')+'. Change it when someone leaves the team.'),
+    uses.length?h('details',null,h('summary',null,'Who used it, last 60 days ('+uses.length+')'),table([
+      {label:'When',cell:function(u){ return new Date(u.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
+      {label:'For',cell:function(u){ return (names[u.what]||u.what)+(u.customer?', '+u.customer:''); }},
+      {label:'Amount',num:true,cell:function(u){ return u.amount?thb(u.amount):''; }},
+      {label:'Result',cell:function(u){ return u.ok?chip('OK','ok'):chip('Wrong code','bad'); }},
+      {label:'Device signed in as',cell:function(u){ return u.by||''; }}],uses,'')):null)); }
+function deskCodeEdit(){ var s=(DESKC&&DESKC.s)||{};
+  openForm({title:'Front desk code',note:'6 numbers. Give it only to the front desk team. Leave the code empty to keep the one you have and only change what it can do.',values:{allow:s.allow||['pay','checkin_unpaid','kiosk_exit']},saveLabel:'Save',doneMsg:'Saved.',
+    fields:[{key:'code',label:'New code',type:'password',inputmode:'numeric',autocomplete:'new-password'},{key:'code2',label:'Type it again',type:'password',inputmode:'numeric',autocomplete:'new-password'},
+      {key:'allow',label:'The front desk can use it to',type:'checks',options:[['pay','Mark cash or PromptPay as paid at check in'],['checkin_unpaid','Let someone check in now and pay later'],['kiosk_exit','Leave desk mode']]}],
+    onSave:function(v){ var c=String(v.code||'').trim(); if(c||v.code2){ if(!/^\d{6}$/.test(c)) return 'The code must be 6 numbers.'; if(c!==String(v.code2||'').trim()) return 'The two codes are not the same.'; }
+      if(!s.set&&!c) return 'Type the new code.';
+      return sb.rpc('desk_code_save',{p:{code:c||null,allow:v.allow||[]}}).then(must).then(function(){ DESKC=null; schedule(); }); }}); }
 function vSettings(){
   var tabs=setTabs(), cur=tabs.filter(function(x){ return x[0]===SETT.tab; })[0];
   if(!cur) return setHome();
@@ -10118,7 +10174,7 @@ function vSettings(){
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
-  else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings()];
+  else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
@@ -11640,9 +11696,13 @@ function exitKiosk(){
     try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
     TABS=staffTabs(me.admin?Object.assign({},me,{role:'admin'}):me); loadPlatform().catch(function(){}); ui.tab=SPA?'board':'today'; if(!TABS.some(function(t){ return t[0]===ui.tab; })) ui.tab=TABS[0][0]; schedule(); }
   if(window.DEMO_LOGINS){ leave(); toast('Desk mode off. In your own gym, staff type their password here.'); return; } // demo only: no password to leave desk mode
-  openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
-    {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:true}],
-    onSave:function(v){ return sb.auth.signInWithPassword({email:email,password:v.pw}).then(function(res){
+  var dc=featOn('desk_code');
+  openForm({title:'Leave desk mode',note:'Staff only. Enter the password for '+email+(dc?', or the front desk code':'')+'.',saveLabel:'Leave desk mode',doneMsg:'Desk mode off.',fields:[
+    {key:'pw',label:'Password',type:'password',autocomplete:'current-password',required:!dc},
+    dc?{key:'dcode',label:'Or the front desk code',type:'password',inputmode:'numeric',autocomplete:'off'}:null].filter(Boolean),
+    onSave:function(v){ if(dc&&v.dcode&&!v.pw) return sb.rpc('desk_code_check',{p_code:String(v.dcode).trim(),p_what:'kiosk_exit',p_customer:null}).then(must).then(function(ok){ if(!ok) throw {plain:true,message:'That code is not right.'}; leave(); });
+      if(!v.pw) return 'Type the password'+(dc?' or the front desk code':'')+'.';
+      return sb.auth.signInWithPassword({email:email,password:v.pw}).then(function(res){
       if(res.error) throw {plain:true,message:/invalid/i.test(res.error.message)?'That password is wrong.':authText(res.error)};
       leave(); }); }});
 }
@@ -11771,7 +11831,7 @@ function vKiosk(){
     h('div',{class:'cnote'},ui.kdone.kind==='buy'?ui.kdone.name+', thank you. '+ui.kdone.pack:ui.kdone.name+', enjoy your session. '+ui.kdone.pack+'.'),h('div',null,h('button',{type:'button',class:'btn primary',onclick:kReset},'Done'))),foot];
   if(ui.kc){
     var c=byId('customers',ui.kc); if(!c){ kReset(); return [head]; }
-    var ts=kTargets(c,day), pv=kPrivToday(c,day), kOwe=owesNow(c.id), block=kOwe>0&&payFirst();
+    var ts=kTargets(c,day), pv=kPrivToday(c,day), kOwe=owesNow(c.id), block=kOwe>0&&payFirst()&&!(ui.kletin&&ui.kletin[c.id]);
     var more=h('div',{class:'kmore'},h('button',{type:'button',class:'kbig kalt',onclick:function(){ kPrivate(c); }},h('span',null,'Book a private'),h('span',{class:'chip'},'Now or later')),
       h('button',{type:'button',class:'kbig kalt',onclick:function(){ kBuy(c); }},h('span',null,'Buy a package'),h('span',{class:'chip'},'Buy')));
     var pvRows=pv.map(function(x){ var who=x.coach_id?' with '+nameOf('staff',x.coach_id):'', wait=x.status==='requested';
