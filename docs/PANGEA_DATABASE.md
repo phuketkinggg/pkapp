@@ -66,5 +66,12 @@ documents, Pangea levels, habits, programs, food diary, measurements). Steps:
   Still to do: app_settings and features for Pangea, sync_settings (functions_url, sync_token), auth settings (site URL,
   email sender, MFA), edge functions deployed to this project, the back office build, regions, doctor role, access log,
   member move, Phuket King read link.
+- 12 Nov 2026 (2): settings for Pangea (names, one business with its departments, green theme, features: coaching,
+  member files, private health records and courses on; shop, kitchen, rooms, timetable, privates, fights and the other
+  gym parts off), a sync token and functions address (made in the database, never shown), the staff linking trigger on
+  sign in, the nightly backup, and Tom as the owner (staff, manager, hello@phuketking.com; linked when he first signs in).
+  Back office build: tools/build_pangea_admin.py -> pangea/admin/ (app.phuketking.com/pangea/admin/). In the Pangea
+  Supabase project, Authentication, URL configuration: Site URL https://app.phuketking.com/pangea/admin/ and the same
+  address under Redirect URLs (Tom sets this in the dashboard).
 - 12 Nov 2026: the consent tick box with the full terms in the Pangea app; the record keeps the terms version
   (health_consent_terms.sql); the Pangea privacy page says the data stays theirs and is never sold.
