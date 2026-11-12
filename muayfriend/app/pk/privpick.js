@@ -42,10 +42,10 @@ window.PrivPick=function(opts){
   var root=el('div',{class:'pp'});
   function coachOf(id){ return (S.data&&S.data.coaches||[]).filter(function(c){ return c.id===id; })[0]||null; }
   function freeOn(d,id){ var day=(S.data.days||[]).filter(function(x){ return x.date===d; })[0]; if(!day||!day.free) return [];
-    if(id!=='*') return day.free[id]||[]; var all={}; Object.keys(day.free).forEach(function(k){ (day.free[k]||[]).forEach(function(t){ all[t]=1; }); }); return Object.keys(all).sort(); }
+    if(id!=='*') return day.free[id]||[]; var all={}; Object.keys(day.free).forEach(function(k){ var c=coachOf(k); if(c&&c.any===false) return; (day.free[k]||[]).forEach(function(t){ all[t]=1; }); }); return Object.keys(all).sort(); }
   /* any coach: a coach free at that time (a coach without their own higher rate first). With the fair order from the database
      (feature private_fair_coach): the one with the fewest privates that month. Without it: at random */
-  function anyCoach(d,t){ var free=S.data.coaches.filter(function(c){ return freeOn(d,c.id).indexOf(t)>=0; }), plain=free.filter(function(c){ return !c.rate; }), l=plain.length?plain:free;
+  function anyCoach(d,t){ var free=S.data.coaches.filter(function(c){ return c.any!==false&&freeOn(d,c.id).indexOf(t)>=0; }), plain=free.filter(function(c){ return !c.rate; }), l=plain.length?plain:free;
     if(!l.length) return null; var order=S.data.fair&&S.data.fair[String(d).slice(0,7)];
     if(order&&order.length){ var ids=l.map(function(c){ return c.id; }); for(var i=0;i<order.length;i++) if(ids.indexOf(order[i])>=0) return order[i]; }
     return l[Math.floor(Math.random()*l.length)].id; }
