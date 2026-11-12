@@ -18,9 +18,9 @@
 <script>window.SHOP_TYPE="spa";window.DEMO_BRAND="Karahill";window.DEMO_HOME="./";window.DEMO_LOGINS=[{"label": "Owner", "note": "Everything: board, money, staff, menu", "email": "owner@demo.massagemate.app", "pw": "MassageMateDemo1", "main": true}, {"label": "Front desk", "note": "Board, walk-ins, bookings, till", "email": "desk@demo.massagemate.app", "pw": "MassageMateDemo1"}, {"label": "Therapist", "note": "My day, clock in, my money", "email": "therapist@demo.massagemate.app", "pw": "MassageMateDemo1"}, {"label": "Customer", "note": "Book a treatment", "email": "guest@demo.massagemate.app", "pw": "MassageMateDemo1"}];</script>
 <script src="vendor/supabase-js-2.117.2.js"></script>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
-<script src="pk/privpick.js?v=5"></script>
+<script src="pk/privpick.js?v=6"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=175"></script>
+<script src="changelog.js?v=176"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -989,6 +989,7 @@ var FEATURES=[
   {k:'chat_block',g:'Messages',n:'Block people in chats',d:'Customers can block anyone who writes to them in a chat. That person\'s messages are hidden from them in every chat, they get no phone notices from them, and managers and the front desk get a notice. They can unblock in their account (Blocked).'},
   {k:'store_courses_hide',g:'Training',n:'Hide courses in the store apps',d:'In the iPhone and Android apps, customers see only the technique library in Learn, with no courses or course prices (Apple and Google want their own payment for digital courses). Courses still show on the website and in the app in a browser.',spa:false},
   {k:'private_extras',g:'Training',n:'Extras on a private',d:'When booking a private, type the total received, the private amount (the coach share is worked out from this only) and any extras with their own amount and department, for example ice bath and sauna to the spa or a meal to the cafe. Accounts put each extra in its own department.'},
+  {k:'private_fair_coach',g:'Training',n:'Any free coach, shared fairly',d:'When a customer books a private with any free coach, in the app or on the website, the coach free at that time with the fewest privates that month (past and future) gets it, so privates are shared out evenly. A coach with their own higher private rate is only chosen when no other coach is free. Off: a free coach at random.',spa:false},
   {k:'private_any_coach',g:'Training',n:'Book a private with any free coach',d:'When customers book a private in the app or on the website, they start with Any free coach: they pick a day and a time, and a coach who is free then is chosen for them. They can tap Pick my coach to choose one. Off: they choose the coach first.',spa:false},
   {k:'app_signups',g:'Customers',n:'App sign-ups not finished',d:'On Customers, the front desk sees people who signed up in the app but did not confirm their email or add their name yet, and can finish it for them with one tap.'},
   {k:'ask_ai',g:'AI package',n:'Ask AI',d:'An assistant in the app for the owner, and for the staff the owner ticks Ask AI on (Staff, Edit). Ask about anything in the business, send PDFs, photos or spreadsheets (for example a delivery note to add to shop stock), or ask it to write and send an email. It reads with the person\'s own rights, and every change is shown first and only done when they tap Confirm.',tabs:['askai'],spa:true},
@@ -1031,7 +1032,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=119; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=120; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }

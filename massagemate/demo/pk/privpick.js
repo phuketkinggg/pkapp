@@ -43,11 +43,14 @@ window.PrivPick=function(opts){
   function coachOf(id){ return (S.data&&S.data.coaches||[]).filter(function(c){ return c.id===id; })[0]||null; }
   function freeOn(d,id){ var day=(S.data.days||[]).filter(function(x){ return x.date===d; })[0]; if(!day||!day.free) return [];
     if(id!=='*') return day.free[id]||[]; var all={}; Object.keys(day.free).forEach(function(k){ (day.free[k]||[]).forEach(function(t){ all[t]=1; }); }); return Object.keys(all).sort(); }
-  /* any coach: one of the coaches free at that time, at random (a coach without their own higher rate first) */
+  /* any coach: a coach free at that time (a coach without their own higher rate first). With the fair order from the database
+     (feature private_fair_coach): the one with the fewest privates that month. Without it: at random */
   function anyCoach(d,t){ var free=S.data.coaches.filter(function(c){ return freeOn(d,c.id).indexOf(t)>=0; }), plain=free.filter(function(c){ return !c.rate; }), l=plain.length?plain:free;
-    return l.length?l[Math.floor(Math.random()*l.length)].id:null; }
+    if(!l.length) return null; var order=S.data.fair&&S.data.fair[String(d).slice(0,7)];
+    if(order&&order.length){ var ids=l.map(function(c){ return c.id; }); for(var i=0;i<order.length;i++) if(ids.indexOf(order[i])>=0) return order[i]; }
+    return l[Math.floor(Math.random()*l.length)].id; }
   var anyOk=function(){ return S.data&&S.data.any_first!==false&&!opts.coach&&S.data.coaches.length>1; };
-  function merge(x){ if(!S.data){ S.data=x; } else { var have={}; S.data.days.forEach(function(d){ have[d.date]=1; }); x.days.forEach(function(d){ if(!have[d.date]) S.data.days.push(d); }); }
+  function merge(x){ if(!S.data){ S.data=x; } else { var have={}; S.data.days.forEach(function(d){ have[d.date]=1; }); x.days.forEach(function(d){ if(!have[d.date]) S.data.days.push(d); }); if(x.fair){ S.data.fair=S.data.fair||{}; Object.keys(x.fair).forEach(function(k){ if(!S.data.fair[k]) S.data.fair[k]=x.fair[k]; }); } }
     S.until=S.data.days.length?S.data.days[S.data.days.length-1].date:null; }
   function load(from){ S.loading=true; draw();
     return opts.load(from||null,14).then(function(x){ S.loading=false; S.err=null; merge(x);

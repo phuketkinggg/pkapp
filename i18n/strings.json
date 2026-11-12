@@ -23282,5 +23282,13 @@
 "Running tabs for tables or people: put an order on Table 1, the kitchen gets it and the till is free for the next customer. Add more to the tab any time, then bring it up at the end, print the bill and take payment. A line added in the last 10 minutes can be taken off; after that a manager uses their PIN.": [
 "บิลค้างสำหรับโต๊ะหรือลูกค้า: ลงออร์เดอร์ที่โต๊ะ 1 ครัวได้รับทันที และเคาน์เตอร์ว่างสำหรับลูกค้าคนต่อไป เพิ่มรายการได้ตลอด แล้วเปิดบิลตอนท้าย พิมพ์บิลและรับเงิน รายการที่เพิ่มภายใน 10 นาทีเอาออกได้ หลังจากนั้นผู้จัดการต้องใช้ PIN",
 "စားပွဲ သို့မဟုတ် လူအလိုက် ဘေလ်များ: စားပွဲ 1 ပေါ် အော်ဒါတင်ပါ၊ မီးဖိုချောင်သို့ ရောက်ပြီး ကောင်တာက နောက်ဖောက်သည်အတွက် အားသွားသည်။ ဘယ်အချိန်မဆို ထပ်ထည့်နိုင်ပြီး နောက်ဆုံးတွင် ဘေလ်ပရင့်ထုတ်ကာ ငွေယူပါ။ ၁၀ မိနစ်အတွင်း ထည့်ထားသည်ကို ဖယ်နိုင်သည်၊ ထို့နောက် မန်နေဂျာ PIN လိုသည်။"
+],
+"Any free coach, shared fairly": [
+"โค้ชที่ว่าง แบ่งงานอย่างเป็นธรรม",
+"အားလပ်သော နည်းပြ၊ မျှတစွာ ခွဲဝေခြင်း"
+],
+"When a customer books a private with any free coach, in the app or on the website, the coach free at that time with the fewest privates that month (past and future) gets it, so privates are shared out evenly. A coach with their own higher private rate is only chosen when no other coach is free. Off: a free coach at random.": [
+"เมื่อลูกค้าจองไพรเวทแบบโค้ชคนไหนก็ได้ ในแอปหรือบนเว็บไซต์ โค้ชที่ว่างในเวลานั้นและมีไพรเวทน้อยที่สุดในเดือนนั้น (ทั้งที่ผ่านมาและที่จองไว้) จะได้งานนี้ เพื่อให้แบ่งไพรเวทกันอย่างทั่วถึง โค้ชที่มีราคาไพรเวทสูงกว่าจะถูกเลือกเฉพาะเมื่อไม่มีโค้ชคนอื่นว่าง ปิด: สุ่มโค้ชที่ว่าง",
+"ဖောက်သည်က အက်ပ် သို့မဟုတ် ဝက်ဘ်ဆိုက်တွင် မည်သည့်နည်းပြမဆို ဖြင့် private ကို ဘွတ်ကင်လုပ်သောအခါ ထိုအချိန်တွင် အားပြီး ထိုလအတွင်း private အနည်းဆုံးရှိသော (ပြီးခဲ့သည်နှင့် လာမည့်) နည်းပြက ရရှိမည်၊ ထို့ကြောင့် private များကို မျှတစွာ ခွဲဝေသည်။ ကိုယ်ပိုင်ဈေးပိုမြင့်သော နည်းပြကို အခြားနည်းပြ မအားမှသာ ရွေးသည်။ ပိတ်ထားလျှင်: အားသော နည်းပြကို ကျပန်းရွေးသည်။"
 ]
 }
