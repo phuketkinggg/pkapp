@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=177"></script>
+<script src="changelog.js?v=178"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1032,7 +1032,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=121; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=122; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -5340,7 +5340,7 @@ function mfPanel(d){
       fields:[{key:'name',label:'Name',required:true},{key:'kind',label:'What it is',type:'select',options:MFD},{key:'day',label:'Date',type:'date'},{key:'shared',label:'The member can see it in their app',type:'checkbox'}],
       onSave:function(v){ return sb.rpc('member_doc_add',{p:{customer_id:cid,name:v.name,kind:v.kind,path:u.path,size:u.size,day:v.day,shared:!!v.shared}}).then(must).then(function(){ return mfLoad(cid); }); }}); }); }
   var consent=f.consent_at?h('p',{class:'sub'},chip('Consent given','ok'),' '+fmtDate(String(f.consent_at).slice(0,10))+(f.consent_how?', '+f.consent_how:''))
-    :h('div',{class:'panel pad owebox'},h('b',null,'No consent yet to keep health details'),h('p',{class:'sub'},'Health details are sensitive. The member agrees in their app, or tell them what you keep and why, and tick here when they agree in person.'),
+    :h('div',{class:'panel pad owebox'},h('b',null,'No consent yet to keep health details'),h('p',{class:'sub'},'Health details are sensitive. The member agrees in their app, or tell them in person: we keep their health details privately, only to look after them professionally; the data stays theirs, we do not own it, and we never sell it, share it for marketing or use it to make money; only they, their coaches, doctors and managers see it, and they can take this back or have it deleted at any time. Tick here when they agree.'),
       btn('They agreed in person',function(){ sb.rpc('member_consent_set',{p_customer:cid,p_on:true}).then(must).then(function(){ toast('Consent recorded.'); mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'small'));
   var head=h('div',{class:'panel pad mfhead'},h('div',{class:'mfphoto'},photo?cPhoto(photo,'mfimg'):h('div',{class:'mfimg mfnone'},String(d.customer.name||'?').charAt(0)),btn(photo?'Change photo':'Add a photo',setPhoto,'small')),
     h('div',{style:'flex:1;min-width:220px'},f.alerts?h('div',{class:'mfalert',role:'note'},h('b',null,'Alert: '),f.alerts):null,

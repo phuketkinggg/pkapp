@@ -528,9 +528,13 @@ function fileCards(){
   if(!MYF){ loadFile(); return h('div',{class:'card'},h('p',{class:'empty'},'Loading your file.')); }
   if(MYF.err) return h('div',{class:'card'},h('p',{class:'empty'},MYF.err));
   var f=MYF.file||{}, notes=MYF.notes||[], docs=MYF.docs||[];
+  var tick=h('input',{type:'checkbox',id:'cons-tick',style:'width:22px;height:22px;flex:none;margin-top:2px'}), agree=h('button',{class:'btn gold',disabled:true,onclick:function(ev){ if(!tick.checked) return; ev.currentTarget.disabled=true; rpc('my_consent',{p_on:true}).then(function(){ toast('Thank you.'); loadFile(); }).catch(function(e){ toast(errText(e)); }); }},'I agree');
+  tick.onchange=function(){ agree.disabled=!tick.checked; };
   var consent=f.consent_at?null:h('div',{class:'card dark'},h('h3',{style:'color:#fff'},'Your health details'),
-    h('p',{class:'sub'},'To look after you properly we keep notes on your health: conditions, medication, allergies, injuries, blood tests and your coaches\' notes. Only you, your coaches and the Pangea managers see them, and you can see everything we keep here. You can take this back at any time.'),
-    h('button',{class:'btn gold',onclick:function(ev){ ev.currentTarget.disabled=true; rpc('my_consent',{p_on:true}).then(function(){ toast('Thank you.'); loadFile(); }).catch(function(e){ toast(errText(e)); }); }},'I agree'));
+    h('p',{class:'sub'},'To look after you properly we keep notes on your health: conditions, medication, allergies, injuries, blood tests, doctors\' letters and your coaches\' notes. You can see everything we keep here.'),
+    h('label',{for:'cons-tick',style:'display:flex;gap:12px;align-items:flex-start;margin:12px 0;color:#fff;line-height:1.45'},tick,
+      h('span',null,'I agree that Pangea keeps my health details, notes and files privately, only to look after me professionally. My data stays mine: Pangea does not own it, and will never sell it, share it for marketing or use it to make money. Only I, my coaches, my doctors and the Pangea managers can see it, and I can take this back or ask for it all to be deleted at any time.')),
+    agree);
   var details=h('div',{class:'card'},h('div',{class:'row between'},h('h2',null,'My file'),h('button',{class:'btn small',onclick:fileDetailsSheet},'Update')),
     [['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]].map(function(r){
       return h('div',{class:'list-row'},h('div',{class:'grow'},h('div',{class:'sub'},r[0]),h('div',{style:'white-space:pre-wrap'},r[1]||'Nothing noted'))); }));

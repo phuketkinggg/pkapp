@@ -1,5 +1,5 @@
 // Pangea app: network first so updates show straight away, last copy when offline. Data calls are never cached.
-const CACHE = 'pangea-v2';
+const CACHE = 'pangea-v3';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './logo.svg', './icons/icon-192.png', '../vendor/supabase-js-2.117.2.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
