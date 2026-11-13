@@ -54,8 +54,8 @@ begin
       if pkg.id is null then select * into pkg from public.packages where name ilike '%' || pk || '%' order by price_thb desc nulls last limit 1; end if;
       if p_save then
         if not exists (select 1 from public.purchases k where k.customer_id = cid and k.package_name = pk and k.expires_on is not distinct from en and not coalesce(k.cancelled, false)) then
-          insert into public.purchases (customer_id, package_id, package_name, price_thb, paid, purchased_on, starts_on, expires_on, visits_left, visit_limit, covers, per_week_limit, used_before)
-          values (cid, pkg.id, pk, 0, true, coalesce(st, private.bkk_today()), coalesce(st, private.bkk_today()), en, vl, coalesce(vl, pkg.visit_limit), coalesce(pkg.covers, array['Muay Thai']), pkg.per_week_limit, true);
+          insert into public.purchases (customer_id, package_id, package_name, price_thb, paid, method, purchased_on, starts_on, expires_on, visits_left, visit_limit, covers, per_week_limit)
+          values (cid, pkg.id, pk, 0, true, 'before_app', coalesce(st, private.bkk_today()), coalesce(st, private.bkk_today()), en, vl, coalesce(vl, pkg.visit_limit), coalesce(pkg.covers, array['Muay Thai']), pkg.per_week_limit);
           n_pk := n_pk + 1;
         end if;
       else
