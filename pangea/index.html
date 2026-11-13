@@ -226,7 +226,7 @@ function newPasswordView(){
 
 /* ---------- data ---------- */
 function load(){
-  return sb.rpc('customer_hello').then(function(){ return rpc('pangea_home'); }).then(function(d){ S.data=d; render(); signPaths(); })
+  return sb.rpc('customer_hello').then(function(){ return rpc('pangea_home'); }).then(function(d){ S.data=d; render(); signPaths(); intakeCheck(); })
     .catch(function(e){ var m=errText(e);
       if(/Sign in first/i.test(m)) $app.replaceChildren(h('div',{class:'auth center'},h('img',{class:'logo',src:'logo.svg',alt:''}),h('h2',null,'Almost there'),
         h('p',{class:'sub'},'Your account is not linked yet. Open the confirm email we sent you, then come back and sign in.'),
@@ -499,6 +499,59 @@ function coachView(){
     h('div',{class:'card'},h('h3',null,'Pangea team'),h('p',{class:'sub'},'Questions about bookings, stays or your plan.'),h('button',{class:'btn ghost small',onclick:function(){ openChat({p_desk:true},'Pangea team'); }},'Message the team')),
     h('div',{class:'card'},h('h3',null,'Levels'),Object.keys(LEVELS).map(function(k){ return h('div',{class:'list-row'},h('div',{class:'grow'},h('b',null,LEVELS[k][0]),h('div',{class:'sub'},LEVELS[k][1])),k===lv?h('span',{class:'pill green'},'You'):null); })));
 }
+/* ---------- more about me, and the health questions after signing up (feature health_intake): asked once, every question optional ---------- */
+var ABOUT=[['birth','Date of birth','date'],['sex','Sex','select',['Female','Male','Other']],['height','Height (cm)','number'],
+  ['blood','Blood type','select',['A+','A-','B+','B-','AB+','AB-','O+','O-','Not sure']],
+  ['activity','How active are you','select',['Mostly sitting','Light, some walking','Active, exercise 2 to 3 times a week','Very active, exercise most days']],
+  ['sleep','Sleep most nights (hours)','number'],['smoke','Smoking or vaping','select',['Never','In the past','Sometimes','Every day']],
+  ['alcohol','Alcohol','select',['None','A few drinks a month','A few drinks a week','Most days']],
+  ['diet','How you eat','text','For example: everything, vegetarian, no gluten'],
+  ['family','Family health history','textarea','For example heart disease, diabetes or cancer in parents, brothers or sisters'],
+  ['doctor','Your doctor','text','Name and clinic, if you have one']];
+function aboutInput(q,val){ var el;
+  if(q[2]==='select') el=h('select',{id:'ab-'+q[0]},[h('option',{value:''},'Choose')].concat(q[3].map(function(o){ return h('option',{value:o},o); })));
+  else if(q[2]==='textarea') el=h('textarea',{id:'ab-'+q[0],rows:'3',placeholder:q[3]||''});
+  else el=h('input',{id:'ab-'+q[0],type:q[2]==='number'?'number':q[2],inputmode:q[2]==='number'?'decimal':null,placeholder:q[3]||''});
+  el.value=val||''; return el; }
+function ageOf(b){ if(!b) return ''; var d=parseYmd(b), n=new Date(), a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate())) a--; return a; }
+function aboutLine(a){ a=a||{}; return [a.birth?'Age '+ageOf(a.birth):'',a.sex,a.height?a.height+' cm':'',a.blood?'Blood type '+a.blood:''].filter(Boolean).join(', '); }
+var INTAKE_SEEN=false;
+function intakeCheck(){ if(INTAKE_SEEN) return; INTAKE_SEEN=true; rpc('my_file').then(function(x){ MYF=x; if(x&&x.ask_intake) intakeStart(); }).catch(function(){}); }
+function intakeSkip(close){ close(); rpc('my_file_about',{p:{},p_done:true}).catch(function(){}); toast('You can fill it in any time, in My file.'); }
+function intakeStart(){ var f=(MYF&&MYF.file)||{}; if(f.consent_at) return intakeForm();
+  var tick=h('input',{type:'checkbox',id:'in-tick',style:'width:22px;height:22px;flex:none;margin-top:2px'});
+  var go=h('button',{class:'btn full',disabled:true,style:'margin-top:8px',onclick:function(ev){ if(!tick.checked) return; ev.currentTarget.disabled=true;
+    rpc('my_consent',{p_on:true}).then(function(){ return rpc('my_file'); }).then(function(x){ MYF=x; close(); intakeForm(); }).catch(function(e){ toast(errText(e)); ev.currentTarget.disabled=false; }); }},'Agree and continue');
+  tick.onchange=function(){ go.disabled=!tick.checked; };
+  var close=sheet(h('div',null,h('h2',null,'Welcome to Pangea'),
+    h('p',{class:'sub'},'To look after you properly, your coach needs to know about you and your health. It takes a few minutes and every question is optional, but the more you tell us, the better we can help.'),
+    h('label',{for:'in-tick',style:'display:flex;gap:12px;align-items:flex-start;margin:14px 0;line-height:1.45;font-weight:400'},tick,
+      h('span',null,'I agree that Pangea keeps my health details, notes and files privately, only to look after me professionally. My data stays mine: Pangea does not own it, and will never sell it, share it for marketing or use it to make money. Only I, my coaches, my doctors and the Pangea managers can see it, and I can take this back or ask for it all to be deleted at any time.')),
+    go,h('button',{class:'btn link full',onclick:function(){ intakeSkip(close); }},'Not now')));
+}
+function intakeForm(){ var f=(MYF&&MYF.file)||{}, a=f.about||{}, ins={}, mf={}, photo=null, prev=h('div');
+  var pick=h('input',{type:'file',accept:'image/*',style:'display:none'});
+  pick.onchange=function(){ photo=pick.files[0]; if(photo) prev.replaceChildren(h('img',{src:URL.createObjectURL(photo),alt:'',style:'width:120px;height:120px;border-radius:50%;object-fit:cover;margin:10px auto;display:block'})); };
+  function q(x){ ins[x[0]]=aboutInput(x,a[x[0]]); return h('div',null,h('label',{for:'ab-'+x[0]},x[1]),ins[x[0]]); }
+  function t(k,label,rows,ph){ mf[k]=rows?h('textarea',{id:'in-'+k,rows:String(rows),placeholder:ph||''}):h('input',{id:'in-'+k,placeholder:ph||''}); mf[k].value=f[k]||''; return h('div',null,h('label',{for:'in-'+k},label),mf[k]); }
+  var kg=h('input',{id:'in-kg',type:'number',inputmode:'decimal',placeholder:'For example 72.5'});
+  var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,'About you'),h('button',{class:'btn link',onclick:function(){ intakeSkip(close); }},'Skip')),
+    h('p',{class:'sub'},'Everything is optional. Only you, your coaches and the Pangea managers see it. You can change it any time in My file.'),
+    pick,prev,h('button',{class:'btn ghost full',onclick:function(){ pick.click(); }},'Add a photo of you'),
+    q(ABOUT[0]),q(ABOUT[1]),q(ABOUT[2]),h('div',null,h('label',{for:'in-kg'},'Weight (kg)'),kg),q(ABOUT[3]),
+    t('conditions','Illnesses and conditions',3,'For example high blood pressure, asthma, diabetes'),t('medication','Medication and supplements',3,'Name and how much, for example metformin 500 mg twice a day'),
+    t('allergies','Allergies',2),t('injuries','Injuries and operations',3,'Old or current, for example left knee operation 2019'),
+    q(ABOUT[4]),q(ABOUT[5]),q(ABOUT[6]),q(ABOUT[7]),q(ABOUT[8]),q(ABOUT[9]),q(ABOUT[10]),
+    t('goals','What you want from Pangea',3,'For example more energy, lose weight, sleep better, fix my back'),
+    t('emergency_name','Emergency contact name'),t('emergency_phone','Emergency contact phone',0,'+44 7700 900123'),
+    h('button',{class:'btn full',style:'margin-top:14px',onclick:function(ev){ var b=ev.currentTarget, ab={}, p={}; b.disabled=true;
+      Object.keys(ins).forEach(function(k){ ab[k]=ins[k].value.trim(); }); Object.keys(mf).forEach(function(k){ p[k]=mf[k].value.trim(); });
+      var w=Number(String(kg.value).replace(',','.'));
+      var job=photo?shrink(photo,1200).then(function(blob){ var path=S.data.me.id+'/file/me-'+Date.now()+'.jpg'; return sb.storage.from('coaching').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; p.photo=path; }); }):Promise.resolve();
+      job.then(function(){ return rpc('my_file_save',{p:p}); }).then(function(){ return rpc('my_file_about',{p:ab,p_done:true}); })
+        .then(function(){ return w>20&&w<400?rpc('weight_add',{p:{kg:String(w)}}):null; })
+        .then(function(){ close(); toast('Thank you. Your coach can see it now.'); MYF=null; refresh(); }).catch(function(e){ toast(errText(e)); b.disabled=false; }); }},'Save')));
+}
 /* ---------- my file: my health details, my coaches' diary notes shared with me, my documents (member_file) ---------- */
 var MYF=null, MYF_BUSY=false;
 var DOCK={bloods:'Blood test',medical:'Medical letter or report',scan:'Scan or X-ray',programme:'Programme or plan',photo:'Photo',other:'Other'};
@@ -508,14 +561,16 @@ function loadFile(){ if(MYF_BUSY) return; MYF_BUSY=true; rpc('my_file').then(fun
     if(x.file&&x.file.photo&&!S.signed[x.file.photo]) list.push(x.file.photo);
     if(list.length) sb.storage.from('coaching').createSignedUrls(list,3600).then(function(r){ (r.data||[]).forEach(function(y){ if(y.signedUrl) S.signed[y.path]=y.signedUrl; }); render(); });
     render(); }).catch(function(e){ MYF_BUSY=false; MYF={err:errText(e)}; render(); }); }
-function fileDetailsSheet(){ var f=(MYF&&MYF.file)||{}, ins={};
+function fileDetailsSheet(){ var f=(MYF&&MYF.file)||{}, ins={}, ab={}, a=f.about||{};
+  function q(x){ ab[x[0]]=aboutInput(x,a[x[0]]); return h('div',null,h('label',{for:'ab-'+x[0]},x[1]),ab[x[0]]); }
   function fld(k,label,rows,ph){ ins[k]=rows?h('textarea',{id:'mf-'+k,rows:String(rows),placeholder:ph||''}):h('input',{id:'mf-'+k,placeholder:ph||''}); ins[k].value=f[k]||''; return h('div',null,h('label',{for:'mf-'+k},label),ins[k]); }
   var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,'My health and details'),h('button',{class:'btn link',onclick:function(){ close(); }},'Close')),
     h('p',{class:'sub'},'Only you, your coaches and the Pangea managers see this.'),
     fld('conditions','Illnesses and conditions',3),fld('medication','Medication and supplements',3),fld('allergies','Allergies',2),fld('injuries','Injuries and operations',3),
+    ABOUT.map(q),
     fld('goals','My goals',3),fld('emergency_name','Emergency contact name'),fld('emergency_phone','Emergency contact phone',0,'+44 7700 900123'),
-    h('button',{class:'btn full',style:'margin-top:12px',onclick:function(ev){ var bt=ev.currentTarget, p={}; Object.keys(ins).forEach(function(k){ p[k]=ins[k].value.trim(); }); bt.disabled=true;
-      rpc('my_file_save',{p:p}).then(function(){ close(); toast('Saved.'); loadFile(); }).catch(function(e){ bt.disabled=false; toast(errText(e)); }); }},'Save'))); }
+    h('button',{class:'btn full',style:'margin-top:12px',onclick:function(ev){ var bt=ev.currentTarget, p={}, pa={}; Object.keys(ins).forEach(function(k){ p[k]=ins[k].value.trim(); }); Object.keys(ab).forEach(function(k){ pa[k]=ab[k].value.trim(); }); bt.disabled=true;
+      rpc('my_file_save',{p:p}).then(function(){ return f.consent_at?rpc('my_file_about',{p:pa,p_done:false}):null; }).then(function(){ close(); toast('Saved.'); loadFile(); }).catch(function(e){ bt.disabled=false; toast(errText(e)); }); }},'Save'))); }
 function fileUpload(){ var inp=h('input',{type:'file',accept:'image/*,application/pdf,.doc,.docx'});
   inp.onchange=function(){ var f=inp.files[0]; if(!f) return; if(f.size>50e6) return toast('That file is over 50 MB.');
     var ext=(f.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'jpg', path=S.data.me.id+'/file/'+Date.now()+Math.random().toString(36).slice(2,6)+'.'+ext;
@@ -536,7 +591,7 @@ function fileCards(){
       h('span',null,'I agree that Pangea keeps my health details, notes and files privately, only to look after me professionally. My data stays mine: Pangea does not own it, and will never sell it, share it for marketing or use it to make money. Only I, my coaches, my doctors and the Pangea managers can see it, and I can take this back or ask for it all to be deleted at any time.')),
     agree);
   var details=h('div',{class:'card'},h('div',{class:'row between'},h('h2',null,'My file'),h('button',{class:'btn small',onclick:fileDetailsSheet},'Update')),
-    [['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]].map(function(r){
+    [['About me',aboutLine(f.about)],['Lifestyle',(function(x){ x=x||{}; return [x.activity,x.sleep?'sleeps '+x.sleep+' hours':'',x.smoke?'smoking: '+x.smoke:'',x.alcohol?'alcohol: '+x.alcohol:'',x.diet].filter(Boolean).join(', '); })(f.about)],['Family health',(f.about||{}).family],['Doctor',(f.about||{}).doctor],['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]].map(function(r){
       return h('div',{class:'list-row'},h('div',{class:'grow'},h('div',{class:'sub'},r[0]),h('div',{style:'white-space:pre-wrap'},r[1]||'Nothing noted'))); }));
   var diary=h('div',{class:'card'},h('h2',null,'Coach notes'),notes.length?notes.slice(0,40).map(function(n){
       return h('div',{class:'list-row',style:'display:block'},h('div',{class:'sub'},nice(n.day)+(n.by?' · '+n.by:'')),n.title?h('b',null,n.title):null,n.body?h('p',{style:'margin:4px 0;white-space:pre-wrap'},n.body):null,

@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=183"></script>
+<script src="changelog.js?v=184"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -941,6 +941,7 @@ var FEATURES=[
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
   {k:'health_private',g:'Training',n:'Private health records',d:'Health records (member files, health numbers, blood tests and injuries from the About you form) are seen only by the owner of the health records and the people they allow, for one member or for every member. Set who in Settings, General, Health records, and on the Info tab of each customer. Turned off, the member\'s coaches and the managers see them.',def:true,spa:true},
   {k:'file_views_member',g:'Training',n:'Members see who opened their file',d:'In their app, members see every time someone in your team opened their member file, with the name and when. Builds trust: their health details are never looked at quietly.'},
+  {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'meal_bills',g:'Selling',n:'Meal plans held until served, cafe meal bills',d:'Money paid for a meal plan comes in as Meal plans held for the business that sold it, not as cafe sales, so it can always be refunded. The kitchen or the cafe till ticks each meal as it is served, and sends a bill for the meals served, for example once a week. A manager marks the bill paid: only then does Accounts show it as cafe sales. Meal plans bought before this was switched on stay as they were.',def:false,spa:false},
@@ -1037,7 +1038,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=127; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=128; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -5372,12 +5373,14 @@ function mfPanel(d){
   var f=x.file||{}, photo=f.photo||x.intake_photo;
   function editHealth(){ openForm({title:'Health and details: '+d.customer.name,saveLabel:'Save',doneMsg:'Saved.',
       note:'Only this member, their coaches and the managers see this. The member can update it in their app too.',
-      values:{alerts:f.alerts||'',conditions:f.conditions||'',medication:f.medication||'',allergies:f.allergies||'',injuries:f.injuries||'',goals:f.goals||'',emergency_name:f.emergency_name||'',emergency_phone:f.emergency_phone||''},
+      values:Object.assign({},(function(){ var o={}, a=f.about||{}; MFA.forEach(function(q){ o['ab_'+q[0]]=a[q[0]]||''; }); return o; })(),{alerts:f.alerts||'',conditions:f.conditions||'',medication:f.medication||'',allergies:f.allergies||'',injuries:f.injuries||'',goals:f.goals||'',emergency_name:f.emergency_name||'',emergency_phone:f.emergency_phone||''}),
       fields:[{key:'alerts',label:'Alerts for every coach',type:'textarea',rows:2,hint:'Shown in red at the top, for example: bad left knee, diabetic, carry sugar. The member does not see this box.'},
         {key:'conditions',label:'Illnesses and conditions',type:'textarea',rows:3},{key:'medication',label:'Medication and supplements',type:'textarea',rows:3},
         {key:'allergies',label:'Allergies',type:'textarea',rows:2},{key:'injuries',label:'Injuries and operations',type:'textarea',rows:3},{key:'goals',label:'Goals',type:'textarea',rows:3},
-        {key:'emergency_name',label:'Emergency contact name'},{key:'emergency_phone',label:'Emergency contact phone',type:'tel',hint:'With the country code, for example +44 7700 900123.'}],
-      onSave:function(v){ return sb.rpc('member_file_save',{p_customer:cid,p:v}).then(must).then(function(){ return mfLoad(cid); }); }}); }
+        {key:'emergency_name',label:'Emergency contact name'},{key:'emergency_phone',label:'Emergency contact phone',type:'tel',hint:'With the country code, for example +44 7700 900123.'}]
+        .concat(MFA.map(function(q){ return {key:'ab_'+q[0],label:q[1],type:q[2]==='select'?'select':q[2],options:q[2]==='select'?[['','Not known']].concat(q[3].map(function(o){ return [o,o]; })):undefined,rows:q[2]==='textarea'?3:undefined}; })),
+      onSave:function(v){ var ab={}, p={}; Object.keys(v).forEach(function(k){ if(k.indexOf('ab_')===0) ab[k.slice(3)]=v[k]==null?'':String(v[k]); else p[k]=v[k]; });
+        return sb.rpc('member_file_save',{p_customer:cid,p:p}).then(must).then(function(){ return sb.rpc('member_file_about_save',{p_customer:cid,p:ab}).then(must); }).then(function(){ return mfLoad(cid); }); }}); }
   function setPhoto(){ mfUpload(cid,function(u){ sb.rpc('member_file_save',{p_customer:cid,p:{photo:u.path}}).then(must).then(function(){ mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'image/*'); }
   function editNote(n){ n=n||{}; var files=(n.files||[]).slice(), fl=h('div',{class:'row wrap'});
     function drawFiles(){ fl.replaceChildren.apply(fl,files.map(function(fx,i){ return h('span',{class:'chip'},fx.name,' ',h('button',{type:'button',class:'linkbtn','aria-label':'Remove '+fx.name,onclick:function(){ files.splice(i,1); drawFiles(); }},'x')); })); }
@@ -5398,7 +5401,7 @@ function mfPanel(d){
       btn('They agreed in person',function(){ sb.rpc('member_consent_set',{p_customer:cid,p_on:true}).then(must).then(function(){ toast('Consent recorded.'); mfLoad(cid); }).catch(function(e){ toast(errText(e)); }); },'small'));
   var head=h('div',{class:'panel pad mfhead'},h('div',{class:'mfphoto'},photo?cPhoto(photo,'mfimg'):h('div',{class:'mfimg mfnone'},String(d.customer.name||'?').charAt(0)),btn(photo?'Change photo':'Add a photo',setPhoto,'small')),
     h('div',{style:'flex:1;min-width:220px'},f.alerts?h('div',{class:'mfalert',role:'note'},h('b',null,'Alert: '),f.alerts):null,
-      h('div',{class:'mfgrid'},[['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]].map(function(r){ return h('div',null,h('small',null,r[0]),h('span',{class:'notr'},r[1]||'None noted')); })),
+      h('div',{class:'mfgrid'},mfAboutRows(f.about).concat([['Illnesses and conditions',f.conditions],['Medication',f.medication],['Allergies',f.allergies],['Injuries',f.injuries],['Goals',f.goals],['Emergency contact',[f.emergency_name,f.emergency_phone].filter(Boolean).join(', ')]]).map(function(r){ return h('div',null,h('small',null,r[0]),h('span',{class:'notr'},r[1]||'None noted')); })),
       h('div',{class:'row'},btn('Edit health and details',editHealth,'small')),f.updated_at&&f.updated_by?h('small',{class:'sub'},'Last changed '+fmtDate(String(f.updated_at).slice(0,10))+' by '+f.updated_by):null));
   var notes=x.notes||[], docs=x.docs||[];
   var diary=section('Diary',btn('New entry',function(){ editNote(); },'primary small'),notes.length?h('div',{class:'mfdiary'},notes.map(function(n){
@@ -9421,14 +9424,22 @@ function ciPanel(c){
       {label:'What',cell:function(e){ return h('span',{class:e.kind==='email'||e.kind==='notice'?'notr':null},e.what); }},
       {label:'Details',cell:function(e){ return e.detail?h('span',{class:'sub notr'},e.detail):''; }}],list,'Nothing yet.'))];
 }
+/* more about the member (member_file.about): the same questions the member answers in their app (feature health_intake asks them after signing up) */
+var MFA=[['birth','Date of birth','date'],['sex','Sex','select',['Female','Male','Other']],['height','Height (cm)','number'],['blood','Blood type','select',['A+','A-','B+','B-','AB+','AB-','O+','O-','Not sure']],
+  ['activity','How active','select',['Mostly sitting','Light, some walking','Active, exercise 2 to 3 times a week','Very active, exercise most days']],['sleep','Sleep most nights (hours)','number'],
+  ['smoke','Smoking or vaping','select',['Never','In the past','Sometimes','Every day']],['alcohol','Alcohol','select',['None','A few drinks a month','A few drinks a week','Most days']],
+  ['diet','How they eat','text'],['family','Family health history','textarea'],['doctor','Their doctor','text']];
+function mfAge(b){ if(!b) return ''; var d=parseYmd(b), n=new Date(), a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate())) a--; return a; }
+function mfAboutRows(a){ a=a||{}; return [['About',[a.birth?'Age '+mfAge(a.birth)+' (born '+fmtDate(a.birth)+')':'',a.sex,a.height?a.height+' cm':'',a.blood?'Blood type '+a.blood:''].filter(Boolean).join(', ')],
+  ['Lifestyle',[a.activity,a.sleep?'sleeps '+a.sleep+' hours':'',a.smoke?'smoking: '+a.smoke:'',a.alcohol?'alcohol: '+a.alcohol:'',a.diet].filter(Boolean).join(', ')],['Family health',a.family],['Doctor',a.doctor]]; }
 function ciHealth(c,d,acc){
   if(c.is_agency) return null;
   var keepers=(acc.keepers||[]).map(function(k){ return k.name; }).join(', ');
   if(!d.health_ok) return section('Health',null,h('div',{class:'panel pad'},h('b',null,'Health records are private.'),h('p',{class:'sub'},'Only '+(keepers||'the owner of the health records')+' can see them, or someone they allow.')));
   var x=d.health||{}, fl=x.file||{}, ik=x.intake||{}, rows=[];
-  [['Alerts',fl.alerts],['Illnesses and conditions',fl.conditions],['Medication',fl.medication],['Allergies',fl.allergies||ik.allergies],['Injuries and operations',fl.injuries],
+  [['Alerts',fl.alerts]].concat(mfAboutRows(fl.about)).concat([['Illnesses and conditions',fl.conditions],['Medication',fl.medication],['Allergies',fl.allergies||ik.allergies],['Injuries and operations',fl.injuries],
     ['Injury (About you form)',ik.injury==='yes'?[ik.injury_where,ik.injury_note].filter(Boolean).join('. ')||'Yes':ik.injury==='no'?'None':null],['Goals',fl.goals],
-    ['Emergency contact',[fl.emergency_name,fl.emergency_phone].filter(Boolean).join(', ')]].forEach(function(r){ if(r[1]) rows.push(h('div',null,h('small',null,r[0]),h('span',{class:'notr'},r[1]))); });
+    ['Emergency contact',[fl.emergency_name,fl.emergency_phone].filter(Boolean).join(', ')]]).forEach(function(r){ if(r[1]) rows.push(h('div',null,h('small',null,r[0]),h('span',{class:'notr'},r[1]))); });
   var marks=(x.marks||[]).filter(function(m){ return m.kind!=='bloods'; }).slice(0,12), bloods=(x.marks||[]).filter(function(m){ return m.kind==='bloods'; });
   function val(m){ return m.kind==='bp'?Math.round(m.value)+'/'+Math.round(m.value2):String(+Number(m.value).toFixed(2)); }
   var body=[rows.length?h('div',{class:'panel pad kv'},rows):h('div',{class:'panel empty'},'No health details yet.'),
