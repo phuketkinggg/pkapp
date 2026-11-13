@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=181"></script>
+<script src="changelog.js?v=182"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -922,6 +922,7 @@ var FEATURES=[
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
   {k:'classes_block_privates',g:'Training',n:'Group classes block privates',d:'No private can be booked during a group class. Off: only classes ticked "Blocks privates" block them.',spa:false},
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
+  {k:'audit_log',g:'Team',n:'Who did what',d:'Every new, changed or deleted stay, private, package sold, payment, room charge, customer, staff member, package and product is written down with who did it and when, and what changed (before and after). Managers see a History button on each stay, private and customer, and everything in Settings, Activity. Kept for a year.'},
   {k:'private_cancel',g:'Training',n:'Cancel or no show for privates',d:'A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.',spa:false},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
@@ -1041,7 +1042,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=125; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=126; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1217,7 +1218,7 @@ function openForm(spec){
     if(!armed){ armed=true; delBtn.textContent='Tap again to delete'; return; }
     delBtn.disabled=true; spec.onDelete().then(function(){ $dlg.close(); toast('Deleted.'); },function(e){ showErr(errText(e)); delBtn.disabled=false; });
   }},'Delete'):spec.extraBtn?h('button',{type:'button',class:'btn danger',onclick:spec.extraBtn[1]},spec.extraBtn[0]):h('span');
-  var form=h('form',{novalidate:true},h('h2',null,spec.title),spec.note?h('p',{class:'sub'},spec.note):null,rows,err,
+  var form=h('form',{novalidate:true},spec.history&&spec.history[1]&&histOk()?h('div',{class:'row between'},h('h2',null,spec.title),btn('History',function(){ histDlg(spec.history[0],spec.history[1],spec.title); },'small')):h('h2',null,spec.title),spec.note?h('p',{class:'sub'},spec.note):null,rows,err,
     h('div',{class:'factions'},delBtn,h('div',{class:'row'},btn(spec.cancelLabel||'Cancel',function(){ $dlg.close(); }),saveBtn)));
   form.addEventListener('submit',function(ev){
     ev.preventDefault(); var out={};
@@ -1358,7 +1359,7 @@ function staffFace(s,cls){ cls=cls||'staffface';
   return s.photo_url?h('img',{class:cls,src:s.photo_url,alt:'',loading:'lazy'}):null; }
 var LEADSRC=['Website','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
 function editCustomer(c){ c=c||{};
-  openForm({title:c.id?'Edit customer':'New customer',values:Object.assign({},c,{tags_txt:(c.tags||[]).join(', '),ok_txt:c.marketing_ok===false?'no':'yes',is_fighter:!!c.is_fighter,f_train:c.fighter_free?'free':'paid'}),fields:[
+  openForm({history:['customers',c.id],title:c.id?'Edit customer':'New customer',values:Object.assign({},c,{tags_txt:(c.tags||[]).join(', '),ok_txt:c.marketing_ok===false?'no':'yes',is_fighter:!!c.is_fighter,f_train:c.fighter_free?'free':'paid'}),fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Email',type:'email'},
     {key:'phone',label:'Phone'},
@@ -1662,7 +1663,7 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
   if(p.id){ var hx=S.privates.filter(function(x){ return x.lead_id===p.id; })[0]; if(hx&&hx.coach_share_thb!=null) team0.share=hx.coach_share_thb; }
   var peoplePick=pPeoplePicker(p.also_customers||[], cs.filter(function(c){ return !c.is_agency; }));
   function agencySource(cid){ var c=byId('customers',cid); if(!c||!c.is_agency) return null; return S.sources.filter(function(x){ return x.name.toLowerCase()===String(c.name).toLowerCase(); })[0]||null; }
-  openForm({title:approving?'Approve request from '+nameOf('customers',p.customer_id):p.id?'Edit private':'Book a private',note:approving?'Choose the coach and check the time. '+(p.preferred_coach_id?'They asked for '+nameOf('staff',p.preferred_coach_id)+'. '+(p.any_coach===false?'They want this coach only.':'Another coach is OK.'):'They have no preference.')+(p.alt_date?' Backup time: '+fmtDate(p.alt_date)+' '+String(p.alt_time||'').slice(0,5)+' (change the date and time below to use it).':'')+(p.coach_answer==='no'?' '+nameOf('staff',p.preferred_coach_id)+' said they cannot take it.':'')+(p.notes?' Their note: '+p.notes:''):null,saveLabel:approving?'Confirm':null,doneMsg:approving?'Private confirmed.':null,values:pv,fields:[
+  openForm({history:['privates',p.id],title:approving?'Approve request from '+nameOf('customers',p.customer_id):p.id?'Edit private':'Book a private',note:approving?'Choose the coach and check the time. '+(p.preferred_coach_id?'They asked for '+nameOf('staff',p.preferred_coach_id)+'. '+(p.any_coach===false?'They want this coach only.':'Another coach is OK.'):'They have no preference.')+(p.alt_date?' Backup time: '+fmtDate(p.alt_date)+' '+String(p.alt_time||'').slice(0,5)+' (change the date and time below to use it).':'')+(p.coach_answer==='no'?' '+nameOf('staff',p.preferred_coach_id)+' said they cannot take it.':'')+(p.notes?' Their note: '+p.notes:''):null,saveLabel:approving?'Confirm':null,doneMsg:approving?'Private confirmed.':null,values:pv,fields:[
     {key:'customer_id',label:'Customer',type:'select',options:cs.map(function(c){ return [c.id,c.is_agency?c.name+' guest (agency)':c.name]; }),def:(cs.filter(function(c){ return !c.is_agency; })[0]||cs[0]).id,
       hint:'For a one time agency booking, pick the agency and type the guest name below.',
       onChange:function(v,set,get,setOpts,show){ setOpts('purchase_id',packOpts(v,p)); set('purchase_id',firstPack(v)); var a=agencySource(v); if(a) set('source_id',a.id); reprice(set,get,show); }},
@@ -2627,7 +2628,7 @@ function editStay(st){
   var exF=!st.id&&featOn('stay_extras')?stayExFields():[];
   if(exF.length) Array.prototype.splice.apply(fields,[fields.length-1,0,{key:'sx_on',label:'Add extras: meal plan, transport, training and more',type:'checkbox',hint:'From Settings, Booking page extras, at the same prices. They go on the bill, not paid yet.',onChange:function(v,set,get,o,show){ exF.forEach(function(x){ show(x.key,!!v); }); }}].concat(exF));
   if(st.id) fields.push({key:'status',label:'Status',type:'select',options:[['booked','Booked'],['in','Checked in'],['out','Checked out'],['cancelled','Cancelled']]});
-  openForm({title:st.id?'Edit stay':'Add a stay',note:st.id&&st.created_at?'Booked '+bookedWhen(st)+(st.source_id?', via '+nameOf('sources',st.source_id):'')+'.':null,values:st,fields:fields,
+  openForm({history:['stays',st.id],title:st.id?'Edit stay':'Add a stay',note:st.id&&st.created_at?'Booked '+bookedWhen(st)+(st.source_id?', via '+nameOf('sources',st.source_id):'')+'.':null,values:st,fields:fields,
     onDelete:st.id&&me&&(me.role==='manager'||me.role==='admin')?function(){ return sb.rpc('stay_remove',{p_id:st.id}).then(must).then(function(){ setTimeout(function(){ toast('Stay deleted.'); },100); return Promise.all([reload('stays'),reload('purchases')]); }); }:null,
     onSave:function(v){
       if(v.check_out<=v.check_in) return 'The leaving date must be after the arrival date.';
@@ -10095,9 +10096,42 @@ function navEdit(){
 var SETT={tab:pref('pk_settab')||'home'};
 function setTabs(){ var mgr=me.role==='manager'; if(OWN===undefined) ownLoad(); var deep=!(OWN&&OWN.locked&&!OWN.me);
   return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],deep?['features','Features','Switch parts of the app on or off, languages']:null,
-    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr&&deep?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
+    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,histOk()?['activity','Activity','Who did what, and when']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr&&deep?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
     ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
     .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
+/* who did what (feature audit_log): the history of a stay, private or customer, and everything lately, for managers */
+function histOk(){ return featOn('audit_log')&&!!me&&(me.role==='manager'||me.role==='admin'); }
+var HIST_F={status:'Status',settled:'Bill settled',check_in:'Arrives',check_out:'Leaves',room_id:'Room',room_price_thb:'Room price',room_paid_thb:'Room paid',price_thb:'Price',paid:'Paid',
+  coach_id:'Coach',date:'Date',start_time:'Time',customer_id:'Customer',amount_thb:'Amount',method:'Paid by',voided:'Voided',note:'Note',notes:'Notes',name:'Name',email:'Email',phone:'Phone',
+  package_name:'Package',package_id:'Package',cancelled:'Cancelled',expires_on:'Expires',starts_on:'Starts',visit_limit:'Visits',description:'What',day:'Day',role:'Role',active:'Active',
+  cancel_reason:'Reason',cancel_kind:'Cancelled or no show',cancel_charged:'Still paid',source_id:'Booked through',purchase_id:'From pack',minutes:'Minutes',guests:'Guests',bill_periods:'Bill parts',tier:'Level',price_group:'Price group'};
+var HIST_T={stays:'Stay',privates:'Private',purchases:'Package sold',payments:'Payment',room_charges:'Room charge',customers:'Customer',staff:'Staff',packages:'Package',shop_products:'Product',shop_orders:'Shop sale'};
+function histVal(k,v){ if(v==null||v==='') return 'empty'; if(v===true) return 'yes'; if(v===false) return 'no';
+  if(/_id$/.test(k)&&typeof v==='string'){ var tb={room_id:'rooms',coach_id:'staff',customer_id:'customers',source_id:'sources',package_id:'packages'}[k]; var n=tb?nameOf(tb,v):''; return n||'(one record)'; }
+  if(/_thb$/.test(k)&&!isNaN(Number(v))) return thb(Number(v)); if(typeof v==='object') return Array.isArray(v)?v.length+' item'+(v.length===1?'':'s'):'(details)'; return String(v).slice(0,80); }
+function histLines(e){ var c=e.changes||{};
+  if(e.action==='add') return (HIST_T[e.tbl]||e.tbl)+' added'+(c.amount_thb!=null?', '+thb(c.amount_thb):c.price_thb!=null?', '+thb(c.price_thb):c.room_price_thb!=null?', room '+thb(c.room_price_thb):'')+(c.name?': '+c.name:c.package_name?': '+c.package_name:c.description?': '+c.description:'');
+  if(e.action==='delete') return (HIST_T[e.tbl]||e.tbl)+' deleted'+(c.name?': '+c.name:c.package_name?': '+c.package_name:'');
+  return Object.keys(c).map(function(k){ var p=c[k]||[]; return (HIST_F[k]||k.replace(/_/g,' '))+': '+histVal(k,p[0])+' → '+histVal(k,p[1]); }).join('. '); }
+function histDlg(tbl,id,title){ sb.rpc('audit_list',{p_tbl:tbl,p_row:id}).then(must).then(function(list){
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'History'),h('p',{class:'sub'},title+'. Who did what, newest first.'),
+    list.length?h('div',{class:'cartlines'},list.map(function(e){ return h('div',{class:'cartline',style:'display:block'},h('div',{class:'sub'},new Date(e.at).toLocaleString(LOC(),{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+', '+e.who),h('div',null,histLines(e))); }))
+      :h('p',{class:'sub'},'Nothing recorded yet. Changes are recorded from now on.'),
+    h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); },'primary')))); }).catch(function(e){ toast(errText(e)); }); }
+var AUD=null;
+function auditSection(){ var f=ui.audf||{days:7,tbl:'',who:''};
+  if(!AUD||AUD.key!==JSON.stringify(f)){ if(!ui.audBusy){ ui.audBusy=true; sb.rpc('audit_recent',{p_days:f.days,p_tbl:f.tbl||null,p_who:f.who||null}).then(function(r){ ui.audBusy=false; AUD={key:JSON.stringify(f),list:r.data||[],err:r.error?errText(r.error):null}; schedule(); },function(){ ui.audBusy=false; }); } }
+  var list=AUD&&AUD.key===JSON.stringify(f)?AUD.list:null, whos={}; (AUD&&AUD.list||[]).forEach(function(e){ whos[e.who]=1; });
+  function set(k,v){ ui.audf=Object.assign({},f); ui.audf[k]=v; schedule(); }
+  return section('Who did what',null,[h('div',{class:'row wrap'},
+      h('select',{'aria-label':'How far back',onchange:function(ev){ set('days',Number(ev.target.value)); }},[[1,'Today and yesterday'],[7,'Last 7 days'],[30,'Last 30 days'],[365,'Last year']].map(function(o){ return h('option',{value:o[0],selected:f.days===o[0]},o[1]); })),
+      h('select',{'aria-label':'What',onchange:function(ev){ set('tbl',ev.target.value); }},[['','Everything']].concat(Object.keys(HIST_T).map(function(k){ return [k,HIST_T[k]]; })).map(function(o){ return h('option',{value:o[0],selected:f.tbl===o[0]},o[1]); })),
+      h('select',{'aria-label':'Who',onchange:function(ev){ set('who',ev.target.value); }},[['','Everyone']].concat(Object.keys(whos).sort().map(function(w){ return [w,w]; })).map(function(o){ return h('option',{value:o[0],selected:f.who===o[0],class:'notr'},o[1]); }))),
+    !list?h('p',{class:'sub'},'Loading.'):!list.length?h('p',{class:'panel empty'},'Nothing in this time.'):
+    table([{label:'When',cell:function(e){ return new Date(e.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }},
+      {label:'Who',cell:function(e){ return h('span',{class:'notr'},e.who); }},
+      {label:'What',cell:function(e){ return HIST_T[e.tbl]||e.tbl; }},
+      {label:'Change',cell:function(e){ return histLines(e); }}],list,'')]); }
 function setGo(t){ SETT.tab=t; pref('pk_settab',t); schedule(); window.scrollTo(0,0); }
 function setHome(){ var tabs=setTabs(), l=clList(), on=FEATURES.filter(function(f){ return featOn(f.k); }).length;
   var langs=['English'].concat(featOn('lang_th')?['Thai']:[]).concat(featOn('lang_my')?['Myanmar']:[]);
@@ -10198,6 +10232,7 @@ function vSettings(){
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
+  else if(t==='activity') body=[histOk()?auditSection():null];
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
