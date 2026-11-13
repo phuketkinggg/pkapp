@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=190"></script>
+<script src="changelog.js?v=191"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -960,6 +960,7 @@ var FEATURES=[
   {k:'course_pace',g:'Training',n:'Members choose the course pace',d:'When a course has lessons that open on set days, the member chooses: one lesson at a time (recommended, on the days you set) or every lesson open now. They can change it any time. A lesson that opened stays open.'},
   {k:'gym_import',g:'Customers',n:'Moving from another system',d:'Settings, General: say what you use now, see how to export your members from it, and bring them over in one upload with their current packages, so they check in from day one. Upload again any time: nobody is doubled.'},
   {k:'alongside',g:'Customers',n:'Side by side with your old system',d:'For the first month: try the app next to your old system. Members are not contacted (no welcome emails) until you tap Make this our main system, which also gives you a ready message with your app link for your members.',def:false,spa:false},
+  {k:'ask_ai_all',g:'Team',n:'Ask AI can do anything',d:'Ask AI can do anything the person asking can do in the app: sell packages, add packages, classes, rooms and products, bring in a whole spreadsheet, change settings and more. It works with their own rights, and nothing changes until they tap Confirm. Codes, passwords and account deletion are never offered.'},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
@@ -1065,7 +1066,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=133; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=134; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9531,7 +9532,7 @@ function aiConfirm(it){
   aiCall({mode:'run',actions:it.prop.actions||[]}).then(function(d){ it.results=d.results||[]; it.state='done';
     var ok=it.results.filter(function(r){ return r.ok; }).length;
     aiNote('I confirmed "'+(it.prop.summary||'the changes')+'". Done: '+ok+' of '+it.results.length+'. '+it.results.filter(function(r){ return !r.ok; }).map(function(r){ return r.label+': '+r.error; }).join('; '));
-    toast(ok===it.results.length?'Done.':'Done '+ok+' of '+it.results.length+'. See the lines marked not done.'); reload('purchases').catch(function(){}); reload('privates').catch(function(){}); reload('customers').catch(function(){}); SHOP=null; STOCK=null;
+    toast(ok===it.results.length?'Done.':'Done '+ok+' of '+it.results.length+'. See the lines marked not done.'); loadAll().catch(function(){}); SHOP=null; STOCK=null;
   }).catch(function(e){ it.state='open'; toast(errText(e)); }).then(function(){ schedule(); });
 }
 function aiPick(){ var inp=h('input',{type:'file',multiple:true,accept:'.pdf,.xlsx,.xls,.csv,.txt,image/*',style:'display:none'});
@@ -9540,7 +9541,7 @@ function aiPick(){ var inp=h('input',{type:'file',multiple:true,accept:'.pdf,.xl
     var r=new FileReader(); r.onload=function(){ AI.files.push({name:f.name,type:f.type,data:String(r.result).split(',')[1]||''}); schedule(); }; r.readAsDataURL(f); }); });
   document.body.appendChild(inp); inp.click(); setTimeout(function(){ inp.remove(); },60000); }
 function vAskAi(){
-  var box=h('textarea',{id:'ai-q',rows:'3',oninput:function(e){ AI.draft=e.target.value; },placeholder:'Ask anything, or attach a PDF, photo or spreadsheet. For example: add this delivery note to the shop stock.','aria-label':'Message'});
+  var box=h('textarea',{id:'ai-q',rows:'3',oninput:function(e){ AI.draft=e.target.value; },placeholder:'Ask anything, or ask it to do anything you can do in the app. Attach a PDF, photo or spreadsheet, for example a price list: make these packages.','aria-label':'Message'});
   box.value=AI.draft||'';
   box.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey&&!('ontouchstart' in window)){ e.preventDefault(); aiSend(box.value); } });
   var log=AI.items.map(function(it){

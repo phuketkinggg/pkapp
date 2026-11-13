@@ -24390,5 +24390,17 @@
 "your system": [
 "ระบบของคุณ",
 "သင့်စနစ်"
+],
+"Ask AI can do anything": [
+"Ask AI ทำได้ทุกอย่าง",
+"Ask AI အားလုံး လုပ်နိုင်"
+],
+"Ask AI can do anything the person asking can do in the app: sell packages, add packages, classes, rooms and products, bring in a whole spreadsheet, change settings and more. It works with their own rights, and nothing changes until they tap Confirm. Codes, passwords and account deletion are never offered.": [
+"Ask AI ทำได้ทุกอย่างที่ผู้ถามทำได้ในแอป: ขายแพ็กเกจ เพิ่มแพ็กเกจ คลาส ห้อง และสินค้า นำเข้าสเปรดชีตทั้งไฟล์ เปลี่ยนการตั้งค่า และอื่น ๆ ทำงานด้วยสิทธิ์ของผู้ถามเอง และไม่มีอะไรเปลี่ยนจนกว่าจะกดยืนยัน ไม่มีการจัดการรหัส รหัสผ่าน หรือการลบบัญชี",
+"Ask AI သည် မေးသူ အက်ပ်တွင် လုပ်နိုင်သည့်အရာအားလုံး လုပ်နိုင်သည်: ပက်ကေ့ချ်ရောင်း၊ ပက်ကေ့ချ်၊ အတန်း၊ အခန်း၊ ပစ္စည်း ထည့်၊ စာရင်းဇယားတစ်ခုလုံး သွင်း၊ ဆက်တင်ပြောင်း စသည်။ မေးသူ၏ ကိုယ်ပိုင်အခွင့်ဖြင့် လုပ်ပြီး Confirm မနှိပ်မချင်း ဘာမှမပြောင်းပါ။ ကုဒ်၊ စကားဝှက်နှင့် အကောင့်ဖျက်ခြင်း မပါပါ။"
+],
+"Ask anything, or ask it to do anything you can do in the app. Attach a PDF, photo or spreadsheet, for example a price list: make these packages.": [
+"ถามอะไรก็ได้ หรือให้ทำอะไรก็ได้ที่คุณทำได้ในแอป แนบ PDF รูป หรือสเปรดชีต เช่น รายการราคา: สร้างแพ็กเกจเหล่านี้",
+"ဘာမဆို မေးပါ၊ သို့မဟုတ် အက်ပ်တွင် သင်လုပ်နိုင်သည့်အရာ လုပ်ခိုင်းပါ။ PDF၊ ဓာတ်ပုံ သို့မဟုတ် စာရင်းဇယား ပူးတွဲပါ၊ ဥပမာ ဈေးနှုန်းစာရင်း: ဤပက်ကေ့ချ်များ ပြုလုပ်ပါ။"
 ]
 }
