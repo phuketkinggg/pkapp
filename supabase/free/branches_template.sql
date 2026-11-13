@@ -18,7 +18,7 @@ $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (403003, 4, 'patch', 'branches:403003', $TPL$create or replace function __Q__.branch_can(p_customer uuid) returns boolean language sql stable security definer set search_path to '' as $f$
   select __Q__.branch_ok((select c.home_branch from __P__.customers c where c.id = p_customer))
 $f$;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1197003, 11, 'patch', 'branches:1197003', $TPL$grant usage on schema private to authenticated;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1197003, 11, 'patch', 'branches:1197003', $TPL$grant usage on schema __Q__ to authenticated;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1197004, 11, 'patch', 'branches:1197004', $TPL$grant execute on function __Q__.my_branches(), __Q__.branch_ok(uuid), __Q__.branch_can(uuid) to authenticated;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (403004, 4, 'patch', 'branches:403004', $TPL$create or replace function __P__.branches_list() returns jsonb language sql stable security definer set search_path to '' as $f$
   select coalesce(jsonb_agg(jsonb_build_object('id', l.id, 'name', l.name) order by l.sort, l.name), '[]'::jsonb)
