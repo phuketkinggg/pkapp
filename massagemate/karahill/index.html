@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=184"></script>
+<script src="changelog.js?v=185"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1012,6 +1012,13 @@ var FEATURES=[
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
+/* when a tablet sleeps, its sign in can run out before it refreshes. A request sent then was refused (401) and showed
+   "You are not allowed to do that". Now the sign in is refreshed and the request sent once more. */
+function sbFetch(url,opts){ return fetch(url,opts).then(function(r){
+  if(r.status!==401||!/\/(rest|functions|storage)\/v1\//.test(String(url))||typeof sb==='undefined'||!sb||!sb.auth||(opts&&opts.__again)) return r;
+  return sb.auth.refreshSession().then(function(x){ var t=x&&x.data&&x.data.session&&x.data.session.access_token; if(!t) return r;
+    var o=Object.assign({},opts||{}), hd=new Headers(o.headers||{}); hd.set('Authorization','Bearer '+t); o.headers=hd; o.__again=1; return fetch(url,o); }).catch(function(){ return r; }); }); }
+document.addEventListener('visibilitychange',function(){ try{ if(typeof sb==='undefined'||!sb||!sb.auth) return; if(document.visibilityState==='visible'){ sb.auth.startAutoRefresh(); sb.auth.getSession(); } else sb.auth.stopAutoRefresh(); }catch(e){} });
 function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(platLocked(k)) return platCfg().lock[k]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
 /* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
 var LANGED={q:'',th:null,my:null,fix:null};
@@ -12338,7 +12345,7 @@ if(!window.supabase||!window.supabase.createClient){
   })();
   /* the shared Muay Friend free app (window.MF_MULTI): each gym is its own section of the database, chosen by ?g= */
   if(window.MF_MULTI&&!window.MF_GYM){ mfPicker(); return; }
-  sb=window.supabase.createClient(SB_URL,SB_KEY,Object.assign({auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}},window.MF_GYM?{db:{schema:'g_'+window.MF_GYM}}:{}));
+  sb=window.supabase.createClient(SB_URL,SB_KEY,Object.assign({auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},global:{fetch:sbFetch}},window.MF_GYM?{db:{schema:'g_'+window.MF_GYM}}:{}));
   uiApply().catch(function(){});
   loadTheme().catch(function(){});
   loadFeatures().catch(function(){}); loadPlatform().catch(function(){}); loadStore();

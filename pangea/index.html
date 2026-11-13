@@ -104,7 +104,14 @@ nav.tabs svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1
 <script>
 'use strict';
 var SB_URL='https://tqqfhahchjwihwknyiwo.supabase.co', SB_KEY='sb_publishable_ei0gMLn3YmXoOO-3O6t_Og_qECOjLb1'; /* Pangea's own database (Pangea Global): see docs/PANGEA_DATABASE.md */
-var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+/* when a tablet sleeps, its sign in can run out before it refreshes. A request sent then was refused (401) and showed
+   "You are not allowed to do that". Now the sign in is refreshed and the request sent once more. */
+function sbFetch(url,opts){ return fetch(url,opts).then(function(r){
+  if(r.status!==401||!/\/(rest|functions|storage)\/v1\//.test(String(url))||typeof sb==='undefined'||!sb||!sb.auth||(opts&&opts.__again)) return r;
+  return sb.auth.refreshSession().then(function(x){ var t=x&&x.data&&x.data.session&&x.data.session.access_token; if(!t) return r;
+    var o=Object.assign({},opts||{}), hd=new Headers(o.headers||{}); hd.set('Authorization','Bearer '+t); o.headers=hd; o.__again=1; return fetch(url,o); }).catch(function(){ return r; }); }); }
+document.addEventListener('visibilitychange',function(){ try{ if(typeof sb==='undefined'||!sb||!sb.auth) return; if(document.visibilityState==='visible'){ sb.auth.startAutoRefresh(); sb.auth.getSession(); } else sb.auth.stopAutoRefresh(); }catch(e){} });
+var sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},global:{fetch:sbFetch}});
 var $app=document.getElementById('app');
 var S={tab:(location.hash||'#today').slice(1),data:null,session:null,chat:null,signed:{}};
 if(['today','health','journey','coach','me'].indexOf(S.tab)<0) S.tab='today';
