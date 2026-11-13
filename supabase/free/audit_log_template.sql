@@ -73,13 +73,6 @@ begin
 end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1196602, 11, 'patch', 'audit_log:1196602', $TPL$revoke all on function __P__.audit_list(text, uuid), __P__.audit_recent(integer, text, text) from public, anon;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1196603, 11, 'patch', 'audit_log:1196603', $TPL$grant execute on function __P__.audit_list(text, uuid), __P__.audit_recent(integer, text, text) to authenticated;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (1001203, 10, 'patch', 'audit_log:1001203', $TPL$do $p$ begin
-  if exists (select 1 from pg_extension where extname = 'pg_cron') then
-    perform cron.unschedule(jobid) from cron.job where jobname = 'audit-trim';
-    perform cron.schedule('audit-trim', '40 3 * * *', 'delete from __Q__.audit_log where at < now() - interval ''365 days''');
-  end if;
-exception when others then raise notice 'audit-trim not scheduled: %', sqlerrm;
-end $p$;$TPL$);
 do $$ declare g record; r record; begin
   for g in select * from mf.gyms where status = 'ready' loop
     for r in select sql from mf.template where name like 'audit_log:%' order by ord loop
