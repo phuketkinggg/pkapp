@@ -75,3 +75,14 @@ documents, Pangea levels, habits, programs, food diary, measurements). Steps:
   address under Redirect URLs (Tom sets this in the dashboard).
 - 12 Nov 2026: the consent tick box with the full terms in the Pangea app; the record keeps the terms version
   (health_consent_terms.sql); the Pangea privacy page says the data stays theirs and is never sold.
+- 13 Nov 2026: Tom signed in to the Pangea back office (owner, linked). Setup guide off for Pangea.
+  Stage 3: what the plan asked for mostly exists in the shared app already: private health records (feature health_private:
+  only the health keepers and staff they allow, per member, see health; that is the doctor model: add the doctor as staff and
+  allow them for their patients) and the log of every look at a member file (member_file_views). New: members see who opened
+  their file (feature file_views_member, every app; Pangea app, My file). Regions: left until a second Pangea location opens
+  (one region now; add pangea_regions and staff regions then). Staff two step sign in (Supabase MFA): still to do.
+  Stage 4: there were no Pangea members to move (0 customers with level Pangea, 1 test file), so the Pangea member app
+  (pangea/index.html) now points at the Pangea database. It uses only database functions and storage, no edge functions.
+  Supabase Pangea project, Authentication, Redirect URLs also need https://app.phuketking.com/pangea/ and
+  https://app.pangeaglobalwellness.com/ (member sign up and password links).
+
