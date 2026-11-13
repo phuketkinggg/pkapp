@@ -42,10 +42,10 @@ insert into mf.template (ord, phase, kind, name, sql) values (901201, 9, 'patch'
 insert into mf.template (ord, phase, kind, name, sql) values (901202, 9, 'patch', 'branches:901202', $TPL$create trigger customer_branch_default before insert on __P__.customers for each row execute function __Q__.customer_branch_default();$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1001602, 10, 'patch', 'branches:1001602', $TPL$drop policy if exists customers_branch on __P__.customers;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1001603, 10, 'patch', 'branches:1001603', $TPL$create policy customers_branch on __P__.customers as restrictive for select to authenticated
-  using (user_id = (select auth.uid()) or home_branch is null or (select __Q__.my_branches()) is null or home_branch = any ((select __Q__.my_branches())));$TPL$);
+  using (user_id = (select auth.uid()) or home_branch is null or (select __Q__.my_branches()) is null or home_branch = any ((select __Q__.my_branches())::uuid[]));$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1001604, 10, 'patch', 'branches:1001604', $TPL$drop policy if exists customers_branch_update on __P__.customers;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1001605, 10, 'patch', 'branches:1001605', $TPL$create policy customers_branch_update on __P__.customers as restrictive for update to authenticated
-  using (user_id = (select auth.uid()) or home_branch is null or (select __Q__.my_branches()) is null or home_branch = any ((select __Q__.my_branches())));$TPL$);
+  using (user_id = (select auth.uid()) or home_branch is null or (select __Q__.my_branches()) is null or home_branch = any ((select __Q__.my_branches())::uuid[]));$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1001606, 10, 'patch', 'branches:1001606', $TPL$drop policy if exists staff_branch on __P__.staff;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1001607, 10, 'patch', 'branches:1001607', $TPL$create policy staff_branch on __P__.staff as restrictive for select to authenticated
   using (user_id = (select auth.uid()) or coalesce(cardinality(branches), 0) = 0 or (select __Q__.my_branches()) is null or branches && (select __Q__.my_branches()));$TPL$);

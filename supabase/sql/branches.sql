@@ -55,10 +55,10 @@ create trigger customer_branch_default before insert on public.customers for eac
 -- the rules: only rows of my branches (customers: plus my own row; staff: plus staff of every branch, and me)
 drop policy if exists customers_branch on public.customers;
 create policy customers_branch on public.customers as restrictive for select to authenticated
-  using (user_id = (select auth.uid()) or home_branch is null or (select private.my_branches()) is null or home_branch = any ((select private.my_branches())));
+  using (user_id = (select auth.uid()) or home_branch is null or (select private.my_branches()) is null or home_branch = any ((select private.my_branches())::uuid[]));
 drop policy if exists customers_branch_update on public.customers;
 create policy customers_branch_update on public.customers as restrictive for update to authenticated
-  using (user_id = (select auth.uid()) or home_branch is null or (select private.my_branches()) is null or home_branch = any ((select private.my_branches())));
+  using (user_id = (select auth.uid()) or home_branch is null or (select private.my_branches()) is null or home_branch = any ((select private.my_branches())::uuid[]));
 drop policy if exists staff_branch on public.staff;
 create policy staff_branch on public.staff as restrictive for select to authenticated
   using (user_id = (select auth.uid()) or coalesce(cardinality(branches), 0) = 0 or (select private.my_branches()) is null or branches && (select private.my_branches()));
