@@ -23946,5 +23946,105 @@
 "Stays, privates, customers and the rest of the back office update by themselves every 2 minutes, so new bookings from the website, booking sites and agency emails, and changes other staff make, show without reloading. Never while a form is open or someone is typing.": [
 "ที่พัก คลาสส่วนตัว ลูกค้า และส่วนอื่นของระบบหลังบ้านจะอัปเดตเองทุก 2 นาที การจองใหม่จากเว็บไซต์ เว็บจอง และอีเมลเอเจนซี รวมถึงการเปลี่ยนแปลงของพนักงานคนอื่นจะแสดงโดยไม่ต้องโหลดใหม่ ไม่อัปเดตขณะเปิดฟอร์มหรือกำลังพิมพ์",
 "တည်းခိုမှု၊ သီးသန့်သင်တန်း၊ ဖောက်သည်နှင့် နောက်ကွယ်ရုံးအားလုံး 2 မိနစ်တိုင်း အလိုအလျောက် အပ်ဒိတ်ဖြစ်သည်။ ဝက်ဘ်ဆိုက်၊ ဘွတ်ကင်ဆိုက်နှင့် အေဂျင်စီအီးမေးလ်မှ ဘွတ်ကင်အသစ်များနှင့် အခြားဝန်ထမ်းများ၏ ပြောင်းလဲမှုများကို ပြန်မဖွင့်ဘဲ ပြမည်။ ဖောင်ဖွင့်ထားစဉ် သို့မဟုတ် စာရိုက်နေစဉ် မပြုလုပ်ပါ။"
+],
+"A few short paragraphs. An empty line starts a new paragraph.": [
+"ไม่กี่ย่อหน้าสั้น ๆ เว้นบรรทัดว่างเพื่อขึ้นย่อหน้าใหม่",
+"စာပိုဒ်တိုအနည်းငယ်။ စာကြောင်းလွတ်တစ်ကြောင်းက စာပိုဒ်အသစ် စတင်သည်။"
+],
+"Add a centre": [
+"เพิ่มศูนย์",
+"စင်တာ ထည့်ရန်"
+],
+"Booking link": [
+"ลิงก์จอง",
+"ဘွတ်ကင်လင့်ခ်"
+],
+"Centres and their websites": [
+"ศูนย์และเว็บไซต์ของแต่ละศูนย์",
+"စင်တာများနှင့် ၎င်းတို့၏ ဝက်ဘ်ဆိုက်များ"
+],
+"Everything here shows on the centre's own page on your website. Leave a box empty and that part is not shown.": [
+"ทุกอย่างตรงนี้จะแสดงในหน้าของศูนย์บนเว็บไซต์ของคุณ เว้นช่องว่างไว้ ส่วนนั้นจะไม่แสดง",
+"ဤနေရာရှိ အရာအားလုံး သင့်ဝက်ဘ်ဆိုက်ရှိ စင်တာ၏ စာမျက်နှာတွင် ပြမည်။ အကွက်ကို ဗလာထားလျှင် ထိုအပိုင်း မပြပါ။"
+],
+"For example Kathu, Phuket, Thailand.": [
+"เช่น กะทู้ ภูเก็ต ประเทศไทย",
+"ဥပမာ Kathu, Phuket, Thailand။"
+],
+"For example Muay Thai and fitness.": [
+"เช่น มวยไทยและฟิตเนส",
+"ဥပမာ မွေထိုင်းနှင့် ကြံ့ခိုင်ရေး။"
+],
+"For example Pangea Chiang Mai.": [
+"เช่น Pangea Chiang Mai",
+"ဥပမာ Pangea Chiang Mai။"
+],
+"Headline on its page": [
+"หัวข้อบนหน้าของศูนย์",
+"၎င်း၏ စာမျက်နှာ ခေါင်းစဉ်"
+],
+"Known for": [
+"โดดเด่นด้าน",
+"ထင်ရှားသည်"
+],
+"Live prices, class times and team from": [
+"ราคา ตารางคลาส และทีมแบบสดจาก",
+"တိုက်ရိုက် ဈေးနှုန်း၊ အတန်းချိန်နှင့် အဖွဲ့ ရယူရန်"
+],
+"Main photo": [
+"รูปหลัก",
+"အဓိက ဓာတ်ပုံ"
+],
+"One line, for example: Train, recover and reset by the lake.": [
+"หนึ่งบรรทัด เช่น ฝึก ฟื้นฟู และรีเซ็ตริมทะเลสาบ",
+"တစ်ကြောင်း၊ ဥပမာ: ရေကန်နား လေ့ကျင့်၊ ပြန်လည်ထူထောင်။"
+],
+"One per line, a title then a colon and a short text. For example: Lakeside resort: 11 bungalows on the water.": [
+"บรรทัดละหนึ่งรายการ ชื่อ ตามด้วยเครื่องหมายโคลอนและข้อความสั้น เช่น รีสอร์ทริมทะเลสาบ: บังกะโล 11 หลังริมน้ำ",
+"တစ်ကြောင်းလျှင် တစ်ခု၊ ခေါင်းစဉ် ပြီးနောက် ကော်လံနှင့် စာတို။ ဥပမာ: ရေကန်နား ရီဆော့: ရေပေါ် ဘန်ဂလို 11 လုံး။"
+],
+"Open or planned": [
+"เปิดแล้วหรือวางแผนไว้",
+"ဖွင့်ပြီး သို့မဟုတ် စီစဉ်ထား"
+],
+"Order on the main page": [
+"ลำดับบนหน้าหลัก",
+"ပင်မစာမျက်နှာ အစီအစဉ်"
+],
+"Planned": [
+"วางแผนไว้",
+"စီစဉ်ထား"
+],
+"Short text on the main page": [
+"ข้อความสั้นบนหน้าหลัก",
+"ပင်မစာမျက်နှာရှိ စာတို"
+],
+"Show on the website": [
+"แสดงบนเว็บไซต์",
+"ဝက်ဘ်ဆိုက်တွင် ပြရန်"
+],
+"The end of the address, for example chiangmai for /chiangmai. Small letters, no spaces.": [
+"ท้ายที่อยู่เว็บ เช่น chiangmai สำหรับ /chiangmai ตัวพิมพ์เล็ก ไม่มีเว้นวรรค",
+"လိပ်စာ၏ အဆုံး၊ ဥပမာ /chiangmai အတွက် chiangmai။ စာလုံးအသေး၊ နေရာလွတ်မပါ။"
+],
+"The public website data address of the business that runs this centre. Its page then shows their prices, timetable and coaches, always up to date. Read only. Empty for none.": [
+"ที่อยู่ข้อมูลเว็บไซต์สาธารณะของธุรกิจที่ดูแลศูนย์นี้ หน้านั้นจะแสดงราคา ตารางคลาส และโค้ชที่อัปเดตเสมอ อ่านอย่างเดียว เว้นว่างถ้าไม่มี",
+"ဤစင်တာကို လုပ်ကိုင်သော လုပ်ငန်း၏ အများသုံး ဝက်ဘ်ဆိုက်ဒေတာ လိပ်စာ။ ထို့နောက် ၎င်း၏ ဈေးနှုန်း၊ အချိန်ဇယားနှင့် နည်းပြများကို အမြဲနောက်ဆုံးအခြေအနေဖြင့် ပြမည်။ ဖတ်ရုံသာ။ မရှိလျှင် ဗလာထားပါ။"
+],
+"The story of this centre": [
+"เรื่องราวของศูนย์นี้",
+"ဤစင်တာ၏ ဇာတ်လမ်း"
+],
+"What is there": [
+"มีอะไรบ้าง",
+"ဘာတွေရှိသလဲ"
+],
+"Where the Book button goes. Empty: no Book button.": [
+"ปุ่มจองจะไปที่ไหน เว้นว่าง: ไม่มีปุ่มจอง",
+"Book ခလုတ် သွားမည့်နေရာ။ ဗလာ: Book ခလုတ် မရှိ။"
+],
+"With the country code, for example +66 96 907 6150.": [
+"พร้อมรหัสประเทศ เช่น +66 96 907 6150",
+"နိုင်ငံကုဒ်ဖြင့်၊ ဥပမာ +66 96 907 6150။"
 ]
 }

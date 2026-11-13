@@ -12,6 +12,12 @@ export default {
       h.delete('set-cookie');
       return new Response(res.body, { status: res.status, headers: h });
     }
-    return env.ASSETS.fetch(req);
+    const res = await env.ASSETS.fetch(req);
+    // a centre's own page (/phuket, /chiangmai): any single word address that is not a file is built from the back office by centre.html
+    if (res.status === 404 && /^\/[a-z0-9-]{2,40}\/?$/i.test(url.pathname)) {
+      const page = await env.ASSETS.fetch(new Request(new URL('/centre', url), req));
+      if (page.ok) return new Response(page.body, { status: 200, headers: page.headers });
+    }
+    return res;
   },
 };

@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=186"></script>
+<script src="changelog.js?v=187"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1010,6 +1010,7 @@ var FEATURES=[
   {k:'stay_extras',g:'Rooms',n:'Extras when booking a stay at the desk',d:'When the team adds a stay, or on any stay, they can add the booking page extras (meal plans, transport, training, recovery and more) at the same prices. They go on the bill as not paid yet, and meal plans start the guest\'s food plan.',spa:false},
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
+  {k:'centre_sites',g:'Website',n:'Centres and their websites',d:'For a business with several centres: each centre gets its own page on your website at its own address (for example /phuket), listed on the main page. Name, photo, story, what is there, booking, contact and map come from Settings, Website. A centre can show live prices, class times and coaches from the business that runs it. Planned centres collect emails from people who want to hear when they open.',def:false,spa:false},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
@@ -1047,7 +1048,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=129; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=130; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10062,6 +10063,58 @@ function aiUsageSection(){ loadAiUsage();
     by.length?h('p',{class:'sub'},by.map(function(k){ return (names[k]||k)+': '+u.by_fn[k]; }).join(', ')):null,
     h('p',{class:'sub'},'Last month: '+(Number(u.last_month)||0)+'. The count starts again on the 1st of each month.')));
 }
+/* centres and their websites (feature centre_sites): each centre has its own page on the main website at /<web address>,
+   filled from here. Planned centres collect "tell me when it opens" emails. */
+var CENTRES=null, CENTRES_BUSY=false;
+function centresLoad(){ if(CENTRES_BUSY) return; CENTRES_BUSY=true; sb.rpc('centres_admin').then(must).then(function(d){ CENTRES=d||[]; CENTRES_BUSY=false; schedule(); }).catch(function(e){ CENTRES_BUSY=false; CENTRES={err:errText(e)}; schedule(); }); }
+function centreEdit(c){ c=c||{}; var photo=c.hero_url||'';
+  var hl=(c.highlights||[]).map(function(x){ return x.title+(x.text?': '+x.text:''); }).join('\n');
+  openForm({title:c.id?c.name:'Add a centre',saveLabel:'Save',doneMsg:'Saved. The website shows it within a minute.',
+    note:'Everything here shows on the centre\'s own page on your website. Leave a box empty and that part is not shown.',
+    values:{name:c.name||'',slug:c.slug||'',place:c.place||'',focus:c.focus||'',status:c.status||'soon',published:c.id?c.published!==false:true,sort:c.sort!=null?c.sort:100,
+      tagline:c.tagline||'',blurb:c.blurb||'',about:c.about||'',hero_url:photo,highlights:hl,book_url:c.book_url||'',whatsapp:c.whatsapp||'',email:c.email||'',address:c.address||'',map_url:c.map_url||'',data_url:c.data_url||''},
+    fields:[{key:'name',label:'Name',required:true,hint:'For example Spa Chiang Mai.'},
+      {key:'slug',label:'Web address',required:true,hint:'The end of the address, for example chiangmai for /chiangmai. Small letters, no spaces.'},
+      {key:'status',label:'Open or planned',type:'select',options:[['open','Open now'],['soon','Planned']]},
+      {key:'published',label:'Show on the website',type:'checkbox'},
+      {key:'place',label:'Where',hint:'For example Patong, Phuket, Thailand.'},
+      {key:'focus',label:'Known for',hint:'For example Muay Thai and fitness.'},
+      {key:'tagline',label:'Headline on its page',hint:'One line, for example: Train, recover and reset by the lake.'},
+      {key:'blurb',label:'Short text on the main page',type:'textarea',rows:2},
+      {key:'about',label:'The story of this centre',type:'textarea',rows:6,hint:'A few short paragraphs. An empty line starts a new paragraph.'},
+      {key:'hero_url',label:'Main photo',type:'info'},
+      {key:'highlights',label:'What is there',type:'textarea',rows:6,hint:'One per line, a title then a colon and a short text. For example: Lakeside resort: 11 bungalows on the water.'},
+      {key:'book_url',label:'Booking link',hint:'Where the Book button goes. Empty: no Book button.'},
+      {key:'whatsapp',label:'WhatsApp',type:'tel',hint:'With the country code, for example +66 96 907 6150.'},
+      {key:'email',label:'Email',type:'email'},
+      {key:'address',label:'Address'},
+      {key:'map_url',label:'Google Maps link'},
+      {key:'data_url',label:'Live prices, class times and team from',hint:'The public website data address of the business that runs this centre. Its page then shows their prices, timetable and coaches, always up to date. Read only. Empty for none.'},
+      {key:'sort',label:'Order on the main page',type:'number',hint:'Smaller numbers show first.'}],
+    onDelete:c.id?function(){ return sb.rpc('centre_remove',{p_id:c.id}).then(must).then(function(r){ if(r&&!r.removed) setTimeout(function(){ toast(r.note); },100); centresLoad(); }); }:null,
+    onSave:function(v){ var h2=String(v.highlights||'').split('\n').map(function(l){ l=l.trim(); if(!l) return null; var i=l.indexOf(':'); return i>0?{title:l.slice(0,i).trim(),text:l.slice(i+1).trim()}:{title:l,text:''}; }).filter(Boolean);
+      return sb.rpc('centre_save',{p:Object.assign({},v,{id:c.id||null,hero_url:photo,highlights:h2})}).then(must).then(function(){ CENTRES=null; centresLoad(); }); }});
+  var info=document.querySelector('dialog .forminfo'); if(!info) return;
+  var prev=h('div');
+  function draw(){ prev.replaceChildren(photo?h('img',{src:photo,alt:'',style:'max-width:220px;border-radius:10px;display:block;margin:6px 0'}):h('p',{class:'sub'},'No photo yet.')); }
+  draw();
+  info.replaceChildren(prev,h('div',{class:'row'},btn(photo?'Change photo':'Add a photo',function(){ var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return; toast('Uploading.');
+      shrinkPhoto(f,2000).then(function(blob){ var path='centres/'+Date.now()+'.jpg'; return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; return sb.storage.from('promos').getPublicUrl(path).data.publicUrl; }); })
+        .then(function(u){ photo=u; draw(); toast('Photo added. Tap Save.'); }).catch(function(e){ toast(errText(e)); }); }}); document.body.appendChild(inp); inp.click(); },'small'),
+    photo?btn('Remove photo',function(){ photo=''; draw(); },'small'):null)); }
+function centreInterest(c){ sb.rpc('centre_interest',{p_id:c.id}).then(must).then(function(l){
+    openForm({title:'Asked to hear when '+c.name+' opens',saveLabel:'Close',doneMsg:' ',fields:[{key:'x',label:'',type:'info'}],onSave:function(){ return true; }});
+    var info=document.querySelector('dialog .forminfo'); if(info) info.replaceChildren(l.length?table([{label:'Name',cell:function(x){ return h('span',{class:'notr'},x.name||''); }},{label:'Email',cell:function(x){ return h('span',{class:'notr'},x.email); }},{label:'Note',cell:function(x){ return h('span',{class:'notr'},x.note||''); }},{label:'When',cell:function(x){ return fmtDate(String(x.at).slice(0,10)); }}],l):h('p',{class:'sub'},'Nobody yet.')); })
+  .catch(function(e){ toast(errText(e)); }); }
+function centresSection(){ if(CENTRES===null) centresLoad();
+  var l=Array.isArray(CENTRES)?CENTRES:[];
+  return section('Centres and their websites',btn('Add a centre',function(){ centreEdit(); },'primary small'),h('div',null,
+    h('p',{class:'sub'},'Each centre has its own page on your main website, at your address followed by its web address, and is listed on the main page. Planned centres collect emails from people who want to hear when they open.'),
+    CENTRES&&CENTRES.err?h('div',{class:'panel pad'},CENTRES.err):!CENTRES?h('div',{class:'panel empty'},'Loading.'):!l.length?h('div',{class:'panel empty'},'No centres yet.'):
+    cards(l.map(function(c){ return {when:c.slug?'/'+c.slug:'No web address',right:c.published===false?chip('Hidden','warn'):c.status==='open'?chip('Open','ok'):chip('Planned'),
+      title:c.name,note:[c.place,c.focus,c.members?c.members+' member'+(c.members>1?'s':'')+' with their service here':null,c.interest?c.interest+' waiting for it to open':null].filter(Boolean).join('. '),
+      act:[btn('Edit',function(){ centreEdit(c); },'small'),c.interest?btn('Who is waiting',function(){ centreInterest(c); },'small'):null]}; }),'')));
+}
 function payWaysSection(){
   var off=(PX&&PX.pay_off)||[];
   return section('Ways to pay',btn('Change',function(){
@@ -10367,7 +10420,7 @@ function vSettings(){
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
-  else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
+  else if(t==='website') body=[mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},

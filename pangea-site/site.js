@@ -1,6 +1,8 @@
 // Pangea website: menu, and live class times and prices from the Phuket King system (Supabase).
 (function () {
-  var FN = 'https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/site';
+  // a centre page sets its own live data address (data-src); the Pangea Phuket page uses the Phuket King system
+  var SRC = document.body.getAttribute('data-src');
+  var FN = SRC != null ? SRC : 'https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/site';
   var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function thb(n) { return Number(n).toLocaleString('en-US') + ' THB'; }
@@ -13,9 +15,23 @@
   }
   var y = document.getElementById('year'); if (y) y.textContent = new Date().getFullYear();
 
+  // the main page: centres come live from the Pangea back office (Settings, Website, Centres and their websites)
+  var cl = document.querySelector('.centres[data-live]');
+  if (cl) fetch('https://tqqfhahchjwihwknyiwo.supabase.co/rest/v1/rpc/pangea_site', { method: 'POST', headers: { apikey: 'sb_publishable_ei0gMLn3YmXoOO-3O6t_Og_qECOjLb1', 'Content-Type': 'application/json' }, body: '{}' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
+      var l = (d.centres || []).filter(function (c) { return c.slug; }); if (!l.length) return;
+      var big = l.filter(function (c) { return c.status === 'open'; })[0];
+      cl.innerHTML = l.map(function (c) {
+        var href = '/' + encodeURIComponent(c.slug), hero = /^https:\/\/[^\s"<>]+$/.test(c.hero || '') ? c.hero : '';
+        if (c === big) return '<a class="centre open" href="' + href + '" aria-label="' + esc(c.name) + ', open now">' + (hero ? '<img src="' + esc(hero) + '" alt="' + esc(c.name) + '" loading="lazy">' : '') +
+          '<div class="in"><p class="when">Open now' + (c.place ? ', ' + esc(c.place) : '') + '</p><h3>' + esc(c.name) + '</h3>' + (c.blurb ? '<p>' + esc(c.blurb) + '</p>' : '') + '<span class="btn light" style="margin-top:10px">Visit ' + esc(c.name) + '</span></div></a>';
+        return '<a class="centre soon" style="text-decoration:none;color:inherit" href="' + href + '"><div class="in"><p class="when">' + (c.status === 'open' ? 'Open now' : 'Planned') + (c.place ? ', ' + esc(c.place) : '') + '</p><h3>' + esc(c.name) + '</h3>' + (c.focus || c.blurb ? '<p>' + esc(c.focus || c.blurb) + '</p>' : '') + '</div></a>';
+      }).join('');
+    }).catch(function () {});
+
   var tt = document.getElementById('timetable'), pr = document.getElementById('prices');
   var co = document.querySelector('.coaches');
-  if (!tt && !pr && !co) return;
+  if ((!tt && !pr && !co) || !FN) return;
   fetch(FN).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (d) {
     // coaches from the app (Staff): their 360 video plays in place of the photo while on screen
     if (co && d.team && d.team.length) {
@@ -45,7 +61,10 @@
       Array.prototype.forEach.call(bar.children, function (b, i) { b.addEventListener('click', function () { draw(i); }); });
       draw(cur);
     }
-    if (pr) {
+    if (pr && pr.getAttribute('data-all')) {
+      var all = (d.packages || []).filter(function (p) { return p.price > 0; }).slice(0, 8);
+      pr.innerHTML = all.length ? all.map(function (p) { return '<div class="price"><small>' + esc(p.name) + '</small><b>' + thb(p.price) + '</b></div>'; }).join('') + (d.private_price ? '<div class="price"><small>Private session with a coach</small><b>' + thb(d.private_price) + '</b></div>' : '') : '<div class="price"><small>Ask us for prices.</small><b></b></div>';
+    } else if (pr) {
       var want = [['Training Only, 1 Session', 'One group class'], ['Training Only, 1 Week', 'Unlimited group classes for a week'], ['Training Only, 1 Month', 'Unlimited group classes for a month'], ['Spa Access, Full spa 1 time', 'Herbal sauna, dry sauna, ice bath']];
       var pk = d.packages || [], out = [];
       want.forEach(function (w) { var p = pk.find(function (x) { return x.name === w[0]; }); if (p) out.push('<div class="price"><small>' + esc(w[1]) + '</small><b>' + thb(p.price) + '</b></div>'); });
