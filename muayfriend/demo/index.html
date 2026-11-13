@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=182"></script>
+<script src="changelog.js?v=183"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -967,6 +967,7 @@ var FEATURES=[
   {k:'partners',g:'Marketing',n:'Partner programme',d:'A Partners page on your website where people apply to send you customers, at levels you set (for example Affiliate, Creator and Ambassador, each with its own share and perks). Applications come into Affiliates, where you approve them at a level.'},
   {k:'affiliates',g:'Marketing',n:'Affiliates',d:'People who send you customers get their own links to any page, package or course on your website, and earn a share of what is booked or bought through them.',tabs:['affiliates']},
   {k:'receipt_send',g:'Selling',n:'Send receipts',d:'A Receipt button on packages, privates and till sales: send the customer a receipt by email, WhatsApp, LINE or text, show a QR to scan, or copy the link. The receipt page can be saved as a PDF.'},
+  {k:'delivery_apps',g:'Selling',n:'Delivery app orders',d:'Grab, LINE MAN, foodpanda or any delivery app. Each app gets a button at the till: add the items, type the app\'s order number and total, and it goes to the kitchen. Accounts books the sale and the app\'s commission. Upload the app\'s statement in Accounts to match every order, book the real commission and see any order that was missed. Set the apps in Settings, Money.',def:false,spa:false},
   {k:'desk_code',g:'Selling',n:'Front desk code',d:'A 6 digit code a manager sets in Settings, Money. On the check in screen the front desk types it to confirm what you allow: mark cash or PromptPay as paid so the person can check in, let someone check in now and pay later, and leave desk mode. After 5 wrong codes it locks for 15 minutes, and every use is listed for the manager.'},
   {k:'pay_prompt',g:'Selling',n:'Please pay now at check in',d:'When someone checks in and owes money for a package or private, the check in screen says Please pay now with the amount and a card or QR button, and staff see them under Needs action now.'},
   {k:'card_fee_lock',g:'Selling',n:'Card fee always charged',d:'When someone pays by card, the card fee is always added on and the front desk cannot take it off or lower it. Only a manager can let a customer off the card fee. Off: anyone at the desk can untick it.'},
@@ -1037,7 +1038,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=126; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=127; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -5928,7 +5929,7 @@ var ACC={data:null,busy:false,from:null,to:null,tab:'overview',biz:'all',rc:null
 var BIZ_MAIN='Muay Fight Gym', BIZ_STAY='Camp Rooms', DEPT_CAFE='Fight Cafe';
 var BIZ=[BIZ_MAIN,BIZ_STAY];
 var ACC_DEPTS={'Muay Fight Gym':['Gym training','Privates','Spa','Visa and DTV','Gym shop','Gym','Office','Marketing','Maintenance','Other'],'Camp Rooms':['Rooms','Fight Cafe','Camp Rooms','Housekeeping','Maintenance','Office','Marketing','Other']};
-var ACC_OUT=['Staff wages','Coach commission','Rent','Electricity','Water','Internet and phone','Food and drink stock','Cafe and drinks supplies','Shop stock','Spa supplies','Cleaning and laundry','Repairs and maintenance','Equipment','Marketing and ads','Software and subscriptions','Bank and card fees','Visa and government fees','Transport and fuel','Office and admin','Professional fees','Tax','Insurance','Owner drawings','Other'];
+var ACC_OUT=['Staff wages','Coach commission','Rent','Electricity','Water','Internet and phone','Food and drink stock','Cafe and drinks supplies','Shop stock','Spa supplies','Cleaning and laundry','Repairs and maintenance','Equipment','Marketing and ads','Software and subscriptions','Bank and card fees','Delivery app fees','Visa and government fees','Transport and fuel','Office and admin','Professional fees','Tax','Insurance','Owner drawings','Other'];
 var ACC_IN=['Booking site payout','Agent payment','Event or fight income','Sponsorship','Refund received','Other income','Sales before the app'];
 var ACC_MOVE=['Staff meals','Staff room','Shared bill','Loan','Repayment','Other'];
 /* businesses and departments: the owner adds them (Accounts, Businesses and departments) */
@@ -5989,7 +5990,7 @@ function accBizEdit(b){
       if(!name) return Promise.reject({plain:true,message:'Give the business a name.'});
       return sb.rpc('acc_business_save',{p:{old:b||null,name:name,depts:deps}}).then(must).then(function(){ ACC.data=null; if(ACC.biz===b) ACC.biz=name; return loadAccStruct(); }).then(function(){ setTimeout(accStructDlg,60); }); }});
 }
-var ACC_M={cash:'Cash',transfer:'Transfer',qr:'Scan (PromptPay)',scan:'Scan (PromptPay)',card:'Card',stripe:'Card (online)',agent:'Agent',room:'Room bill'};
+var ACC_M={cash:'Cash',transfer:'Transfer',qr:'Scan (PromptPay)',scan:'Scan (PromptPay)',card:'Card',stripe:'Card (online)',agent:'Agent',room:'Room bill',delivery:'Delivery app'};
 function accM(m){ return ACC_M[m]||m||'Other'; }
 function accRange(k){ var t=ymd(new Date()), y=t.slice(0,4), m=Number(t.slice(5,7));
   if(k==='today') return [t,t];
@@ -6021,10 +6022,10 @@ function vAccounts(){
   var period=h('div',{class:'panel pad accbar'},h('div',{class:'row'},h('label',{for:'acc-from'},'From'),from,h('label',{for:'acc-to'},'to'),to),
     h('div',{class:'row'},[['today','Today'],['yesterday','Yesterday'],['week','This week'],['month','This month'],['last','Last month'],['quarter','This quarter'],['year','This year']].map(function(x){ return btn(x[1],function(){ var r=accRange(x[0]); setR(r[0],r[1]); },'small'); })),
     h('div',{class:'ctabs small'},[['all',bizAllLabel()]].concat(BIZ.map(function(b){ return [b,b]; })).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.biz===x[0]?' on':''),onclick:function(){ ACC.biz=x[0]; schedule(); }},x[1]); })));
-  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].concat(featOn('meal_bills')?[['meals','Meal plans']]:[]).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
+  var tabs=h('div',{class:'ctabs'},[['overview','Overview'],['in','Money in'],['out','Money out'+(d.unsorted?' ('+d.unsorted+' to sort)':'')],['bills','Monthly bills'],['receipts','Sort receipts'],['invoices','Invoices']].concat(featOn('meal_bills')?[['meals','Meal plans']]:[]).concat(featOn('delivery_apps')?[['delivery','Delivery apps']]:[]).map(function(x){ return h('button',{type:'button',class:'ctab'+(ACC.tab===x[0]?' on':''),onclick:function(){ ACC.tab=x[0]; schedule(); }},x[1]); }));
   var head=pageHead('Accounts','Money in comes from the app by itself. Money out comes from receipts, bills you add, monthly bills and coach shares.',
     h('div',{class:'row'},btn('Add money in or out',function(){ accEntry(); },'primary'),btn('Businesses and departments',accStructDlg),btn('Google Sheet',accSheetDlg),btn('Download for the accountant',function(){ accCsv(all); })));
-  var body=ACC.tab==='meals'?[mealBillsBox(),mealPlansBox()]:ACC.tab==='invoices'?vInvoices():ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
+  var body=ACC.tab==='delivery'&&featOn('delivery_apps')?accDelivery():ACC.tab==='meals'?[mealBillsBox(),mealPlansBox()]:ACC.tab==='invoices'?vInvoices():ACC.tab==='in'?accIn(lines):ACC.tab==='out'?accOut(lines,d):ACC.tab==='bills'?accBills(d):ACC.tab==='receipts'?accReceipts():accOverview(lines,all,d);
   return [head,period,tabs,body];
 }
 function accOverview(lines,all,d){
@@ -7084,7 +7085,7 @@ function vHours(){
 /* ---------- shop: till, kitchen screen and food ordering in the member app (replaces Loyverse) ---------- */
 var SHOP=null, SALES=null, APPROVALS=[], KITCHEN=null, MYORDERS=null, KINFO=null, TOPP=null;
 var PAYS=[['cash','Cash'],['qr','PromptPay QR'],['card','Card machine'],['transfer','Bank transfer'],['room','Charge to room'],['bill','Bill to customer'],['staff','Staff tab'],['stripe','Stripe card link']];
-function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)'})[m]||(m||''); }
+function payName(m){ var x=PAYS.filter(function(p){ return p[0]===m; })[0]; return x?x[1]:({agent:'Agent',before_app:'Paid before the app',stripe:'Stripe (card online)',delivery:'Delivery app'})[m]||(m||''); }
 function isBoss(){ return me&&((me.role==='manager'&&can('refunds'))||me.role==='resort'); }
 /* access: the owner has everything; an admin has the rights ticked; departments limit admins and front desk */
 function can(p){ return !!me&&(!me.admin||((me.access&&me.access.perms)||[]).indexOf(p)>=0); }
@@ -7372,6 +7373,121 @@ function payDlg(method,waitingOrder){
   shopDlg(h('div',{class:'billbox'},h('h2',null,payName(method)),totEl,extra,err,
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn(method==='room'?'Charge to room':method==='staff'?'Put on their tab':method==='bill'?'Put on their bill':'Payment received',go,'primary')))));
   if(given) setTimeout(function(){ given.focus(); },30);
+}
+/* delivery apps (feature delivery_apps): Grab, LINE MAN, foodpanda or any app. Settings, Money, Delivery apps: the name, its
+   commission and how much higher your prices are on it. At the till: add the items, tap the app, type its order number and total.
+   The kitchen gets it, stock goes down, Accounts books the sale and the commission (Delivery app fees). Accounts, Delivery apps:
+   upload the app's statement, every order is matched and the real commission and payout replace the estimate. */
+function dApps(){ return featOn('delivery_apps')&&PX&&Array.isArray(PX.delivery_apps)?PX.delivery_apps:[]; }
+function deliveryDlg(a){
+  if(!cart().length){ toast('Add the items first.'); return; }
+  if(cart().some(function(l){ return l.pkg; })){ toast('Packages cannot be sold through a delivery app.'); return; }
+  var sub=cartSub(), up=Number(a.markup)||0, pct=Number(a.pct)||0;
+  var ref=h('input',{id:'dl-ref',type:'text',autocomplete:'off',class:'notr'}), tot=h('input',{id:'dl-tot',type:'number',inputmode:'numeric',min:'1'});
+  tot.value=String(Math.round(sub*(1+up/100)));
+  var feeP=h('p',{class:'sub'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
+  function upd(){ var t=Math.round(Number(tot.value)||0), f=Math.round(t*pct/100); feeP.textContent=a.name+' keeps about '+thb(f)+' ('+pct+'%), you get about '+thb(t-f)+'. The real numbers come from their statement.'; }
+  tot.oninput=upd; upd();
+  function go(){ var b=this; err.hidden=true;
+    if(!ref.value.trim()){ err.textContent='Type the order number from the '+a.name+' order.'; err.hidden=false; return; }
+    if(!(Number(tot.value)>0)){ err.textContent='Type the order total that '+a.name+' shows.'; err.hidden=false; return; }
+    if(b) b.disabled=true;
+    sb.rpc('shop_delivery_sell',{p:{app:a.name,ref:ref.value.trim(),total:Math.round(Number(tot.value)),location_id:shopLoc(),items:cartItems()}}).then(must).then(function(r){
+      clearCart(); $dlg.close(); toast(a.name+' order, sale #'+r.number+', sent to the kitchen.'); shopRefresh(); loadShop(); })
+      .catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; }); }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,a.name+' order'),h('p',{class:'paytotal'},'Items '+thb(sub)),
+    field('dl-ref',a.name+' order number',ref,'As it shows on the '+a.name+' tablet, for example GF-123.'),
+    field('dl-tot','Order total on '+a.name+' (THB)',tot,(up?'Your prices plus '+up+'%. ':'')+'Change it to what '+a.name+' shows.'),feeP,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Send to the kitchen',go,'primary')))));
+  setTimeout(function(){ ref.focus(); },30);
+}
+function deliveryAppsSection(){
+  var l=PX&&Array.isArray(PX.delivery_apps)?PX.delivery_apps:[];
+  function save(list){ var val=JSON.stringify(Object.assign({},PX||{},{delivery_apps:list}));
+    return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','pay_extras').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'pay_extras',value:val}).then(must); }).then(function(){ PX=JSON.parse(val); schedule(); }); }
+  function edit(a,i){ openForm({title:a?a.name:'Add a delivery app',values:a?{name:a.name,pct:a.pct,markup:a.markup||0}:{pct:30,markup:0},fields:[
+      {key:'name',label:'Name',required:true,hint:'For example Grab, LINE MAN or foodpanda.'},
+      {key:'pct',label:'Their commission (%)',type:'number',required:true,hint:'What the app keeps from each order, for example 30. When you upload their statement, the real amount replaces it.'},
+      {key:'markup',label:'Your prices on the app are higher by (%)',type:'number',hint:'Fills in the order total at the till. Put 0 if the prices are the same.'}],
+    onDelete:a?function(){ var n=l.slice(); n.splice(i,1); return save(n); }:null,
+    onSave:function(v){ var nm=String(v.name||'').trim(), p=Number(v.pct), mk=Number(v.markup)||0;
+      if(!nm) return 'Type the name.'; if(!(p>=0&&p<=100)) return 'The commission is 0 to 100.'; if(!(mk>=0&&mk<=200)) return 'Check the price difference.';
+      if(l.some(function(x,j){ return j!==i&&String(x.name).toLowerCase()===nm.toLowerCase(); })) return nm+' is already there.';
+      var n=l.slice(), x={name:nm,pct:p,markup:mk}; if(a) n[i]=x; else n.push(x); return save(n); }}); }
+  return section('Delivery apps',btn('Add',function(){ edit(null,-1); },'small'),h('div',{class:'panel pad'},
+    l.length?h('div',{class:'row wrap'},l.map(function(a,i){ return btn(a.name+', '+a.pct+'%'+(a.markup?', prices +'+a.markup+'%':''),function(){ edit(a,i); },'small'); })):h('p',null,'None yet. Add Grab or another delivery app.'),
+    h('p',{class:'sub'},'Each app gets a button at the till. Staff add the items, tap the app, type its order number and total, and it goes to the kitchen. Accounts books the sale and the commission. Upload the app\'s statement in Accounts, Delivery apps to check every order.')));
+}
+/* the statement: a CSV from the app's merchant portal. Columns are guessed from the headings and can be changed. */
+function csvRows(t){ t=String(t||'').replace(/^﻿/,''); var first=t.split(/\r?\n/).slice(0,8).join('\n');
+  var dl=[',',';','\t'].sort(function(a,b){ return first.split(b).length-first.split(a).length; })[0];
+  var rows=[],row=[],f='',q=false;
+  for(var i=0;i<t.length;i++){ var c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=c; }
+    else if(c==='"') q=true; else if(c===dl){ row.push(f); f=''; } else if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; } else if(c!=='\r') f+=c; }
+  if(f||row.length){ row.push(f); rows.push(row); }
+  return rows.map(function(r){ return r.map(function(x){ return x.trim(); }); }).filter(function(r){ return r.some(function(x){ return x; }); }); }
+function dNum(s){ s=String(s==null?'':s); var neg=/^\(.*\)$/.test(s.trim()); s=s.replace(/[^0-9.\-]/g,''); if(!s||s==='-'||s==='.') return null; var n=Number(s); return isFinite(n)?(neg?-n:n):null; }
+function dDay(s){ s=String(s||'').trim(); if(!s) return null;
+  function fix(y,mo,d){ y=Number(y); if(y>2400) y-=543; mo=Number(mo); d=Number(d); if(mo>12&&d<=12){ var t=mo; mo=d; d=t; } if(!(mo>=1&&mo<=12&&d>=1&&d<=31&&y>2000)) return null; return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+  var m=s.match(/(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/); if(m) return fix(m[1],m[2],m[3]);
+  m=s.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/); if(m) return fix(m[3].length===2?'20'+m[3]:m[3],m[2],m[1]);
+  var d=new Date(s); return isNaN(d)?null:ymd(d); }
+var DCOLS=[['ref','Order number',/short order|order id|order no|order number|order code|booking id|booking code|^id$/i],['day','Date',/date|created|time/i],
+  ['fee','Commission',/commission|deduction|fee/i],['net','Payout',/payout|settlement|earning|you receive|net amount|net payable|transfer/i],['gross','Order total',/gross|order value|order amount|order total|total sales|sales|subtotal|amount|total|price/i]];
+function dStatement(a){
+  var inp=h('input',{type:'file',accept:'.csv,text/csv,text/plain',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+    if(/\.xlsx?$/i.test(f.name)){ toast('Open the Excel file and save it as CSV, then upload that.'); return; }
+    f.text().then(function(t){ var rows=csvRows(t); if(rows.length<2){ toast('No orders found in the file.'); return; }
+      var hi=0; for(var i=0;i<Math.min(rows.length,20);i++){ if(rows[i].filter(function(x){ return x; }).length>=3&&rows[i].some(function(x){ return /order|booking|date/i.test(x); })){ hi=i; break; } }
+      dMap(a,rows[hi],rows.slice(hi+1)); }).catch(function(e){ toast(errText(e)); }); }});
+  document.body.appendChild(inp); inp.click(); }
+function dMap(a,head,body){
+  var key='pk_dmap_'+String(a.name).toLowerCase(), saved=null; try{ saved=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ saved=null; }
+  var pick={}, taken={};
+  DCOLS.forEach(function(c){ var s=saved&&saved[c[0]]; if(s&&head.indexOf(s)>=0){ pick[c[0]]=head.indexOf(s); taken[pick[c[0]]]=1; } });
+  DCOLS.forEach(function(c){ if(pick[c[0]]!=null) return; for(var i=0;i<head.length;i++){ if(!taken[i]&&c[2].test(head[i])){ pick[c[0]]=i; taken[i]=1; return; } } });
+  var sels={}, err=h('p',{class:'ferr',role:'alert',hidden:true});
+  var flds=DCOLS.map(function(c){ var s=h('select',{id:'dm-'+c[0]},[h('option',{value:''},'Not in the file')].concat(head.map(function(x,i){ return h('option',{value:String(i)},(x||'Column '+(i+1))+(body[0]&&body[0][i]?' (for example '+body[0][i].slice(0,30)+')':'')); })));
+    if(pick[c[0]]!=null) s.value=String(pick[c[0]]); sels[c[0]]=s; return field('dm-'+c[0],c[1],s); });
+  function go(){ var b=this, col={}; DCOLS.forEach(function(c){ col[c[0]]=sels[c[0]].value===''?null:Number(sels[c[0]].value); });
+    if(col.ref==null&&(col.day==null||col.gross==null)){ err.textContent='Choose the order number column, or the date and the order total.'; err.hidden=false; return; }
+    if(col.fee==null&&col.net==null&&col.gross==null){ err.textContent='Choose at least the commission, the payout or the order total.'; err.hidden=false; return; }
+    try{ var sv={}; DCOLS.forEach(function(c){ if(col[c[0]]!=null) sv[c[0]]=head[col[c[0]]]; }); localStorage.setItem(key,JSON.stringify(sv)); }catch(e){}
+    function v(r,k){ return col[k]==null?null:r[col[k]]; }
+    var rows=body.map(function(r){ return {ref:v(r,'ref')||null,day:dDay(v(r,'day')),gross:dNum(v(r,'gross')),fee:dNum(v(r,'fee')),net:dNum(v(r,'net'))}; })
+      .filter(function(r){ return (r.ref&&!/total/i.test(r.ref))||(r.day&&r.gross!=null); });
+    if(!rows.length){ err.textContent='No orders found with these columns.'; err.hidden=false; return; }
+    if(b) b.disabled=true;
+    sb.rpc('shop_delivery_match',{p_app:a.name,p_rows:rows,p_save:false}).then(must).then(function(d){ $dlg.close(); ACC.dres={a:a,rows:rows,r:d}; schedule(); })
+      .catch(function(e){ if(b) b.disabled=false; err.textContent=errText(e); err.hidden=false; }); }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,a.name+' statement'),h('p',{class:'sub'},body.length+' lines. Check which column is which. The app remembers it for next time.'),flds,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Match to the till',go,'primary'))))); }
+function accDelivery(){
+  var apps=PX&&Array.isArray(PX.delivery_apps)?PX.delivery_apps:[], x=ACC.dres;
+  if(!apps.length) return h('div',{class:'panel pad'},h('p',null,'Add your delivery apps first, in Settings, Money, Delivery apps.'));
+  var out=[section('Upload a statement',null,h('div',{class:'panel pad'},
+    h('p',null,'Download your sales statement from the app\'s merchant portal as a CSV file (if it comes as Excel, open it and save it as CSV), then upload it here. Each order is matched to the till. Nothing changes until you tap Save.'),
+    h('div',{class:'row wrap'},apps.map(function(a){ return btn('Upload '+a.name+' statement',function(){ dStatement(a); },'primary'); }))))];
+  if(!x) return out;
+  var r=x.r, m=r.matched||[], nt=r.not_on_till||[], ns=r.not_on_statement||[];
+  var diff=m.filter(function(o){ return o.gross!=null&&Number(o.gross)!==Number(o.till_total); });
+  var fee=m.reduce(function(t,o){ return t+(Number(o.fee!=null?o.fee:o.fee_before)||0); },0), net=m.reduce(function(t,o){ return t+(Number(o.net)||0); },0);
+  function money(k){ return function(o){ return o[k]!=null?thb(o[k]):''; }; }
+  function day(o){ return o.day?fmtDate(o.day):''; }
+  out.push(section(r.app+' statement'+(r.from?', '+fmtDate(r.from)+(r.to&&r.to!==r.from?' to '+fmtDate(r.to):''):''),
+    r.saved?chip('Saved','ok'):btn('Save',function(){ var b=this; b.disabled=true; sb.rpc('shop_delivery_match',{p_app:x.a.name,p_rows:x.rows,p_save:true}).then(must).then(function(d){ ACC.dres={a:x.a,rows:x.rows,r:d}; toast('Saved. Accounts now has the real commission.'); accReload(); }).catch(function(e){ b.disabled=false; toast(errText(e)); }); },'primary small'),
+    h('div',{class:'panel pad'},h('p',null,h('b',null,m.length+' matched'),', commission '+thb(fee)+(net?', payout '+thb(net):'')+'.'),
+      diff.length?h('p',null,chip(diff.length+' with a different total','warn'),' Saving uses the total on the statement.'):null,
+      nt.length?h('p',null,chip(nt.length+' not on the till','bad')):null, ns.length?h('p',null,chip(ns.length+' not on the statement','warn')):null,
+      r.saved?null:h('p',{class:'sub'},'Check the lists, then tap Save. Saving puts the real commission and payout on each matched order.'))));
+  if(nt.length) out.push(section('On the statement, not on the till ('+nt.length+')',null,h('div',null,h('p',{class:'sub'},'Staff may have forgotten to put these through. Add them on the till, or add the money with Add money in or out.'),
+    table([{label:'Order',cell:function(o){ return h('span',{class:'notr'},o.ref||'Line '+o.line); }},{label:'Day',cell:day},{label:'Total',num:true,cell:money('gross')},{label:'Commission',num:true,cell:money('fee')},{label:'Payout',num:true,cell:money('net')}],nt))));
+  if(ns.length) out.push(section('On the till, not on the statement ('+ns.length+')',null,h('div',null,h('p',{class:'sub'},'Check the order number, or whether the order was cancelled on the app. If it was, refund it on the till.'),
+    table([{label:'Sale',cell:function(o){ return '#'+o.number; }},{label:'Order',cell:function(o){ return h('span',{class:'notr'},o.ref||''); }},{label:'Day',cell:day},{label:'Total',num:true,cell:money('total')}],ns))));
+  if(m.length) out.push(section('Matched ('+m.length+')',null,table([{label:'Sale',cell:function(o){ return '#'+o.number; }},{label:'Order',cell:function(o){ return h('span',{class:'notr'},o.ref||''); }},{label:'Day',cell:day},
+    {label:'Till total',num:true,cell:money('till_total')},{label:'Statement total',num:true,cell:money('gross')},{label:'Commission',num:true,cell:function(o){ return o.fee!=null?thb(o.fee):thb(o.fee_before||0)+' (rate)'; }},{label:'Payout',num:true,cell:money('net')}],m)));
+  return out;
 }
 function receiptNode(o){
   var vat=SHOP&&SHOP.vat&&SHOP.vat.on?SHOP.vat:null;
@@ -7850,7 +7966,8 @@ function vShop(){
     h('div',{class:'row wrap'},btn(disc?'Change discount':'Discount',discountDlg,'small'),btn('Other item',miscDlg,'small')),
     shift&&featOn('shop_tabs')?h('div',{class:'row wrap tabact'},tt?btn('Add to '+tt.name,function(){ tabSend({id:tt.id,name:tt.name},this); },'primary'):btn('Put on a tab',function(){ tabPick(tabs); })):null,
     shift?(tt?null:h('div',{class:'paybtns'},payList(PAYS).map(function(m){ return btn(m[1],function(){ payDlg(m[0]); },m[0]==='cash'?'primary':''); })))
-      :h('div',{class:'panel pad'},h('p',null,'Open a shift before you sell. Count the change in the till first.'),btn('Open shift',shiftDlg,'primary')));
+      :h('div',{class:'panel pad'},h('p',null,'Open a shift before you sell. Count the change in the till first.'),btn('Open shift',shiftDlg,'primary')),
+    shift&&!tt&&dApps().length?h('div',{class:'row wrap dapps'},h('span',{class:'sub'},'Delivery app order:'),dApps().map(function(a){ return btn(a.name,function(){ deliveryDlg(a); }); })):null);
   var today=SALES?SALES.orders.filter(function(o){ return !o.location_id||o.location_id===loc; }):[];
   return [pageHead('Shop',fmtDate(ymd(new Date()))+(SALES?'. Sales today '+(thb(today.filter(function(o){ return o.status==='paid'||o.status==='room'; }).reduce(function(t,o){ return t+o.total; },0))||'0 THB'):''),null),
     head,
@@ -10228,7 +10345,7 @@ function vSettings(){
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
   else if(t==='activity') body=[histOk()?auditSection():null];
-  else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('desk_code')?deskCodeSection():null];
+  else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
