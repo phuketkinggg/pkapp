@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=180"></script>
+<script src="changelog.js?v=181"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -906,6 +906,7 @@ var FEATURES=[
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
   {k:'stay_sell',g:'Rooms',n:'Packages from a stay, for everyone in the room',d:'Write how many people are in the room and their names on the stay. An Add package button on each stay sells a training package to the guest or to someone else in the room, with their own name, and it can go on the room bill with Charge to the room bill. The Sell a package form offers the room bill too when the customer is staying now.',def:true,spa:true},
+  {k:'stay_extend_reopen',g:'Rooms',n:'Extending a paid stay opens the bill',d:'When you extend a stay whose bill is already settled, the paid bill is kept as a closed part (paid up to the old leaving date) and the bill opens again, so the new nights show as owed. Off: the stay stays settled and the extra nights are not charged.',spa:false},
   {k:'stay_refund',g:'Rooms',n:'Cancel and refund a stay',d:'A Cancel and refund button on each stay: give back all or part of the room and any add-ons (meals, training, spa) in one go, with a manager PIN. Each amount shows in Accounts as money out on the day, in the department it was paid to, so the accounts correct themselves. If the stay was paid online, the money goes back to their card through Stripe for you.',spa:false},
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
@@ -915,6 +916,7 @@ var FEATURES=[
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
   {k:'classes_block_privates',g:'Training',n:'Group classes block privates',d:'No private can be booked during a group class. Off: only classes ticked "Blocks privates" block them.',spa:false},
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
+  {k:'private_cancel',g:'Training',n:'Cancel or no show for privates',d:'A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.',spa:false},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
   {k:'mp_extras',g:'Rooms',n:'Website booking extras on the stay',d:'Extras a guest books with a room on your website booking plugin (breakfast, a meal plan, training, transfers) come into the app on their stay, paid with the stay. Breakfasts and meal plans can then be ticked as served and billed by the cafe.',spa:false},
@@ -1033,7 +1035,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=124; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=125; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2298,6 +2300,18 @@ function declinePrivate(p){ if(!guard()) return;
     rows.forEach(function(x,i){ var c=picks[i]; if(!c||x.t.value) return; x.d.value=c.date; x.t.value=c.time; x.c.value=c.coach; });
   }).catch(function(){});
 }
+/* cancelled or no show, with a reason, still paid or not (feature private_cancel) */
+function privCancelBtn(p){ if(!featOn('private_cancel')||!me||['manager','admin','front_desk'].indexOf(me.role)<0) return null;
+  if(p.lead_id||p.cancel_kind||p.status==='requested'||p.status==='cancelled') return null; return btn('Cancel or no show',function(){ privCancel(p); },'small'); }
+function privCancel(p){
+  openForm({title:'Cancelled or no show',note:pWho(p)+', '+fmtDate(p.date)+' '+String(p.time||'').slice(0,5)+(p.coach_id?' with '+nameOf('staff',p.coach_id):'')+'.',saveLabel:'Save',doneMsg:'Saved.',values:{kind:p.date<ymd(new Date())?'no_show':'cancelled',charged:false},
+    fields:[{key:'kind',label:'What happened',type:'select',options:[['cancelled','Cancelled'],['no_show','No show']]},
+      {key:'reason',label:'Reason',required:true,hint:'For example: sick, cancelled late, did not come.'},
+      {key:'charged',label:'Still paid',type:'checkbox',hint:'Ticked: it counts like a session that happened. A pack session is used, or they still owe the price, and the coach is paid. Not ticked: nothing is owed and a pack session comes back.'}],
+    onSave:function(v){ if(!String(v.reason||'').trim()) return 'Say why.';
+      return sb.rpc('private_cancel',{p_id:p.id,p_kind:v.kind,p_reason:String(v.reason).trim(),p_charged:!!v.charged}).then(must).then(function(r){
+        var paid=Number(r&&r.paid_before)||0; if(paid) setTimeout(function(){ toast('They had already paid '+thb(paid)+'. Refund it from the private, or keep it as credit.'); },600);
+        return Promise.all([reload('privates'),reload('purchases'),reload('charges')]); }); }}); }
 function setPrivate(p,patch,msg){ if(!guard()) return; run(db.doc('privates/'+p.id).update(patch),msg); }
 
 /* ---------- resort: stays, room bills and meal plans ---------- */
@@ -2807,12 +2821,16 @@ function extendStay(st){
       if(v.how==='season'){ var q=roomQuote(st.room_id,st.check_out,v.check_out); if(!q||q.missing.length) return q?quoteText(q):'This room has no season prices.'; add=q.total; r=Math.round(add/extra); }
       else { r=v.how==='same'?rate:Math.round(Number(v.rate)); if(r==null||isNaN(r)||r<0) return 'Type the price per night.'; add=extra*r; }
       var price=(Number(st.room_price_thb)||0)+add;
-      var patch={check_out:v.check_out,room_price_thb:price,room_price_manual:true}, mp=featOn('motopress')&&/^mphb:/.test(String(st.external_id||'')), note='';
-      if(st.ical_feed){ patch.dates_locked=true; note=' Extend it on '+(nameOf('sources',st.source_id)||'the booking site')+' too, so the room stays closed there.'; }
+      var patch=null, mp=featOn('motopress')&&/^mphb:/.test(String(st.external_id||'')), note='';
+      if(st.ical_feed){ patch={dates_locked:true}; note=' Extend it on '+(nameOf('sources',st.source_id)||'the booking site')+' too, so the room stays closed there.'; }
       var first=!mp?Promise.resolve():sb.functions.invoke('motopress-sync',{body:{mode:'change',stay_id:st.id,room_id:st.room_id,check_in:st.check_in,check_out:v.check_out}}).then(function(res){
         if(res.error) throw {message:'Could not reach MotoPress. Nothing was changed.'}; var d=res.data||{}; if(d.error) throw {message:d.error};
         if(d.where==='app_only') note=' This booking came from '+(d.source||'a booking site')+'. Extend it there too.'; else note=' MotoPress has the new date too.'; });
-      return first.then(function(){ return db.doc('stays/'+st.id).update(patch); }).then(function(){ setTimeout(function(){ reload('purchases'); toast('Extended to '+fmtDate(v.check_out)+', '+extra+' more night'+(extra===1?'':'s')+' at '+thb(r)+'. Room now '+thb(price)+'.'+note); },400); });
+      /* the database extends it; a settled bill opens again with the paid part kept (feature stay_extend_reopen), so only the new nights are owed */
+      var res=null;
+      return first.then(function(){ return sb.rpc('stay_extend',{p_stay:st.id,p_check_out:v.check_out,p_add_thb:add}).then(must); }).then(function(x){ res=x||{}; return patch?db.doc('stays/'+st.id).update(patch):null; })
+        .then(function(){ return Promise.all([reload('stays'),reload('charges')]); }).then(function(){ setTimeout(function(){ reload('purchases');
+          toast('Extended to '+fmtDate(v.check_out)+', '+extra+' more night'+(extra===1?'':'s')+' at '+thb(r)+'. Room now '+thb(price)+'.'+(res.reopened?' The paid bill is kept up to '+fmtDate(st.check_out)+'; the bill is open again and owes '+thb(Math.max(0,Number(res.owed)||0))+'.':'')+note); },400); });
     }});
 }
 function reloadMoney(){ return Promise.all([reload('purchases'),reload('privates'),reload('charges'),reload('stays'),reload('checkin_days')]).then(function(){ if(typeof loadNotices==='function') loadNotices(); if(SALES) shopRefresh(); CUORD={}; }); }
@@ -2959,7 +2977,7 @@ function stayCard(st,day){
   if(g.id) acts.push(btn('Guest file',function(){ openCustomer(g.id); },'small'));
   if(stayAddOns(st).length||meal) acts.push(btn('Meals and extras',function(){ stayItemsDlg(st); },'small'));
   if(st.status==='in') acts.push(btn('Check out',function(){ checkOutStay(st); },'small'));
-  if(st.status==='booked'||st.status==='in') acts.push(btn('Extend',function(){ extendStay(st); },'small'));
+  if(st.status==='booked'||st.status==='in'||(st.status==='out'&&st.check_out>=addDays(ymd(new Date()),-1))) acts.push(btn('Extend',function(){ extendStay(st); },'small'));
   acts.push(btn('Edit',function(){ editStay(st); },'small'));
   if(st.status==='booked'||st.status==='in') acts.push(btn(st.welcome_sent_at?'Email again':'Welcome email',function(){ welcomeEmail(st); },'small'));
   var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),(st.room_price_thb!=null?'Room '+thb(st.room_price_thb)+(Number(st.room_paid_thb)>0?', '+thb(st.room_paid_thb)+' paid':'')+'. ':'No room price. ')+(st.settled?'Settled':'To pay '+(thb(Math.max(0,total))||'0 THB'))];
@@ -9056,7 +9074,7 @@ function vToday(){
       {label:'Customer',cell:function(p){return pWho(p);}},
       {label:'Coach',cell:function(p){return nameOf('staff',p.coach_id);}},
       {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':null),arrivedChip(p));}},
-      {label:'',cell:function(p){return h('span',{class:'row'},privOwes(p)?btn('Payment received',function(){ payPrivate(p); },'primary small'):null,!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null);}}],pToday,'No privates booked for today.'))]; },
+      {label:'',cell:function(p){return h('span',{class:'row'},privOwes(p)?btn('Payment received',function(){ payPrivate(p); },'primary small'):null,!p.arrived_at&&p.status!=='cancelled'?btn('Arrived',function(){ privArrived(p,pWho(p)); },'small'):null,p.status==='confirmed'?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null,privCancelBtn(p));}}],pToday,'No privates booked for today.'))]; },
     renewals:function(){ return [renew.length?section('Renewals coming up',null,table([
       {label:'Customer',cell:function(r){return linkBtn(nameOf('customers',r.p.customer_id),function(){ openCustomer(r.p.customer_id); });}},
       {label:'Package',cell:function(r){return r.p.package_name;}},
@@ -9592,9 +9610,9 @@ function vPrivates(){
       {label:'Paid with',cell:payLabel},
       {label:'Customer pays',num:true,cell:function(p){ var n=pxNote(p), x=Number(p.extra_thb)||0; return h('span',null,thb(p.price_thb),n?[h('br'),h('small',{class:'sub'},n)]:null,x?[h('br'),h('small',{class:p.extra_paid?'sub':'warnt'},'+ '+thb(x)+' top up'+(p.extra_paid?', paid':', not paid'))]:null); }},
       {label:'Coach share',num:true,cell:function(p){return h('span',null,thb(pShare(p)),p.coach_share_thb!=null?h('div',{class:'sub'},'set by hand'):null);}},
-      {label:'Status',cell:function(p){return h('span',{class:'row'},chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':p.status==='requested'?'warn':p.status==='cancelled'?'bad':null),p.status==='requested'&&p.coach_answer==='no'?chip('Coach cannot','bad'):null,p.status==='requested'&&p.alt_date?chip('Backup '+fmtDate(p.alt_date)+' '+String(p.alt_time||'').slice(0,5)):null,arrivedChip(p));}},
+      {label:'Status',cell:function(p){return h('span',{class:'row'},p.cancel_kind?chip((p.cancel_kind==='no_show'?'No show':'Cancelled')+(p.cancel_charged?', still paid':', not paid'),'bad'):chip(PSTATUS[p.status]||p.status,p.status==='done'?'ok':p.status==='requested'?'warn':p.status==='cancelled'?'bad':null),p.cancel_reason?h('small',{class:'sub notr'},p.cancel_reason):null,p.status==='requested'&&p.coach_answer==='no'?chip('Coach cannot','bad'):null,p.status==='requested'&&p.alt_date?chip('Backup '+fmtDate(p.alt_date)+' '+String(p.alt_time||'').slice(0,5)):null,arrivedChip(p));}},
       {label:'Paid',cell:function(p){return p.paid?chip('Paid','ok'):chip('Not paid','warn');}},
-      {label:'',cell:function(p){ return p.status==='requested'?h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small')):p.status==='cancelled'&&p.decline_reason?h('small',{class:'sub'},'Declined: '+p.decline_reason+(p.offers?(p.offer_taken!=null?'. They took an offered time.':'. '+p.offers.length+' other time'+(p.offers.length>1?'s':'')+' offered.'):'')):(Number(p.extra_thb)>0&&!p.extra_paid&&p.status!=='cancelled'?btn('Take '+thb(p.extra_thb)+' top up',function(){ takeTopUp(p); },'small primary'):p.status==='confirmed'&&p.date<=day?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):''); }}],
+      {label:'',cell:function(p){ return p.status==='requested'?h('div',{class:'row'},btn('Approve',function(){ approvePrivate(p); },'primary small'),btn('Decline',function(){ declinePrivate(p); },'small')):p.status==='cancelled'&&p.decline_reason?h('small',{class:'sub'},'Declined: '+p.decline_reason+(p.offers?(p.offer_taken!=null?'. They took an offered time.':'. '+p.offers.length+' other time'+(p.offers.length>1?'s':'')+' offered.'):'')):(Number(p.extra_thb)>0&&!p.extra_paid&&p.status!=='cancelled'?btn('Take '+thb(p.extra_thb)+' top up',function(){ takeTopUp(p); },'small primary'):h('span',{class:'row'},p.status==='confirmed'&&p.date<=day?btn('Mark done',function(){ setPrivate(p,{status:'done'},'Marked done.'); },'small'):null,privCancelBtn(p))); }}],
       list,ui.pfilter==='upcoming'?'No privates coming up. Book the first one with the button above.':'Nothing to show here.')];
 }
 function vStaff(){

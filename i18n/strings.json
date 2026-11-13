@@ -23438,5 +23438,65 @@
 "In their app, members see every time someone in your team opened their member file, with the name and when. Builds trust: their health details are never looked at quietly.": [
 "ในแอป สมาชิกเห็นทุกครั้งที่มีคนในทีมเปิดแฟ้มสมาชิกของตน พร้อมชื่อและเวลา สร้างความไว้ใจ: ไม่มีใครแอบดูข้อมูลสุขภาพของเขา",
 "အက်ပ်တွင် သင့်အဖွဲ့ထဲမှ တစ်ဦးဦးက ၎င်းတို့၏ အဖွဲ့ဝင်ဖိုင်ကို ဖွင့်တိုင်း အမည်နှင့် အချိန်ကို မြင်ရသည်။ ယုံကြည်မှု တည်ဆောက်သည်: ကျန်းမာရေးအချက်အလက်ကို တိတ်တဆိတ် ကြည့်ခြင်း မရှိပါ။"
+],
+"Extending a paid stay opens the bill": [
+"ต่ออายุการพักที่จ่ายแล้วจะเปิดบิลใหม่",
+"ပေးပြီးသော တည်းခိုမှုကို သက်တမ်းတိုးလျှင် ဘေလ် ပြန်ဖွင့်သည်"
+],
+"When you extend a stay whose bill is already settled, the paid bill is kept as a closed part (paid up to the old leaving date) and the bill opens again, so the new nights show as owed. Off: the stay stays settled and the extra nights are not charged.": [
+"เมื่อต่อการพักที่ปิดบิลแล้ว บิลที่จ่ายแล้วจะเก็บไว้เป็นส่วนที่ปิด (จ่ายถึงวันออกเดิม) และบิลจะเปิดอีกครั้ง คืนที่เพิ่มจะแสดงเป็นยอดค้าง ปิด: การพักยังคงปิดบิล และไม่คิดค่าคืนที่เพิ่ม",
+"ဘေလ်ပိတ်ပြီးသော တည်းခိုမှုကို သက်တမ်းတိုးလျှင် ပေးပြီးဘေလ်ကို ပိတ်ထားသောအပိုင်းအဖြစ် (ယခင်ထွက်ရက်အထိ ပေးပြီး) သိမ်းပြီး ဘေလ်ကို ပြန်ဖွင့်သည်၊ ညအသစ်များကို ပေးရန်ကျန်အဖြစ် ပြသည်။ ပိတ်ထားလျှင်: တည်းခိုမှု ပိတ်လျက်ရှိပြီး ညအပိုကို မကောက်ပါ။"
+],
+" The paid bill is kept up to ": [
+" บิลที่จ่ายแล้วเก็บไว้ถึง ",
+" ပေးပြီးဘေလ်ကို အထိ သိမ်းထားသည် "
+],
+"; the bill is open again and owes ": [
+" บิลเปิดอีกครั้ง ยอดค้าง ",
+"; ဘေလ် ပြန်ဖွင့်ပြီး ပေးရန်ကျန် "
+],
+"A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.": [
+"ปุ่มยกเลิกหรือไม่มา ในทุกไพรเวท สำหรับหน้าเคาน์เตอร์และผู้จัดการ: บอกว่าเกิดอะไรขึ้นและเพราะอะไร ติ๊ก ยังคิดเงิน เมื่อให้นับเหมือนได้เรียน (ใช้ครั้งในแพ็ก หรือยังต้องจ่าย และโค้ชได้ค่าสอน) ไม่ติ๊ก ไม่ต้องจ่ายและครั้งในแพ็กคืนกลับ",
+"ရှေ့ကောင်တာနှင့် မန်နေဂျာများအတွက် private တိုင်းတွင် ပယ်ဖျက် သို့မဟုတ် မလာ ခလုတ်: ဘာဖြစ်သည်၊ ဘာကြောင့်လဲ ပြောပါ၊ သင်တန်းတက်သလို ရေတွက်လိုလျှင် ငွေဆက်ယူ ကို အမှန်ခြစ်ပါ (ပက်ကေ့ချ်တစ်ကြိမ် သုံး သို့မဟုတ် ပေးရန်ကျန်၊ နည်းပြ လစာရ)။ မခြစ်လျှင် ပေးစရာမရှိ၊ ပက်ကေ့ချ်တစ်ကြိမ် ပြန်ရ။"
+],
+"Cancel or no show": [
+"ยกเลิกหรือไม่มา",
+"ပယ်ဖျက် သို့မဟုတ် မလာ"
+],
+"Cancel or no show for privates": [
+"ยกเลิกหรือไม่มาสำหรับไพรเวท",
+"private အတွက် ပယ်ဖျက် သို့မဟုတ် မလာ"
+],
+"Cancelled or no show": [
+"ยกเลิกหรือไม่มา",
+"ပယ်ဖျက်ပြီး သို့မဟုတ် မလာ"
+],
+"For example: sick, cancelled late, did not come.": [
+"เช่น ป่วย ยกเลิกกระชั้นชิด ไม่มา",
+"ဥပမာ: နေမကောင်း၊ နောက်ကျမှ ပယ်ဖျက်၊ မလာ။"
+],
+"Still paid": [
+"ยังคิดเงิน",
+"ငွေဆက်ယူ"
+],
+"They had already paid ": [
+"เขาจ่ายไปแล้ว ",
+"သူတို့ ပေးပြီးသား "
+],
+"Ticked: it counts like a session that happened. A pack session is used, or they still owe the price, and the coach is paid. Not ticked: nothing is owed and a pack session comes back.": [
+"ติ๊ก: นับเหมือนได้เรียนแล้ว ใช้ครั้งในแพ็ก หรือยังต้องจ่าย และโค้ชได้ค่าสอน ไม่ติ๊ก: ไม่ต้องจ่าย และครั้งในแพ็กคืนกลับ",
+"အမှန်ခြစ်လျှင်: သင်တန်းတက်ပြီးသလို ရေတွက်သည်။ ပက်ကေ့ချ်တစ်ကြိမ် သုံး သို့မဟုတ် ပေးရန်ကျန်၊ နည်းပြ လစာရ။ မခြစ်လျှင်: ပေးစရာမရှိ၊ ပက်ကေ့ချ်တစ်ကြိမ် ပြန်ရ။"
+],
+"What happened": [
+"เกิดอะไรขึ้น",
+"ဘာဖြစ်ခဲ့သလဲ"
+],
+", still paid": [
+" ยังคิดเงิน",
+", ငွေဆက်ယူ"
+],
+". Refund it from the private, or keep it as credit.": [
+" คืนเงินจากไพรเวท หรือเก็บเป็นเครดิต",
+"။ private မှ ငွေပြန်အမ်း သို့မဟုတ် ခရက်ဒစ်အဖြစ် ထားပါ။"
 ]
 }
