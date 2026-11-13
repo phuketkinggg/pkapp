@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=185"></script>
+<script src="changelog.js?v=186"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -947,6 +947,7 @@ var FEATURES=[
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
   {k:'health_private',g:'Training',n:'Private health records',d:'Health records (member files, health numbers, blood tests and injuries from the About you form) are seen only by the owner of the health records and the people they allow, for one member or for every member. Set who in Settings, General, Health records, and on the Info tab of each customer. Turned off, the member\'s coaches and the managers see them.',def:true,spa:true},
   {k:'file_views_member',g:'Training',n:'Members see who opened their file',d:'In their app, members see every time someone in your team opened their member file, with the name and when. Builds trust: their health details are never looked at quietly.'},
+  {k:'auto_refresh',g:'Team',n:'Screens update by themselves',d:'Stays, privates, customers and the rest of the back office update by themselves every 2 minutes, so new bookings from the website, booking sites and agency emails, and changes other staff make, show without reloading. Never while a form is open or someone is typing.'},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
@@ -1051,7 +1052,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=128; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=129; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -12385,6 +12386,11 @@ if(!window.supabase||!window.supabase.createClient){
     };
     sb.auth.onAuthStateChange(function(event,session){ demoBar(session&&session.user); });
   }
+  /* the screen keeps itself up to date (feature auto_refresh): new bookings from the website, booking sites and agency emails,
+     and what other staff changed, show within 2 minutes without reloading. Not while a form is open or someone is typing. */
+  setInterval(function(){ if(!featOn('auto_refresh')||!me||!allReady||CU||me.role==='customer'||me.role==='investor'||document.visibilityState==='hidden') return;
+    if(Date.now()-lastLoad<110000||($dlg&&$dlg.open)) return; var ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+    (me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); },30000);
   window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); });
 }
 })();

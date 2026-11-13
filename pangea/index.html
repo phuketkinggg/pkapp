@@ -235,11 +235,20 @@ function newPasswordView(){
 function load(){
   return sb.rpc('customer_hello').then(function(){ return rpc('pangea_home'); }).then(function(d){ S.data=d; render(); signPaths(); intakeCheck(); })
     .catch(function(e){ var m=errText(e);
-      if(/Sign in first/i.test(m)) $app.replaceChildren(h('div',{class:'auth center'},h('img',{class:'logo',src:'logo.svg',alt:''}),h('h2',null,'Almost there'),
-        h('p',{class:'sub'},'Your account is not linked yet. Open the confirm email we sent you, then come back and sign in.'),
-        h('button',{class:'btn',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out')));
+      if(/Sign in first/i.test(m)) joinView();
       else { toast(m); if(!S.data) $app.replaceChildren(h('div',{class:'auth center'},h('p',null,m),h('button',{class:'btn',onclick:load},'Try again'))); } });
 }
+/* first time in: name and an optional phone number make their member account (customer_join) */
+function joinView(){ var nm=h('input',{id:'jn',autocomplete:'name'}), ph=h('input',{id:'jp',type:'tel',autocomplete:'tel',placeholder:'+44 7700 900123'}), msg=h('div',{class:'err',role:'alert'}),
+    go=h('button',{class:'btn full',type:'submit',style:'margin-top:16px'},'Continue');
+  var f=h('form',{class:'auth'},h('img',{class:'logo',src:'logo.svg',alt:''}),h('h2',{class:'center'},'Welcome to Pangea'),
+    h('p',{class:'sub center'},'Tell us your name to finish setting up your account.'),
+    h('label',{for:'jn'},'Your name'),nm,h('label',{for:'jp'},'Phone or WhatsApp (optional)'),ph,
+    h('p',{class:'sub'},'So your coach can reach you. With the country code.'),go,msg,
+    h('div',{class:'center',style:'margin-top:12px'},h('button',{type:'button',class:'btn link',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out')));
+  f.addEventListener('submit',function(ev){ ev.preventDefault(); var n=nm.value.trim(); if(n.length<2){ msg.textContent='Enter your name.'; return; } go.disabled=true; msg.textContent='';
+    rpc('customer_join',{p_name:n,p_phone:ph.value.trim()||null}).then(load).catch(function(e){ var t=errText(e); msg.textContent=/Confirm your email/i.test(t)?'Open the confirm email we sent you first, then sign in again.':t; go.disabled=false; }); });
+  $app.replaceChildren(f); setTimeout(function(){ nm.focus(); },30); }
 function refresh(){ return rpc('pangea_home').then(function(d){ S.data=d; render(); signPaths(); }).catch(function(e){ toast(errText(e)); }); }
 function signPaths(){
   var d=S.data; if(!d) return; var list=[];
@@ -541,10 +550,12 @@ function intakeForm(){ var f=(MYF&&MYF.file)||{}, a=f.about||{}, ins={}, mf={}, 
   pick.onchange=function(){ photo=pick.files[0]; if(photo) prev.replaceChildren(h('img',{src:URL.createObjectURL(photo),alt:'',style:'width:120px;height:120px;border-radius:50%;object-fit:cover;margin:10px auto;display:block'})); };
   function q(x){ ins[x[0]]=aboutInput(x,a[x[0]]); return h('div',null,h('label',{for:'ab-'+x[0]},x[1]),ins[x[0]]); }
   function t(k,label,rows,ph){ mf[k]=rows?h('textarea',{id:'in-'+k,rows:String(rows),placeholder:ph||''}):h('input',{id:'in-'+k,placeholder:ph||''}); mf[k].value=f[k]||''; return h('div',null,h('label',{for:'in-'+k},label),mf[k]); }
-  var kg=h('input',{id:'in-kg',type:'number',inputmode:'decimal',placeholder:'For example 72.5'});
+  var kg=h('input',{id:'in-kg',type:'number',inputmode:'decimal',placeholder:'For example 72.5'}), phone=h('input',{id:'in-ph',type:'tel',autocomplete:'tel',placeholder:'+44 7700 900123'});
+  if(S.data&&S.data.me&&S.data.me.phone) phone.value=S.data.me.phone;
   var close=sheet(h('div',null,h('div',{class:'row between'},h('h2',null,'About you'),h('button',{class:'btn link',onclick:function(){ intakeSkip(close); }},'Skip')),
     h('p',{class:'sub'},'Everything is optional. Only you, your coaches and the Pangea managers see it. You can change it any time in My file.'),
     pick,prev,h('button',{class:'btn ghost full',onclick:function(){ pick.click(); }},'Add a photo of you'),
+    h('div',null,h('label',{for:'in-ph'},'Phone or WhatsApp'),phone),
     q(ABOUT[0]),q(ABOUT[1]),q(ABOUT[2]),h('div',null,h('label',{for:'in-kg'},'Weight (kg)'),kg),q(ABOUT[3]),
     t('conditions','Illnesses and conditions',3,'For example high blood pressure, asthma, diabetes'),t('medication','Medication and supplements',3,'Name and how much, for example metformin 500 mg twice a day'),
     t('allergies','Allergies',2),t('injuries','Injuries and operations',3,'Old or current, for example left knee operation 2019'),
@@ -557,6 +568,7 @@ function intakeForm(){ var f=(MYF&&MYF.file)||{}, a=f.about||{}, ins={}, mf={}, 
       var job=photo?shrink(photo,1200).then(function(blob){ var path=S.data.me.id+'/file/me-'+Date.now()+'.jpg'; return sb.storage.from('coaching').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; p.photo=path; }); }):Promise.resolve();
       job.then(function(){ return rpc('my_file_save',{p:p}); }).then(function(){ return rpc('my_file_about',{p:ab,p_done:true}); })
         .then(function(){ return w>20&&w<400?rpc('weight_add',{p:{kg:String(w)}}):null; })
+        .then(function(){ var pv=phone.value.trim(); return pv&&pv!==(S.data.me.phone||'')?rpc('customer_join',{p_name:S.data.me.name,p_phone:pv}):null; })
         .then(function(){ close(); toast('Thank you. Your coach can see it now.'); MYF=null; refresh(); }).catch(function(e){ toast(errText(e)); b.disabled=false; }); }},'Save')));
 }
 /* ---------- my file: my health details, my coaches' diary notes shared with me, my documents (member_file) ---------- */
