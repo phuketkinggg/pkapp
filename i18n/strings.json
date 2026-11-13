@@ -24182,5 +24182,213 @@
 "✓ Done": [
 "✓ เสร็จแล้ว",
 "✓ ပြီးပြီ"
+],
+" lines. Check which column is which.": [
+" บรรทัด ตรวจสอบว่าคอลัมน์ไหนคืออะไร",
+" ကြောင်း။ ကော်လံတစ်ခုချင်း စစ်ပါ။"
+],
+" lines. Upload again any time: new members are added, nobody is doubled.": [
+" บรรทัด อัปโหลดใหม่ได้ตลอด: สมาชิกใหม่จะถูกเพิ่ม ไม่มีใครซ้ำ",
+" ကြောင်း။ အချိန်မရွေး ပြန်တင်နိုင်သည်: အသင်းဝင်အသစ် ထည့်မည်၊ မည်သူမျှ နှစ်ခါ မပါ။"
+],
+" new member": [
+" สมาชิกใหม่",
+" အသင်းဝင်အသစ်"
+],
+"A spreadsheet (Excel or Google Sheets)": [
+"สเปรดชีต (Excel หรือ Google Sheets)",
+"စာရင်းဇယား (Excel သို့မဟုတ် Google Sheets)"
+],
+"Bring your members over in one upload and try this next to your old system. Nobody is contacted until you switch.": [
+"ย้ายสมาชิกมาด้วยการอัปโหลดครั้งเดียว แล้วลองใช้คู่กับระบบเดิม จะไม่มีการติดต่อใครจนกว่าคุณจะเปลี่ยน",
+"အသင်းဝင်များကို တစ်ကြိမ်တင်ရုံဖြင့် ယူလာပြီး စနစ်ဟောင်းနှင့်အတူ စမ်းသုံးပါ။ သင်ပြောင်းသည်အထိ မည်သူ့ကိုမျှ မဆက်သွယ်ပါ။"
+],
+"End date": [
+"วันสิ้นสุด",
+"ကုန်ဆုံးရက်"
+],
+"Excel or Google Sheets": [
+"Excel หรือ Google Sheets",
+"Excel သို့မဟုတ် Google Sheets"
+],
+"For the first month: try the app next to your old system. Members are not contacted (no welcome emails) until you tap Make this our main system, which also gives you a ready message with your app link for your members.": [
+"สำหรับเดือนแรก: ลองใช้แอปคู่กับระบบเดิม จะไม่มีการติดต่อสมาชิก (ไม่มีอีเมลต้อนรับ) จนกว่าคุณจะกด ใช้เป็นระบบหลัก ซึ่งจะให้ข้อความพร้อมลิงก์แอปสำหรับส่งให้สมาชิก",
+"ပထမလ: စနစ်ဟောင်းနှင့်အတူ အက်ပ်ကို စမ်းသုံးပါ။ ပင်မစနစ်အဖြစ် ပြောင်းရန် မနှိပ်မချင်း အသင်းဝင်များကို မဆက်သွယ်ပါ (ကြိုဆိုအီးမေးလ် မပို့)။ ထို့နောက် အသင်းဝင်များအတွက် အက်ပ်လင့်ခ်ပါ မက်ဆေ့ချ် ရမည်။"
+],
+"Glofox": [
+"Glofox",
+"Glofox"
+],
+"Gymdesk": [
+"Gymdesk",
+"Gymdesk"
+],
+"Mindbody": [
+"Mindbody",
+"Mindbody"
+],
+"PushPress": [
+"PushPress",
+"PushPress"
+],
+"Wodify": [
+"Wodify",
+"Wodify"
+],
+"Zen Planner": [
+"Zen Planner",
+"Zen Planner"
+],
+"Import": [
+"นำเข้า",
+"တင်သွင်းရန်"
+],
+"Imported.": [
+"นำเข้าแล้ว",
+"တင်သွင်းပြီး။"
+],
+"Keep what you use now and try this next to it. Bring your members over in one upload, run both side by side for a month, and switch when you are sure.": [
+"ใช้ระบบเดิมต่อไปและลองใช้อันนี้คู่กัน ย้ายสมาชิกมาด้วยการอัปโหลดครั้งเดียว ใช้ทั้งสองระบบคู่กันหนึ่งเดือน แล้วเปลี่ยนเมื่อมั่นใจ",
+"ယခုသုံးနေသည်ကို ဆက်ထားပြီး ဤအရာကို အတူစမ်းပါ။ အသင်းဝင်များကို တစ်ကြိမ်တင်ရုံဖြင့် ယူလာ၊ တစ်လ နှစ်ခုတွဲသုံးပြီး သေချာမှ ပြောင်းပါ။"
+],
+"Last name": [
+"นามสกุล",
+"မိသားစုအမည်"
+],
+"Last upload ": [
+"อัปโหลดล่าสุด ",
+"နောက်ဆုံး တင်ခဲ့သည် "
+],
+"Make this our main system": [
+"ใช้เป็นระบบหลักของเรา",
+"ဤအရာကို ပင်မစနစ် လုပ်ရန်"
+],
+"Make this your main system": [
+"ใช้เป็นระบบหลักของคุณ",
+"ဤအရာကို သင့်ပင်မစနစ် လုပ်ရန်"
+],
+"Member number or ID": [
+"หมายเลขหรือรหัสสมาชิก",
+"အသင်းဝင် နံပါတ် သို့မဟုတ် ID"
+],
+"Moving from another system": [
+"ย้ายมาจากระบบอื่น",
+"အခြားစနစ်မှ ပြောင်းလာခြင်း"
+],
+"Moving from another system?": [
+"ย้ายมาจากระบบอื่นใช่ไหม",
+"အခြားစနစ်မှ ပြောင်းလာသလား။"
+],
+"No members found in the file.": [
+"ไม่พบสมาชิกในไฟล์",
+"ဖိုင်တွင် အသင်းဝင် မတွေ့ပါ။"
+],
+"No members found with these columns. Choose at least the name, email or phone.": [
+"ไม่พบสมาชิกจากคอลัมน์เหล่านี้ เลือกอย่างน้อยชื่อ อีเมล หรือโทรศัพท์",
+"ဤကော်လံများဖြင့် အသင်းဝင် မတွေ့ပါ။ အနည်းဆုံး အမည်၊ အီးမေးလ် သို့မဟုတ် ဖုန်း ရွေးပါ။"
+],
+"Open the sheet with your members and choose File, Download (or Save as), CSV. One member per row, with name, email or phone, and if you have them the package, end date and sessions left.": [
+"เปิดชีตที่มีสมาชิก แล้วเลือก ไฟล์ ดาวน์โหลด (หรือ บันทึกเป็น) CSV หนึ่งแถวต่อหนึ่งสมาชิก มีชื่อ อีเมลหรือโทรศัพท์ และถ้ามี แพ็กเกจ วันสิ้นสุด และจำนวนครั้งที่เหลือ",
+"အသင်းဝင်များပါသော sheet ကိုဖွင့်ပြီး File, Download (သို့မဟုတ် Save as), CSV ကို ရွေးပါ။ တစ်တန်းလျှင် အသင်းဝင်တစ်ဦး၊ အမည်၊ အီးမေးလ် သို့မဟုတ် ဖုန်း၊ ရှိလျှင် ပက်ကေ့ချ်၊ ကုန်ဆုံးရက်နှင့် ကျန်ရှိသော အကြိမ်။"
+],
+"Package or membership": [
+"แพ็กเกจหรือสมาชิกภาพ",
+"ပက်ကေ့ချ် သို့မဟုတ် အသင်းဝင်မှု"
+],
+"Paper": [
+"กระดาษ",
+"စာရွက်"
+],
+"Paper or nothing yet": [
+"กระดาษ หรือยังไม่มีอะไร",
+"စာရွက် သို့မဟုတ် ဘာမှမရှိသေး"
+],
+"Ready to bring them over": [
+"พร้อมย้ายมาแล้ว",
+"ယူလာရန် အဆင်သင့်"
+],
+"Run side by side": [
+"ใช้คู่กัน",
+"တွဲသုံးရန်"
+],
+"Send this to your members, in your group chat or one by one. They sign up with the email you have for them and see everything straight away.": [
+"ส่งข้อความนี้ให้สมาชิก ในกลุ่มแชทหรือทีละคน พวกเขาสมัครด้วยอีเมลที่คุณมี แล้วจะเห็นทุกอย่างทันที",
+"ဤမက်ဆေ့ချ်ကို အသင်းဝင်များထံ အုပ်စုချက် သို့မဟုတ် တစ်ဦးချင်း ပို့ပါ။ သင့်ထံရှိ အီးမေးလ်ဖြင့် စာရင်းသွင်းပြီး အားလုံး ချက်ချင်း မြင်ရမည်။"
+],
+"Settings, General: say what you use now, see how to export your members from it, and bring them over in one upload with their current packages, so they check in from day one. Upload again any time: nobody is doubled.": [
+"ตั้งค่า ทั่วไป: บอกว่าคุณใช้อะไรอยู่ ดูวิธีส่งออกสมาชิก แล้วย้ายมาด้วยการอัปโหลดครั้งเดียวพร้อมแพ็กเกจปัจจุบัน เช็คอินได้ตั้งแต่วันแรก อัปโหลดใหม่ได้ตลอด ไม่มีใครซ้ำ",
+"ဆက်တင်များ၊ အထွေထွေ: ယခုသုံးနေသည်ကို ပြောပါ၊ အသင်းဝင်များ ထုတ်ယူပုံ ကြည့်ပြီး လက်ရှိပက်ကေ့ချ်များနှင့်အတူ တစ်ကြိမ်တင်ရုံဖြင့် ယူလာပါ။ ပထမနေ့မှစ check in လုပ်နိုင်သည်။ အချိန်မရွေး ပြန်တင်နိုင်ပြီး မည်သူမျှ နှစ်ခါ မပါ။"
+],
+"Side by side": [
+"ใช้คู่กัน",
+"တွဲသုံးခြင်း"
+],
+"Side by side ends. From now on members get your welcome emails as usual. Next, send your members the link to your app (below), then cancel your old system when you are ready.": [
+"การใช้คู่กันสิ้นสุด ต่อจากนี้สมาชิกจะได้รับอีเมลต้อนรับตามปกติ ต่อไปส่งลิงก์แอปให้สมาชิก (ด้านล่าง) แล้วยกเลิกระบบเดิมเมื่อพร้อม",
+"တွဲသုံးခြင်း ပြီးဆုံးသည်။ ယခုမှစ အသင်းဝင်များ ကြိုဆိုအီးမေးလ် ပုံမှန်ရမည်။ နောက်တစ်ဆင့် အက်ပ်လင့်ခ် ပို့ပြီး အဆင်သင့်မှ စနစ်ဟောင်းကို ပယ်ဖျက်ပါ။"
+],
+"Side by side is on": [
+"กำลังใช้คู่กัน",
+"တွဲသုံးနေသည်"
+],
+"Side by side with your old system": [
+"ใช้คู่กับระบบเดิม",
+"စနစ်ဟောင်းနှင့် တွဲသုံးခြင်း"
+],
+"Start fresh: add members as they come in, or type them into a spreadsheet (name, phone, email, package, end date) and upload it here.": [
+"เริ่มใหม่: เพิ่มสมาชิกเมื่อพวกเขามา หรือพิมพ์ลงสเปรดชีต (ชื่อ โทรศัพท์ อีเมล แพ็กเกจ วันสิ้นสุด) แล้วอัปโหลดที่นี่",
+"အသစ်စပါ: ရောက်လာသလို ထည့်ပါ၊ သို့မဟုတ် စာရင်းဇယားတွင် ရိုက်ပြီး (အမည်၊ ဖုန်း၊ အီးမေးလ်၊ ပက်ကေ့ချ်၊ ကုန်ဆုံးရက်) ဤနေရာတွင် တင်ပါ။"
+],
+"Stop side by side": [
+"หยุดใช้คู่กัน",
+"တွဲသုံးခြင်း ရပ်ရန်"
+],
+"Switch now": [
+"เปลี่ยนตอนนี้",
+"ယခု ပြောင်းရန်"
+],
+"Switched. This is now your main system.": [
+"เปลี่ยนแล้ว ตอนนี้เป็นระบบหลักของคุณ",
+"ပြောင်းပြီး။ ယခု သင့်ပင်မစနစ် ဖြစ်သည်။"
+],
+"Tell your members": [
+"บอกสมาชิกของคุณ",
+"အသင်းဝင်များကို ပြောရန်"
+],
+"This is your main system since ": [
+"เป็นระบบหลักของคุณตั้งแต่ ",
+"ပင်မစနစ် ဖြစ်သည့်နေ့ "
+],
+"Try this next to your old system for the first month. Members are not contacted until you switch.": [
+"ลองใช้คู่กับระบบเดิมในเดือนแรก จะไม่มีการติดต่อสมาชิกจนกว่าคุณจะเปลี่ยน",
+"ပထမလ စနစ်ဟောင်းနှင့် တွဲစမ်းပါ။ သင်ပြောင်းသည်အထိ အသင်းဝင်များကို မဆက်သွယ်ပါ။"
+],
+"Upload a new export": [
+"อัปโหลดไฟล์ส่งออกใหม่",
+"ထုတ်ယူထားသော ဖိုင်အသစ် တင်ရန်"
+],
+"Upload your members": [
+"อัปโหลดสมาชิกของคุณ",
+"အသင်းဝင်များ တင်ရန်"
+],
+"What do you use now?": [
+"ตอนนี้คุณใช้อะไรอยู่",
+"ယခု ဘာသုံးနေသလဲ။"
+],
+"What you use now": [
+"สิ่งที่คุณใช้อยู่",
+"ယခုသုံးနေသည်"
+],
+"Your members file": [
+"ไฟล์สมาชิกของคุณ",
+"သင့်အသင်းဝင် ဖိုင်"
+],
+"Your old system is still the main one. Members are not contacted: no welcome emails and no invites. Staff can try everything here: check ins, privates, payments.": [
+"ระบบเดิมยังเป็นระบบหลัก จะไม่มีการติดต่อสมาชิก: ไม่มีอีเมลต้อนรับและไม่มีคำเชิญ พนักงานลองใช้ได้ทุกอย่าง: เช็คอิน คลาสส่วนตัว การชำระเงิน",
+"စနစ်ဟောင်းသည် ပင်မဖြစ်နေဆဲ။ အသင်းဝင်များကို မဆက်သွယ်ပါ: ကြိုဆိုအီးမေးလ်နှင့် ဖိတ်ကြားချက် မပို့ပါ။ ဝန်ထမ်းများ အားလုံးစမ်းနိုင်သည်: check in၊ သီးသန့်၊ ငွေပေးချေမှု။"
+],
+"your system": [
+"ระบบของคุณ",
+"သင့်စနစ်"
 ]
 }

@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=189"></script>
+<script src="changelog.js?v=190"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -957,6 +957,8 @@ var FEATURES=[
   {k:'branches',g:'Team',n:'Branches',d:'For a business with several branches (set as centres in Settings, Website). Give each staff member their branches in Staff: they see only the customers and staff of those branches. Staff with no branch set see everything and can pick one branch or all. Customers have a home branch and one file that works at every branch.',def:false,spa:false},
   {k:'course_days',g:'Training',n:'Courses day by day',d:'In the member app, a course opens as Day 1, Day 2 and so on (or Lesson 1, Lesson 2 when it has no days), with every step of the day on one screen. Completed lessons stay in place, ticked, and open again any time to review. Courses stand out with their own colour, and the member\'s courses come first in Learn, marked Completed when finished.'},
   {k:'course_pace',g:'Training',n:'Members choose the course pace',d:'When a course has lessons that open on set days, the member chooses: one lesson at a time (recommended, on the days you set) or every lesson open now. They can change it any time. A lesson that opened stays open.'},
+  {k:'gym_import',g:'Customers',n:'Moving from another system',d:'Settings, General: say what you use now, see how to export your members from it, and bring them over in one upload with their current packages, so they check in from day one. Upload again any time: nobody is doubled.'},
+  {k:'alongside',g:'Customers',n:'Side by side with your old system',d:'For the first month: try the app next to your old system. Members are not contacted (no welcome emails) until you tap Make this our main system, which also gives you a ready message with your app link for your members.',def:false,spa:false},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
@@ -1062,7 +1064,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=132; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=133; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9165,10 +9167,82 @@ function bookingMailSetup(){ sb.rpc('mail_token_get').then(function(r){ if(r.err
     h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Copy the script',function(){ copyText(code,'Script copied.'); }),btn('Close',function(){ $dlg.close(); },'primary')))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open',''); }); }
 /* setup guide: the first steps for a new business, on Today for the manager. Each step ticks itself from what is in the app. */
+/* moving from another system (feature gym_import): what they use now, how to export their members from it, one upload (again any
+   time, nothing doubles), and side by side (feature alongside): members are not contacted until the app becomes the main system. */
+var OLDSYS=[['Mindbody','Mindbody'],['Glofox','Glofox'],['Gymdesk','Gymdesk'],['PushPress','PushPress'],['Zen Planner','Zen Planner'],['Wodify','Wodify'],['Excel or Google Sheets','A spreadsheet (Excel or Google Sheets)'],['Paper','Paper or nothing yet'],['Other','Something else']];
+function oldHow(s){ if(s==='Excel or Google Sheets') return 'Open the sheet with your members and choose File, Download (or Save as), CSV. One member per row, with name, email or phone, and if you have them the package, end date and sessions left.';
+  if(s==='Paper') return 'Start fresh: add members as they come in, or type them into a spreadsheet (name, phone, email, package, end date) and upload it here.';
+  return 'In '+(s==='Other'?'your system':s)+', open the members (or clients) list and look for Export or Download, as CSV. Include the current membership or package with its end date if it lets you. If you cannot find it, their support can send you the file.'; }
+var MIGR=null;
+function migrLoad(){ sb.from('app_settings').select('value').eq('key','migrate').maybeSingle().then(function(r){ try{ MIGR=r.data&&r.data.value?JSON.parse(r.data.value):{}; }catch(e){ MIGR={}; } schedule(); }); }
+function migrSave(x){ var val=JSON.stringify(Object.assign({},MIGR||{},x));
+  return sb.from('app_settings').update({value:val,updated_at:new Date().toISOString()}).eq('key','migrate').select('key').then(must).then(function(d){ if(d&&d.length) return; return sb.from('app_settings').insert({key:'migrate',value:val}).then(must); }).then(function(){ MIGR=JSON.parse(val); schedule(); }); }
+var MCOLS=[['ext_id','Member number or ID',/^(member|client|customer|contact)?\s*(id|number|no\.?|#)$|member id|client id|customer id|barcode/i],['name','Full name',/^(full\s*)?name$|^client$|^member$|^customer$|full name|client name|member name/i],
+  ['first','First name',/first/i],['last','Last name',/last|surname|family/i],['email','Email',/e-?mail/i],['phone','Phone',/phone|mobile|cell|tel|whats/i],
+  ['package','Package or membership',/membership|package|plan|pass|product|contract/i],['starts','Start date',/start|begin|join/i],['expires','End date',/end|expir|until|valid/i],['visits_left','Sessions left',/left|remaining|balance|credits|sessions/i],['notes','Notes',/note|comment/i]];
+function migrUpload(){ var from=(MIGR&&MIGR.from)||'';
+  var inp=h('input',{type:'file',accept:'.csv,text/csv,text/plain',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(!f) return;
+    if(/\.xlsx?$/i.test(f.name)){ toast('Open the Excel file and save it as CSV, then upload that.'); return; }
+    f.text().then(function(t){ var rows=csvRows(t); if(rows.length<2){ toast('No members found in the file.'); return; }
+      var hi=0; for(var i=0;i<Math.min(rows.length,15);i++){ if(rows[i].filter(function(x){ return x; }).length>=2&&rows[i].some(function(x){ return /name|mail|phone/i.test(x); })){ hi=i; break; } }
+      migrMap(from,rows[hi],rows.slice(hi+1)); }).catch(function(e){ toast(errText(e)); }); }});
+  document.body.appendChild(inp); inp.click(); }
+function migrMap(from,head,body){
+  var pick={}, taken={}, sels={}, err=h('p',{class:'ferr',role:'alert',hidden:true});
+  MCOLS.forEach(function(c){ for(var i=0;i<head.length;i++){ if(!taken[i]&&c[2].test(head[i])){ pick[c[0]]=i; taken[i]=1; return; } } });
+  if(pick.name!=null){ delete pick.first; delete pick.last; }
+  var flds=MCOLS.map(function(c){ var s=h('select',{id:'mi-'+c[0]},[h('option',{value:''},'Not in the file')].concat(head.map(function(x,i){ return h('option',{value:String(i)},(x||'Column '+(i+1))+(body[0]&&body[0][i]?' (for example '+body[0][i].slice(0,30)+')':'')); })));
+    if(pick[c[0]]!=null) s.value=String(pick[c[0]]); sels[c[0]]=s; return field('mi-'+c[0],c[1],s); });
+  function rowsNow(){ var col={}; MCOLS.forEach(function(c){ col[c[0]]=sels[c[0]].value===''?null:Number(sels[c[0]].value); });
+    function v(r,k){ return col[k]==null?'':String(r[col[k]]||'').trim(); }
+    return body.map(function(r){ var nm=v(r,'name')||[v(r,'first'),v(r,'last')].filter(Boolean).join(' ');
+      return {ext_id:v(r,'ext_id'),name:nm,email:v(r,'email'),phone:v(r,'phone'),notes:v(r,'notes'),package:v(r,'package'),starts:dDay(v(r,'starts'))||'',expires:dDay(v(r,'expires'))||'',visits_left:v(r,'visits_left')?dNum(v(r,'visits_left')):''}; })
+      .filter(function(r){ return r.name||r.email||r.phone; }); }
+  function go(){ var b=this, rows=rowsNow(); err.hidden=true;
+    if(!rows.length){ err.textContent='No members found with these columns. Choose at least the name, email or phone.'; err.hidden=false; return; }
+    b.disabled=true;
+    sb.rpc('import_members',{p_rows:rows,p_from:from||null,p_save:false}).then(must).then(function(d){ $dlg.close(); migrConfirm(from,rows,d); }).catch(function(e){ b.disabled=false; err.textContent=errText(e); err.hidden=false; }); }
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Your members file'),h('p',{class:'sub'},body.length+' lines. Check which column is which.'),flds,err,
+    h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),btn('Check',go,'primary'))))); }
+function migrConfirm(from,rows,d){
+  openForm({title:'Ready to bring them over',saveLabel:'Import',doneMsg:'Imported.',
+    note:d.new+' new member'+(d.new===1?'':'s')+', '+d.updated+' already here (brought up to date, nothing doubled), '+d.packages+' current package'+(d.packages===1?'':'s')+' (counted as paid before the app, so they check in from day one).'+((d.skipped||[]).length?' '+d.skipped.length+' line'+(d.skipped.length===1?'':'s')+' skipped (no name, email or phone).':'')+(featOn('alongside')?' Side by side is on: nobody is emailed.':''),
+    fields:[{key:'x',label:'',type:'info'}],
+    onSave:function(){ return sb.rpc('import_members',{p_rows:rows,p_from:from||null,p_save:true}).then(must).then(function(r){ migrLoad(); return Promise.all([reload('customers'),reload('purchases')]).then(function(){ toast(r.new+' added, '+r.updated+' updated, '+r.packages+' packages.'); }); }); }}); }
+function migrSection(){ if(!featOn('gym_import')||!me||me.role!=='manager') return null;
+  if(MIGR===null){ MIGR={}; migrLoad(); }
+  var from=MIGR.from||'', side=featOn('alongside');
+  var sel=h('select',{id:'mg-from','aria-label':'What you use now',onchange:function(){ migrSave({from:sel.value}); }},[h('option',{value:''},'Choose')].concat(OLDSYS.map(function(o){ return h('option',{value:o[0]},o[1]); })));
+  sel.value=from;
+  return section('Moving from another system',null,h('div',{class:'panel pad'},
+    h('p',null,'Keep what you use now and try this next to it. Bring your members over in one upload, run both side by side for a month, and switch when you are sure.'),
+    field('mg-from','What do you use now?',sel),
+    from?h('p',{class:'sub'},oldHow(from)):null,
+    from&&from!=='Paper'?h('div',{class:'row wrap'},btn(MIGR.last_import?'Upload a new export':'Upload your members',migrUpload,'primary'),MIGR.last_import?h('span',{class:'sub'},'Last upload '+fmtDate(String(MIGR.last_import).slice(0,10))+', '+(MIGR.rows||0)+' lines. Upload again any time: new members are added, nobody is doubled.'):null):null,
+    h('div',{class:'panel pad',style:'margin-top:12px'},h('b',null,side?'Side by side is on':'Side by side'),
+      h('p',{class:'sub'},side?'Your old system is still the main one. Members are not contacted: no welcome emails and no invites. Staff can try everything here: check ins, privates, payments.':'Try this next to your old system for the first month. Members are not contacted until you switch.'),
+      side?h('div',{class:'row wrap'},btn('Make this our main system',function(){ migrMain(); },'primary'),btn('Stop side by side',function(){ featToggle('alongside',false); },'small'))
+        :MIGR.main_at?h('div',null,h('p',{class:'sub'},'This is your main system since '+fmtDate(String(MIGR.main_at).slice(0,10))+'.'),btn('Tell your members',migrShare,'small')):btn('Run side by side',function(){ featToggle('alongside',true).then(function(){ migrSave({since:new Date().toISOString()}); }); },'small'))));
+}
+function migrMain(){
+  openForm({title:'Make this your main system',saveLabel:'Switch now',doneMsg:'Switched. This is now your main system.',
+    note:'Side by side ends. From now on members get your welcome emails as usual. Next, send your members the link to your app (below), then cancel your old system when you are ready.',
+    fields:[{key:'x',label:'',type:'info'}],
+    onSave:function(){ return featToggle('alongside',false).then(function(){ return migrSave({main_at:new Date().toISOString()}); }).then(function(){ setTimeout(migrShare,300); }); }}); }
+/* the message for members: copy it, or share it straight to WhatsApp or LINE */
+function migrShare(){ var link=appQ(''), msg='Hi, we have moved to our own app. Sign up with the email you gave us and you will see your membership, the timetable and your bookings: '+link;
+  var ta=h('textarea',{rows:'5',class:'notr',style:'width:100%'}); ta.value=msg;
+  openForm({title:'Tell your members',saveLabel:'Close',doneMsg:' ',fields:[{key:'x',label:'',type:'info'}],onSave:function(){ return true; }});
+  var info=document.querySelector('dialog .forminfo'); if(info) info.replaceChildren(h('p',{class:'sub'},'Send this to your members, in your group chat or one by one. They sign up with the email you have for them and see everything straight away.'),ta,
+    h('div',{class:'row wrap'},btn('Copy',function(){ try{ navigator.clipboard.writeText(ta.value).then(function(){ toast('Copied.'); }); }catch(e){ ta.select(); } },'primary small'),
+      h('a',{class:'btn small',href:'https://wa.me/?text='+encodeURIComponent(ta.value),target:'_blank',rel:'noopener'},'WhatsApp'),
+      h('a',{class:'btn small',href:'https://line.me/R/share?text='+encodeURIComponent(ta.value),target:'_blank',rel:'noopener'},'LINE'))); }
 function setupSteps(){
   var theme=!!pref('app_theme'), members=S.customers.filter(function(c){ return !c.is_agency; }).length;
   var checked=S.checkin_days.some(function(d){ return (d.entries||[]).length>0; });
+  if(featOn('gym_import')&&MIGR===null){ MIGR={}; migrLoad(); }
   return [
+    featOn('gym_import')?{k:'move',t:'Moving from another system?',d:'Bring your members over in one upload and try this next to your old system. Nobody is contacted until you switch.',done:!!(MIGR&&(MIGR.from||MIGR.last_import)),go:function(){ SETT.tab='general'; go('settings'); }}:null,
     {k:'look',t:'Make it yours',d:'Your logo and colours, so members see your gym.',done:theme,go:function(){ SETT.tab='look'; go('settings'); }},
     {k:'classes',t:'Add your classes',d:'Your weekly timetable, for example Muay Thai at 8:00 and 16:30.',done:S.classes.length>0,go:function(){ editClass({}); }},
     {k:'packages',t:'Add your packages',d:'What you sell: drop-ins, 10 class passes, monthly, privates.',done:S.packages.length>0,go:function(){ editPackage({}); }},
@@ -9176,7 +9250,7 @@ function setupSteps(){
     {k:'sale',t:'Sell a package',d:'Open a member and tap Sell a package. Cash, card or PromptPay QR.',done:S.purchases.length>0,go:function(){ go('customers'); }},
     {k:'checkin',t:'Check someone in',d:'Type their name on Today and tap Check in. The package counts down by itself.',done:checked,go:function(){ go('today'); setTimeout(function(){ var q=document.getElementById('q'); if(q) q.focus(); },100); }},
     {k:'team',t:'Add your team',d:'Coaches and front desk, each with their own sign in and only what they need.',done:S.staff.length>1,go:function(){ editStaff({}); }}
-  ];
+  ].filter(Boolean);
 }
 function setupGuide(){
   if(!me||me.role!=='manager'||SPA||!featOn('setup_guide')) return null;
@@ -10515,7 +10589,7 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection()];
-  else body=[ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[mgr?migrSection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
 var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
