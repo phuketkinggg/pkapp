@@ -86,3 +86,11 @@ documents, Pangea levels, habits, programs, food diary, measurements). Steps:
   Supabase Pangea project, Authentication, Redirect URLs also need https://app.phuketking.com/pangea/ and
   https://app.pangeaglobalwellness.com/ (member sign up and password links).
 
+- 13 Nov 2026 (2): Pangea website: centres come from the Pangea back office (feature centre_sites, Settings, Website, Centres and
+  their websites; centre_sites.sql). The main page lists them live, and each centre has its own page at /<slug> (centre.html,
+  routed by worker.js for any single word address that is not a file). Pangea Phuket keeps its own page (phuket.html) with live
+  prices, times and coaches from the Phuket King public site data; a centre's data_url does the same for any centre. Planned
+  centres collect "tell me when it opens" emails (pangea_interest). Rows: Pangea Phuket (open), Mauritius, Phang Nga, California.
+- 13 Nov 2026 (3): Branches (feature branches, branches.sql): the regions plan, built. Branches are the centres. staff.branches:
+  staff see only customers (home_branch) and staff of their branches, by restrictive row rules; staff with none set see all, with
+  a branch filter on Customers and Staff. Customers added by branch staff get their branch. On for Pangea.
