@@ -548,7 +548,10 @@ function fileCards(){
       d.mine?h('button',{class:'btn link',onclick:function(){ if(!confirm('Remove '+d.name+'?')) return; rpc('member_doc_remove',{p_id:d.id}).then(function(){ loadFile(); }).catch(function(e){ toast(errText(e)); }); }},'Remove'):null); })
     :h('p',{class:'empty'},'Nothing yet.'));
   var back=f.consent_at?h('p',{class:'sub center'},'You agreed to us keeping your health details on '+niceT(f.consent_at)+'. ',h('button',{class:'btn link',onclick:function(){ if(!confirm('Take back your agreement? Your coaches keep what is there, but we will ask before using it.')) return; rpc('my_consent',{p_on:false}).then(function(){ loadFile(); }); }},'Take it back')):null;
-  return [consent,details,diary,docList,back];
+  var views=MYF.views;
+  var seen=views?h('div',{class:'card'},h('h2',null,'Who opened my file'),h('div',{class:'sub'},'Every time someone in our team opens your file, it is listed here.'),
+    views.length?views.map(function(v){ return h('div',{class:'list-row'},h('div',{class:'grow'},v.by),h('div',{class:'sub'},niceT(v.at))); }):h('p',{class:'empty'},'Nobody has opened it yet.')):null;
+  return [consent,details,diary,docList,seen,back];
 }
 function inStoreApp(){ try{ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }catch(e){ return false; } }
 /* members can delete their account in the app (an App Store and Google Play rule): the same as in the Phuket King app */
