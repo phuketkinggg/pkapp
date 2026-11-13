@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=188"></script>
+<script src="changelog.js?v=189"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -674,6 +674,18 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .lang-th #view{line-height:1.6}.lang-th h1,.lang-my h1{text-transform:none;letter-spacing:0}
 .setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.setcard{position:relative;display:flex;flex-direction:column;gap:4px;text-align:left;padding:16px 34px 16px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:inherit;font:inherit;cursor:pointer;min-height:84px}.setcard b{font-size:16px}.setcard .crsgo{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--muted)}.setcard:hover{border-color:var(--gold)}
 .setinfo{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.setinfo>div{display:flex;flex-direction:column;gap:2px;min-width:0}.setinfo b{overflow-wrap:anywhere}
+.crshero{position:relative;overflow:hidden;border-radius:16px;margin:8px 0 16px;background:linear-gradient(135deg,#1b2a4a,#3a2a6b);color:#fff;min-height:150px;display:flex;align-items:flex-end}
+.crshero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35}
+.crshero .in{position:relative;padding:18px 18px 14px;width:100%}.crshero h1{color:#fff;margin:6px 0 10px;font-size:26px;line-height:1.15}.crshero p{margin:0;color:#e8e6f5;font-size:14px}
+.crshero .crsbar{background:rgba(255,255,255,.25)}.crshero.fin{background:linear-gradient(135deg,#14532d,#1f7a45)}
+.crsbadge{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--gold,#d4a017);color:#1a1a1a;font:800 11px/1.5 inherit;letter-spacing:.12em;text-transform:uppercase}
+.crsdays{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.crsday{flex:none;scroll-snap-align:center;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:92px;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.crsday b{font-size:15px}.crsday small{font-size:12px;color:var(--muted)}.crsday.done{border-color:var(--ok)}.crsday.done small{color:var(--ok)}.crsday.later{opacity:.55}
+.crsday.on{border-color:#3a2a6b;background:#3a2a6b;color:#fff}.crsday.on small{color:#e8e6f5}
+.crsdayhead{display:flex;align-items:center;gap:10px;margin:6px 0 8px}.crsdayhead h2{margin:0;font-size:20px}
+.crsnav{justify-content:space-between;margin:12px 0}.crspacebox{border:2px solid #3a2a6b;margin-bottom:12px}.crspace{margin:-6px 0 10px}.lessonlist .lnum.ok{background:var(--ok);color:var(--surface)}
+.crscard.mine{border:2px solid #3a2a6b;box-shadow:0 2px 0 #3a2a6b}.crscard.mine .crseye{color:#3a2a6b}.crscard.notmine{border:1px solid var(--line);box-shadow:none}
 .crseye{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .crshead{margin:6px 0 14px}.crshead h1{margin:2px 0 10px;font-size:26px;line-height:1.15}
 .crsbar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin-bottom:6px}.crsbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
@@ -943,6 +955,8 @@ var FEATURES=[
   {k:'file_views_member',g:'Training',n:'Members see who opened their file',d:'In their app, members see every time someone in your team opened their member file, with the name and when. Builds trust: their health details are never looked at quietly.'},
   {k:'auto_refresh',g:'Team',n:'Screens update by themselves',d:'Stays, privates, customers and the rest of the back office update by themselves every 2 minutes, so new bookings from the website, booking sites and agency emails, and changes other staff make, show without reloading. Never while a form is open or someone is typing.'},
   {k:'branches',g:'Team',n:'Branches',d:'For a business with several branches (set as centres in Settings, Website). Give each staff member their branches in Staff: they see only the customers and staff of those branches. Staff with no branch set see everything and can pick one branch or all. Customers have a home branch and one file that works at every branch.',def:false,spa:false},
+  {k:'course_days',g:'Training',n:'Courses day by day',d:'In the member app, a course opens as Day 1, Day 2 and so on (or Lesson 1, Lesson 2 when it has no days), with every step of the day on one screen. Completed lessons stay in place, ticked, and open again any time to review. Courses stand out with their own colour, and the member\'s courses come first in Learn, marked Completed when finished.'},
+  {k:'course_pace',g:'Training',n:'Members choose the course pace',d:'When a course has lessons that open on set days, the member chooses: one lesson at a time (recommended, on the days you set) or every lesson open now. They can change it any time. A lesson that opened stays open.'},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
@@ -1048,7 +1062,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=131; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=132; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4378,11 +4392,11 @@ function vLearn(){
   if(!CRS.list){ if(!CRS.busy) crsLoad(); return [pageHead('Learn',''),eduTabs(),h('div',{class:'panel empty'},CRS.err||'Loading.')]; }
   var list=CRS.list.filter(function(c){ return mgr||true; });
   return [pageHead('Learn','Video lessons and guides from the '+BIZ_MAIN+' coaches. Watch anywhere, then practise in class.'),eduTabs(),
-    list.length?h('div',{class:'crsgrid'},list.map(function(c){
-      return h('button',{type:'button',class:'crscard pvok',onclick:function(){ crsOpen(c.id); }},
+    list.length?h('div',{class:'crsgrid'},(featOn('course_days')?list.slice().sort(function(a,b){ return (b.open?1:0)-(a.open?1:0); }):list).map(function(c){
+      return h('button',{type:'button',class:'crscard pvok'+(featOn('course_days')?' mine'+(c.open?'':' notmine'):''),onclick:function(){ crsOpen(c.id); }},
         c.cover?h('img',{src:c.cover,alt:'',loading:'lazy'}):h('div',{class:'crsnoimg'},'▶'),
         h('div',{class:'in'},h('span',{class:'crseye'},'Course'),h('b',null,c.title),c.summary?h('span',{class:'sub'},c.summary):null,
-          h('div',{class:'row'},chip(c.count+' lesson'+(c.count===1?'':'s')),c.open?(c.done?chip(c.done+' of '+c.count+' done','ok'):chip('Open','ok')):chip('Locked','warn'))));
+          h('div',{class:'row'},chip(c.count+' lesson'+(c.count===1?'':'s')),c.open?(c.count&&c.done>=c.count?chip('Completed ✓','ok'):c.done?chip(c.done+' of '+c.count+' done','ok'):chip('Open','ok')):chip('Locked','warn'))));
     })):h('div',{class:'panel empty'},'No courses yet. Check back soon.')];
 }
 function crsCourseView(asMgr){
@@ -4392,8 +4406,8 @@ function crsCourseView(asMgr){
     return [h('div',{class:'row'},back),pageHead(cur.title,c.title+', lesson '+(i+1)+' of '+L.length+(cur.minutes?', '+cur.minutes+' min':'')),
       cur.opens?h('div',{class:'panel pad crslock'},h('b',null,'This lesson opens '+lessonOpens(cur.opens)),h('p',{class:'sub'},'Lessons open one by one as you go through the course. Come back then.')):cur.open?h('div',{class:'panel pad lesson'},learnVideo(cur),cur.body?lessonText(cur.body):null,fileList(cur.files),
         !cur.video&&!cur.video_path&&!cur.body&&!(cur.files||[]).length?h('p',{class:'sub'},'Nothing in this lesson yet.'):null):crsLocked(c),
-      cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?'Done ✓ (tap to undo)':'Mark as done',function(){ crsLessonDone(c,cur,!cur.done).then(function(){ if(cur.done){ CRS.lesson=null; schedule(); window.scrollTo(0,0); toast('Done. It moved to your done list.'); } }); },cur.done?'small':'primary'),
-        nxt&&!(me.role==='customer'&&c.open)?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
+      cur.open&&me.role==='customer'?h('div',{class:'row'},btn(cur.done?(featOn('course_days')?'Completed ✓ (tap to undo)':'Done ✓ (tap to undo)'):(featOn('course_days')?'Mark complete':'Mark as done'),function(){ crsLessonDone(c,cur,!cur.done).then(function(){ if(cur.done){ if(featOn('course_days')){ toast('Marked complete. It stays in the course to watch again.'); return; } CRS.lesson=null; schedule(); window.scrollTo(0,0); toast('Done. It moved to your done list.'); } }); },cur.done?'small':'primary'),
+        nxt&&(featOn('course_days')?nxt.open:!(me.role==='customer'&&c.open))?btn('Next lesson',function(){ CRS.lesson=nxt.id; schedule(); window.scrollTo(0,0); }):null):null];
   }
   if(c.open&&(PV||me&&me.role==='customer')&&!asMgr) return crsSteps(c,back);
   var done=L.filter(function(l){ return l.done; }).length;
@@ -4417,6 +4431,55 @@ function crsLessonDone(c,l,on){
     calls.push(sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); })); } }); });
   return Promise.all(calls).then(function(){ l.done=on; schedule(); return true; }).catch(function(e){ toast(errText(e)); schedule(); return false; });
 }
+/* the course day by day (feature course_days): a coloured course banner, Day 1, Day 2 (or Lesson 1, Lesson 2) to move through it,
+   and every step of a day on one screen. Done steps stay where they are, ticked, and open again any time to review. */
+function crsDayOf(it){ return it&&it.at_mode==='day'&&Number(it.at_n)>0?Number(it.at_n):null; }
+/* drip or all at once (feature course_pace): asked once when the course has lessons on days; changeable any time */
+function crsPaceSet(c,p){ return sb.rpc('course_pace_set',{p_course:c.id,p_pace:p}).then(must).then(function(){ toast(p==='all'?'All lessons are open.':'Lessons open one by one on their days.'); return crsOpen(c.id); }).catch(function(e){ toast(errText(e)); }); }
+function crsPaceBox(c){ if(PV||!featOn('course_pace')||c.pace_on===false||!me||me.role!=='customer'||!(c.lessons||[]).some(function(l){ return l.open_day>1; })) return null;
+  if(c.pace) return h('p',{class:'sub crspace'},c.pace==='all'?'All lessons are open. ':'Lessons open one by one, the way we recommend. ',linkBtn(c.pace==='all'?'Go back to one at a time':'Open all lessons now',function(){ crsPaceSet(c,c.pace==='all'?'drip':'all'); }));
+  return h('div',{class:'panel pad crspacebox'},h('b',null,'How do you want to take this course?'),
+    h('p',{class:'sub'},'We recommend one lesson every other day: watch it, practise it in class, then move on. Or open every lesson now and go at your own speed. You can change this any time.'),
+    h('div',{class:'row wrap'},btn('One lesson at a time (recommended)',function(){ crsPaceSet(c,'drip'); },'primary pvok'),btn('All lessons now',function(){ crsPaceSet(c,'all'); },'pvok'))); }
+function crsDays(c,back,steps){
+  var L=c.lessons||[], byDay={}, days=[], hasDay=steps.some(function(x){ return x.day; });
+  steps.forEach(function(x,i){ var d=hasDay?(x.day||1):(i+1); if(!byDay[d]){ byDay[d]=[]; days.push(d); } byDay[d].push(x); });
+  days.sort(function(a,b){ return a-b; });
+  var word=hasDay?'Day':'Lesson';
+  function dst(d){ var l=byDay[d]; return l.every(function(x){ return x.state==='done'; })?'done':l.every(function(x){ return x.state==='later'; })?'later':'open'; }
+  var k='crsday'+c.id, sel=COACHM.open[k];
+  if(sel==null||!byDay[sel]){ sel=days.filter(function(d){ return dst(d)==='open'; })[0]; if(sel==null){ var op=days.filter(function(d){ return dst(d)!=='later'; }); sel=op.length?op[op.length-1]:days[0]; } }
+  var done=steps.filter(function(x){ return x.state==='done'; }).length, n=steps.length, pct=n?Math.round(done*100/n):0, finished=n&&done===n;
+  var nextLater=steps.filter(function(x){ return x.state==='later'; })[0];
+  var bar=h('div',{class:'crsdays',role:'tablist','aria-label':'Days of the course'},days.map(function(d){ var s=dst(d), first=byDay[d][0];
+    return h('button',{type:'button',role:'tab','aria-selected':d===sel?'true':'false',class:'crsday pvok '+s+(d===sel?' on':''),onclick:function(){ COACHM.open[k]=d; schedule(); }},
+      h('b',null,word+' '+d),h('small',null,s==='done'?'✓ Done':s==='later'?(first.when?'Opens '+first.when:'Soon'):byDay[d].filter(function(x){ return x.state==='todo'; }).length+' to do')); }));
+  setTimeout(function(){ var on=document.querySelector('.crsday.on'); if(on&&on.scrollIntoView) on.scrollIntoView({block:'nearest',inline:'center'}); },0);
+  var list=byDay[sel]||[], dayState=dst(sel), firstTodo=list.filter(function(x){ return x.state==='todo'; })[0];
+  function row(x){ var key=x.key, o=COACHM.open[key]!==undefined?COACHM.open[key]:x===firstTodo, isDone=x.state==='done', isLater=x.state==='later';
+    return h('div',{class:'panel pad gstep crsstep '+x.state},
+      h('div',{class:'hrow'},
+        h('span',{class:'lnum'},isDone?'✓':isLater?'🔒':'•'),
+        h('button',{type:'button',class:'gsteph pvok',disabled:isLater?'':null,onclick:isLater?null:function(){ COACHM.open[key]=!o; schedule(); }},
+          h('small',{class:'sub'},isDone?'Completed, tap to review':isLater?(x.when?'Opens '+x.when:'Opens later'):x.kind),h('b',null,x.title)),
+        isLater?null:h('button',{type:'button',class:'gtick'+(isDone?' on':''),'aria-pressed':isDone?'true':'false','aria-label':isDone?'Completed, tap to undo':'Mark complete',onclick:function(e){ e.currentTarget.disabled=true; x.tick(!isDone).then(function(ok){ if(ok&&!isDone) toast('Marked complete.'); }); }},isDone?'✓':'')),
+      o&&!isLater?h('div',{class:'gstepb'},x.body()):null); }
+  var di=days.indexOf(sel), prev=days[di-1], next=days[di+1];
+  return [h('div',{class:'row'},back),
+    h('div',{class:'crshero'+(finished?' fin':'')},c.cover?h('img',{src:c.cover,alt:''}):null,
+      h('div',{class:'in'},h('span',{class:'crsbadge'},finished?'Course complete ✓':'Course'),h('h1',null,c.title),
+        h('div',{class:'crsbar',role:'progressbar','aria-valuenow':String(pct),'aria-valuemin':'0','aria-valuemax':'100'},h('i',{style:'width:'+pct+'%'})),
+        h('p',null,n?done+' of '+n+' complete'+(finished?'. Everything stays here to watch again.':nextLater&&!steps.some(function(x){ return x.state==='todo'; })?'. Next opens '+nextLater.when+'.':''):'No lessons yet.'))),
+    crsPaceBox(c),
+    days.length>1?bar:null,
+    h('div',{class:'crsdayhead'},h('h2',null,word+' '+sel),dayState==='done'?chip('Completed','ok'):dayState==='later'?chip('Coming up'):null),
+    list.length?h('div',{class:'hlist'},list.map(row)):h('div',{class:'panel empty'},'Nothing on this day.'),
+    days.length>1?h('div',{class:'row crsnav'},prev!=null?btn('‹ '+word+' '+prev,function(){ COACHM.open[k]=prev; schedule(); window.scrollTo(0,0); },'pvok'):h('span'),next!=null?btn(word+' '+next+' ›',function(){ COACHM.open[k]=next; schedule(); window.scrollTo(0,0); },'primary pvok'):null):null,
+    L.length?section('All lessons',null,h('div',{class:'panel lessonlist'},L.map(function(l,i){
+      return h('button',{type:'button',class:'lrow pvok'+(l.open?'':' locked'),disabled:l.open?null:'',onclick:l.open?function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); }:null},
+        h('span',{class:'lnum'+(l.done?' ok':'')},l.done?'✓':String(i+1)),h('span',{class:'lt'},h('b',null,l.title),h('small',{class:'sub'},l.done?'Completed, watch again any time':l.opens?'Opens '+lessonOpens(l.opens):l.has_video?'Video lesson':'Lesson'))); }))):null,
+    c.about?section('About this course',null,h('div',{class:'panel pad'},lessonText(c.about))):null];
+}
 function crsSteps(c,back){
   var L=c.lessons||[], d=COACHM.data;
   if((c.groups||[]).length&&!d){ if(!COACHM.busy) cmLoad(); return [h('div',{class:'row'},back),h('div',{class:'crseye'},'Course'),pageHead(c.title,''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
@@ -4426,19 +4489,20 @@ function crsSteps(c,back){
     (g.items||[]).filter(function(it){ return it.kind!=='email'; }).forEach(function(it){
       var les=it.kind==='lesson'?lessonOf(it.lesson_id):null; if(les) used[les.id]=1;
       var gdone=(g.done||[]).indexOf(it.id)>=0;
-      steps.push({key:'g'+g.member_id+it.id,title:it.title||(les&&les.title)||gKind(it.kind),kind:gKind(it.kind),state:gdone||(les&&les.done)?'done':'todo',
+      steps.push({key:'g'+g.member_id+it.id,day:crsDayOf(it)||(les&&les.open_day)||null,title:it.title||(les&&les.title)||gKind(it.kind),kind:gKind(it.kind),state:gdone||(les&&les.done)?'done':'todo',
         body:function(){ return [it.text?lessonText(it.text):null,les?btn('Open the lesson',function(){ CRS.lesson=les.id; schedule(); window.scrollTo(0,0); },'primary small pvok'):it.kind==='lesson'?null:gStepBody(it)[1]]; },
         tick:function(on){ var p=sb.rpc('group_step_done',{p_member:g.member_id,p_item:it.id,p_done:on}).then(must).then(function(){ g.done=on?(g.done||[]).concat([it.id]):(g.done||[]).filter(function(x){ return x!==it.id; }); });
           return (les&&les.done!==on?Promise.all([p,sb.rpc('course_done',{p_lesson:les.id,p_done:on}).then(must).then(function(){ les.done=on; })]):p).then(function(){ schedule(); return true; }).catch(function(e){ toast(errText(e)); schedule(); return false; }); }});
     });
-    (g.later||[]).forEach(function(it){ steps.push({key:'g'+g.member_id+it.id,title:it.title||gKind(it.kind),kind:gKind(it.kind),state:'later',when:it.on===cAdd(today,1)?'tomorrow':fmtDate(it.on)}); });
+    (g.later||[]).forEach(function(it){ if(c.pace==='all'&&it.kind==='lesson') return; steps.push({key:'g'+g.member_id+it.id,day:crsDayOf(it),title:it.title||gKind(it.kind),kind:gKind(it.kind),state:'later',when:it.on===cAdd(today,1)?'tomorrow':fmtDate(it.on)}); });
   });
   L.forEach(function(l){ if(used[l.id]) return;
-    steps.push({key:'l'+l.id,title:l.title,kind:[l.has_video?'Video lesson':'Lesson',l.minutes?l.minutes+' min':null].filter(Boolean).join(', '),
+    steps.push({key:'l'+l.id,day:l.open_day||null,title:l.title,kind:[l.has_video?'Video lesson':'Lesson',l.minutes?l.minutes+' min':null].filter(Boolean).join(', '),
       state:l.opens?'later':!l.open?'later':l.done?'done':'todo',when:l.opens?lessonOpens(l.opens):'',
       body:function(){ return [btn(l.has_video?'Watch the lesson':'Open the lesson',function(){ CRS.lesson=l.id; schedule(); window.scrollTo(0,0); },'primary small pvok')]; },
       tick:function(on){ return crsLessonDone(c,l,on); }});
   });
+  if(featOn('course_days')) return crsDays(c,back,steps);
   var todo=steps.filter(function(x){ return x.state==='todo'; }), later=steps.filter(function(x){ return x.state==='later'; }), done=steps.filter(function(x){ return x.state==='done'; });
   var n=steps.length, pct=n?Math.round(done.length*100/n):0, k='crs'+c.id, showDone=COACHM.open[k+'done'], showAbout=COACHM.open[k+'about'];
   function row(x,i,first){ var o=COACHM.open[x.key]!==undefined?COACHM.open[x.key]:first, isDone=x.state==='done', isLater=x.state==='later';
