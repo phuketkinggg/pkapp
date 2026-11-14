@@ -97,7 +97,7 @@ $f$;
 -- every request from GetYourGuide: p = {op, user, pass, query or data}
 create or replace function public.gyg_api(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare op text := p->>'op'; q jsonb := coalesce(p->'query', '{}'::jsonb); d jsonb := coalesce(p->'data', '{}'::jsonb);
-  cr jsonb; k public.gyg_products; h public.gyg_holds; t_at timestamptz; n int; v int; r jsonb; nm text; tr jsonb; res jsonb; cats jsonb;
+  cr jsonb; k public.gyg_products; h public.gyg_holds; t_at timestamptz; n int; v int; mx int; need int; r jsonb; nm text; tr jsonb; res jsonb; cats jsonb;
 begin
   if not private.feature('gyg_connect', false) then return private.gyg_err('AUTHORIZATION_FAILURE', 'This connection is switched off.'); end if;
   cr := private.gyg_cred();
@@ -145,12 +145,14 @@ begin
       or (i->>'category' = 'CHILD' and k.child_thb is null and k.adult_thb is not null)) then return private.gyg_err('INVALID_TICKET_CATEGORY', 'Only adults and children.'); end if;
     select coalesce(sum((i->>'count')::int), 0) into n from jsonb_array_elements(coalesce(d->'bookingItems', '[]'::jsonb)) i;
     if n < 1 then return private.gyg_err('VALIDATION_FAILURE', 'No travellers.'); end if;
-    if n > case when k.kind = 'private' then 10 else k.capacity end then
-      return jsonb_build_object('errorCode', 'INVALID_PARTICIPANTS_CONFIGURATION', 'errorMessage', 'Too many travellers.', 'participantsConfiguration', jsonb_build_object('min', 1, 'max', case when k.kind = 'private' then 10 else k.capacity end));
+    mx := case when k.kind = 'private' then 10 else k.capacity end;
+    if n > mx then
+      return jsonb_build_object('errorCode', 'INVALID_PARTICIPANTS_CONFIGURATION', 'errorMessage', 'Too many travellers.', 'participantsConfiguration', jsonb_build_object('min', 1, 'max', mx));
     end if;
     perform pg_advisory_xact_lock(hashtext('gyg:' || k.id || ':' || t_at::text));
     select s.vacancies into v from private.gyg_slots(k.id, t_at, t_at) s where s.slot_at = t_at;
-    if coalesce(v, 0) < case when k.kind = 'private' then 1 else n end then return private.gyg_err('NO_AVAILABILITY', 'That time is full.'); end if;
+    need := case when k.kind = 'private' then 1 else n end;
+    if coalesce(v, 0) < need then return private.gyg_err('NO_AVAILABILITY', 'That time is full.'); end if;
     insert into public.gyg_holds (product_id, at, people, items, gyg_ref, expires_at)
       values (k.id, t_at, n, d->'bookingItems', d->>'gygBookingReference', now() + interval '60 minutes') returning * into h;
     return jsonb_build_object('data', jsonb_build_object('reservationReference', h.ref, 'reservationExpiration', to_char(h.expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS') || '+00:00'));
@@ -170,7 +172,8 @@ begin
     end if;
     if h.expires_at < now() then
       select s.vacancies into v from private.gyg_slots(k.id, h.at, h.at) s where s.slot_at = h.at;
-      if coalesce(v, 0) < case when k.kind = 'private' then 1 else h.people end then return private.gyg_err('NO_AVAILABILITY', 'The hold ran out and the time is now full.'); end if;
+      need := case when k.kind = 'private' then 1 else h.people end;
+      if coalesce(v, 0) < need then return private.gyg_err('NO_AVAILABILITY', 'The hold ran out and the time is now full.'); end if;
     end if;
     tr := coalesce(d->'travelers'->0, '{}'::jsonb);
     nm := nullif(btrim(concat_ws(' ', tr->>'firstName', tr->>'lastName')), '');
