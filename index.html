@@ -944,6 +944,7 @@ var FEATURES=[
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'audit_log',g:'Team',n:'Who did what',d:'Every new, changed or deleted stay, private, package sold, payment, room charge, customer, staff member, package and product is written down with who did it and when, and what changed (before and after). Managers see a History button on each stay, private and customer, and everything in Settings, Activity. Kept for a year.'},
   {k:'private_cancel',g:'Training',n:'Cancel or no show for privates',d:'A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.',spa:false},
+  {k:'notify_choice',g:'Messages',n:'Each person chooses their notifications',d:'Each person picks what comes to their phone: privates and rooms booked, packages bought or ordered in the app, packages sold and rooms booked by the team, and every till sale. Managers can set it for anyone. Settings, Messages, Phone notifications.'},
   {k:'private_group_price',g:'Training',n:'Privates priced by people and coaches',d:'A private package can have prices for more people or more coaches, for example 2 people with 1 coach. The customer picks how many when buying in the app, and the front desk when selling. Packs and bigger amounts keep their discount. Set the prices on the package.'},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
@@ -4036,7 +4037,7 @@ function waBox(){
       featOn('whatsapp_inbox')?btn(WA.connected?'Reconnect WhatsApp':'Connect WhatsApp',waConnect,WA.connected?'small':'primary small'):null,
       featOn('whatsapp_inbox')&&WA.connected?btn('Check',waCheck,'small'):null,
       featOn('ai_reply')?btn('AI replies',aiReplyForm,'small'):null,
-      featOn('booking_push')?btn('Booking notifications',bookPushForm,'small'):null):null);
+      featOn('booking_push')?btn('Notifications',bookPushForm,'small'):null):null);
 }
 function waCheck(){
   sb.functions.invoke('meta',{body:{mode:'wa_check'}}).then(function(r){ var d=r.data||{};
@@ -4134,17 +4135,41 @@ function fbDone(d){
 function fbDisconnect(){ if(!confirm('Disconnect the Facebook page? Messages and posts stop until you connect again.')) return;
   metaCall({mode:'fb_disconnect'}).then(function(d){ fbDone(); toast(d.still?'Disconnected. The page set up for you before is used again.':'Facebook and Instagram disconnected.'); }).catch(function(e){ toast(errText(e)); }); }
 // new bookings not made by the team (feature booking_push): who gets the phone notification, and for what
+var NKINDS=[['private','Privates booked by customers'],['stay','Rooms booked online'],['package','Packages bought and paid online'],['order','Packages ordered in the app, to pay at the desk'],['class','Group class guests from agencies'],
+  ['sale_package','Packages sold by the team'],['sale_stay','Rooms booked by the team'],['sale_till','Every till sale (shop, cafe and drinks)']];
+function nkindsFor(){ return featOn('notify_choice')?NKINDS:NKINDS.filter(function(k){ return !/^(sale_|order)/.test(k[0]); }); }
 function bookPushForm(){
-  sb.rpc('booking_push_settings').then(must).then(function(c){ c=c||{};
-    openForm({title:'Booking notifications',saveLabel:'Save',doneMsg:'Saved.',
-      note:'A phone notification for every new booking that did not come from your team: online, in the member app, from booking sites and agency emails. Each person turns notifications on once on their own phone: Messages, Turn on notifications on this phone. Coaches get their own privates anyway.',
-      fields:[{key:'kinds',label:'Notify for',type:'checks',def:c.kinds||['private','stay','package','class'],options:[['private','Privates booked'],['stay','Rooms booked'],['package','Packages bought online'],['class','Group class guests from agencies']]},
-        {key:'roles',label:'Who gets them',type:'checks',def:c.roles||['manager','front_desk'],options:[['manager','Managers'],['admin','Admins'],['front_desk','Front desk'],['resort','Resort staff'],['kitchen','Kitchen']]},
-        {key:'email',label:'Also email every new booking to',type:'email',def:c.email||'',hint:'Optional. For example your business email. Leave empty for phone notifications only.'}],
+  sb.rpc('booking_push_settings').then(must).then(function(c){ c=c||{}; var ppl=c.people||{}, roles0=c.roles||['manager','front_desk'], kinds0=c.kinds||['private','stay','package','class'];
+    var per=featOn('notify_choice')?(c.staff||[]).filter(function(st){ return st.role!=='coach'||ppl[st.id]; }):[];
+    function roleDef(st){ return roles0.indexOf(st.role)>=0?kinds0.slice():[]; }
+    openForm({title:'Notifications',saveLabel:'Save',doneMsg:'Saved.',
+      note:'Choose who gets a phone notification for what. Each person turns notifications on once on their own phone: Messages, Turn on notifications on this phone. Messages and a coach\'s own privates always notify.',
+      fields:[{key:'kinds',label:'Everyone in these roles gets',type:'checks',def:kinds0,options:nkindsFor()},
+        {key:'roles',label:'Roles',type:'checks',def:roles0,options:[['manager','Managers'],['admin','Admins'],['front_desk','Front desk'],['resort','Resort staff'],['kitchen','Kitchen']]}].concat(
+        per.length?[{key:'per_info',label:'Each person',type:'info',def:'Tick exactly what each person gets. This wins over the roles above. A person can also change their own in Messages, My notifications.'}]:[],
+        per.map(function(st){ return {key:'pp_'+st.id,label:st.name+' ('+(ROLES&&ROLES[st.role]||st.role)+')'+(st.phone?'':', notifications not turned on yet'),type:'checks',def:ppl[st.id]||roleDef(st),options:nkindsFor()}; }),
+        [{key:'email',label:'Also email every new customer booking to',type:'email',def:c.email||'',hint:'Optional. For example your business email. Leave empty for phone notifications only.'}]),
       onSave:function(v){ var em=String(v.email||'').trim(); if(em&&!/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(em)) return 'Check the email address, or leave it empty.';
-        return sb.rpc('booking_push_settings_save',{p:{kinds:v.kinds||[],roles:v.roles||[],email:em}}).then(must); }});
+        var people={}, nr=v.roles||[], nk=v.kinds||[];
+        per.forEach(function(st){ var pick=(v['pp_'+st.id]||[]).slice().sort(), def=(nr.indexOf(st.role)>=0?nk:[]).slice().sort();
+          if(ppl[st.id]||pick.join()!==def.join()) people[st.id]=pick; });
+        return sb.rpc('booking_push_settings_save',{p:{kinds:nk,roles:nr,email:em,people:featOn('notify_choice')?people:undefined}}).then(must); }});
   }).catch(function(e){ toast(errText(e)); });
 }
+/* each person: which notifications come to their phone (feature notify_choice) */
+function myPushForm(){
+  sb.rpc('my_push_kinds').then(must).then(function(c){ c=c||{}; var coach=c.role==='coach';
+    openForm({title:'My notifications',saveLabel:'Save',doneMsg:'Saved. Your phone gets what you ticked.',
+      note:(coach?'You always get your messages and a notification when a private is booked with you, moved or cancelled. ':'You always get your messages. ')+'Tick anything else you want on your phone. Notifications must be on for this phone: Messages, Turn on notifications on this phone.',
+      fields:[{key:'kinds',label:'Also notify me for',type:'checks',def:c.kinds||[],options:nkindsFor()},
+        {key:'reset',label:'Use the normal settings for my role instead',type:'checkbox',hide:!c.own}],
+      onSave:function(v){ return sb.rpc('my_push_kinds_save',{p_kinds:v.reset?null:(v.kinds||[])}).then(must); }});
+  }).catch(function(e){ toast(errText(e)); });
+}
+function notifySection(){ var mgr=me&&me.role==='manager';
+  return section('Phone notifications',null,h('div',{class:'panel pad'},
+    h('p',{class:'sub',style:'margin:0 0 8px'},'Choose what comes to your phone: bookings, purchases, room bookings, sales at the till.'+(mgr?' As a manager you can set it for everyone.':'')),
+    h('div',{class:'row wrap',style:'gap:8px;align-items:center'},pushBtn(),featOn('notify_choice')?btn('My notifications',myPushForm,'small'):null,mgr&&featOn('booking_push')?btn('Everyone\'s notifications',bookPushForm,'small'):null))); }
 function aiReplyForm(){
   var c=AIR||{};
   openForm({title:'AI replies',saveLabel:'Save',doneMsg:'AI replies saved.',
@@ -4201,7 +4226,7 @@ function pushBtn(){
   if(!PUSH.can&&inStoreApp()) return h('span',{class:'sub'},'Update the app from the App Store or Google Play to turn on notifications.');
   if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'Notifications do not work in Safari. Open the app on your phone, or Share, Add to Home Screen, and turn them on there.':'This browser cannot show notifications.');
   if(PUSH.on===null) return null;
-  return PUSH.on?h('span',{class:'row',style:'gap:8px;display:inline-flex;flex-wrap:wrap'},btn('Notifications on this phone: ON',pushOff,'small'),btn('Send a test',pushTest,'small')):btn('Turn on notifications on this phone',pushOn,'primary small');
+  return PUSH.on?h('span',{class:'row',style:'gap:8px;display:inline-flex;flex-wrap:wrap'},btn('Notifications on this phone: ON',pushOff,'small'),btn('Send a test',pushTest,'small'),featOn('notify_choice')?btn('My notifications',myPushForm,'small'):null):btn('Turn on notifications on this phone',pushOn,'primary small');
 }
 function pushTest(){ toast('Sending a test...');
   sb.functions.invoke('chat',{body:{mode:'test'}}).then(function(r){ var d=r.data||{}; if(d.error) throw new Error(d.error); var res=d.results||[];
@@ -10460,7 +10485,7 @@ function navEdit(){
 var SETT={tab:pref('pk_settab')||'home'};
 function setTabs(){ var mgr=me.role==='manager'; if(OWN===undefined) ownLoad(); var deep=!(OWN&&OWN.locked&&!OWN.me);
   return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],deep?['features','Features','Switch parts of the app on or off, languages']:null,
-    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,histOk()?['activity','Activity','Who did what, and when']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr&&deep?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Welcome, review and renewal messages']:null,
+    mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,histOk()?['activity','Activity','Who did what, and when']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr&&deep?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Phone notifications, welcome, review and renewal messages']:null,
     ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
     .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
 /* who did what (feature audit_log): the history of a stay, private or customer, and everything lately, for managers */
@@ -10598,7 +10623,7 @@ function vSettings(){
   else if(t==='plan') body=[planSection()];
   else if(t==='activity') body=[histOk()?auditSection():null];
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
-  else if(t==='messages') body=[welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
+  else if(t==='messages') body=[notifySection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
@@ -10617,7 +10642,7 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection()];
-  else body=[mgr?migrSection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
 var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
