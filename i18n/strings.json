@@ -24422,5 +24422,45 @@
 "Turning on notifications...": [
 "กำลังเปิดการแจ้งเตือน...",
 "အသိပေးချက်များ ဖွင့်နေသည်..."
+],
+"A private package can have prices for more people or more coaches, for example 2 people with 1 coach. The customer picks how many when buying in the app, and the front desk when selling. Packs and bigger amounts keep their discount. Set the prices on the package.": [
+"แพ็กเกจไพรเวทสามารถตั้งราคาสำหรับคนหรือโค้ชเพิ่มได้ เช่น 2 คนกับโค้ช 1 คน ลูกค้าเลือกจำนวนตอนซื้อในแอป และหน้าเคาน์เตอร์เลือกตอนขาย แพ็กและจำนวนที่มากขึ้นยังได้ส่วนลดเท่าเดิม ตั้งราคาได้ที่แพ็กเกจ",
+"ပုဂ္ဂလိက ပက်ကေ့ချ်တွင် လူ သို့မဟုတ် နည်းပြ ပိုများအတွက် ဈေးနှုန်း ထားနိုင်သည်၊ ဥပမာ လူ 2 ယောက်နှင့် နည်းပြ 1 ယောက်။ ဖောက်သည်က အက်ပ်တွင် ဝယ်ချိန် ရွေးပြီး ရှေ့ကောင်တာက ရောင်းချိန် ရွေးသည်။ ပက်ခ်နှင့် အရေအတွက်များလျှင် လျှော့ဈေး ဆက်ရသည်။ ပက်ကေ့ချ်တွင် ဈေးနှုန်း သတ်မှတ်ပါ။"
+],
+"Each number of people and coaches can only be listed once.": [
+"จำนวนคนและโค้ชแต่ละแบบใส่ได้ครั้งเดียว",
+"လူနှင့် နည်းပြ အရေအတွက် တစ်မျိုးစီကို တစ်ကြိမ်သာ ထည့်နိုင်သည်။"
+],
+"People 1 to 20, coaches 1 to 10, and a price for each.": [
+"คน 1 ถึง 20 โค้ช 1 ถึง 10 และราคาของแต่ละแบบ",
+"လူ 1 မှ 20၊ နည်းပြ 1 မှ 10 နှင့် တစ်ခုစီအတွက် ဈေးနှုန်း။"
+],
+"People and coaches": [
+"จำนวนคนและโค้ช",
+"လူနှင့် နည်းပြ"
+],
+"Prices for more people or coaches (privates)": [
+"ราคาสำหรับคนหรือโค้ชเพิ่ม (ไพรเวท)",
+"လူ သို့မဟုတ် နည်းပြ ပိုများအတွက် ဈေးနှုန်း (ပုဂ္ဂလိက)"
+],
+"Privates priced by people and coaches": [
+"ราคาไพรเวทตามจำนวนคนและโค้ช",
+"လူနှင့် နည်းပြ အရေအတွက်အလိုက် ပုဂ္ဂလိက ဈေးနှုန်း"
+],
+"The price changes with how many people train and how many coaches teach. Set the prices on the package.": [
+"ราคาเปลี่ยนตามจำนวนคนที่ฝึกและจำนวนโค้ชที่สอน ตั้งราคาได้ที่แพ็กเกจ",
+"လေ့ကျင့်သူ အရေအတွက်နှင့် သင်ကြားသည့် နည်းပြ အရေအတွက်အလိုက် ဈေးနှုန်း ပြောင်းသည်။ ပက်ကေ့ချ်တွင် ဈေးနှုန်း သတ်မှတ်ပါ။"
+],
+"The price of one session for that many people and coaches. Write it as 2 people 1 coach: 1400, 2 people 2 coaches: 1800, 3 people 1 coach: 1800. One person with one coach is the normal price above. Packs and bigger amounts get the same discount. Leave empty if it is always one person.": [
+"ราคาต่อครั้งสำหรับจำนวนคนและโค้ชนั้น เขียนแบบนี้ 2 people 1 coach: 1400, 2 people 2 coaches: 1800, 3 people 1 coach: 1800 หนึ่งคนกับโค้ชหนึ่งคนคือราคาปกติด้านบน แพ็กและจำนวนที่มากขึ้นได้ส่วนลดเท่ากัน เว้นว่างถ้ามีคนเดียวเสมอ",
+"ထိုလူနှင့် နည်းပြ အရေအတွက်အတွက် တစ်ကြိမ်ဈေး။ ဤသို့ ရေးပါ 2 people 1 coach: 1400, 2 people 2 coaches: 1800, 3 people 1 coach: 1800။ လူ 1 ယောက်နှင့် နည်းပြ 1 ယောက်သည် အထက်ပါ ပုံမှန်ဈေး ဖြစ်သည်။ ပက်ခ်နှင့် အရေအတွက်များလျှင် လျှော့ဈေး အတူတူ ရသည်။ အမြဲ တစ်ယောက်တည်းဆိုလျှင် အလွတ်ထားပါ။"
+],
+"Write each one as people, coaches and price, like 2 people 1 coach: 1400, 2 people 2 coaches: 1800.": [
+"เขียนแต่ละรายการเป็นจำนวนคน โค้ช และราคา เช่น 2 people 1 coach: 1400, 2 people 2 coaches: 1800",
+"တစ်ခုစီကို လူ၊ နည်းပြနှင့် ဈေးနှုန်း အဖြစ် ရေးပါ၊ ဥပမာ 2 people 1 coach: 1400, 2 people 2 coaches: 1800။"
+],
+"Train with a friend or with more coaches. The price changes with how many.": [
+"ฝึกกับเพื่อนหรือกับโค้ชหลายคน ราคาเปลี่ยนตามจำนวน",
+"သူငယ်ချင်းနှင့် သို့မဟုတ် နည်းပြ ပိုများနှင့် လေ့ကျင့်ပါ။ အရေအတွက်အလိုက် ဈေးနှုန်း ပြောင်းသည်။"
 ]
 }

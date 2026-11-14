@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=192"></script>
+<script src="changelog.js?v=193"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -894,6 +894,20 @@ function parseTiers(str){ str=String(str||'').trim(); if(!str) return null; var 
   for(var i=1;i<out.length;i++) if(out[i].from===out[i-1].from) throw new Error('Each amount can only be listed once.');
   return out; }
 function tiersLine(t,unit){ var per=unit==='days'?' a day':' each'; var s=t.slice().sort(function(a,b){return a.from-b.from;}); return s.map(function(x,i){ var nx=s[i+1]; return (nx?(nx.from-1===x.from?x.from:x.from+' to '+(nx.from-1)):x.from+' or more')+(unit==='days'?' days':'')+': '+thb(x.price)+per; }).join(', '); }
+/* privates priced by people and coaches (feature private_group_price): prices for one session at the package's normal rate */
+function grpLabel(p,c){ return p+(p===1?' person, ':' people, ')+c+(c===1?' coach':' coaches'); }
+function grpText(g){ return (g||[]).map(function(x){ return x.people+(x.people===1?' person ':' people ')+x.coaches+(x.coaches===1?' coach':' coaches')+': '+x.price; }).join(', '); }
+function grpParse(str){ var n=String(str||'').match(/\d+/g)||[]; if(!n.length) return null;
+  if(n.length%3) throw new Error('Write each one as people, coaches and price, like 2 people 1 coach: 1400, 2 people 2 coaches: 1800.');
+  var out=[], seen={}; for(var i=0;i<n.length;i+=3){ var x={people:+n[i],coaches:+n[i+1],price:+n[i+2]};
+    if(x.people<1||x.people>20||x.coaches<1||x.coaches>10||!(x.price>0)) throw new Error('People 1 to 20, coaches 1 to 10, and a price for each.');
+    if(x.people===1&&x.coaches===1) continue; var k=x.people+'x'+x.coaches; if(seen[k]) throw new Error('Each number of people and coaches can only be listed once.'); seen[k]=1; out.push(x); }
+  out.sort(function(a,b){ return a.people-b.people||a.coaches-b.coaches; }); return out.length?out:null; }
+function grpOn(pk){ return featOn('private_group_price')&&!!pk&&(pk.covers||[]).indexOf('Privates')>=0&&Array.isArray(pk.group_prices)&&pk.group_prices.length>0; }
+function grpOpts(pk){ return [['1x1',grpLabel(1,1)]].concat(grpOn(pk)?pk.group_prices.map(function(x){ return [x.people+'x'+x.coaches,grpLabel(x.people,x.coaches)+' ('+thb(x.price)+' a session)']; }):[]); }
+function grpRatio(pk,key){ if(!key||key==='1x1'||!grpOn(pk)) return 1; var a=key.split('x'), g=pk.group_prices.filter(function(x){ return x.people===+a[0]&&x.coaches===+a[1]; })[0]; if(!g) return 1;
+  var b=hasTiers(pk.tiers)?tierUnit(pk.tiers,1):(Number(pk.price_thb)||0)/Math.max(pk.class_limit||1,1); return b>0?g.price/b:1; }
+function grpPrice(pk,key,amt){ var r=grpRatio(pk,key); return r===1?amt:Math.round(amt*r/10)*10; }
 function canBuy(pk,group){ var a=pk.audience||'all'; return a==='all'||(a==='local'&&(group==='local'||group==='thai'))||(a==='thai'&&group==='thai'); }
 function addonFor(pk,group){ return (group!=='standard'&&pk.addon_fz_local_thb!=null)?pk.addon_fz_local_thb:(pk.addon_fz_thb==null?null:pk.addon_fz_thb); }
 function isPrivatePack(p){ return !!(p.covers&&p.covers.indexOf('Privates')>=0&&p.class_limit); }
@@ -930,6 +944,7 @@ var FEATURES=[
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'audit_log',g:'Team',n:'Who did what',d:'Every new, changed or deleted stay, private, package sold, payment, room charge, customer, staff member, package and product is written down with who did it and when, and what changed (before and after). Managers see a History button on each stay, private and customer, and everything in Settings, Activity. Kept for a year.'},
   {k:'private_cancel',g:'Training',n:'Cancel or no show for privates',d:'A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.',spa:false},
+  {k:'private_group_price',g:'Training',n:'Privates priced by people and coaches',d:'A private package can have prices for more people or more coaches, for example 2 people with 1 coach. The customer picks how many when buying in the app, and the front desk when selling. Packs and bigger amounts keep their discount. Set the prices on the package.'},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
   {k:'coach_rates',g:'Training',n:'Coach own private rates',d:'A coach can have their own private price. On a pack, the customer pays the difference as a top up.'},
   {k:'mp_extras',g:'Rooms',n:'Website booking extras on the stay',d:'Extras a guest books with a room on your website booking plugin (breakfast, a meal plan, training, transfers) come into the app on their stay, paid with the stay. Breakfasts and meal plans can then be ticked as served and billed by the cafe.',spa:false},
@@ -1066,7 +1081,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=136; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=137; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1290,7 +1305,7 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
   (p.times||[]).forEach(function(t){ if(t.length>5&&!slot[t]) slot[t]={d:DAY3.indexOf(t.slice(0,3)),t:t.slice(-5),k:'not in the timetable now'}; });
   var slotKeys=Object.keys(slot).sort(function(a,b){ return slot[a].d-slot[b].d||(slot[a].t<slot[b].t?-1:1); });
   var ticked=[]; (p.times||[]).forEach(function(t){ if(t.length>5) ticked.push(t); else slotKeys.forEach(function(k){ if(slot[k].t===t) ticked.push(k); }); });
-  p=Object.assign({},p,{times:ticked,tiers_txt:tiersText(p.tiers),tiers_local_txt:tiersText(p.tiers_local)});
+  p=Object.assign({},p,{times:ticked,tiers_txt:tiersText(p.tiers),tiers_local_txt:tiersText(p.tiers_local),group_txt:grpText(p.group_prices)});
   openForm({title:p.id?'Edit package':'New package',values:p,fields:[
     {key:'name',label:'Name',required:true},
     {key:'price_thb',label:'Standard price (THB)',type:'number',hint:'Leave empty if you use the price per amount below.'},
@@ -1303,6 +1318,7 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
     {key:'times',label:'Only these classes (day by day)',type:'checks',options:slotKeys.map(function(k){ var x=slot[k]; return [k,k+', '+String(x.k).split(',')[0]]; }),hint:'Tick the exact classes they can come to, for example 08:00 and 18:30 on weekdays and 16:30 on Saturday. Tick none to allow every class.'},
     {key:'tiers_txt',label:'Price per amount (customer picks how many)',hint:'For packs bought by the amount, like privates. Write it as 1:900, 5:800, 10:700, 20:650. That means 1 to 4 are 900 each, 5 to 9 are 800 each, 10 to 19 are 700 each, 20 or more are 650 each. Leave empty for a fixed package.'},
     {key:'tiers_local_txt',label:'Price per amount, local and Thai',hint:'Same format. Leave empty and they pay the standard amounts.'},
+    {key:'group_txt',label:'Prices for more people or coaches (privates)',type:'textarea',hide:!featOn('private_group_price'),hint:'The price of one session for that many people and coaches. Write it as 2 people 1 coach: 1400, 2 people 2 coaches: 1800, 3 people 1 coach: 1800. One person with one coach is the normal price above. Packs and bigger amounts get the same discount. Leave empty if it is always one person.'},
     {key:'qty_unit',label:'The amount is',type:'select',def:'visits',options:[['visits','Number of sessions or visits'],['days','Number of days (unlimited classes for those days)']],hint:'Only for price per amount. Days: 1:400, 7:358 means 1 to 6 days are 400 a day, 7 or more are 358 a day.'},
     {key:'qty_default',label:'Amount shown first',type:'number',hint:'Only for price per amount. For example 10.'},
     {key:'class_limit',label:'Number of visits',type:'number',hint:'Leave empty for unlimited. On a class pass this counts classes. With price per amount, the amount bought is used instead.'},
@@ -1314,7 +1330,7 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
     {key:'badge',label:'Badge (optional)',hint:'Makes it stand out on your website and in the app, for example Best seller, New or Limited offer. Leave empty for none.'},
     {key:'was_thb',label:'Normal price, shown crossed out (THB, optional)',type:'number',hint:'For a promotion: the price before, shown crossed out next to the new price, with how much they save. Leave empty for none.'},
     {key:'notes',label:'Notes',type:'textarea'}],
-    onSave:function(v){ var t,tl; try{ t=parseTiers(v.tiers_txt); tl=parseTiers(v.tiers_local_txt); }catch(e){ return e.message; }
+    onSave:function(v){ var t,tl,gp; try{ t=parseTiers(v.tiers_txt); tl=parseTiers(v.tiers_local_txt); gp=featOn('private_group_price')?grpParse(v.group_txt):p.group_prices||null; }catch(e){ return e.message; }
       v.badge=String(v.badge||'').trim().slice(0,30)||null; if(v.was_thb!=null&&!(Number(v.was_thb)>0)) v.was_thb=null;
       // a time ticked on every day it runs is kept as just the time, so it also covers that class on days added later
       var pick=v.times||[], out=[], done={};
@@ -1323,7 +1339,7 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
       v.times=out.length?out:null;
       if(tl&&!t) return 'Add the standard price per amount too.';
       if(v.price_thb==null&&!t) return 'Add a standard price, or a price per amount.';
-      var body=Object.assign({},p,v,{tiers:t,tiers_local:tl,qty_default:t?v.qty_default:null,qty_unit:t?(v.qty_unit||'visits'):'visits'}); delete body.tiers_txt; delete body.tiers_local_txt;
+      var body=Object.assign({},p,v,{tiers:t,tiers_local:tl,qty_default:t?v.qty_default:null,qty_unit:t?(v.qty_unit||'visits'):'visits'}); body.group_prices=gp; delete body.tiers_txt; delete body.tiers_local_txt; delete body.group_txt;
       if(t){ if(body.price_thb==null) body.price_thb=t[0].price; if(tl&&body.price_local_thb==null) body.price_local_thb=tl[0].price; body.class_limit=null; if(body.qty_unit==='days') body.duration_days=null; }
       return save('packages',p.id,body); },
     onDelete:p.id?function(){ return db.doc('packages/'+p.id).delete(); }:null});
@@ -1466,18 +1482,20 @@ function sellPackage(c,o){ o=o||{}; var dealOk=featOn('custom_deals')&&!!me&&(me
   function qtyDef(pk){ return perPriv(pk)?10:(pk.qty_default||5); }
   // a single private sold as a package (no session count of its own): choose how many privates
   function perPriv(pk){ return !!pk&&!tiersFor(pk,group)&&(pk.covers||[]).indexOf('Privates')>=0&&!(pk.class_limit>1); }
-  function total(pk,fz,q){ var t=tiersFor(pk,group), base=t?(tierUnit(t,q||1)||0)*(q||1):(Number(priceFor(pk,group))||0)*(perPriv(pk)?(q||1):1); return (base+(fz?Number(addonFor(pk,group))||0:0))||null; }
+  function total(pk,fz,q,g){ var t=tiersFor(pk,group), base=t?(tierUnit(t,q||1)||0)*(q||1):(Number(priceFor(pk,group))||0)*(perPriv(pk)?(q||1):1); base=grpPrice(pk,g,base); return (base+(fz?Number(addonFor(pk,group))||0:0))||null; }
   function reprice(set,get,show){ var pk=byId('packages',get('package_id')); if(!pk) return; var t=tiersFor(pk,group), pp=perPriv(pk);
     if(show){ show('qty',!!t||pp); show('tiernote',!!t||pp); }
     if(t||pp){ var q=get('qty'); if(!q){ q=qtyDef(pk); set('qty',q); } set('tiernote',t?tiersLine(t,pk.qty_unit)+'. '+q+' x '+thb(tierUnit(t,q)):q+' privates x '+thb(priceFor(pk,group))); }
+    if(show) show('grp',grpOn(pk)); if(!grpOn(pk)&&get('grp')!=='1x1') set('grp','1x1');
     var fit=offerFits(pk,c.id); if(show) show('course',fit); if(!fit&&get('course')) set('course',false);
-    set('price_thb',(total(pk,get('fz'),t||pp?get('qty'):1)||0)+(fit&&get('course')?OFFER.price:0)||null); px.re(set,get,show); }
+    set('price_thb',(total(pk,get('fz'),t||pp?get('qty'):1,get('grp'))||0)+(fit&&get('course')?OFFER.price:0)||null); px.re(set,get,show); }
   var t0=tiersFor(list[0],group), p0=perPriv(list[0]), q0=t0||p0?qtyDef(list[0]):null;
   var px=pxFields('price_thb',{base:total(list[0],false,q0||1)},function(set,get){ set('paid_now',get('method')==='later'?0:px.total(get)); });
   openForm({title:(forOpts?'Add a package, '+rName:'Sell a package to '+c.name)+(group!=='standard'?' ('+GROUPS[group]+' prices)':''),saveLabel:'Record sale',values:Object.assign({price_thb:total(list[0],false,q0||1),paid_now:total(list[0],false,q0||1),qty:q0,tiernote:t0?tiersLine(t0,list[0].qty_unit)+'. '+q0+' x '+thb(tierUnit(t0,q0)):p0?q0+' privates x '+thb(priceFor(list[0],group)):''},px.values),fields:[
     {key:'for_who',label:'Who is it for',type:'select',hide:!forOpts,options:forOpts||[['me',c.name]],def:'me',hint:'Add everyone staying in Edit on the stay, so their names are here.',onChange:function(v,set,get,o,show){ var nw=v!=='me'; show('fw_name',nw); ncShow(show,nw); set('fw_name',/^n:/.test(v)?v.slice(2):''); }},
     {key:'fw_name',label:'Their name',hide:true,hint:'Their package is their own, with their name, and can go on this room bill.'}].concat(forOpts?ncFields(true):[],[
-    {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get,o,show){ set('qty',null); reprice(set,get,show); }},
+    {key:'package_id',label:'Package',type:'select',options:opts(list),def:list[0].id,onChange:function(v,set,get,o,show){ set('qty',null); o('grp',grpOpts(byId('packages',v))); set('grp','1x1'); reprice(set,get,show); }},
+    {key:'grp',label:'People and coaches',type:'select',options:grpOpts(list[0]),def:'1x1',hide:!grpOn(list[0]),hint:'The price changes with how many people train and how many coaches teach. Set the prices on the package.',onChange:function(v,set,get,o,show){ reprice(set,get,show); }},
     {key:'custom',label:'Custom deal: my own length and price',type:'checkbox',hide:!dealOk,hint:'For example 4 months with Fitness Zone for 25,000 THB. Pick the package it is like above, set the length here, tick Fitness Zone if it is included, and type your price in Price charged.',
       onChange:function(v,set,get,o,show){ ['len','len_unit','cstart'].forEach(function(k){ show(k,!!v); }); show('cdate',!!v&&get('cstart')==='date'); if(v&&!get('len')) set('len',1); }},
     {key:'len',label:'How long',type:'number',hide:true},
@@ -1513,10 +1531,12 @@ function sellPackage(c,o){ o=o||{}; var dealOk=featOn('custom_deals')&&!!me&&(me
       if(who){ if(wn.length<2) return 'Type their name.'; nr=ncRow(v,wn,'Staying in '+rName+' with '+c.name); if(nr.err) return nr.err; }
       var room=v.method==='room'; if(room&&!rst) return 'This stay is closed or settled, so it cannot go on the room bill. Choose another way to pay.';
       if(room){ paidNow=Number(v.price_thb)||0; }
+      var gk=grpOn(pk)&&v.grp&&v.grp!=='1x1'?v.grp.split('x').map(Number):null; if(gk&&!deal) nm+=', '+grpLabel(gk[0],gk[1]);
       var addCourse=!!v.course&&offerFits(pk,c.id), offer=OFFER;
       var p={customer_id:c.id,package_id:pk.id,package_name:nm+(v.fz?' + Fitness Zone':'')+(addCourse?' + Course: '+offer.title:'')+(free?' (Free: '+(v.free_why||'Promotional')+(v.free_note?', '+String(v.free_note).trim().slice(0,60):'')+')':''),price_thb:v.price_thb,fee_thb:x.fee,tax_thb:x.tax,price_group:group,paid:false,paid_thb:paidNow,method:v.method==='later'?null:v.method,purchased_on:v.purchased_on,
         covers:covers,times:pk.times||null,class_limit:lim,classes_left:lim,per_week_limit:pk.per_week_limit||null,duration_days:byDay?q:(pk.duration_days||null),
         start_by:pk.start_within_days?addDays(v.purchased_on,pk.start_within_days):null,starts_on:null,expires_on:null};
+      if(gk&&!deal){ p.people=gk[0]; p.coaches=gk[1]; }
       if(pk.clock==='purchase') Object.assign(p,startPurchase(p,v.purchased_on));
       if(deal){ p.duration_days=dDays; p.class_limit=null; p.classes_left=null; p.start_by=null; p.starts_on=null; p.expires_on=null; if(dStart) Object.assign(p,startPurchase(p,dStart)); }
       if(free){ p.paid=true; p.paid_thb=0; p.method=null; }
@@ -1687,7 +1707,7 @@ function editPrivate(p,approving){ p=p||{}; if(p.lead_id){ var lp=byId('privates
     var rc=byId('staff',get('coach_id')); if(rc&&rc.private_rate_thb&&/^direct$/i.test(sr.name||'')) pr=rc.private_rate_thb;
     set('price_thb',pr); px.re(set,get,show); if(exOn) set('x_gross',(Number(pr)||0)+adds.sum());
   }
-  function packLine(k){ return thb(k.price_thb)+' for '+k.class_limit+' sessions = '+thb(perSession(k))+' each. The coach share comes from '+thb(perSession(k))+'.'; }
+  function packLine(k){ return thb(k.price_thb)+' for '+k.class_limit+' sessions = '+thb(perSession(k))+' each. The coach share comes from '+thb(perSession(k))+'.'+((k.people>1||k.coaches>1)?' This pack is for '+grpLabel(k.people||1,k.coaches||1)+': '+(k.coaches>1?'tick the other coach and ':'')+(k.people>1?'add the other people above.':'set the coach pay above.'):''); }
   function firstPack(cid){ var o=packOpts(cid,p); return o.length>1?o[1][0]:''; }
   var pk0=p.id?(p.purchase_id||''):firstPack(cid0), pack0=byId('purchases',pk0);
   if(!p.id&&pack0){ p=Object.assign({},p,{purchase_id:pk0,price_thb:perSession(pack0)}); }
@@ -10761,10 +10781,10 @@ function tillSide(on){
 var SB_URL='https://tqqfhahchjwihwknyiwo.supabase.co', SB_KEY='sb_publishable_ei0gMLn3YmXoOO-3O6t_Og_qECOjLb1';
 var sb=null, me=null, currentUser=null, lastLoad=0;
 var MAP={
-  packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit','service_ids']},
+  packages:{t:'packages',r:{class_limit:'visit_limit'},w:['name','price_thb','price_local_thb','price_thai_thb','addon_fz_thb','addon_fz_local_thb','audience','covers','times','class_limit','per_week_limit','duration_days','start_within_days','clock','active','notes','tiers','tiers_local','qty_default','qty_unit','service_ids','badge','was_thb','group_prices']},
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access','bio','photo_url','also_coach','private_rate_thb','privates_any','video_url','web_show','web_name','web_title','web_about','web_sort','branches']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country','is_fighter','fighter_name','fighter_free','fight_weight','home_branch']},
-  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb']},
+  purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb','people','coaches']},
   classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','coach_share_thb','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb','also_customers','adds'],clear:['reschedule']},
@@ -11448,21 +11468,26 @@ function pkgDetail(k){
   if(k.addon_thb!=null) s+=' Fitness Zone can be added for '+thb(k.addon_thb)+'.';
   return s;
 }
+function grpField(k,re){ return {key:'grp',label:'People and coaches',type:'select',options:grpOpts(k),def:'1x1',hint:'Train with a friend or with more coaches. The price changes with how many.',onChange:re}; }
+function grpBuy(k,fz,q,g){ var a=String(g||'1x1').split('x').map(Number);
+  return grpOn(k)?cuCall('customer_buy_group',{p_package:k.id,p_fz:!!fz,p_qty:q==null?null:q,p_people:a[0],p_coaches:a[1]}):q==null?cuCall('customer_buy',{p_package:k.id,p_fz:!!fz}):cuCall('customer_buy_qty',{p_package:k.id,p_fz:!!fz,p_qty:q}); }
 function orderPkg(k){
   if(hasTiers(k.tiers)) return orderTier(k);
+  var g=grpOn(k); function line(gk,fz){ return thb(grpPrice(k,gk,Number(k.price_thb)||0)+(fz&&k.addon_thb!=null?k.addon_thb:0)); }
   openForm({title:'Order '+k.name,note:thb(k.price_thb)+'. Pay at the front desk. It is ready to use as soon as payment is taken.',saveLabel:'Order',doneMsg:'Ordered. Pay at the front desk.',
-    fields:k.addon_thb!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(k.addon_thb),type:'checkbox'}]:[],
-    onSave:function(v){ return cuCall('customer_buy',{p_package:k.id,p_fz:!!v.fz}).then(function(){ go('c_home'); }); }});
+    values:g?{total:line('1x1',false)}:{},
+    fields:(g?[grpField(k,function(v,set,get){ set('total',line(v,get('fz'))); }),{key:'total',label:'Total',readonly:true}]:[]).concat(k.addon_thb!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(k.addon_thb),type:'checkbox',onChange:function(v,set,get){ if(g) set('total',line(get('grp'),v)); }}]:[]),
+    onSave:function(v){ return grpBuy(k,v.fz,null,v.grp).then(function(){ go('c_home'); }); }});
 }
 function orderTier(k){
   var q0=k.qty_default||5, fzP=k.addon_thb, days=k.qty_unit==='days';
-  function line(q,fz){ var u=tierUnit(k.tiers,q); return u==null?'':q+' x '+thb(u)+' = '+thb(u*q+(fz&&fzP!=null?fzP:0)); }
+  function line(q,fz,gk){ var u=tierUnit(k.tiers,q); if(u==null) return ''; var t=grpPrice(k,gk,u*q); return (t!==u*q?grpLabel.apply(null,String(gk).split('x').map(Number))+', '+q+' sessions = ':q+' x '+thb(u)+' = ')+thb(t+(fz&&fzP!=null?fzP:0)); }
   openForm({title:'Order '+k.name,note:tiersLine(k.tiers,k.qty_unit)+'.'+(days?' Unlimited group classes for the days you choose, starting on your first visit.':'')+' Pay at the front desk. It is ready to use as soon as payment is taken.',saveLabel:'Order',doneMsg:'Ordered. Pay at the front desk.',
     values:{qty:q0,total:line(q0,false)},
-    fields:[{key:'qty',label:days?'How many days':'How many',type:'number',required:true,onChange:function(v,set,get){ set('total',line(Math.round(v||0),get('fz'))); }},
-      {key:'total',label:'Total',readonly:true}].concat(fzP!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(fzP),type:'checkbox',onChange:function(v,set,get){ set('total',line(Math.round(get('qty')||0),v)); }}]:[]),
+    fields:(grpOn(k)?[grpField(k,function(v,set,get){ set('total',line(Math.round(get('qty')||0),get('fz'),v)); })]:[]).concat([{key:'qty',label:days?'How many days':'How many',type:'number',required:true,onChange:function(v,set,get){ set('total',line(Math.round(v||0),get('fz'),get('grp'))); }},
+      {key:'total',label:'Total',readonly:true}]).concat(fzP!=null?[{key:'fz',label:'Add Fitness Zone access, +'+thb(fzP),type:'checkbox',onChange:function(v,set,get){ set('total',line(Math.round(get('qty')||0),v,get('grp'))); }}]:[]),
     onSave:function(v){ var q=Math.round(v.qty||0); if(q<1||q>200) return 'Type how many, 1 to 200.';
-      return cuCall('customer_buy_qty',{p_package:k.id,p_fz:!!v.fz,p_qty:q}).then(function(){ go('c_home'); }); }});
+      return grpBuy(k,v.fz,q,v.grp).then(function(){ go('c_home'); }); }});
 }
 function vCBuy(){
   var g=CU.me.price_group||'standard', fams=[], by={};
