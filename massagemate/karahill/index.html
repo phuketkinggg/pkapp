@@ -1082,7 +1082,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=137; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=138; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4165,7 +4165,8 @@ function natPush(){ try{ var C=window.Capacitor; return C&&C.isNativePlatform&&C
 function inStoreApp(){ try{ return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()); }catch(e){ return false; } }
 var NATTOK=null;
 try{ NATTOK=localStorage.getItem('pk_nat_push')||null; }catch(e){}
-var PUSH={can:!!natPush()||(!inStoreApp()&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window),on:null,busy:false,nat:!!natPush()};
+var iosTab=/iPhone|iPad/.test(navigator.userAgent)&&!inStoreApp()&&!(window.navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches));
+var PUSH={can:!!natPush()||(!inStoreApp()&&!iosTab&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window),on:null,busy:false,nat:!!natPush()};
 /* the store app: tapping a notification opens its page */
 function pushOpenUrl(u){ var m=String(u||'').match(/#(.*)$/); if(!m) return; var hsh=m[1], c=hsh.match(/^chat=([0-9a-f-]{36})$/);
   if(c){ ui.tab='chat'; ui.openChatId=c[1]; CHAT.list=null; chatRefresh(); } else if(VIEWS[hsh]&&tabOn(hsh)){ ui.tab=hsh; if(hsh==='kitchen') loadKitchen(); } schedule(); }
@@ -4199,7 +4200,7 @@ function pushState(){
 }
 function pushBtn(){
   if(!PUSH.can&&inStoreApp()) return h('span',{class:'sub'},'Update the app from the App Store or Google Play to turn on notifications.');
-  if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'For message notifications on iPhone: Share, Add to Home Screen, then open the app from the home screen.':'This browser cannot show notifications.');
+  if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'Notifications do not work in Safari. Open the app on your phone, or Share, Add to Home Screen, and turn them on there.':'This browser cannot show notifications.');
   if(PUSH.on===null) return null;
   return PUSH.on?btn('Notifications on this phone: ON',pushOff,'small'):btn('Turn on notifications on this phone',pushOn,'primary small');
 }
