@@ -4074,7 +4074,7 @@ function waExportRead(files){ if(!files.length) return; toast('Reading '+files.l
   .then(function(parts){ var rows=[].concat.apply([],parts); if(!rows.length){ toast('No messages found. Export each chat from WhatsApp: open the chat, More, Export chat, Without media.'); return; }
     var cnt={}, inFiles={}; parts.forEach(function(p,i){ p.forEach(function(r){ cnt[r.who]=(cnt[r.who]||0)+1; (inFiles[r.who]=inFiles[r.who]||{})[i]=1; }); });
     var names=Object.keys(cnt).sort(function(a,b){ return Object.keys(inFiles[b]).length-Object.keys(inFiles[a]).length||cnt[b]-cnt[a]; });
-    var guess=names.filter(function(n){ return parts.length>1&&Object.keys(inFiles[n]).length===parts.length; }); if(!guess.length) guess=names.filter(function(n){ return /phuket|king|pangea|team|desk|^you$/i.test(n)||n.toLowerCase()===String(BIZ_MAIN||'').toLowerCase(); });
+    var guess=names.filter(function(n){ return parts.length>1&&Object.keys(inFiles[n]).length===parts.length; }); if(!guess.length) guess=names.filter(function(n){ var bw=String(BIZ_MAIN||'').toLowerCase().split(/\s+/).filter(function(w){ return w.length>3; }); return /team|desk|^you$/i.test(n)||bw.some(function(w){ return n.toLowerCase().indexOf(w)>=0; }); });
     openForm({title:'Which names are your team?',note:rows.length+' messages from '+parts.length+(parts.length===1?' chat':' chats')+'. Tick the names that are your business or your staff. Everyone else is a customer.',saveLabel:'Bring them in',
       fields:[{key:'team',label:'Your team',type:'checks',def:guess,options:names.slice(0,60).map(function(n){ return [n,n+' ('+cnt[n]+')']; })}],
       onSave:function(v){ var team=v.team||[]; if(!team.length) return 'Tick at least one name: your business or your staff.';
