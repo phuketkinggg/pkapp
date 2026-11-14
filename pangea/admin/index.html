@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=191"></script>
+<script src="changelog.js?v=192"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -960,6 +960,7 @@ var FEATURES=[
   {k:'gym_import',g:'Customers',n:'Moving from another system',d:'Settings, General: say what you use now, see how to export your members from it, and bring them over in one upload with their current packages, so they check in from day one. Upload again any time: nobody is doubled.'},
   {k:'alongside',g:'Customers',n:'Side by side with your old system',d:'For the first month: try the app next to your old system. Members are not contacted (no welcome emails) until you tap Make this our main system, which also gives you a ready message with your app link for your members.',def:false,spa:false},
   {k:'ask_ai_all',g:'Team',n:'Ask AI can do anything',d:'Ask AI can do anything the person asking can do in the app: sell packages, add packages, classes, rooms and products, bring in a whole spreadsheet, change settings and more. It works with their own rights, and nothing changes until they tap Confirm. Codes, passwords and account deletion are never offered.'},
+  {k:'course_stay_price',g:'Training',n:'Resort guest price for courses',d:'A course can have a lower price for guests with a stay booked or staying now. When they buy it with the same email, the guest price is used. Set it on the course.'},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
@@ -1065,7 +1066,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=134; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=135; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4562,17 +4563,18 @@ function crsEdit(id){ return Promise.all([sb.rpc('course_view',{p_course:id}).th
 function crsSlug(t){ return String(t||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60); }
 function editCourse(c){ c=c||{status:'draft',members_free:true};
   var cover=c.cover||null;
-  openForm({title:c.id?'Edit course':'New course',values:{title:c.title||'',slug:c.slug||'',summary:c.summary||'',about:c.about||'',price:c.price,members_free:c.members_free!==false,status:c.status||'draft',sort:c.sort||0},
+  openForm({title:c.id?'Edit course':'New course',values:{title:c.title||'',slug:c.slug||'',summary:c.summary||'',about:c.about||'',price:c.price,stay_price:c.stay_price,members_free:c.members_free!==false,status:c.status||'draft',sort:c.sort||0},
     fields:[{key:'title',label:'Course name',required:true,live:true,onChange:function(v,set){ if(!c.id) set('slug',crsSlug(v)); }},
       {key:'slug',label:'Short name for the web address',required:true,hint:'Small letters and dashes, for example: kicking-fundamentals.'},
       {key:'summary',label:'One line about it',hint:'Shown on the course card.'},
       {key:'about',label:'About this course',type:'textarea',rows:6,hint:'What they will learn and who it is for. A blank line starts a new paragraph, - makes a list.'},
       {key:'price',label:'Price (THB)',type:'number',hint:'Leave empty or 0 for a free course.'},
+      {key:'stay_price',hide:!featOn('course_stay_price'),label:'Price for resort guests (THB)',type:'number',hint:'Anyone with a stay booked or staying now pays this when they buy with the same email. Leave empty for the normal price.'},
       {key:'members_free',label:'Free for members with an active package',type:'checkbox'},
       {key:'status',label:'Show it',type:'select',options:[['draft','Draft (only managers see it)'],['published','On the website and in the app']]},
       {key:'sort',label:'Order',type:'number'}],
     onSave:function(v){ var sl=crsSlug(v.slug); if(!sl) return 'Add a short name for the web address.';
-      return sb.rpc('course_save',{p:{id:c.id||null,title:v.title,slug:sl,summary:v.summary,about:v.about,price:v.price,members_free:v.members_free,status:v.status,sort:v.sort,cover_url:cover}}).then(must)
+      return sb.rpc('course_save',{p:{id:c.id||null,title:v.title,slug:sl,summary:v.summary,about:v.about,price:v.price,stay_price:featOn('course_stay_price')?(v.stay_price==null?'':v.stay_price):undefined,members_free:v.members_free,status:v.status,sort:v.sort,cover_url:cover}}).then(must)
         .then(function(id){ CRS.list=null; return crsEdit(id); }); }});
   var anchor=document.getElementById('f-summary'); if(!anchor) return;
   var pic=h('img',{alt:'',style:'width:160px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(cover?'':';display:none'),src:cover||''});
