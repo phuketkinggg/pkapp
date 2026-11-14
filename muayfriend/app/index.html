@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=194"></script>
+<script src="changelog.js?v=195"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -950,6 +950,7 @@ var FEATURES=[
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'audit_log',g:'Team',n:'Who did what',d:'Every new, changed or deleted stay, private, package sold, payment, room charge, customer, staff member, package and product is written down with who did it and when, and what changed (before and after). Managers see a History button on each stay, private and customer, and everything in Settings, Activity. Kept for a year.'},
   {k:'private_cancel',g:'Training',n:'Cancel or no show for privates',d:'A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.',spa:false},
+  {k:'gyg_connect',g:'Selling',n:'GetYourGuide connection',d:'GetYourGuide checks what is free in the app and books straight into it: group classes by the timetable and places, privates with a free coach. Each booking is filed with the guest and sends the booking notification, without copying emails. Settings, Privates, GetYourGuide.',def:false,spa:false},
   {k:'notify_choice',g:'Messages',n:'Each person chooses their notifications',d:'Each person picks what comes to their phone: privates and rooms booked, packages bought or ordered in the app, packages sold and rooms booked by the team, and every till sale. Managers can set it for anyone. Settings, Messages, Phone notifications.'},
   {k:'private_group_price',g:'Training',n:'Privates priced by people and coaches',d:'A private package can have prices for more people or more coaches, for example 2 people with 1 coach. The customer picks how many when buying in the app, and the front desk when selling. Packs and bigger amounts keep their discount. Set the prices on the package.'},
   {k:'private_team',g:'Training',n:'Group privates',d:'A private can have more than one coach and more than one person. Each extra coach is blocked for that time, sees it in their app and is paid through Commission. The extra people see it in their app.'},
@@ -1088,7 +1089,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=140; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=141; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4161,6 +4162,40 @@ function bookPushForm(){
           if(ppl[st.id]||pick.join()!==def.join()) people[st.id]=pick; });
         return sb.rpc('booking_push_settings_save',{p:{kinds:nk,roles:nr,email:em,people:featOn('notify_choice')?people:undefined}}).then(must); }});
   }).catch(function(e){ toast(errText(e)); });
+}
+/* GetYourGuide connection (feature gyg_connect): the address and sign in for GetYourGuide, and what is sold there */
+var GYGS=null, GYGL=0;
+function gygLoad(){ GYGL=Date.now(); return sb.rpc('gyg_settings').then(must).then(function(d){ GYGS=d||{}; schedule(); }).catch(function(e){ GYGS={err:errText(e)}; schedule(); }); }
+function gygSection(){
+  if(!GYGS&&Date.now()-GYGL>5000) gygLoad();
+  var g=GYGS||{}, addr=SB_URL+'/functions/v1/gyg';
+  function row(lbl,val){ return h('div',{class:'row',style:'gap:8px;align-items:center;margin:4px 0'},h('b',null,lbl+': '),h('code',{class:'notr',style:'word-break:break-all'},val||'...'),val?btn('Copy',function(){ copyText(val); },'small'):null); }
+  return section('GetYourGuide',btn('Add product',function(){ gygEdit(); },'small'),h('div',{class:'panel pad'},
+    h('p',{class:'sub',style:'margin:0 0 8px'},'GetYourGuide checks what is free here and books straight into the app. In the GetYourGuide supplier portal, connect your activities to this system with the details below, then pick the product for each option.'),
+    g.err?h('p',{class:'sub'},g.err):null,
+    row('Address',addr),row('User name',g.user),row('Password',g.pass),
+    h('h3',{style:'margin:14px 0 6px'},'Products'),
+    (g.products||[]).length?h('div',null,(g.products||[]).map(function(p){ return h('div',{class:'chatrow',style:'align-items:center;gap:8px;flex-wrap:wrap'},
+      h('div',{style:'flex:1;min-width:200px'},h('b',null,p.title),h('div',{class:'sub'},(p.kind==='private'?'Private, '+(p.times||[]).join(', ')+', as many places as coaches free':'Group class'+(p.match?' ('+p.match+')':'')+', '+p.capacity+' places')+'. Product ID: ',h('code',{class:'notr'},p.id),p.active?'':'. Off.')),
+      btn('Free times',function(){ sb.rpc('gyg_product_slots',{p_id:p.id}).then(must).then(function(x){ toast(!(x||[]).length?'Nothing free in the next 3 days. Check the class name or times.':(x||[]).slice(0,8).map(function(s){ return s.at+': '+s.free; }).join('. ')); }).catch(function(e){ toast(errText(e)); }); },'small'),
+      btn('Edit',function(){ gygEdit(p); },'small')); })):h('p',{class:'sub'},'No products yet. Add one for each activity you sell on GetYourGuide, for example the group class and a private.'),
+    (g.recent||[]).length?h('div',null,h('h3',{style:'margin:14px 0 6px'},'Latest from GetYourGuide'),(g.recent||[]).slice(0,8).map(function(r){ return h('div',{class:'sub'},fmtDate(String(r.at).slice(0,10))+' '+new Date(r.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+', '+r.people+(r.people===1?' person':' people')+', '+({held:'held',booked:'booked',released:'released',cancelled:'cancelled'}[r.status]||r.status)+' ('+r.gyg_ref+')'); })):null));
+}
+function gygEdit(p){ p=p||{kind:'class',capacity:10,minutes:60,cutoff_minutes:60,active:true};
+  openForm({title:p.id?'Edit GetYourGuide product':'New GetYourGuide product',saveLabel:'Save',doneMsg:'Saved.',
+    note:'One product for each activity option you sell on GetYourGuide. The product ID is what you choose in the GetYourGuide portal.',
+    values:{title:p.title,kind:p.kind,match:p.match,times:(p.times||[]).join(', '),minutes:p.minutes,capacity:p.capacity,cutoff:p.cutoff_minutes,adult:p.adult_thb,child:p.child_thb,active:p.active!==false},
+    fields:[{key:'title',label:'Name',required:true,hint:'For example Muay Thai group class, or Private Muay Thai lesson.'},
+      {key:'kind',label:'What it is',type:'select',options:[['class','A group class from the timetable'],['private','A private lesson']],onChange:function(v,set,get,o,show){ show('match',v==='class'); show('capacity',v==='class'); show('times',v==='private'); show('minutes',v==='private'); }},
+      {key:'match',label:'Which classes',hide:p.kind==='private',hint:'Words in the class name or kind, for example Muay Thai. Every class in the timetable that matches can be booked. Leave empty for every class.'},
+      {key:'capacity',label:'Places for GetYourGuide guests in each class',type:'number',hide:p.kind==='private',hint:'Agency guests already booked for that class count too.'},
+      {key:'times',label:'Start times',hide:p.kind!=='private',hint:'For example 08:00, 10:00, 14:00, 16:00. A time is free when a coach is free then.'},
+      {key:'minutes',label:'How long (minutes)',type:'number',hide:p.kind!=='private'},
+      {key:'cutoff',label:'Stop bookings this many minutes before',type:'number',hint:'For example 60, or 720 for the day before.'},
+      {key:'adult',label:'Price for an adult (THB, optional)',type:'number',hint:'Only if your GetYourGuide prices come from the app. Leave empty when you set prices in GetYourGuide.'},
+      {key:'child',label:'Price for a child (THB, optional)',type:'number'},
+      {key:'active',label:'On sale',type:'checkbox'}],
+    onSave:function(v){ return sb.rpc('gyg_product_save',{p:Object.assign({id:p.id||null},v)}).then(must).then(function(){ return gygLoad(); }); }});
 }
 /* each person: which notifications come to their phone (feature notify_choice) */
 function myPushForm(){
@@ -10647,7 +10682,7 @@ function vSettings(){
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
-      sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection()];
+      sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection(),mgr&&featOn('gyg_connect')?gygSection():null];
   else body=[mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }

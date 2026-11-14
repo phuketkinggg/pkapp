@@ -24598,5 +24598,137 @@
 ", notifications not turned on yet": [
 " ยังไม่ได้เปิดการแจ้งเตือน",
 "၊ အသိပေးချက် မဖွင့်ရသေးပါ"
+],
+", as many places as coaches free": [
+" ว่างเท่าจำนวนโค้ชที่ว่าง",
+"၊ အားလပ်သော နည်းပြ အရေအတွက်အတိုင်း နေရာ"
+],
+"A group class from the timetable": [
+"คลาสกลุ่มจากตารางเรียน",
+"အချိန်ဇယားမှ အုပ်စု သင်တန်း"
+],
+"Add product": [
+"เพิ่มสินค้า",
+"ထုတ်ကုန် ထည့်ရန်"
+],
+"Agency guests already booked for that class count too.": [
+"แขกจากเอเจนซี่ที่จองคลาสนั้นแล้วนับรวมด้วย",
+"ထိုသင်တန်းအတွက် ဘွတ်ကင်ပြီးသော အေဂျင်စီ ဧည့်သည်များကိုလည်း ထည့်တွက်သည်။"
+],
+"Edit GetYourGuide product": [
+"แก้ไขสินค้า GetYourGuide",
+"GetYourGuide ထုတ်ကုန် ပြင်ရန်"
+],
+"For example 08:00, 10:00, 14:00, 16:00. A time is free when a coach is free then.": [
+"เช่น 08:00, 10:00, 14:00, 16:00 เวลาจะว่างเมื่อมีโค้ชว่าง",
+"ဥပမာ 08:00, 10:00, 14:00, 16:00။ နည်းပြ အားလျှင် ထိုအချိန် အားသည်။"
+],
+"For example 60, or 720 for the day before.": [
+"เช่น 60 หรือ 720 สำหรับวันก่อนหน้า",
+"ဥပမာ 60၊ သို့မဟုတ် မနေ့က အတွက် 720။"
+],
+"For example Muay Thai group class, or Private Muay Thai lesson.": [
+"เช่น คลาสมวยไทยกลุ่ม หรือ ไพรเวทมวยไทย",
+"ဥပမာ မွေထိုင်း အုပ်စု သင်တန်း သို့မဟုတ် မွေထိုင်း ပုဂ္ဂလိက သင်တန်း။"
+],
+"Free times": [
+"เวลาว่าง",
+"အားလပ်ချိန်"
+],
+"GetYourGuide": [
+"GetYourGuide",
+"GetYourGuide"
+],
+"GetYourGuide checks what is free here and books straight into the app. In the GetYourGuide supplier portal, connect your activities to this system with the details below, then pick the product for each option.": [
+"GetYourGuide ตรวจดูเวลาว่างที่นี่และจองเข้าแอปโดยตรง ในพอร์ทัลซัพพลายเออร์ของ GetYourGuide เชื่อมต่อกิจกรรมของคุณกับระบบนี้ด้วยข้อมูลด้านล่าง แล้วเลือกสินค้าสำหรับแต่ละตัวเลือก",
+"GetYourGuide က ဒီမှာ အားလပ်ချိန်ကို စစ်ပြီး အက်ပ်ထဲ တိုက်ရိုက် ဘွတ်ကင်လုပ်သည်။ GetYourGuide supplier portal တွင် အောက်ပါ အချက်အလက်ဖြင့် သင့်လုပ်ငန်းများကို ချိတ်ဆက်ပြီး ရွေးချယ်မှုတိုင်းအတွက် ထုတ်ကုန်ကို ရွေးပါ။"
+],
+"GetYourGuide checks what is free in the app and books straight into it: group classes by the timetable and places, privates with a free coach. Each booking is filed with the guest and sends the booking notification, without copying emails. Settings, Privates, GetYourGuide.": [
+"GetYourGuide ตรวจดูเวลาว่างในแอปและจองเข้าโดยตรง: คลาสกลุ่มตามตารางและจำนวนที่ว่าง ไพรเวทกับโค้ชที่ว่าง ทุกการจองบันทึกพร้อมชื่อแขกและส่งการแจ้งเตือน ไม่ต้องคัดลอกอีเมล ตั้งค่า, ไพรเวท, GetYourGuide",
+"GetYourGuide က အက်ပ်ထဲ အားလပ်ချိန်ကို စစ်ပြီး တိုက်ရိုက် ဘွတ်ကင်လုပ်သည်: အချိန်ဇယားနှင့် နေရာအလိုက် အုပ်စု သင်တန်း၊ အားသော နည်းပြနှင့် ပုဂ္ဂလိက။ ဘွတ်ကင်တိုင်းကို ဧည့်သည်နှင့်အတူ မှတ်ပြီး အသိပေးချက် ပို့သည်၊ အီးမေးလ် ကူးစရာ မလို။ Settings, Privates, GetYourGuide။"
+],
+"GetYourGuide connection": [
+"เชื่อมต่อ GetYourGuide",
+"GetYourGuide ချိတ်ဆက်မှု"
+],
+"How long (minutes)": [
+"นานเท่าไร (นาที)",
+"ကြာချိန် (မိနစ်)"
+],
+"Latest from GetYourGuide": [
+"ล่าสุดจาก GetYourGuide",
+"GetYourGuide မှ နောက်ဆုံး"
+],
+"New GetYourGuide product": [
+"สินค้า GetYourGuide ใหม่",
+"GetYourGuide ထုတ်ကုန် အသစ်"
+],
+"No products yet. Add one for each activity you sell on GetYourGuide, for example the group class and a private.": [
+"ยังไม่มีสินค้า เพิ่มหนึ่งรายการต่อกิจกรรมที่ขายบน GetYourGuide เช่น คลาสกลุ่มและไพรเวท",
+"ထုတ်ကုန် မရှိသေးပါ။ GetYourGuide တွင် ရောင်းသော လုပ်ငန်းတိုင်းအတွက် တစ်ခုစီ ထည့်ပါ၊ ဥပမာ အုပ်စု သင်တန်းနှင့် ပုဂ္ဂလိက။"
+],
+"Nothing free in the next 3 days. Check the class name or times.": [
+"ไม่มีเวลาว่างใน 3 วันข้างหน้า ตรวจชื่อคลาสหรือเวลา",
+"နောက် 3 ရက်အတွင်း အားလပ်ချိန် မရှိပါ။ သင်တန်းအမည် သို့မဟုတ် အချိန်ကို စစ်ပါ။"
+],
+"One product for each activity option you sell on GetYourGuide. The product ID is what you choose in the GetYourGuide portal.": [
+"หนึ่งสินค้าต่อหนึ่งตัวเลือกกิจกรรมที่ขายบน GetYourGuide รหัสสินค้าคือสิ่งที่คุณเลือกในพอร์ทัล GetYourGuide",
+"GetYourGuide တွင် ရောင်းသော ရွေးချယ်မှုတိုင်းအတွက် ထုတ်ကုန် တစ်ခု။ Product ID ကို GetYourGuide portal တွင် ရွေးရမည်။"
+],
+"Only if your GetYourGuide prices come from the app. Leave empty when you set prices in GetYourGuide.": [
+"เฉพาะเมื่อราคาบน GetYourGuide มาจากแอป เว้นว่างถ้าตั้งราคาใน GetYourGuide",
+"GetYourGuide ဈေးနှုန်းကို အက်ပ်မှ ယူမှသာ။ GetYourGuide တွင် ဈေးသတ်မှတ်လျှင် အလွတ်ထားပါ။"
+],
+"Places for GetYourGuide guests in each class": [
+"จำนวนที่สำหรับแขก GetYourGuide ในแต่ละคลาส",
+"သင်တန်းတိုင်းတွင် GetYourGuide ဧည့်သည်များအတွက် နေရာ"
+],
+"Price for a child (THB, optional)": [
+"ราคาเด็ก (บาท ไม่บังคับ)",
+"ကလေး ဈေးနှုန်း (ဘတ်၊ မဖြစ်မနေ မဟုတ်)"
+],
+"Price for an adult (THB, optional)": [
+"ราคาผู้ใหญ่ (บาท ไม่บังคับ)",
+"လူကြီး ဈေးနှုန်း (ဘတ်၊ မဖြစ်မနေ မဟုတ်)"
+],
+"Start times": [
+"เวลาเริ่ม",
+"စတင်ချိန်များ"
+],
+"Stop bookings this many minutes before": [
+"ปิดการจองก่อนกี่นาที",
+"ဤမိနစ်အလိုတွင် ဘွတ်ကင် ရပ်ရန်"
+],
+"User name": [
+"ชื่อผู้ใช้",
+"အသုံးပြုသူ အမည်"
+],
+"What it is": [
+"ประเภท",
+"အမျိုးအစား"
+],
+"Which classes": [
+"คลาสไหน",
+"မည်သည့် သင်တန်းများ"
+],
+"Words in the class name or kind, for example Muay Thai. Every class in the timetable that matches can be booked. Leave empty for every class.": [
+"คำในชื่อหรือประเภทคลาส เช่น Muay Thai ทุกคลาสในตารางที่ตรงกันจองได้ เว้นว่างสำหรับทุกคลาส",
+"သင်တန်းအမည် သို့မဟုတ် အမျိုးအစားထဲမှ စကားလုံး၊ ဥပမာ Muay Thai။ ကိုက်ညီသော သင်တန်းတိုင်း ဘွတ်ကင်လုပ်နိုင်သည်။ သင်တန်းအားလုံးအတွက် အလွတ်ထားပါ။"
+],
+"Sent: ": [
+"ส่งแล้ว: ",
+"ပို့ပြီး: "
+],
+" This pack is for ": [
+" แพ็กนี้สำหรับ ",
+" ဤပက်ခ်သည် "
+],
+" a session)": [
+" ต่อครั้ง)",
+" တစ်ကြိမ်)"
+],
+"tick the other coach and ": [
+"ติ๊กโค้ชอีกคนและ ",
+"အခြား နည်းပြကို အမှန်ခြစ်ပြီး "
 ]
 }
