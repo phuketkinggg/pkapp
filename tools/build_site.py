@@ -16,7 +16,7 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "train.html", "partners.html", "fighters.html", "education.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "train.html", "partners.html", "fighters.html", "education.html", "muay-thai-basics.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "img"]
 
 def fix_pk(html):
@@ -31,7 +31,7 @@ def fix_book(html):
     return html
 
 NAMES = {"about.html": "About", "prices.html": "Prices", "dtv.html": "DTV Visa", "shop.html": "Shop", "blog.html": "Blog", "wellness.html": "Wellness and recovery",
-         "education.html": "Education", "beginners-muay-thai.html": "Beginners guide", "muay-thai-phuket.html": "Muay Thai in Phuket", "partners.html": "Partners", "fighters.html": "Fight for Phuket King", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service", "th.html": "ภาษาไทย"}
+         "education.html": "Education", "muay-thai-basics.html": "Muay Thai Basics, online course", "beginners-muay-thai.html": "Beginners guide", "muay-thai-phuket.html": "Muay Thai in Phuket", "partners.html": "Partners", "fighters.html": "Fight for Phuket King", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service", "th.html": "ภาษาไทย"}
 DYNAMIC = ("post.html", "page.html", "course.html", "technique.html", "404.html")
 DEFAULT_IMG = "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp"
 
