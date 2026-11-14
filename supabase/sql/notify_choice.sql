@@ -68,7 +68,7 @@ create trigger shop_orders_booking_push after insert or update of paid_at on pub
 -- what the notice says and whose phones get it
 create or replace function private.booking_push(p_kind text, p_id uuid) returns jsonb language plpgsql stable security definer set search_path to '' as $f$
 declare cfg jsonb := private.booking_push_cfg(); kk text := private.push_kind(p_kind); t text; b text; url text := '#today';
-  p public.privates; s public.stays; u public.purchases; a public.agency_bookings; o public.shop_orders; who text; src text; by text;
+  p public.privates; s public.stays; u public.purchases; a public.agency_bookings; o public.shop_orders; who text; src text; byname text;
 begin
   if p_kind = 'book_private' then
     select * into p from public.privates where id = p_id; if p.id is null then return null; end if;
@@ -104,7 +104,7 @@ begin
       || coalesce(' (' || a.source_name || ')', '') || '.';
   elsif p_kind = 'sale_till' then
     select * into o from public.shop_orders where id = p_id; if o.id is null then return null; end if;
-    by := (select st.name from public.staff st where st.id = o.staff_id);
+    byname := (select st.name from public.staff st where st.id = o.staff_id);
     t := 'ขายหน้าร้าน / Till sale';
     b := to_char(o.total_thb, 'FM999,990') || ' THB' || coalesce(', ' || nullif(o.method, ''), '')
       || coalesce(': ' || (select string_agg(i.qty || ' x ' || i.name, ', ') from public.shop_order_items i where i.order_id = o.id and not coalesce(i.removed, false)), '')
