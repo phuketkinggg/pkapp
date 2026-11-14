@@ -76,7 +76,7 @@ function priceLine(c){ return !c.price?'Free':PK.thb(c.price)+(c.members_free?' 
 
 PK.rest('rpc/course_public').then(function(list){ var box=document.getElementById('clist'); box.innerHTML='';
   if(!list||!list.length){ box.innerHTML='<p class="sub">New courses are coming soon. Ask us on <a data-wa="Hi Phuket King, when are the online courses coming?">WhatsApp</a>.</p>'; box.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; }); return; }
-  list.forEach(function(c){ var a=PK.el('a','ccard'); a.href='course.html?c='+encodeURIComponent(c.slug);
+  list.forEach(function(c){ var a=PK.el('a','ccard'); a.href=c.slug==='pk-2-week'?'muay-thai-basics.html':'course.html?c='+encodeURIComponent(c.slug);
     a.innerHTML=(c.cover?'<img src="'+PK.esc(c.cover)+'" alt="" loading="lazy">':'<div class="ccnoimg">▶</div>')+'<div class="in"><h3>'+PK.esc(c.title)+'</h3>'+(c.summary?'<p>'+PK.esc(c.summary)+'</p>':'')+
       '<div class="cmeta"><span>'+c.count+' lesson'+(c.count===1?'':'s')+(mins(c)?' · '+mins(c):'')+'</span><b>'+PK.esc(priceLine(c))+'</b></div></div>';
     box.appendChild(a); });
