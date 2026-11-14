@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=195"></script>
+<script src="changelog.js?v=196"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -945,6 +945,8 @@ var FEATURES=[
   {k:'private_share',g:'Training',n:'Coach pay set per private',d:'On any private you can type exactly what the coach gets, for example for 2 people, instead of their usual percent.'},
   {k:'audit_log',g:'Team',n:'Who did what',d:'Every new, changed or deleted stay, private, package sold, payment, room charge, customer, staff member, package and product is written down with who did it and when, and what changed (before and after). Managers see a History button on each stay, private and customer, and everything in Settings, Activity. Kept for a year.'},
   {k:'private_cancel',g:'Training',n:'Cancel or no show for privates',d:'A Cancel or no show button on each private, for the front desk and managers: say what happened and why, and tick Still paid when it counts like a session (a pack session is used or the price stays owed, and the coach is paid). Not ticked, nothing is owed and a pack session comes back.',spa:false},
+  {k:'ai_learn',g:'Messages',n:'AI learns your replies',d:'The AI reads the last 6 months of customer chats (also older Instagram, Facebook and WhatsApp chats you bring in) and learns how your team answers. You check its answers. It then writes drafts for the team to send, or sends by itself only the topics you allow. Messages, AI learning.'},
+  {k:'saved_replies',g:'Messages',n:'Saved replies',d:'Ready answers anyone on the team puts in a chat with one tap (Saved, next to the message box). Save what you typed in one tap. The AI uses them too.'},
   {k:'gyg_connect',g:'Selling',n:'GetYourGuide connection',d:'GetYourGuide checks what is free in the app and books straight into it: group classes by the timetable and places, privates with a free coach. Each booking is filed with the guest and sends the booking notification, without copying emails. Settings, Privates, GetYourGuide.',def:false,spa:false},
   {k:'notify_choice',g:'Messages',n:'Each person chooses their notifications',d:'Each person picks what comes to their phone: privates and rooms booked, packages bought or ordered in the app, packages sold and rooms booked by the team, and every till sale. Managers can set it for anyone. Settings, Messages, Phone notifications.'},
   {k:'private_group_price',g:'Training',n:'Privates priced by people and coaches',d:'A private package can have prices for more people or more coaches, for example 2 people with 1 coach. The customer picks how many when buying in the app, and the front desk when selling. Packs and bigger amounts keep their discount. Set the prices on the package.'},
@@ -1084,7 +1086,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=142; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=143; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3813,6 +3815,7 @@ function vChat(){
   return [pageHead(M('tab'),cust?'Talk to the front desk, your private coach and your groups. The Massage Mate Demo Spa team can see these chats.':mgr?'Your chats first. As a manager you can also read every other chat below.':''),
     webChatBox(),
     waBox(),
+    cust?null:aiDraftsBox(),
     isDeskRole()?null:h('div',{class:'row'},pushBtn()),
     h('div',{class:'row'},acts),
     mine.length?h('div',{class:'panel chatlist'},mine.map(chatItem)):h('div',{class:'panel empty'},M('none')),
@@ -3896,7 +3899,14 @@ function openChat(c){
   var last=null, msgs=h('div',{class:'chatmsgs',role:'log','aria-live':'polite'}), err=h('p',{class:'ferr',role:'alert',hidden:true});
   var input=h('textarea',{class:'chatinput',rows:'1',placeholder:M('type'),'aria-label':M('type'),maxlength:'2000'});
   var sendBtn=btn(M('send'),send,'primary');
-  var mgr=me.role==='manager';
+  var mgr=me.role==='manager', draftBox=h('div',{class:'aidraft',hidden:true}), draftOn=me.role!=='customer'&&featOn('ai_learn')&&['wa','fb','ig','web'].indexOf(c.kind)>=0, dTick=0;
+  function drafts(){ if(!draftOn) return; sb.rpc('ai_drafts_waiting',{p_chat:c.id}).then(function(r){ var d=(r.data||[])[0]; if(!d){ draftBox.hidden=true; draftBox.replaceChildren(); return; }
+    if(draftBox.getAttribute('data-id')===d.id) return; draftBox.setAttribute('data-id',d.id); draftBox.hidden=false;
+    function done(st){ return sb.rpc('ai_draft_set',{p_id:d.id,p_status:st}).then(function(){ draftBox.hidden=true; draftBox.removeAttribute('data-id'); aiDraftsLoad(); }); }
+    draftBox.replaceChildren(h('div',{class:'sub'},h('b',null,'AI reply to check'),d.topic?' ('+d.topic+')':''),h('div',{class:'msgbody notr'},d.body),
+      h('div',{class:'row',style:'gap:6px;margin-top:6px'},btn('Send',function(){ sb.rpc('chat_send',{p_chat:c.id,p_body:d.body}).then(must).then(function(){ return done('sent'); }).then(load).catch(function(e){ toast(errText(e)); }); },'primary small'),
+        btn('Edit first',function(){ input.value=d.body; input.dispatchEvent(new Event('input')); input.focus(); done('sent'); },'small'),
+        btn('Dismiss',function(){ done('dismissed'); },'small'))); }); }
   var head=h('div',{class:'chathead'},btn(M('back'),closeChat,'small'),
     h('div',{class:'chattitle'},h('b',null,c.title||'Chat'),
       c.kind==='group'?h('span',{class:'sub'},(c.members||[]).map(function(m){ return m.name; }).join(', ')):
@@ -3905,7 +3915,8 @@ function openChat(c){
     mgr&&c.kind==='group'?btn('Edit',function(){ chatGroup(c); },'small'):h('span'));
   var wrap=h('div',{class:'chatwrap'},h('div',{class:'chatbox'},head,msgs,
     me.role==='customer'?h('p',{class:'sub chatnote'},'The Massage Mate Demo Spa team can see this chat.'):null,
-    err,c.only_staff&&me&&me.role==='customer'?h('p',{class:'sub chatonly'},'Announcements from the team. Only the team writes here.'):h('div',{class:'chatcompose'},input,sendBtn)));
+    err,draftBox,c.only_staff&&me&&me.role==='customer'?h('p',{class:'sub chatonly'},'Announcements from the team. Only the team writes here.'):h('div',{class:'chatcompose'},
+      me.role!=='customer'&&featOn('saved_replies')?h('button',{type:'button',class:'btn small',title:'Saved replies','aria-label':'Saved replies',onclick:function(){ savedPick(input); }},'Saved'):null,input,sendBtn)));
   document.body.appendChild(wrap); document.body.classList.add('chatting');
   CHAT.open={id:c.id,wrap:wrap};
   function add(list){
@@ -3946,7 +3957,8 @@ function openChat(c){
   input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey&&!('ontouchstart' in window)){ e.preventDefault(); send(); } });
   input.addEventListener('input',function(){ input.style.height=''; input.style.height=Math.min(140,input.scrollHeight)+'px'; });
   load().then(function(){ msgs.scrollTop=msgs.scrollHeight; });
-  CHAT.poll=setInterval(function(){ if(document.visibilityState!=='hidden') load(); },4000);
+  CHAT.poll=setInterval(function(){ if(document.visibilityState!=='hidden'){ load(); if(++dTick%3===0) drafts(); } },4000);
+  drafts();
   setTimeout(function(){ input.focus(); },50);
 }
 /* report a message someone else wrote: the team gets a notice */
@@ -3969,6 +3981,108 @@ function blockedBtn(){ if(!featOn('chat_block')) return null; return h('button',
       h('div',{class:'factions'},h('span'),btn('Done',function(){ $dlg.close(); },'primary')))); }
     draw(); if(!$dlg.open) $dlg.showModal();
   }).catch(function(e){ toast(errText(e)); }); }},'Blocked'); }
+/* AI drafts waiting for the team (feature ai_learn): in Messages, and in the chat itself */
+var AIDR=null, AIDRT=0;
+function aiDraftsLoad(){ AIDRT=Date.now(); return sb.rpc('ai_drafts_waiting',{p_chat:null}).then(function(r){ AIDR=r.error?[]:(r.data||[]); schedule(); },function(){}); }
+function aiDraftsBox(){ if(!featOn('ai_learn')) return null; if(Date.now()-AIDRT>30000) aiDraftsLoad(); var l=AIDR||[]; if(!l.length) return null;
+  return h('div',{class:'panel',style:'padding:12px 14px;margin-bottom:12px'},h('b',null,l.length===1?'1 AI reply to check':l.length+' AI replies to check'),
+    h('p',{class:'sub',style:'margin:4px 0 8px'},'The AI wrote these. Open the chat, read it, then Send, Edit first or Dismiss.'),
+    l.slice(0,8).map(function(d){ return h('div',{class:'chatrow',style:'gap:8px;align-items:center'},h('div',{style:'flex:1;min-width:0'},h('b',{class:'notr'},d.who),h('div',{class:'sub notr',style:'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'},d.body)),
+      btn('Open',function(){ var ch=(CHAT.list||[]).filter(function(x){ return x.id===d.chat_id; })[0]; if(ch) openChat(ch); else { ui.openChatId=d.chat_id; CHAT.list=null; chatRefresh(); } },'small')); })); }
+/* saved replies (feature saved_replies): pick one into the message, or save what you typed */
+function savedPick(input){
+  sb.rpc('saved_replies_list').then(must).then(function(list){ var q='';
+    function draw(){ var f=list.filter(function(x){ return !q||(x.title+' '+x.body).toLowerCase().indexOf(q)>=0; });
+      var srch=h('input',{type:'search',placeholder:'Search saved replies',value:q,oninput:function(e){ q=e.target.value.toLowerCase(); draw(); var n=$dlg.querySelector('input[type=search]'); if(n){ n.focus(); n.setSelectionRange(n.value.length,n.value.length); } }});
+      $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'Saved replies'),srch,
+        h('div',{class:'hlist',style:'max-height:55vh;overflow:auto;margin-top:8px'},f.length?f.map(function(x){ return h('div',{class:'panel pad',style:'cursor:pointer',onclick:function(){
+            input.value=input.value.trim()?input.value.trim()+'\n'+x.body:x.body; input.dispatchEvent(new Event('input')); sb.rpc('saved_reply_used',{p_id:x.id}); $dlg.close(); input.focus(); }},
+          h('div',{class:'row',style:'justify-content:space-between;gap:8px'},h('b',{class:'notr'},x.title),x.mine||me.role==='manager'?h('button',{type:'button',class:'link',onclick:function(e){ e.stopPropagation(); $dlg.close(); savedEdit(x); }},'Edit'):null),
+          h('div',{class:'sub notr',style:'white-space:pre-wrap'},x.body)); }):h('p',{class:'sub'},list.length?'Nothing matches.':'No saved replies yet. Type a reply you send often, then tap Save what I typed.')),
+        h('div',{class:'factions'},input.value.trim()?btn('Save what I typed',function(){ $dlg.close(); savedEdit({body:input.value.trim()}); },'small'):btn('New saved reply',function(){ $dlg.close(); savedEdit({}); },'small'),btn('Close',function(){ $dlg.close(); },'primary')))); }
+    draw(); if(!$dlg.open) $dlg.showModal();
+  }).catch(function(e){ toast(errText(e)); });
+}
+function savedEdit(x){ x=x||{};
+  openForm({title:x.id?'Edit saved reply':'New saved reply',saveLabel:'Save',doneMsg:'Saved. Find it under Saved in any chat.',
+    fields:[{key:'title',label:'Short name',required:true,def:x.title||'',hint:'For example Prices, How to find us, What to bring.'},{key:'body',label:'The reply',type:'textarea',rows:6,required:true,def:x.body||''}],
+    onSave:function(v){ return sb.rpc('saved_reply_save',{p:{id:x.id||null,title:v.title,body:v.body}}).then(must); },
+    onDelete:x.id?function(){ return sb.rpc('saved_reply_save',{p:{id:x.id,title:x.title,body:x.body,delete:true}}).then(must); }:null});
+}
+function savedSection(){ if(!featOn('saved_replies')) return null;
+  return section('Saved replies',btn('New saved reply',function(){ savedEdit({}); },'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'Ready answers anyone on the team can put in a chat with one tap: the Saved button next to the message box. The AI uses them too.'),
+    btn('See and edit saved replies',function(){ var t=h('textarea'); savedPick(t); },'small'))); }
+/* the AI learns how the team answers (feature ai_learn) */
+var AIL=null, AILP=null;
+function aiLearnLoad(){ return sb.rpc('ai_learn_get').then(must).then(function(d){ AIL=d||{}; if(AIL.status&&AIL.status.running){ if(!AILP) AILP=setTimeout(function(){ AILP=null; aiLearnLoad(); },5000); } schedule(); if($dlg.open&&$dlg.getAttribute('data-k')==='ail') aiLearnDraw(); }); }
+function aiLearnDlg(){ aiLearnLoad().then(function(){ $dlg.setAttribute('data-k','ail'); aiLearnDraw(); if(!$dlg.open) $dlg.showModal(); }).catch(function(e){ toast(errText(e)); }); }
+var AITOP={prices:'Prices',timetable:'Class times',location:'Where we are, getting here',booking:'Booking and how it works',rooms:'Rooms',food:'Food',privates:'Private lessons',courses:'Courses',visa:'Visas',greeting:'Hello and thank you',other:'Other'};
+function aiLearnDraw(){ var d=AIL||{}, st=d.status||{}, imp=d.imported||{}, faqs=d.faqs||[], ok=faqs.filter(function(f){ return f.ok; }).length;
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'AI learning'),
+    h('p',{class:'sub'},'The AI reads your customer chats from the last 6 months and learns how your team answers: the tone, the length, and your usual answers. You check everything it learned before it uses it.'),
+    h('p',null,h('b',null,'Chats to learn from: '),(d.app_msgs||0)+' messages in the app'+(imp.ig?', '+imp.ig+' older Instagram and Facebook':'')+(imp.wa_export?', '+imp.wa_export+' from WhatsApp':'')+'.'),
+    st.running?h('p',{class:'sub'},h('b',null,'Learning now: '),st.step||'working','. This takes a minute or two.'):st.error?h('p',{class:'ferr'},st.error):d.learned_at?h('p',{class:'sub'},'Last learned '+fmtDate(String(d.learned_at).slice(0,10))+' from '+(d.learned_chats||0)+' chats. '+faqs.length+' answers, '+ok+' approved.'):null,
+    h('div',{class:'row wrap',style:'gap:8px;margin:8px 0'},
+      btn(d.learned_at?'Learn again':'Learn from our chats',function(){ sb.functions.invoke('meta',{body:{mode:'ai_learn'}}).then(function(r){ var x=r.data||{}; if(x.error) throw new Error(x.error); toast('Learning started.'); return aiLearnLoad(); }).catch(function(e){ toast(errText(e)); }); },'primary small'),
+      btn('Bring in older Instagram and Facebook chats',function(){ toast('Bringing them in. This can take a minute.'); sb.functions.invoke('meta',{body:{mode:'ai_import_meta'}}).then(function(r){ var x=r.data||{}; if(x.error) throw new Error(x.error); toast('Brought in '+(x.added||0)+' messages from '+(x.chats||0)+' chats. Tap Learn again.'); return aiLearnLoad(); }).catch(function(e){ toast(errText(e)); }); },'small'),
+      btn('Add WhatsApp chats',waExportPick,'small')),
+    faqs.length||d.style?h('div',{class:'row wrap',style:'gap:8px'},btn('Check what it learned',aiLearnReview,'primary small'),btn('How the AI answers',aiLearnMode,'small')):null,
+    h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); $dlg.removeAttribute('data-k'); },'primary')))); }
+function aiLearnMode(){ var d=AIL||{};
+  openForm({title:'How the AI answers',saveLabel:'Save',doneMsg:'Saved.',
+    note:'Start with Check every reply. When you are happy with its answers on a topic, let it send those by itself. Bookings, payments, complaints and anything it is unsure of always come to you.',
+    fields:[{key:'mode',label:'Replies',type:'select',def:d.mode==='auto'&&!d.learned_at?'approve':(d.mode||'approve'),options:[['approve','Check every reply: the AI writes a draft, someone sends it'],['mixed','Send by itself for the topics ticked below, draft the rest'],['auto','Send every reply by itself']]},
+      {key:'auto_topics',label:'Topics it may send by itself',type:'checks',def:d.auto_topics||[],options:Object.keys(AITOP).map(function(k){ return [k,AITOP[k]]; })}],
+    onSave:function(v){ return sb.rpc('ai_learn_save',{p:{mode:v.mode,auto_topics:v.auto_topics||[]}}).then(must).then(aiLearnLoad); }});
+}
+function aiLearnReview(){ var d=AIL||{}, faqs=(d.faqs||[]).map(function(f){ return Object.assign({},f); }), style=d.style||'', filt='new';
+  function draw(){ var show=faqs.filter(function(f){ return filt==='all'||(filt==='new'?!f.ok:f.ok); });
+    $dlg.replaceChildren(h('div',{class:'billbox',style:'max-width:760px'},h('h2',null,'What the AI learned'),
+      h('label',{class:'fl'},h('b',null,'How we talk'),h('textarea',{rows:6,class:'notr',oninput:function(e){ style=e.target.value; }},style)),
+      h('div',{class:'row wrap',style:'gap:6px;margin:10px 0'},['new','ok','all'].map(function(k){ return btn({new:'To check ('+faqs.filter(function(f){ return !f.ok; }).length+')',ok:'Approved ('+faqs.filter(function(f){ return f.ok; }).length+')',all:'All'}[k],function(){ filt=k; draw(); },filt===k?'primary small':'small'); })),
+      h('div',{class:'hlist',style:'max-height:50vh;overflow:auto'},show.length?show.map(function(f){ return h('div',{class:'panel pad'},
+        h('input',{class:'notr',value:f.q,'aria-label':'Question',style:'width:100%;font-weight:600',oninput:function(e){ f.q=e.target.value; }}),
+        h('textarea',{class:'notr',rows:3,'aria-label':'Answer',style:'width:100%;margin-top:6px',oninput:function(e){ f.a=e.target.value; }},f.a),
+        h('div',{class:'row wrap',style:'gap:8px;align-items:center;margin-top:6px'},
+          h('select',{onchange:function(e){ f.topic=e.target.value; }},Object.keys(AITOP).map(function(k){ return h('option',{value:k,selected:f.topic===k},AITOP[k]); })),
+          h('label',{class:'row',style:'gap:4px'},h('input',{type:'checkbox',checked:!!f.ok,onchange:function(e){ f.ok=e.target.checked; }}),'The AI may use this'),
+          featOn('saved_replies')?h('button',{type:'button',class:'link',onclick:function(){ sb.rpc('saved_reply_save',{p:{title:String(f.q).slice(0,80),body:f.a}}).then(must).then(function(){ toast('Added to saved replies.'); }).catch(function(e){ toast(errText(e)); }); }},'Add to saved replies'):null,
+          h('button',{type:'button',class:'link',onclick:function(){ faqs=faqs.filter(function(x){ return x!==f; }); draw(); }},'Remove'))); }):h('p',{class:'sub'},'Nothing here.')),
+      h('div',{class:'factions'},btn('Approve all',function(){ faqs.forEach(function(f){ f.ok=true; }); draw(); },'small'),h('span'),btn('Cancel',function(){ aiLearnDraw(); },'small'),
+        btn('Save',function(){ sb.rpc('ai_learn_save',{p:{style:style,faqs:faqs}}).then(must).then(function(){ toast('Saved. The AI uses the approved answers from now on.'); return aiLearnLoad(); }).catch(function(e){ toast(errText(e)); }); },'primary')))); }
+  draw();
+}
+/* WhatsApp: Export chat (without media) gives a .txt file, or a .zip on iPhone. Read them here, then say which names are the team */
+function waExportPick(){ var f=h('input',{type:'file',accept:'.txt,.zip,text/plain,application/zip',multiple:true,style:'display:none',onchange:function(){ waExportRead(Array.prototype.slice.call(f.files||[])); }}); document.body.appendChild(f); f.click(); setTimeout(function(){ f.remove(); },60000); }
+function unzipTxt(buf){ var u=new Uint8Array(buf), dv=new DataView(buf), e=-1; for(var i=u.length-22;i>=Math.max(0,u.length-70000);i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+  if(e<0) return Promise.reject(new Error('That zip file could not be read.')); var n=dv.getUint16(e+10,true), p=dv.getUint32(e+16,true), outs=[];
+  for(var k=0;k<n;k++){ var meth=dv.getUint16(p+10,true), csz=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true);
+    var name=new TextDecoder().decode(u.subarray(p+46,p+46+nl)); p+=46+nl+xl+cl;
+    if(!/\.txt$/i.test(name)) continue; var ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true), data=u.subarray(ds,ds+csz);
+    outs.push(meth===0?Promise.resolve(new TextDecoder().decode(data)):new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text()); }
+  return Promise.all(outs).then(function(t){ return t.join('\n'); }); }
+function waParse(txt,chat){ var out=[], cur=null;
+  txt.replace(/\r/g,'').split('\n').forEach(function(line){ line=line.replace(/^[‎‏﻿]+/,'');
+    var m=line.match(/^\[?(\d{1,2})[\/.](\d{1,2})[\/.](\d{2,4}),?\s+(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s*([AaPp]\.?[Mm]\.?)?\]?\s*(?:-\s*)?([^:]{1,60}):\s([\s\S]*)$/);
+    if(!m){ if(cur&&line.trim()) cur.body+='\n'+line; return; }
+    var a=+m[1], b=+m[2], y=+m[3]; if(y<100) y+=2000; var d=a, mo=b; if(b>12&&a<=12){ d=b; mo=a; }
+    var hh=+m[4]; if(m[7]){ var pm=/p/i.test(m[7]); if(pm&&hh<12) hh+=12; if(!pm&&hh===12) hh=0; }
+    var at=new Date(Date.UTC(y,mo-1,d,hh-7,+m[5],+(m[6]||0)));
+    cur={chat:chat,at:at.toISOString(),who:m[8].trim(),body:m[9]}; out.push(cur); });
+  return out.filter(function(x){ return x.body&&!/^(<Media omitted>|image omitted|video omitted|audio omitted|sticker omitted|document omitted|This message was deleted|You deleted this message|Messages and calls are end-to-end encrypted)/i.test(x.body.trim())&&!/end-to-end encrypted/i.test(x.body); }); }
+function waExportRead(files){ if(!files.length) return; toast('Reading '+files.length+(files.length===1?' file':' files')+'.');
+  Promise.all(files.map(function(f){ return f.arrayBuffer().then(function(b){ return /\.zip$/i.test(f.name)?unzipTxt(b):new TextDecoder().decode(b); }).then(function(t){ return waParse(t,f.name.replace(/\.(txt|zip)$/i,'')); }); }))
+  .then(function(parts){ var rows=[].concat.apply([],parts); if(!rows.length){ toast('No messages found. Export each chat from WhatsApp: open the chat, More, Export chat, Without media.'); return; }
+    var cnt={}, inFiles={}; parts.forEach(function(p,i){ p.forEach(function(r){ cnt[r.who]=(cnt[r.who]||0)+1; (inFiles[r.who]=inFiles[r.who]||{})[i]=1; }); });
+    var names=Object.keys(cnt).sort(function(a,b){ return Object.keys(inFiles[b]).length-Object.keys(inFiles[a]).length||cnt[b]-cnt[a]; });
+    var guess=names.filter(function(n){ return parts.length>1&&Object.keys(inFiles[n]).length===parts.length; }); if(!guess.length) guess=names.filter(function(n){ return /phuket|king|pangea|team|desk|^you$/i.test(n)||n.toLowerCase()===String(BIZ_MAIN||'').toLowerCase(); });
+    openForm({title:'Which names are your team?',note:rows.length+' messages from '+parts.length+(parts.length===1?' chat':' chats')+'. Tick the names that are your business or your staff. Everyone else is a customer.',saveLabel:'Bring them in',
+      fields:[{key:'team',label:'Your team',type:'checks',def:guess,options:names.slice(0,60).map(function(n){ return [n,n+' ('+cnt[n]+')']; })}],
+      onSave:function(v){ var team=v.team||[]; if(!team.length) return 'Tick at least one name: your business or your staff.';
+        var send=rows.map(function(r){ return {chat:r.chat,at:r.at,us:team.indexOf(r.who)>=0,body:r.body.slice(0,3000)}; }), added=0, i=0;
+        function next(){ if(i>=send.length) return Promise.resolve(); var part=send.slice(i,i+3000); i+=3000; return sb.rpc('ai_learn_import',{p_rows:part,p_source:'wa_export'}).then(must).then(function(d){ added+=(d&&d.added)||0; return next(); }); }
+        return next().then(function(){ setTimeout(function(){ toast('Brought in '+added+' WhatsApp messages. Tap Learn again.'); },60); return aiLearnLoad(); }); }});
+  }).catch(function(e){ toast(errText(e)); }); }
 function closeChat(){
   if(!CHAT.open) return;
   clearInterval(CHAT.poll); if(CHAT.open.wrap.parentNode) CHAT.open.wrap.parentNode.removeChild(CHAT.open.wrap);
@@ -4039,6 +4153,7 @@ function waBox(){
       featOn('whatsapp_inbox')?btn(WA.connected?'Reconnect WhatsApp':'Connect WhatsApp',waConnect,WA.connected?'small':'primary small'):null,
       featOn('whatsapp_inbox')&&WA.connected?btn('Check',waCheck,'small'):null,
       featOn('ai_reply')?btn('AI replies',aiReplyForm,'small'):null,
+      featOn('ai_learn')?btn('AI learning',aiLearnDlg,'small'):null,
       featOn('booking_push')?btn('Notifications',bookPushForm,'small'):null):null);
 }
 function waCheck(){
@@ -10660,7 +10775,7 @@ function vSettings(){
   else if(t==='plan') body=[planSection()];
   else if(t==='activity') body=[histOk()?auditSection():null];
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
-  else if(t==='messages') body=[notifySection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
+  else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
   else if(t==='website') body=[mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[

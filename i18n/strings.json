@@ -24738,5 +24738,277 @@
 "For example 180. GetYourGuide sees no free places after that.": [
 "เช่น 180 หลังจากนั้น GetYourGuide จะไม่เห็นที่ว่าง",
 "ဥပမာ 180။ ထို့နောက် GetYourGuide တွင် နေရာလွတ် မမြင်ရပါ။"
+],
+" AI replies to check": [
+" คำตอบ AI รอตรวจ",
+" AI အဖြေ စစ်ရန်"
+],
+" WhatsApp messages. Tap Learn again.": [
+" ข้อความ WhatsApp กด เรียนรู้อีกครั้ง",
+" WhatsApp မက်ဆေ့ချ်။ ထပ်လေ့လာရန် နှိပ်ပါ။"
+],
+" chats. Tap Learn again.": [
+" แชท กด เรียนรู้อีกครั้ง",
+" ချတ်။ ထပ်လေ့လာရန် နှိပ်ပါ။"
+],
+" messages from ": [
+" ข้อความจาก ",
+" မက်ဆေ့ချ် မှ "
+],
+" messages in the app": [
+" ข้อความในแอป",
+" အက်ပ်ထဲ မက်ဆေ့ချ်"
+],
+" older Instagram and Facebook": [
+" Instagram และ Facebook เก่า",
+" Instagram နှင့် Facebook အဟောင်း"
+],
+"1 AI reply to check": [
+"คำตอบ AI 1 ข้อความรอตรวจ",
+"AI အဖြေ 1 ခု စစ်ရန်"
+],
+"AI learning": [
+"AI เรียนรู้",
+"AI လေ့လာမှု"
+],
+"AI learns your replies": [
+"AI เรียนรู้วิธีตอบของคุณ",
+"AI က သင့်အဖြေများကို လေ့လာသည်"
+],
+"AI reply to check": [
+"คำตอบ AI รอตรวจ",
+"AI အဖြေ စစ်ရန်"
+],
+"Add WhatsApp chats": [
+"เพิ่มแชท WhatsApp",
+"WhatsApp ချတ် ထည့်ရန်"
+],
+"Add to saved replies": [
+"เพิ่มในคำตอบที่บันทึก",
+"သိမ်းထားသော အဖြေများထဲ ထည့်ရန်"
+],
+"Added to saved replies.": [
+"เพิ่มในคำตอบที่บันทึกแล้ว",
+"သိမ်းထားသော အဖြေများထဲ ထည့်ပြီး။"
+],
+"Approve all": [
+"อนุมัติทั้งหมด",
+"အားလုံး အတည်ပြုရန်"
+],
+"Approved (": [
+"อนุมัติแล้ว (",
+"အတည်ပြုပြီး ("
+],
+"Booking and how it works": [
+"การจองและวิธีการ",
+"ဘွတ်ကင်နှင့် လုပ်ပုံ"
+],
+"Bring in older Instagram and Facebook chats": [
+"นำแชท Instagram และ Facebook เก่าเข้ามา",
+"Instagram နှင့် Facebook ချတ်အဟောင်းများ ယူလာရန်"
+],
+"Bring them in": [
+"นำเข้า",
+"ယူလာရန်"
+],
+"Bringing them in. This can take a minute.": [
+"กำลังนำเข้า อาจใช้เวลาสักครู่",
+"ယူလာနေသည်။ တစ်မိနစ်ခန့် ကြာနိုင်သည်။"
+],
+"Brought in ": [
+"นำเข้าแล้ว ",
+"ယူလာပြီး "
+],
+"Chats to learn from: ": [
+"แชทที่ใช้เรียนรู้: ",
+"လေ့လာရန် ချတ်များ: "
+],
+"Check every reply: the AI writes a draft, someone sends it": [
+"ตรวจทุกคำตอบ: AI เขียนร่าง แล้วมีคนส่ง",
+"အဖြေတိုင်း စစ်ရန်: AI က မူကြမ်း ရေးပြီး တစ်ယောက်က ပို့သည်"
+],
+"Check what it learned": [
+"ตรวจสิ่งที่เรียนรู้",
+"လေ့လာထားသည်ကို စစ်ရန်"
+],
+"Class times": [
+"เวลาเรียน",
+"သင်တန်းချိန်"
+],
+"Dismiss": [
+"ปิด",
+"ပယ်ရန်"
+],
+"Edit first": [
+"แก้ไขก่อน",
+"အရင် ပြင်ရန်"
+],
+"Edit saved reply": [
+"แก้ไขคำตอบที่บันทึก",
+"သိမ်းထားသော အဖြေ ပြင်ရန်"
+],
+"Hello and thank you": [
+"ทักทายและขอบคุณ",
+"နှုတ်ဆက်ခြင်းနှင့် ကျေးဇူးတင်ခြင်း"
+],
+"How the AI answers": [
+"AI ตอบอย่างไร",
+"AI ဖြေပုံ"
+],
+"How we talk": [
+"วิธีพูดของเรา",
+"ကျွန်ုပ်တို့ ပြောပုံ"
+],
+"Last learned ": [
+"เรียนรู้ล่าสุด ",
+"နောက်ဆုံး လေ့လာခဲ့သည် "
+],
+"Learn again": [
+"เรียนรู้อีกครั้ง",
+"ထပ်လေ့လာရန်"
+],
+"Learn from our chats": [
+"เรียนรู้จากแชทของเรา",
+"ကျွန်ုပ်တို့ ချတ်များမှ လေ့လာရန်"
+],
+"Learning now: ": [
+"กำลังเรียนรู้: ",
+"ယခု လေ့လာနေသည်: "
+],
+"Learning started.": [
+"เริ่มเรียนรู้แล้ว",
+"လေ့လာမှု စတင်ပြီး။"
+],
+"New saved reply": [
+"คำตอบที่บันทึกใหม่",
+"သိမ်းထားသော အဖြေ အသစ်"
+],
+"No messages found. Export each chat from WhatsApp: open the chat, More, Export chat, Without media.": [
+"ไม่พบข้อความ ส่งออกแต่ละแชทจาก WhatsApp: เปิดแชท, เพิ่มเติม, ส่งออกแชท, ไม่รวมสื่อ",
+"မက်ဆေ့ချ် မတွေ့ပါ။ WhatsApp မှ ချတ်တစ်ခုစီကို ထုတ်ပါ: ချတ်ဖွင့်၊ More၊ Export chat၊ Without media။"
+],
+"No saved replies yet. Type a reply you send often, then tap Save what I typed.": [
+"ยังไม่มีคำตอบที่บันทึก พิมพ์คำตอบที่ส่งบ่อย แล้วกด บันทึกสิ่งที่พิมพ์",
+"သိမ်းထားသော အဖြေ မရှိသေးပါ။ မကြာခဏ ပို့သော အဖြေကို ရိုက်ပြီး ရိုက်ထားသည်ကို သိမ်းရန် နှိပ်ပါ။"
+],
+"Nothing here.": [
+"ไม่มีอะไรที่นี่",
+"ဒီမှာ ဘာမှ မရှိပါ။"
+],
+"Ready answers anyone on the team can put in a chat with one tap: the Saved button next to the message box. The AI uses them too.": [
+"คำตอบสำเร็จรูปที่ทุกคนในทีมใส่ในแชทได้ด้วยการกดครั้งเดียว: ปุ่ม บันทึก ข้างช่องข้อความ AI ก็ใช้ด้วย",
+"အဖွဲ့ထဲ မည်သူမဆို တစ်ချက်နှိပ်ရုံဖြင့် ချတ်ထဲ ထည့်နိုင်သော အဆင်သင့် အဖြေများ: မက်ဆေ့ချ်အကွက်ဘေးရှိ Saved ခလုတ်။ AI ကလည်း သုံးသည်။"
+],
+"Ready answers anyone on the team puts in a chat with one tap (Saved, next to the message box). Save what you typed in one tap. The AI uses them too.": [
+"คำตอบสำเร็จรูปที่ทุกคนในทีมใส่ในแชทได้ด้วยการกดครั้งเดียว (บันทึก ข้างช่องข้อความ) บันทึกสิ่งที่พิมพ์ได้ในครั้งเดียว AI ก็ใช้ด้วย",
+"အဖွဲ့ထဲ မည်သူမဆို တစ်ချက်နှိပ်ရုံဖြင့် ချတ်ထဲ ထည့်သော အဆင်သင့် အဖြေများ (မက်ဆေ့ချ်အကွက်ဘေး Saved)။ ရိုက်ထားသည်ကို တစ်ချက်တည်းဖြင့် သိမ်းနိုင်သည်။ AI ကလည်း သုံးသည်။"
+],
+"Replies": [
+"คำตอบ",
+"အဖြေများ"
+],
+"Save what I typed": [
+"บันทึกสิ่งที่พิมพ์",
+"ရိုက်ထားသည်ကို သိမ်းရန်"
+],
+"Saved replies": [
+"คำตอบที่บันทึก",
+"သိမ်းထားသော အဖြေများ"
+],
+"Saved. Find it under Saved in any chat.": [
+"บันทึกแล้ว ดูได้ที่ บันทึก ในทุกแชท",
+"သိမ်းပြီး။ မည်သည့် ချတ်တွင်မဆို Saved အောက်တွင် ရှာပါ။"
+],
+"Saved. The AI uses the approved answers from now on.": [
+"บันทึกแล้ว ต่อจากนี้ AI จะใช้คำตอบที่อนุมัติ",
+"သိမ်းပြီး။ ယခုမှစ၍ AI က အတည်ပြုထားသော အဖြေများကို သုံးမည်။"
+],
+"Search saved replies": [
+"ค้นหาคำตอบที่บันทึก",
+"သိမ်းထားသော အဖြေများ ရှာရန်"
+],
+"See and edit saved replies": [
+"ดูและแก้ไขคำตอบที่บันทึก",
+"သိမ်းထားသော အဖြေများ ကြည့်ပြီး ပြင်ရန်"
+],
+"Send by itself for the topics ticked below, draft the rest": [
+"ส่งเองสำหรับหัวข้อที่ติ๊กด้านล่าง ที่เหลือเป็นร่าง",
+"အောက်တွင် အမှန်ခြစ်ထားသော ခေါင်းစဉ်များအတွက် ကိုယ်တိုင်ပို့၊ ကျန်တာ မူကြမ်း"
+],
+"Send every reply by itself": [
+"ส่งทุกคำตอบเอง",
+"အဖြေတိုင်း ကိုယ်တိုင် ပို့ရန်"
+],
+"Short name": [
+"ชื่อสั้น",
+"အမည်တို"
+],
+"Start with Check every reply. When you are happy with its answers on a topic, let it send those by itself. Bookings, payments, complaints and anything it is unsure of always come to you.": [
+"เริ่มด้วย ตรวจทุกคำตอบ เมื่อพอใจกับคำตอบในหัวข้อใด ให้มันส่งเองได้ การจอง การชำระเงิน ข้อร้องเรียน และสิ่งที่ไม่แน่ใจจะมาถึงคุณเสมอ",
+"အဖြေတိုင်း စစ်ရန် ဖြင့် စပါ။ ခေါင်းစဉ်တစ်ခုအတွက် ၎င်း၏ အဖြေကို ကျေနပ်လျှင် ကိုယ်တိုင် ပို့ခွင့်ပေးပါ။ ဘွတ်ကင်၊ ငွေပေးချေမှု၊ တိုင်ကြားချက်နှင့် မသေချာသည်များ အမြဲ သင့်ထံ ရောက်မည်။"
+],
+"That zip file could not be read.": [
+"อ่านไฟล์ zip ไม่ได้",
+"ထို zip ဖိုင်ကို ဖတ်၍ မရပါ။"
+],
+"The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.": [
+"AI เรียนรู้วิธีที่ทีมตอบจากแชท 6 เดือนล่าสุด คุณตรวจสิ่งที่มันเรียนรู้และเลือกว่าคำตอบไหนส่งเองได้",
+"AI က နောက်ဆုံး 6 လ ချတ်များမှ သင့်အဖွဲ့ ဖြေပုံကို လေ့လာသည်။ လေ့လာထားသည်ကို စစ်ပြီး မည်သည့်အဖြေကို ကိုယ်တိုင်ပို့ခွင့်ပေးမည် ရွေးပါ။"
+],
+"The AI may use this": [
+"AI ใช้ได้",
+"AI က ဒါကို သုံးနိုင်သည်"
+],
+"The AI reads the last 6 months of customer chats (also older Instagram, Facebook and WhatsApp chats you bring in) and learns how your team answers. You check its answers. It then writes drafts for the team to send, or sends by itself only the topics you allow. Messages, AI learning.": [
+"AI อ่านแชทลูกค้า 6 เดือนล่าสุด (รวมแชท Instagram, Facebook และ WhatsApp เก่าที่คุณนำเข้า) และเรียนรู้วิธีที่ทีมตอบ คุณตรวจคำตอบ จากนั้นมันเขียนร่างให้ทีมส่ง หรือส่งเองเฉพาะหัวข้อที่อนุญาต ข้อความ, AI เรียนรู้",
+"AI က နောက်ဆုံး 6 လ ဖောက်သည် ချတ်များ (ယူလာသော Instagram၊ Facebook၊ WhatsApp အဟောင်းများ အပါအဝင်) ကို ဖတ်ပြီး အဖွဲ့ ဖြေပုံကို လေ့လာသည်။ အဖြေများကို သင် စစ်သည်။ ထို့နောက် အဖွဲ့ ပို့ရန် မူကြမ်း ရေးသည်၊ သို့မဟုတ် ခွင့်ပြုသော ခေါင်းစဉ်များကိုသာ ကိုယ်တိုင် ပို့သည်။ Messages, AI လေ့လာမှု။"
+],
+"The AI reads your customer chats from the last 6 months and learns how your team answers: the tone, the length, and your usual answers. You check everything it learned before it uses it.": [
+"AI อ่านแชทลูกค้า 6 เดือนล่าสุดและเรียนรู้วิธีที่ทีมตอบ: น้ำเสียง ความยาว และคำตอบที่ใช้บ่อย คุณตรวจทุกอย่างก่อนที่มันจะใช้",
+"AI က နောက်ဆုံး 6 လ ဖောက်သည် ချတ်များကို ဖတ်ပြီး အဖွဲ့ ဖြေပုံ: လေသံ၊ အရှည်၊ ပုံမှန် အဖြေများကို လေ့လာသည်။ မသုံးမီ လေ့လာထားသမျှကို သင် စစ်သည်။"
+],
+"The AI wrote these. Open the chat, read it, then Send, Edit first or Dismiss.": [
+"AI เขียนสิ่งเหล่านี้ เปิดแชท อ่าน แล้วกด ส่ง แก้ไขก่อน หรือ ปิด",
+"AI က ဒါတွေကို ရေးထားသည်။ ချတ်ဖွင့်၊ ဖတ်ပြီး Send၊ Edit first သို့မဟုတ် Dismiss နှိပ်ပါ။"
+],
+"Tick at least one name: your business or your staff.": [
+"ติ๊กอย่างน้อยหนึ่งชื่อ: ธุรกิจหรือพนักงานของคุณ",
+"အနည်းဆုံး အမည်တစ်ခု အမှန်ခြစ်ပါ: သင့်လုပ်ငန်း သို့မဟုတ် ဝန်ထမ်း။"
+],
+"To check (": [
+"รอตรวจ (",
+"စစ်ရန် ("
+],
+"Topics it may send by itself": [
+"หัวข้อที่ส่งเองได้",
+"ကိုယ်တိုင် ပို့နိုင်သော ခေါင်းစဉ်များ"
+],
+"Visas": [
+"วีซ่า",
+"ဗီဇာ"
+],
+"What the AI learned": [
+"สิ่งที่ AI เรียนรู้",
+"AI လေ့လာထားသည်"
+],
+"Where we are, getting here": [
+"ที่ตั้งและการเดินทาง",
+"တည်နေရာနှင့် လာပုံ"
+],
+"Which names are your team?": [
+"ชื่อไหนคือทีมของคุณ",
+"မည်သည့် အမည်များက သင့်အဖွဲ့လဲ"
+],
+"Your team": [
+"ทีมของคุณ",
+"သင့်အဖွဲ့"
+],
+"For example Prices, How to find us, What to bring.": [
+"เช่น ราคา, วิธีมาหาเรา, สิ่งที่ต้องนำมา",
+"ဥပမာ ဈေးနှုန်း၊ ကျွန်ုပ်တို့ကို ရှာပုံ၊ ယူလာရမည့်အရာ။"
+],
+"The reply": [
+"คำตอบ",
+"အဖြေ"
 ]
 }
