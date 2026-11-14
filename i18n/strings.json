@@ -24466,5 +24466,21 @@
 "Notifications do not work in Safari. Open the app on your phone, or Share, Add to Home Screen, and turn them on there.": [
 "การแจ้งเตือนใช้ไม่ได้ใน Safari เปิดแอปบนโทรศัพท์ หรือกด Share, Add to Home Screen แล้วเปิดการแจ้งเตือนที่นั่น",
 "Safari တွင် အသိပေးချက်များ အလုပ်မလုပ်ပါ။ ဖုန်းရှိ အက်ပ်ကို ဖွင့်ပါ၊ သို့မဟုတ် Share, Add to Home Screen နှိပ်ပြီး ထိုနေရာတွင် ဖွင့်ပါ။"
+],
+"Send a test": [
+"ส่งทดสอบ",
+"စမ်းပို့ရန်"
+],
+"Sending a test...": [
+"กำลังส่งทดสอบ...",
+"စမ်းပို့နေသည်..."
+],
+"No phone of yours has notifications on. Tap Turn on notifications first.": [
+"ยังไม่มีโทรศัพท์ของคุณที่เปิดการแจ้งเตือน กดเปิดการแจ้งเตือนก่อน",
+"သင့်ဖုန်းတွင် အသိပေးချက် မဖွင့်ရသေးပါ။ အသိပေးချက်ဖွင့်ရန် အရင်နှိပ်ပါ။"
+],
+"Sent. It should show on your phone in a few seconds.": [
+"ส่งแล้ว จะขึ้นบนโทรศัพท์ภายในไม่กี่วินาที",
+"ပို့ပြီးပါပြီ။ စက္ကန့်အနည်းငယ်အတွင်း ဖုန်းပေါ်တွင် ပေါ်လာမည်။"
 ]
 }

@@ -1081,7 +1081,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=138; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=139; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4201,8 +4201,12 @@ function pushBtn(){
   if(!PUSH.can&&inStoreApp()) return h('span',{class:'sub'},'Update the app from the App Store or Google Play to turn on notifications.');
   if(!PUSH.can) return h('span',{class:'sub'},/iPhone|iPad/.test(navigator.userAgent)?'Notifications do not work in Safari. Open the app on your phone, or Share, Add to Home Screen, and turn them on there.':'This browser cannot show notifications.');
   if(PUSH.on===null) return null;
-  return PUSH.on?btn('Notifications on this phone: ON',pushOff,'small'):btn('Turn on notifications on this phone',pushOn,'primary small');
+  return PUSH.on?h('span',{class:'row',style:'gap:8px;display:inline-flex;flex-wrap:wrap'},btn('Notifications on this phone: ON',pushOff,'small'),btn('Send a test',pushTest,'small')):btn('Turn on notifications on this phone',pushOn,'primary small');
 }
+function pushTest(){ toast('Sending a test...');
+  sb.functions.invoke('chat',{body:{mode:'test'}}).then(function(r){ var d=r.data||{}; if(d.error) throw new Error(d.error); var res=d.results||[];
+    toast(!res.length?'No phone of yours has notifications on. Tap Turn on notifications first.':res.every(function(x){ return /: ok$/.test(x); })?'Sent. It should show on your phone in a few seconds.':'Sent: '+res.join('. ')); })
+  .catch(function(e){ toast(errText(e)); }); }
 function pushOn(){
   if(PUSH.busy) return; PUSH.busy=true;
   if(PUSH.nat){ var P=natPush(); toast('Turning on notifications...'); schedule();

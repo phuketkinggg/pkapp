@@ -43,6 +43,7 @@ const b64url = (b: ArrayBuffer | Uint8Array | string) => {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 };
 const pemBytes = (pem: string) => Uint8Array.from(atob(pem.replace(/-----[^-]+-----/g, "").replace(/\\n/g, "").replace(/\s+/g, "")), (c) => c.charCodeAt(0));
+let lastErr = "";
 let apnsJwt: { tok: string; at: number } | null = null;
 async function apnsToken() {
   if (apnsJwt && Date.now() - apnsJwt.at < 40 * 60e3) return apnsJwt.tok;
@@ -80,7 +81,7 @@ async function nativePush(endpoint: string, m: { title: string; body: string; ta
       // a phone running a build from Xcode uses Apple's test service
       if (r.status === 400 && /BadDeviceToken/.test(await r.clone().text())) r = await go("api.sandbox.push.apple.com");
       if (r.status === 410) return "gone";
-      if (!r.ok) { const t = await r.text(); if (/BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(t)) return "gone"; console.error("apns", r.status, t.slice(0, 200)); return "fail"; }
+      if (!r.ok) { const t = await r.text(); if (/BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(t)) return "gone"; console.error("apns", r.status, t.slice(0, 200)); lastErr = t.slice(0, 120); return "fail"; }
       return "ok";
     }
     if (endpoint.startsWith("fcm:")) {
@@ -178,6 +179,22 @@ Deno.serve(async (req) => {
     let mailed = false;
     if (tg?.email && /^book_/.test(str(b.kind, 20))) mailed = await bookingMail(tg.email, tg.from ?? null, tg.title, tg.body, "https://app.phuketking.com/" + (tg.url || ""));
     return json({ ok: true, sent: tg?.subs?.length ?? 0, mailed });
+  }
+  // test: the signed in person gets a test notification on every phone they turned notifications on, and sees what happened
+  if (mode === "test") {
+    const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: u } = await admin.auth.getUser(jwt);
+    if (!u?.user) return json({ error: "Sign in first." }, 401);
+    const { data: subs } = await admin.from("push_subs").select("endpoint, p256dh, auth").eq("user_id", u.user.id).is("off_at", null);
+    const out: string[] = [];
+    await vapid();
+    for (const s of (subs ?? []) as Sub[]) {
+      const m = { title: "Test notification", body: "Notifications work on this phone.", tag: "test", url: "https://app.phuketking.com/" };
+      if (/^(apns|fcm):/.test(s.endpoint)) { const r = await nativePush(s.endpoint, m); out.push((s.endpoint.startsWith("apns:") ? "iPhone app: " : "Android app: ") + r + (r === "fail" && lastErr ? " " + lastErr : "")); continue; }
+      try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(m), { TTL: 600, urgency: "high" }); out.push("Browser: ok"); }
+      catch (e) { const c = (e as { statusCode?: number }).statusCode; if (c === 404 || c === 410) { await admin.rpc("web_push_gone", { p_endpoint: s.endpoint }); out.push("Browser: gone"); } else out.push("Browser: fail"); }
+    }
+    return json({ ok: true, results: out });
   }
   if (!["status", "start", "send", "contact", "poll"].includes(mode)) return json({ error: "Unknown request." }, 400);
   const p: Record<string, string> = { mode };
