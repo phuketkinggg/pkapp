@@ -1066,7 +1066,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=135; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=136; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4184,7 +4184,7 @@ function pushBtn(){
 }
 function pushOn(){
   if(PUSH.busy) return; PUSH.busy=true;
-  if(PUSH.nat){ var P=natPush();
+  if(PUSH.nat){ var P=natPush(); toast('Turning on notifications...'); schedule();
     P.requestPermissions().then(function(p){ if(!p||p.receive!=='granted') throw new Error('Notifications are blocked. Allow them for this app in your phone settings, then try again.'); return natRegister(); })
     .then(function(t){ if(!t) throw new Error('The phone did not give a notification code. Try again.'); var ep=(window.Capacitor.getPlatform()==='ios'?'apns:':'fcm:')+t;
       return sb.rpc('push_sub_save',{p_endpoint:ep,p_p256dh:'',p_auth:''}).then(must).then(function(){ NATTOK=ep; try{ localStorage.setItem('pk_nat_push',ep); }catch(e){} }); })

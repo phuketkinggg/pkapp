@@ -73,6 +73,12 @@ jobs:
           /usr/libexec/PlistBuddy -c "Delete :UIBackgroundModes" "$P" 2>/dev/null || true
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$P"
           /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string remote-notification" "$P"
+          # the notifications plugin only gets the phone's code if the app hands it over (Capacitor does not do this by itself)
+          AD=ios/App/App/AppDelegate.swift
+          if ! grep -q capacitorDidRegisterForRemoteNotifications "$AD"; then
+            perl -0pi -e 's/(\n\s*func application\(_ application: UIApplication, didFinishLaunchingWithOptions)/\n    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {\n        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)\n    }\n\n    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {\n        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)\n    }\n$1/' "$AD"
+          fi
+          grep -q capacitorDidRegisterForRemoteNotifications "$AD" && echo "::notice title=$APP::Notification code handed to the app" || { echo "::error title=$APP::Could not add the notification code to AppDelegate"; exit 1; }
           printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' '<plist version="1.0"><dict><key>aps-environment</key><string>production</string></dict></plist>' > ios/App/App/App.entitlements
       - name: Check the App Store Connect key
         if: steps.pick.outputs.go == '1'
