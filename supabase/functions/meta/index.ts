@@ -12,6 +12,8 @@
 // POST {mode:'fb_connect', code} a manager, after the Meta sign in in the app: finds the Facebook pages (and their Instagram);
 //      one page is connected at once, more than one comes back as {choose:[...]} for {mode:'fb_pick', page_id}
 // POST {mode:'fb_check'|'fb_disconnect'} a manager: which page and Instagram are connected / stop using the page connected in the app
+// POST {mode:'ai_learn'} a manager: the AI reads the last 6 months of customer chats and writes how the team talks and the usual answers
+// POST {mode:'ai_import_meta'} a manager: brings in older Instagram and Facebook chats (before the app) for the AI to learn from
 // Secrets: META_PAGE_TOKEN (optional when the page is connected in the app), META_APP_SECRET, META_APP_ID, WA_TOKEN (optional: a system user token with WhatsApp rights),
 //          META_FB_CONFIG and META_WA_CONFIG (optional: the sign in configuration IDs, so managers do not type them),
 //          ANTHROPIC_API_KEY (AI replies). The webhook verify token is kept in the database (private.sync_settings 'meta_verify').
@@ -403,6 +405,8 @@ type Ctx = { go: boolean; why: string; kind: string; social_id: string; name: st
   messages: { in: boolean; ai: boolean; body: string; at: string }[];
   packages: { name: string; thb: number; local_thb: number | null; thai_thb: number | null; who: string; days: number | null; visits: number | null; covers: string[] | null; notes: string }[];
   classes: { day: number; from: string; to: string | null; title: string; off: string | null }[] };
+type Learn = { mode: string; style: string; auto_topics: string[]; faqs: { q: string; a: string; topic: string }[]; saved: { title: string; body: string }[] };
+const TOPICS = ["prices", "timetable", "location", "booking", "rooms", "food", "privates", "courses", "visa", "greeting", "other"];
 async function aiReply(chatId: string, trigger: string) {
   try {
     if (!AI_KEY()) return;
@@ -421,6 +425,8 @@ async function aiReply(chatId: string, trigger: string) {
       + (p.days ? `, valid ${p.days} days` : "") + (p.visits ? `, ${p.visits} visits` : "") + (p.notes ? `. ${p.notes.replace(/\s+/g, " ")}` : "");
     const week = DAYS.map((d, i) => { const k = c!.classes.filter((x) => x.day === i); return k.length ? `${d}: ` + k.map((x) => `${x.from}${x.to ? "-" + x.to : ""} ${x.title}${x.off ? " (paused " + x.off + ")" : ""}`).join(", ") : `${d}: no classes`; }).join("\n");
     const site = await siteFacts(c.site);
+    const { data: lr } = await admin.rpc("ai_learn_ctx");
+    const L = (lr ?? { mode: "auto", style: "", auto_topics: [], faqs: [], saved: [] }) as Learn;
     const where = c.kind === "wa" ? "WhatsApp" : c.kind === "ig" ? "Instagram" : "Facebook Messenger";
     const now = new Date(Date.now() + 7 * 3600e3);
     const system = [
@@ -431,13 +437,18 @@ async function aiReply(chatId: string, trigger: string) {
       "- Hand over to the team (handoff true) for: bookings that need a time or a room confirmed, changes, cancellations, refunds, payments, complaints, injuries or health, anything personal, or when the customer asks for a person.",
       "- Never use a long dash and never the & sign. No hashtags. At most one emoji.",
       "- Do not say you are an AI unless they ask. If they ask, say you are the team's assistant and a person can take over.",
-      `Reply with JSON only: {"reply":"the message to send","handoff":true or false}`,
+      L.style ? "- Write the way the team writes (below, HOW WE TALK): same tone, length, greetings and sign offs." : "",
+      `- Topic: pick the one that fits best: ${TOPICS.join(", ")}.`,
+      `Reply with JSON only: {"reply":"the message to send","handoff":true or false,"topic":"one topic","sure":true if the facts fully answer it}`,
       "",
       "FACTS",
       c.notes ? "From the owner:\n" + c.notes : "",
       "Prices (THB):\n" + c.packages.map(price).join("\n"),
       "Weekly class timetable:\n" + week,
       site ? "From the website:\n" + site : "",
+      L.style ? "HOW WE TALK (learned from the team's own replies):\n" + L.style : "",
+      L.faqs?.length ? "OUR USUAL ANSWERS (approved by the owner, use them):\n" + L.faqs.map((f) => `Q: ${f.q}\nA: ${f.a}`).join("\n\n") : "",
+      L.saved?.length ? "SAVED REPLIES the team uses:\n" + L.saved.map((f) => `${f.title}: ${f.body}`).join("\n") : "",
     ].filter((x) => x !== "").join("\n");
     // the conversation as turns: the customer is the user, the team and earlier AI replies are the assistant
     const turns: { role: string; content: string }[] = [];
@@ -454,9 +465,18 @@ async function aiReply(chatId: string, trigger: string) {
     await admin.from("ai_usage").update({ in_tokens: j?.usage?.input_tokens ?? null, out_tokens: j?.usage?.output_tokens ?? null, ok: r.ok }).eq("id", slot.data);
     if (!r.ok) return;
     const out = String((j.content ?? []).filter((x: { type: string }) => x.type === "text").map((x: { text: string }) => x.text).join(""));
-    let reply = "", handoff = false;
-    try { const o = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)); reply = tidy(String(o.reply ?? "")); handoff = !!o.handoff; } catch { reply = tidy(out); }
+    let reply = "", handoff = false, topic = "other", sure = false;
+    try { const o = JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1)); reply = tidy(String(o.reply ?? "")); handoff = !!o.handoff; topic = String(o.topic ?? "other"); sure = !!o.sure; } catch { reply = tidy(out); }
     if (!reply) return;
+    // a draft for the team to check, unless the owner lets the AI send this kind of answer by itself
+    const auto = L.mode === "auto" || (L.mode === "mixed" && !handoff && sure && (L.auto_topics ?? []).includes(topic));
+    if (!auto) {
+      const { data: again0 } = await admin.rpc("ai_reply_ctx", { p_chat: chatId }) as { data: Ctx | null };
+      if (!again0?.go) return;
+      await admin.rpc("ai_draft_add", { p_chat: chatId, p_body: reply, p_topic: topic });
+      await notify(`${where}: AI reply ready to check`, `${c.name || "A customer"}: ${reply}`, chatId);
+      return;
+    }
     // one last check: a staff member may have answered while the AI was writing
     const { data: again } = await admin.rpc("ai_reply_ctx", { p_chat: chatId }) as { data: Ctx | null };
     if (!again?.go) return;
@@ -466,6 +486,101 @@ async function aiReply(chatId: string, trigger: string) {
     await admin.rpc("ai_reply_save_msg", { p_chat: chatId, p_body: reply, p_ext: ext ?? "", p_error: err });
     if (handoff || err) await notify(`${where}: ${c.name || "a customer"} needs a person`, err ? "The AI reply was not delivered." : "The AI answered and said the team will reply.", chatId);
   } catch (e) { console.error("ai reply", (e as Error).message); }
+}
+
+// ---------- learning how the team answers ----------
+async function claude(system: string, user: string, max = 8000) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "x-api-key": AI_KEY(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: MODEL, max_tokens: max, system, messages: [{ role: "user", content: user }] }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.error?.message ?? `The AI said ${r.status}`);
+  const out = String((j.content ?? []).filter((x: { type: string }) => x.type === "text").map((x: { text: string }) => x.text).join(""));
+  return JSON.parse(out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1));
+}
+async function aiLearn() {
+  try {
+    const { data: corpus } = await admin.rpc("ai_learn_corpus");
+    const chats = (corpus ?? []) as { chat: string; src: string; lines: string }[];
+    if (!chats.length) { await admin.rpc("ai_learn_status", { p: { running: false, error: "No customer chats with team replies to learn from yet." } }); return; }
+    // batches of about 60,000 characters, newest chats first
+    const batches: string[] = []; let cur = "";
+    for (const c of chats) {
+      const block = `--- chat (${c.src}) ---\n${c.lines}\n`;
+      if (cur.length + block.length > 60000 && cur) { batches.push(cur); cur = ""; }
+      cur += block.slice(0, 60000);
+      if (batches.length >= 8) break;
+    }
+    if (cur && batches.length < 8) batches.push(cur);
+    const notes: unknown[] = [];
+    const sys1 = "You study a business's customer chats to learn how the TEAM answers (TEAM lines; AI lines are an older bot, ignore their style). " +
+      "Reply with JSON only: {\"style\":[\"short notes on tone, length, greetings, sign offs, emoji, how they handle prices, bookings and questions\"]," +
+      "\"faqs\":[{\"q\":\"a common customer question, in general words\",\"a\":\"the team's usual answer, in the team's own words, with the facts they gave\",\"topic\":\"" + TOPICS.join("|") + "\"}]}. " +
+      "Only answers the team actually gave. No names, phone numbers or private details of customers. Never use a long dash or the & sign.";
+    for (let i = 0; i < batches.length; i++) {
+      await admin.rpc("ai_learn_status", { p: { running: true, step: `Reading chats, part ${i + 1} of ${batches.length}` } });
+      const slot = await admin.rpc("ai_usage_take", { p_fn: "ai_learn" });
+      if (slot.error || !slot.data) break;
+      try { notes.push(await claude(sys1, batches[i])); } catch (e) { console.error("learn part", (e as Error).message); }
+    }
+    if (!notes.length) { await admin.rpc("ai_learn_status", { p: { running: false, error: "The AI could not read the chats. Try again later." } }); return; }
+    await admin.rpc("ai_learn_status", { p: { running: true, step: "Putting it together" } });
+    const slot = await admin.rpc("ai_usage_take", { p_fn: "ai_learn" });
+    if (slot.error || !slot.data) { await admin.rpc("ai_learn_status", { p: { running: false, error: "The monthly AI limit is used up." } }); return; }
+    const merged = await claude("Merge these notes about how one business's team answers customers. Reply with JSON only: " +
+      "{\"style\":\"a clear guide of up to 15 short lines: tone, length, greetings, sign offs, emoji, language habits, how they talk about prices and bookings\"," +
+      "\"faqs\":[{\"q\":\"...\",\"a\":\"...\",\"topic\":\"" + TOPICS.join("|") + "\"}]} with the 40 most useful questions, merged, newest facts winning when they differ. " +
+      "Keep the team's wording. Never use a long dash or the & sign.", JSON.stringify(notes), 12000);
+    const { data: old } = await admin.rpc("ai_learn_ctx");
+    const keep = (((old as Learn | null)?.faqs) ?? []).map((f) => ({ ...f, ok: true }));
+    const fresh = ((merged.faqs ?? []) as { q: string; a: string; topic: string }[]).map((f) => ({ q: tidy(f.q), a: tidy(f.a), topic: TOPICS.includes(f.topic) ? f.topic : "other", ok: false }));
+    const { data: cur0 } = await admin.from("app_settings").select("value").eq("key", "ai_learned").maybeSingle();
+    let base: Record<string, unknown> = {}; try { base = JSON.parse(cur0?.value ?? "{}"); } catch { base = {}; }
+    base.style = tidy(String(merged.style ?? "")).slice(0, 6000);
+    base.faqs = [...keep, ...fresh.filter((f) => f.q && f.a)].slice(0, 80).map((f, i) => ({ id: "f" + Date.now().toString(36) + i, ...f }));
+    base.learned_at = new Date().toISOString(); base.learned_chats = chats.length;
+    if (!base.mode) base.mode = "approve";
+    await admin.from("app_settings").upsert({ key: "ai_learned", value: JSON.stringify(base) });
+    await admin.rpc("ai_learn_status", { p: { running: false, done: true, chats: chats.length } });
+  } catch (e) {
+    await admin.rpc("ai_learn_status", { p: { running: false, error: (e as Error).message.slice(0, 200) } });
+  }
+}
+// older Instagram and Facebook chats, for learning (Meta keeps them; the app only has chats since it was connected)
+async function importMeta() {
+  const p = await thePage();
+  const since = Date.now() - 183 * 864e5;
+  const rows: { chat: string; at: string; us: boolean; body: string }[] = [];
+  let convs = 0;
+  for (const platform of ["instagram", "messenger"]) {
+    if (platform === "instagram" && !p.ig) continue;
+    let url: string | null = `${G}/${p.id}/conversations?` + new URLSearchParams({ platform, fields: "id,updated_time", limit: "50", access_token: p.token });
+    let pages = 0;
+    while (url && pages < 8) {
+      pages++;
+      const r = await fetch(url); const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.error) { if (!rows.length && !convs) throw new Error(j?.error?.message ?? `Meta said ${r.status}`); break; }
+      let old = false;
+      for (const cv of j.data ?? []) {
+        if (new Date(cv.updated_time).getTime() < since) { old = true; break; }
+        convs++;
+        try {
+          const m = await call(cv.id, { fields: "messages.limit(100){message,from,created_time}" }, "GET", p.token);
+          for (const x of m.messages?.data ?? []) {
+            if (!x.message || new Date(x.created_time).getTime() < since) continue;
+            const us = x.from?.id === p.id || (p.ig && x.from?.id === p.ig);
+            rows.push({ chat: cv.id, at: x.created_time, us: !!us, body: String(x.message).slice(0, 3000) });
+          }
+        } catch { /* skip this chat */ }
+      }
+      url = old ? null : (j.paging?.next ?? null);
+    }
+  }
+  let added = 0;
+  for (let i = 0; i < rows.length; i += 2000) {
+    const { data } = await admin.rpc("ai_learn_import_svc", { p_rows: rows.slice(i, i + 2000), p_source: p.ig ? "ig" : "fb" });
+    added += Number((data as { added?: number } | null)?.added ?? 0);
+  }
+  return { ok: true, chats: convs, messages: rows.length, added };
 }
 
 // ---------- outgoing ----------
@@ -504,7 +619,7 @@ Deno.serve(async (req) => {
   }
   const b = (() => { try { return JSON.parse(raw); } catch { return {}; } })();
   // from the app: a manager connects or checks WhatsApp
-  if (typeof b.mode === "string" && /^(wa|fb|meta)_/.test(b.mode)) {
+  if (typeof b.mode === "string" && /^(wa|fb|meta|ai)_/.test(b.mode)) {
     if (!(await manager(req))) return json({ error: "Only a manager can do this." }, 401);
     try {
       await loadLink();
@@ -522,6 +637,15 @@ Deno.serve(async (req) => {
       }
       if (b.mode === "fb_disconnect") { await admin.rpc("meta_link_set", { p: { page_id: "", page_name: "", token: "", ig_id: "", ig_name: "", pages: null } }); await loadLink(); page = null; return json({ ok: true, still: !!env("META_PAGE_TOKEN") }); }
       if (b.mode === "wa_connect") return json(await waConnect(b));
+      if (b.mode === "ai_learn") {
+        if (!AI_KEY()) return json({ error: "ANTHROPIC_API_KEY is missing in Supabase secrets." });
+        const rt = (globalThis as any).EdgeRuntime; // deno-lint-ignore no-explicit-any
+        await admin.rpc("ai_learn_status", { p: { running: true, step: "Reading your chats" } });
+        const job = aiLearn();
+        if (rt?.waitUntil) rt.waitUntil(job); else await job;
+        return json({ ok: true, started: true });
+      }
+      if (b.mode === "ai_import_meta") return json(await importMeta());
       if (b.mode === "wa_manual") {
         const phone = String(b.phone_id ?? "").trim(), waba = String(b.waba_id ?? "").trim();
         if (!/^\d{6,}$/.test(phone)) return json({ error: "The phone number ID is the long number in Meta, WhatsApp, API setup." });
