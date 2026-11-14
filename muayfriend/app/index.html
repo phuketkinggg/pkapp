@@ -25,7 +25,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=197"></script>
+<script src="changelog.js?v=198"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1091,7 +1091,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=143; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=144; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1170,7 +1170,20 @@ function h(tag,attrs){
 function byId(col,id){ for(var i=0;i<S[col].length;i++) if(S[col][i].id===id) return S[col][i]; return null; }
 function nameOf(col,id,fallback){ var d=byId(col,id); return d&&d.name?d.name:(fallback||'Removed'); }
 function sortBy(list){ var keys=Array.prototype.slice.call(arguments,1); return list.slice().sort(function(a,b){ for(var i=0;i<keys.length;i++){ var x=String(a[keys[i]]==null?'':a[keys[i]]).toLowerCase(), y=String(b[keys[i]]==null?'':b[keys[i]]).toLowerCase(); if(x<y) return -1; if(x>y) return 1; } return 0; }); }
-function thb(n){ return n==null||n===''?'':Number(n).toLocaleString('en-US')+' THB'; }
+/* country, currency and time zone (region.sql): Thailand unless the business sets its own */
+var REGION=(function(){ try{ return JSON.parse(localStorage.getItem('app_region')||'null')||{tz:'Asia/Bangkok',cur:'THB'}; }catch(e){ return {tz:'Asia/Bangkok',cur:'THB'}; } })();
+var CURSYM={GBP:'£',USD:'$',EUR:'€',AUD:'A$',NZD:'NZ$',CAD:'C$',SGD:'S$',HKD:'HK$',JPY:'¥',INR:'₹',PHP:'₱',VND:'₫',IDR:'Rp ',MYR:'RM ',AED:'AED ',CHF:'CHF ',SEK:'SEK ',NOK:'NOK ',DKK:'DKK ',ZAR:'R '};
+var CURNAME={GBP:'pounds',USD:'dollars',EUR:'euros',AUD:'dollars',NZD:'dollars',CAD:'dollars',SGD:'dollars',HKD:'dollars'};
+function TZ(){ return REGION.tz||'Asia/Bangkok'; }
+function TZS(){ var m=Math.round(TZO()/60000), a=Math.abs(m); return (m<0?'-':'+')+String(Math.floor(a/60)).padStart(2,'0')+':'+String(a%60).padStart(2,'0'); }
+function TZO(){ try{ var d=new Date(); d.setMilliseconds(0); var a=Date.parse(d.toLocaleString('en-US',{timeZone:TZ()})), b=Date.parse(d.toLocaleString('en-US',{timeZone:'UTC'})); return isNaN(a-b)?7*36e5:a-b; }catch(e){ return 7*36e5; } }
+function thb(n){ if(n==null||n==='') return ''; var c=REGION.cur||'THB'; return c==='THB'?Number(n).toLocaleString('en-US')+' THB':(CURSYM[c]||c+' ')+Number(n).toLocaleString('en-GB'); }
+function curWords(root){ var c=REGION.cur||'THB'; if(c==='THB'||!root) return; var sym=CURSYM[c]||c+' ', w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null), n, list=[];
+  while((n=w.nextNode())) list.push(n);
+  list.forEach(function(t){ var p=t.parentNode; if(!p||p.closest&&p.closest('script,style,textarea,input,.notr')) return; var v=t.nodeValue; if(v.indexOf('THB')<0&&!/baht/i.test(v)) return;
+    var o=v; v=v.replace(/(\d[\d,]*(?:\.\d+)?)\s?THB\b/g,function(m,a){ return sym+a; }).replace(/\bTHB\b/g,c).replace(/\bbaht\b/gi,CURNAME[c]||c); if(v!==o) t.nodeValue=v; }); }
+try{ new MutationObserver(function(ms){ if((REGION.cur||'THB')==='THB') return; ms.forEach(function(m){ if(m.type==='characterData'){ if(m.target.parentNode) curWords(m.target.parentNode); } else m.addedNodes.forEach(function(nd){ if(nd.nodeType===1) curWords(nd); else if(nd.nodeType===3&&nd.parentNode) curWords(nd.parentNode); }); }); }).observe(document.documentElement,{childList:true,subtree:true,characterData:true}); }catch(e){}
+function loadRegion(){ return sb.rpc('app_region').then(function(r){ if(r.error||!r.data) return; var ch=r.data.tz!==REGION.tz||r.data.cur!==REGION.cur; REGION=r.data; try{ localStorage.setItem('app_region',JSON.stringify(REGION)); }catch(e){} if(ch){ curWords(document.body); schedule(); } }); }
 function fmtDate(s){ if(!s) return ''; return parseYmd(s).toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric'}); }
 function timeNow(){ var d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 /* messages from the database are already written for people; technical ones get a plain version */
@@ -2124,8 +2137,8 @@ setInterval(function(){ if(me&&allReady&&me.role!=='coach'&&me.role!=='housekeep
 function claimsSection(){
   if(!me||!CLAIMS&&!ui.claimsAsked){ if(me){ ui.claimsAsked=true; loadClaims(); } return null; }
   if(!CLAIMS||!CLAIMS.length) return null;
-  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' '+fmtDate(cDayOf(c.at)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
-    note:c.kind==='stay'?(c.expired?'Website stay. The 12 hour hold ran out and the room was given back. If the money is in, Money is in books it again when the room is still free.':'Website stay, paid by Thai QR. Check the bank app first. The room is held until '+new Date(c.held_until).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'. Not received gives the room back.'):'They say they paid by PromptPay. Check the bank app first.',
+  return section('PromptPay to check ('+CLAIMS.length+')',null,cards(CLAIMS.map(function(c){ return {when:new Date(c.at).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:TZ()})+' '+fmtDate(cDayOf(c.at)),title:(c.customer||'Customer')+': '+(c.what||''),right:h('b',null,thb(c.amount)),
+    note:c.kind==='stay'?(c.expired?'Website stay. The 12 hour hold ran out and the room was given back. If the money is in, Money is in books it again when the room is still free.':'Website stay, paid by Thai QR. Check the bank app first. The room is held until '+new Date(c.held_until).toLocaleString(LOC(),{timeZone:TZ(),hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})+'. Not received gives the room back.'):'They say they paid by PromptPay. Check the bank app first.',
     act:[btn('Money is in',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:true}).then(must).then(function(){ return Promise.all([loadClaims(),reload('purchases'),reload('privates'),reload('stays')]); }),'Confirmed. It is marked paid.'); },'primary small'),
       btn('Not received',function(){ run(sb.rpc('pay_claim_decide',{p_id:c.id,p_ok:false}).then(must).then(loadClaims),'Marked as not received.'); },'small')]}; }),''));
 }
@@ -3008,7 +3021,7 @@ function loadFpStays(list){ if(!featOn('food_plans')) return; var ids=list.map(f
   if(!ids.length||k===FPSTAYK) return; FPSTAYK=k;
   sb.rpc('food_plans_stays',{p_ids:ids}).then(function(r){ if(r.error) return; var m={}; (r.data||[]).forEach(function(x){ m[x.stay_id]=x.plans; }); FPSTAY=m; schedule(); }); }
 /* when the booking was made (the stay was added to the app), in Bangkok time */
-function bookedWhen(st){ if(!st||!st.created_at) return ''; var d=new Date(st.created_at); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',timeZone:'Asia/Bangkok'})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}); }
+function bookedWhen(st){ if(!st||!st.created_at) return ''; var d=new Date(st.created_at); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',timeZone:TZ()})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:TZ()}); }
 /* meals and extras on a stay: packages linked to it (booking extras, meal plans, transport, training) and meal plans running during it */
 function stayAddOns(st){ if(!st) return [];
   return sortBy(S.purchases.filter(function(p){ if(p.cancelled||p.customer_id!==st.customer_id&&p.stay_id!==st.id&&p.for_stay!==st.id) return false;
@@ -4294,7 +4307,7 @@ function gygSection(){
       h('div',{style:'flex:1;min-width:200px'},h('b',null,p.title),h('div',{class:'sub'},(p.kind==='private'?'Private, '+(p.times||[]).join(', ')+', as many places as coaches free':'Group class'+(p.match?' ('+p.match+')':'')+', '+p.capacity+' places')+'. Product ID: ',h('code',{class:'notr'},p.id),p.active?'':'. Off.')),
       btn('Free times',function(){ sb.rpc('gyg_product_slots',{p_id:p.id}).then(must).then(function(x){ toast(!(x||[]).length?'Nothing free in the next 3 days. Check the class name or times.':(x||[]).slice(0,8).map(function(s){ return s.at+': '+s.free; }).join('. ')); }).catch(function(e){ toast(errText(e)); }); },'small'),
       btn('Edit',function(){ gygEdit(p); },'small')); })):h('p',{class:'sub'},'No products yet. Add one for each activity you sell on GetYourGuide, for example the group class and a private.'),
-    (g.recent||[]).length?h('div',null,h('h3',{style:'margin:14px 0 6px'},'Latest from GetYourGuide'),(g.recent||[]).slice(0,8).map(function(r){ return h('div',{class:'sub'},fmtDate(String(r.at).slice(0,10))+' '+new Date(r.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+', '+r.people+(r.people===1?' person':' people')+', '+({held:'held',booked:'booked',released:'released',cancelled:'cancelled'}[r.status]||r.status)+' ('+r.gyg_ref+')'); })):null));
+    (g.recent||[]).length?h('div',null,h('h3',{style:'margin:14px 0 6px'},'Latest from GetYourGuide'),(g.recent||[]).slice(0,8).map(function(r){ return h('div',{class:'sub'},fmtDate(String(r.at).slice(0,10))+' '+new Date(r.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:TZ()})+', '+r.people+(r.people===1?' person':' people')+', '+({held:'held',booked:'booked',released:'released',cancelled:'cancelled'}[r.status]||r.status)+' ('+r.gyg_ref+')'); })):null));
 }
 function gygEdit(p){ p=p||{kind:'class',capacity:10,minutes:60,cutoff_minutes:60,horizon_days:180,active:true};
   openForm({title:p.id?'Edit GetYourGuide product':'New GetYourGuide product',saveLabel:'Save',doneMsg:'Saved.',
@@ -4694,7 +4707,7 @@ function crsDays(c,back,steps){
 function crsSteps(c,back){
   var L=c.lessons||[], d=COACHM.data;
   if((c.groups||[]).length&&!d){ if(!COACHM.busy) cmLoad(); return [h('div',{class:'row'},back),h('div',{class:'crseye'},'Course'),pageHead(c.title,''),h('div',{class:'panel empty'},COACHM.err||'Loading.')]; }
-  var gs=crsGroupsFor(c), today=d&&d.today||new Date(Date.now()+7*36e5).toISOString().slice(0,10), steps=[], used={};
+  var gs=crsGroupsFor(c), today=d&&d.today||new Date(Date.now()+TZO()).toISOString().slice(0,10), steps=[], used={};
   function lessonOf(id){ return L.filter(function(l){ return l.id===id; })[0]; }
   gs.forEach(function(g){
     (g.items||[]).filter(function(it){ return it.kind!=='email'; }).forEach(function(it){
@@ -4735,7 +4748,7 @@ function crsSteps(c,back){
     done.length?section('Done ('+done.length+')',showDone?linkBtn('Hide',function(){ COACHM.open[k+'done']=false; schedule(); }):linkBtn('Show',function(){ COACHM.open[k+'done']=true; schedule(); }),
       showDone?h('div',{class:'hlist'},done.map(function(x){ return row(x,num[x.key],false); })):null):null];
 }
-function lessonOpens(ts){ var d=new Date(ts), days=Math.round((Date.parse(cDayOf(d.toISOString()))-Date.parse(cDayOf(new Date().toISOString())))/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:'Asia/Bangkok'}); }
+function lessonOpens(ts){ var d=new Date(ts), days=Math.round((Date.parse(cDayOf(d.toISOString()))-Date.parse(cDayOf(new Date().toISOString())))/864e5); return days<=0?'today':days===1?'tomorrow':d.toLocaleDateString(LOC(),{weekday:'short',day:'numeric',month:'short',timeZone:TZ()}); }
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
 /* store apps (feature store_courses_hide): customers see no courses, only the technique library */
 function noCrs(){ return featOn('store_courses_hide')&&!!(window.pkNative&&window.pkNative())&&!!me&&me.role==='customer'; }
@@ -4867,8 +4880,8 @@ function cRand(){ return Math.random().toString(36).slice(2,10)+Date.now().toStr
 function cAdd(s,n){ var d=parseYmd(s); d.setDate(d.getDate()+n); return ymd(d); }
 function cWd(s){ return (parseYmd(s).getDay()+6)%7+1; }
 function cShort(s){ return s?parseYmd(String(s).slice(0,10)).toLocaleDateString(LOC(),{day:'numeric',month:'short'}):''; }
-function cWhen(ts){ return new Date(ts).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
-function cDayOf(ts){ return new Date(Date.parse(ts)+7*3600e3).toISOString().slice(0,10); }
+function cWhen(ts){ return new Date(ts).toLocaleString(LOC(),{timeZone:TZ(),weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function cDayOf(ts){ return new Date(Date.parse(ts)+TZO()).toISOString().slice(0,10); }
 function cKg(n){ return (Math.round(Number(n)*10)/10).toFixed(1)+' kg'; }
 /* private photos and videos: short-lived signed links, fetched in batches */
 var CSIGN={}, csQ=[], csT=0;
@@ -4907,8 +4920,8 @@ function wChart(ws,goal){ if(!ws.length) return null;
   var s='<svg viewBox="0 0 '+W+' '+H+'" class="wsvg" role="img" aria-label="Weight over time">'+
     '<line x1="'+P+'" y1="'+Y(hi)+'" x2="'+P+'" y2="'+Y(lo)+'" class="wax"/><line x1="'+P+'" y1="'+Y(lo)+'" x2="'+(W-10)+'" y2="'+Y(lo)+'" class="wax"/>'+
     '<text x="'+(P-6)+'" y="'+(Y(hi)+4)+'" class="wlab" text-anchor="end">'+hi+'</text><text x="'+(P-6)+'" y="'+(Y(lo)+4)+'" class="wlab" text-anchor="end">'+lo+'</text>'+
-    '<text x="'+P+'" y="'+(H-8)+'" class="wlab">'+cShort(new Date(t0+7*3600e3).toISOString().slice(0,10))+'</text>'+
-    '<text x="'+(W-10)+'" y="'+(H-8)+'" class="wlab" text-anchor="end">'+cShort(new Date(t1+7*3600e3).toISOString().slice(0,10))+'</text>'+
+    '<text x="'+P+'" y="'+(H-8)+'" class="wlab">'+cShort(new Date(t0+TZO()).toISOString().slice(0,10))+'</text>'+
+    '<text x="'+(W-10)+'" y="'+(H-8)+'" class="wlab" text-anchor="end">'+cShort(new Date(t1+TZO()).toISOString().slice(0,10))+'</text>'+
     (goal?'<line x1="'+P+'" y1="'+Y(goal.kg)+'" x2="'+(W-10)+'" y2="'+Y(goal.kg)+'" class="wgoal"/><text x="'+(W-12)+'" y="'+(Y(goal.kg)-6)+'" class="wlab" text-anchor="end">Goal '+Number(goal.kg)+'</text>':'')+
     '<polyline points="'+line+'" class="wline"/>'+pts.map(function(p){ return '<circle cx="'+X(p.t).toFixed(1)+'" cy="'+Y(p.kg).toFixed(1)+'" r="3.5" class="wpt"/>'; }).join('')+'</svg>';
   var d=h('div',{class:'wchart'}); d.innerHTML=s; return d; }
@@ -4966,7 +4979,7 @@ function cmToday(d){
     h('div',{class:'row'},cmHas(d,'food')?btn('Add a food photo',function(){ COACHM.tab='food'; schedule(); cmFoodPick(); },'primary'):null,!cmHas(d,'weight')?null:btn('Log my weight',function(){ COACHM.tab='weight'; schedule(); setTimeout(function(){ var e=document.getElementById('cm-kg'); if(e) e.focus(); },60); }))];
 }
 /* food diary */
-function cmGuessKind(){ var hr=Number(new Date().toLocaleString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',hour12:false})); return hr<11?'breakfast':hr<15?'lunch':hr<17?'snack':'dinner'; }
+function cmGuessKind(){ var hr=Number(new Date().toLocaleString(LOC(),{timeZone:TZ(),hour:'2-digit',hour12:false})); return hr<11?'breakfast':hr<15?'lunch':hr<17?'snack':'dinner'; }
 function cmFoodPick(){
   var inp=h('input',{type:'file',accept:'image/*',hidden:true,onchange:function(){ var f=inp.files[0]; inp.remove(); if(f) cmFoodForm(f); }});
   document.body.appendChild(inp); inp.click(); }
@@ -5451,7 +5464,7 @@ function coachParts(c){
 var EML={list:null,busy:false,f:'all',q:''};
 function emlLoad(){ EML.busy=true; return sb.rpc('email_log',{p_filter:EML.f,p_q:EML.q.trim()||null,p_limit:300}).then(must).then(function(d){ EML.list=d||[]; EML.busy=false; EML.err=null; schedule(); }).catch(function(e){ EML.busy=false; EML.err=errText(e); EML.list=EML.list||[]; schedule(); }); }
 function emlChip(x){ var st=x.status; return st==='sent'?chip('Sent','ok'):st==='queued'?chip('Waiting to send','warn'):st==='draft'?chip('Draft'):st==='stopped'?chip('Not sent'):chip('Failed','bad'); }
-function emlWhen(x){ return x.at?new Date(x.at).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
+function emlWhen(x){ return x.at?new Date(x.at).toLocaleString(LOC(),{timeZone:TZ(),day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
 function emlOpen(x){
   var can=x.src==='mail'&&(x.status==='draft'||x.status==='failed');
   openForm({title:x.subject||x.kind,note:[x.kind,(x.status==='queued'?'Sends ':'')+emlWhen(x),x.by?'By '+x.by:null].filter(Boolean).join(' · '),values:{},fields:[{key:'info',label:'',type:'info'}],
@@ -6673,8 +6686,8 @@ function socLoad(){ SOC.busy=true; return sb.rpc('social_list').then(must).then(
   .catch(function(e){ SOC.busy=false; SOC.err=errText(e); schedule(); });
 }
 function socCheck(){ socCall({mode:'check'}).then(function(c){ SOC.cfg=c; schedule(); }).catch(function(e){ SOC.cfg={err:errText(e)}; schedule(); }); }
-function bkkWhen(x){ return x?new Date(x).toLocaleString(LOC(),{timeZone:'Asia/Bangkok',weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
-function bkkInput(x){ return new Date((x?Date.parse(x):Date.now())+7*3600e3).toISOString().slice(0,16); }
+function bkkWhen(x){ return x?new Date(x).toLocaleString(LOC(),{timeZone:TZ(),weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''; }
+function bkkInput(x){ return new Date((x?Date.parse(x):Date.now())+TZO()).toISOString().slice(0,16); }
 /* the usual posting time for new posts (Social media, Posting time), Bangkok time */
 var SOCTIME=null;
 function socTime(){ return /^\d\d:\d\d$/.test(SOCTIME||'')?SOCTIME:'20:30'; }
@@ -6682,7 +6695,7 @@ function loadSocTime(){ return sb.from('app_settings').select('value').eq('key',
 function socTimeEdit(){ openForm({title:'Posting time',note:'New posts are set to go out at this time (Phuket time). Pick when your followers are online: Instagram, Professional dashboard, Total followers, Most active times.',values:{t:socTime()},
   fields:[{key:'t',label:'Time',type:'time',required:true}],
   onSave:function(v){ if(!/^\d\d:\d\d$/.test(v.t||'')) return 'Choose a time.'; return sb.from('app_settings').update({value:v.t,updated_at:new Date().toISOString()}).eq('key','social_time').select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; SOCTIME=v.t; schedule(); }); }}); }
-function socDefaultTime(){ var t=socTime(), d=new Date(Date.now()+7*3600e3), s=d.toISOString().slice(0,10); if(d.toISOString().slice(11,16)>=t){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T'+t; }
+function socDefaultTime(){ var t=socTime(), d=new Date(Date.now()+TZO()), s=d.toISOString().slice(0,10); if(d.toISOString().slice(11,16)>=t){ d=new Date(d.getTime()+864e5); s=d.toISOString().slice(0,10); } return s+'T'+t; }
 var SOC_PL={facebook:'Facebook',instagram:'Instagram',youtube:'YouTube Shorts',tiktok:'TikTok'};
 function ttOn(){ return featOn('tiktok'); }
 function ttConnect(){ socCall({mode:'tt_connect',back:location.origin+location.pathname}).then(function(d){ if(d&&d.url){ toast('Opening TikTok. Sign in with your business TikTok account.'); location.href=d.url; } })
@@ -6952,7 +6965,7 @@ function socEdit(p0){
         tto.brand_content?[' and ',h('a',{href:'https://www.tiktok.com/legal/page/global/bc-policy/en',target:'_blank',rel:'noopener'},'Branded Content Policy')]:null,'. The caption goes with the post.'));
   }
   function vals(approve){ return {yt_title:ytBox&&!ytBox.hidden?ytT.value:(p.yt_title||''),tiktok:tto,id:p.id||null,brief:brief.value,caption:cap.value,media:media,platforms:pls.filter(function(c){ return c.checked; }).map(function(c){ return c.value; }),
-      post_at:now.checked?new Date().toISOString():(when.value?when.value+':00+07:00':null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null,
+      post_at:now.checked?new Date().toISOString():(when.value?when.value+':00'+TZS():null),approve:approve,kind:kind,trial_strategy:kind==='trial'?trial:null,
       tag_place:tagPlace.checked,collaborators:String(collab.value||'').split(/[\s,]+/).map(function(x){ return x.replace(/^@+/,'').trim(); }).filter(Boolean)}; }
   function save(approve,b){ if(busy){ bad('Wait for the upload to finish.'); return; } err.hidden=true;
     if(approve&&kind==='story'&&media.length!==1){ bad('A story is one photo or one video. Add one.'); return; }
@@ -6968,7 +6981,7 @@ function socEdit(p0){
       if(soon) socCall({mode:'run'}).then(function(){ SOC.list=null; socLoad(); }).catch(function(e){ toast(errText(e)); }); })
     .catch(function(e){ bad(errText(e)); b.disabled=false; }); }
   var saveB=btn('Save draft',function(){ save(false,saveB); }), okB=btn(p.status==='failed'?'Approve and try again':'Approve',function(){
-    if(!now.checked&&!when.value){ toast('Choose the day and time, or tick Post now.'); return; } if(!armed){ armed=true; okB.textContent=now.checked?'Tap again to post now':'Tap again: goes out '+bkkWhen(when.value+':00+07:00'); return; } save(true,okB); },'primary');
+    if(!now.checked&&!when.value){ toast('Choose the day and time, or tick Post now.'); return; } if(!armed){ armed=true; okB.textContent=now.checked?'Tap again to post now':'Tap again: goes out '+bkkWhen(when.value+':00'+TZS()); return; } save(true,okB); },'primary');
   var res=(p.platforms||[]).map(function(k){ var r=(p.results||{})[k]; if(!r) return null;
     return h('p',{class:'sub'},(SOC_PL[k]||k)+': ',r.url?h('a',{href:r.url,target:'_blank',rel:'noopener'},'See the post'):r.id?'Posted':r.error?r.error:'Processing'); });
   var left=p.id&&!locked?btn(p.status==='scheduled'?'Back to draft':'Delete',function(){
@@ -7186,7 +7199,7 @@ function punch(kind,ref,slot){
 }
 /* group class blocks: in on time or early is green, late is red. Out on time or later is green, early is red. To the minute. */
 function sessJudge(day,x,e,now){
-  var st=new Date(day+'T'+x.start+':00+07:00').getTime(), en=new Date(day+'T'+x.end+':00+07:00').getTime(), r={state:'wait'};
+  var st=new Date(day+'T'+x.start+':00'+TZS()).getTime(), en=new Date(day+'T'+x.end+':00'+TZS()).getTime(), r={state:'wait'};
   function fl(t){ return Math.floor(new Date(t).getTime()/60000)*60000; }
   if(e&&e.in_at){ var d=Math.round((fl(e.in_at)-st)/60000); r.lateMin=Math.max(0,d); r.inTxt=bkkTime(e.in_at)+(d>0?', '+d+' '+K('late'):d<0?', '+(-d)+' '+K('early'):', '+K('onTime')); r.inCls=d>0?'tbad':'tgood'; r.state='in'; }
   if(e&&e.out_at){ var o=Math.round((en-fl(e.out_at))/60000); r.earlyMin=Math.max(0,o); r.outTxt=bkkTime(e.out_at)+(o>0?', '+o+' '+K('leftEarly'):''); r.outCls=o>0?'tbad':'tgood'; r.state='done'; }
@@ -7354,7 +7367,7 @@ function vHours(){
   var E=d.entries.filter(function(e){ return !who||e.staff_id===who; });
   var miss=d.missed.concat(d.missed_classes,d.missed_shifts||[],d.missed_sessions||[]).filter(function(m){ return !who||m.staff_id===who; });
   var today=ymd(new Date());
-  function late(e){ if(!e.starts||!e.in_at||e.manual) return 0; var st=new Date(e.day+'T'+e.starts.slice(0,5)+':00+07:00'); var m=Math.round((new Date(e.in_at)-st)/60000); return m>5?m:0; }
+  function late(e){ if(!e.starts||!e.in_at||e.manual) return 0; var st=new Date(e.day+'T'+e.starts.slice(0,5)+':00'+TZS()); var m=Math.round((new Date(e.in_at)-st)/60000); return m>5?m:0; }
   var devs={}; d.entries.forEach(function(e){ [e.in_device,e.out_device].forEach(function(x){ if(!x) return; (devs[x]=devs[x]||{})[e.staff]=1; }); });
   function shared(e){ var n=[]; [e.in_device,e.out_device].forEach(function(x){ if(x&&devs[x]&&Object.keys(devs[x]).length>1) Object.keys(devs[x]).forEach(function(k){ if(k!==e.staff&&n.indexOf(k)<0) n.push(k); }); }); return n; }
   var tot={}; E.forEach(function(e){ var t=tot[e.staff_id]||(tot[e.staff_id]={name:e.staff,role:e.role,m:0,priv:0,cls:0,open:0}); if(e.out_at) t.m+=mins(e.in_at,e.out_at); else t.open++; if(e.kind==='private') t.priv++; if(e.kind==='class') t.cls++; });
@@ -8430,8 +8443,8 @@ function barControls(){
 
 /* kitchen open and close: the switch, sold out today, and the hours (manager) */
 function kitchenMode(mode,mins){ return sb.rpc('kitchen_set_mode',{p_mode:mode,p_minutes:mins||null}).then(must).then(function(){ toast(mode==='auto'?'Kitchen follows its hours again.':mode==='closed'?'Kitchen closed. The app takes no food orders.':mode==='busy'?'Busy: guests see food takes about 30 minutes.':'Kitchen open.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); }
-function minsToTomorrow(){ var d=(KINFO&&KINFO.hours&&KINFO.hours.days)||null, bk=new Date(Date.now()+7*3600e3), wd=(bk.getUTCDay()+6)%7, nx=d&&d[(wd+1)%7], hm=nx?nx[0]:'07:00';
-  var t=Date.UTC(bk.getUTCFullYear(),bk.getUTCMonth(),bk.getUTCDate()+1,Number(hm.slice(0,2)),Number(hm.slice(3,5)))-7*3600e3; return Math.max(5,Math.round((t-Date.now())/60000)); }
+function minsToTomorrow(){ var d=(KINFO&&KINFO.hours&&KINFO.hours.days)||null, bk=new Date(Date.now()+TZO()), wd=(bk.getUTCDay()+6)%7, nx=d&&d[(wd+1)%7], hm=nx?nx[0]:'07:00';
+  var t=Date.UTC(bk.getUTCFullYear(),bk.getUTCMonth(),bk.getUTCDate()+1,Number(hm.slice(0,2)),Number(hm.slice(3,5)))-TZO(); return Math.max(5,Math.round((t-Date.now())/60000)); }
 function kitchenClose(){
   openForm({title:'Close the kitchen',note:'Guests still see the menu, but food orders from the app stop. Drinks still sell at the counter.',saveLabel:'Close the kitchen',doneMsg:'Kitchen closed.',fields:[
     {key:'for',label:'For how long?',type:'select',def:'60',options:[['30','30 minutes'],['60','1 hour'],['120','2 hours'],['tomorrow','Until opening time tomorrow'],['open','Until I open it again']]}],
@@ -8475,7 +8488,7 @@ function spaFind(list,id){ return ((SPAB&&SPAB[list])||[]).filter(function(s){ r
 function spaStaff(id){ return spaFind('staff',id); } function spaBed(id){ return spaFind('beds',id); } function spaShop(id){ return spaFind('shops',id); }
 var SPA_KINDS=[['bed','Massage bed or room'],['couple','Couple room'],['foot','Foot chair'],['nail','Nail desk'],['facial','Facial bed'],['hair','Hair chair'],['other','Other']];
 function spaKind(k){ return (SPA_KINDS.filter(function(x){ return x[0]===k; })[0]||['',k])[1]; }
-function spaNowMin(){ var b=new Date(Date.now()+7*3600e3); return b.getUTCHours()*60+b.getUTCMinutes(); }
+function spaNowMin(){ var b=new Date(Date.now()+TZO()); return b.getUTCHours()*60+b.getUTCMinutes(); }
 function spaShops(){ return ((SPAB&&SPAB.shops)||[]).filter(function(s){ return s.active; }); }
 function inShop(ids,shop){ return !shop||!ids||!ids.length||ids.indexOf(shop)>=0; }
 function shopNames(ids){ if(!ids||!ids.length) return 'All shops'; return ids.map(function(i){ var s=spaShop(i); return s?s.name:''; }).filter(Boolean).join(', '); }
@@ -9193,7 +9206,7 @@ function loadBoard(){ var d=ymd(new Date()); return sb.rpc('staff_hours',{p_from
 setInterval(function(){ if(me&&me.role==='manager'&&allReady&&(ui.tab==='today'||ui.tab==='hours')&&document.visibilityState!=='hidden') loadBoard(); },60000);
 function boardItems(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7, now=timeNow(), E=(BOARD&&BOARD.entries)||[], out=[];
-  function late(e,t){ if(!e||!e.in_at||!t) return 0; var m=Math.round((new Date(e.in_at)-new Date(day+'T'+t+':00+07:00'))/60000); return m>5?m:0; }
+  function late(e,t){ if(!e||!e.in_at||!t) return 0; var m=Math.round((new Date(e.in_at)-new Date(day+'T'+t+':00'+TZS()))/60000); return m>5?m:0; }
   function add(kind,ref,staffId,t,what){
     var e=E.filter(function(x){ return x.kind===kind&&x.ref_id===ref; })[0], l=late(e,t), st;
     if(e&&e.out_at) st=['Done '+bkkTime(e.in_at)+' - '+bkkTime(e.out_at),'ok','done'];
@@ -9284,7 +9297,7 @@ function todaySales(day){
   var till=ok.reduce(function(t,o){ return t+Number(o.total||0); },0);
   var pk=S.purchases.filter(function(p){ return p.purchased_on===day&&!p.cancelled; }), pkT=pk.reduce(function(t,p){ return t+Number(p.price_thb||0); },0);
   // room stays booked today (website and desk), not ones still waiting for payment or cancelled
-  var st=featOn('stays')?(S.stays||[]).filter(function(x){ return x.created_at&&x.status!=='cancelled'&&!x.hold_until&&new Date(x.created_at).toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'})===day; }):[],
+  var st=featOn('stays')?(S.stays||[]).filter(function(x){ return x.created_at&&x.status!=='cancelled'&&!x.hold_until&&new Date(x.created_at).toLocaleDateString('en-CA',{timeZone:TZ()})===day; }):[],
     stT=st.reduce(function(t,x){ return t+Number(x.room_price_thb||0); },0);
   // privates on today's diary that are not part of a package already counted above (pay as you go, agents, Get Your Guide)
   var pv=featOn('privates')?(S.privates||[]).filter(function(x){ return x.date===day&&!x.lead_id&&!x.purchase_id&&x.status!=='cancelled'&&x.status!=='requested'; }):[],
@@ -9452,6 +9465,16 @@ var FLAGS={};
 function flagsLoad(){ return sb.rpc('my_flags').then(function(r){ if(!r.error&&r.data){ FLAGS=r.data;
   try{ if(FLAGS.setup_hide==='1') localStorage.setItem('setup_hide','1'); var ls=localStorage.getItem('cl_seen')||''; if(FLAGS.cl_seen&&FLAGS.cl_seen>ls) localStorage.setItem('cl_seen',FLAGS.cl_seen); else if(ls>(FLAGS.cl_seen||'')) flagSet('cl_seen',ls); }catch(e){} schedule(); } },function(){}); }
 function flagSet(k,v){ FLAGS[k]=v; sb.rpc('my_flag_set',{p_key:k,p_value:v}).then(function(){},function(){}); }
+/* Settings, General: country, currency and time zone (region.sql) */
+var REGIONS=[['TH','Thailand','Asia/Bangkok','THB'],['GB','United Kingdom','Europe/London','GBP'],['IE','Ireland','Europe/Dublin','EUR'],['US','United States (New York)','America/New_York','USD'],['US','United States (Chicago)','America/Chicago','USD'],['US','United States (Los Angeles)','America/Los_Angeles','USD'],['CA','Canada (Toronto)','America/Toronto','CAD'],['AU','Australia (Sydney)','Australia/Sydney','AUD'],['AU','Australia (Perth)','Australia/Perth','AUD'],['NZ','New Zealand','Pacific/Auckland','NZD'],['SG','Singapore','Asia/Singapore','SGD'],['MY','Malaysia','Asia/Kuala_Lumpur','MYR'],['ID','Indonesia (Bali)','Asia/Makassar','IDR'],['PH','Philippines','Asia/Manila','PHP'],['VN','Vietnam','Asia/Ho_Chi_Minh','VND'],['AE','United Arab Emirates','Asia/Dubai','AED'],['NL','Netherlands','Europe/Amsterdam','EUR'],['DE','Germany','Europe/Berlin','EUR'],['FR','France','Europe/Paris','EUR'],['ES','Spain','Europe/Madrid','EUR'],['PT','Portugal','Europe/Lisbon','EUR'],['CH','Switzerland','Europe/Zurich','CHF'],['SE','Sweden','Europe/Stockholm','SEK'],['ZA','South Africa','Africa/Johannesburg','ZAR']];
+function regionSection(){ var cur=REGIONS.filter(function(r){ return r[2]===TZ()&&r[3]===(REGION.cur||'THB'); })[0];
+  return section('Country, currency and time zone',btn('Change',regionEdit,'small'),h('div',{class:'panel pad'},h('p',{style:'margin:0'},h('b',null,cur?cur[1]:TZ()),', prices in '+(REGION.cur||'THB')+', '+TZ().replace(/_/g,' ')+' time.'),
+    h('p',{class:'sub',style:'margin:6px 0 0'},'Your time zone decides when a new day starts for check ins, packages, bookings and reports. Prices show in your currency.'))); }
+function regionEdit(){ var cur=REGIONS.findIndex(function(r){ return r[2]===TZ()&&r[3]===(REGION.cur||'THB'); });
+  openForm({title:'Country, currency and time zone',saveLabel:'Save',doneMsg:'Saved.',note:'Prices you already entered keep their numbers. Only the currency shown changes.',
+    fields:[{key:'where',label:'Where is your business?',type:'select',def:String(cur<0?0:cur),options:REGIONS.map(function(r,i){ return [String(i),r[1]+' ('+r[3]+')']; })}],
+    onSave:function(v){ var r=REGIONS[Number(v.where)||0]; return sb.rpc('app_region_save',{p:{tz:r[2],cur:r[3],country:r[0]}}).then(must).then(function(d){ REGION=d; try{ localStorage.setItem('app_region',JSON.stringify(REGION)); }catch(e){} location.reload(); }); }});
+}
 function setupSteps(){
   var theme=!!pref('app_theme'), members=S.customers.filter(function(c){ return !c.is_agency; }).length;
   var checked=S.checkin_days.some(function(d){ return (d.entries||[]).length>0; });
@@ -9778,7 +9801,7 @@ var CI={cid:null,data:null,acc:null,err:null};
 function ciLoad(cid){ CI={cid:cid,data:null,acc:null,err:null};
   Promise.all([sb.rpc('customer_info',{p_customer:cid}).then(must),sb.rpc('health_access_list',{p_customer:cid}).then(must).catch(function(){ return null; })]).then(function(r){ if(CI.cid!==cid) return; CI.data=r[0]; CI.acc=r[1]; schedule(); })
     .catch(function(e){ if(CI.cid===cid){ CI.err=errText(e); schedule(); } }); }
-function ciWhen(t){ if(!t) return ''; var d=new Date(t); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Bangkok'})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}); }
+function ciWhen(t){ if(!t) return ''; var d=new Date(t); return d.toLocaleDateString(LOC(),{day:'numeric',month:'short',year:'numeric',timeZone:TZ()})+', '+d.toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit',timeZone:TZ()}); }
 var CIK={customer:'Customer',app:'App',stay:'Stay',web:'Website',package:'Package',payment:'Payment',private:'Private',course:'Course',shop:'Shop',agency:'Agency',email:'Email',visit:'Visits',chat:'Chat',invoice:'Invoice',fighter:'Fighter',notice:'Notice'};
 function ciPanel(c){
   if(CI.cid!==c.id) ciLoad(c.id);
@@ -10805,7 +10828,7 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection(),mgr&&featOn('gyg_connect')?gygSection():null];
-  else body=[mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[mgr?regionSection():null,mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
 var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
@@ -11013,7 +11036,7 @@ function fromRow(col,r){
   if(col==='classes') o.day=String(o.day);
   return o;
 }
-function bkkTime(ts){ return new Date(ts).toLocaleTimeString(LOC(),{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',hour12:false}); }
+function bkkTime(ts){ return new Date(ts).toLocaleTimeString(LOC(),{timeZone:TZ(),hour:'2-digit',minute:'2-digit',hour12:false}); }
 function reload(col){
   if(col==='checkin_days'){
     return sb.from('checkins').select('*').gte('day',addDays(ymd(new Date()),-60)).order('checked_in_at').then(function(res){
@@ -11112,7 +11135,7 @@ function coachBookPrivate(){
 }
 function coachBookFor(c){
   var pays=[]; if(c.pack_left>0) pays.push(['pack',C('bkPack')(c.pack_left)]); if(c.room) pays.push(['room',C('bkRoom')(c.room)]); pays.push(['desk',C('bkDesk')]);
-  var now=new Date(Date.now()+7*3600e3), mm=Math.floor(now.getUTCMinutes()/5)*5, t0=String(now.getUTCHours()).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+  var now=new Date(Date.now()+TZO()), mm=Math.floor(now.getUTCMinutes()/5)*5, t0=String(now.getUTCHours()).padStart(2,'0')+':'+String(mm).padStart(2,'0');
   coForm({title:C('bkFor')(c.name),saveLabel:C('bkSave'),doneMsg:C('bkDone'),values:{time:t0,pay:pays[0][0]},fields:[
     {key:'time',label:C('bkTime'),type:'time',required:true},
     {key:'pay',label:C('bkPay'),type:'select',options:pays},
@@ -12372,7 +12395,7 @@ function kPrivate(c){
   var allCh=coaches(); if(!allCh.length){ ui.kerr='Privates can not be booked here yet. See the front desk.'; schedule(); return; }
   var direct=sortBy(S.sources,'name').filter(function(x){ return /^direct$/i.test(x.name); })[0], price=direct?srcPrice(direct,group):null;
   var days=[]; for(var i=0;i<14;i++){ var d=addDays(today,i); days.push([d,i===0?'Today':i===1?'Tomorrow':parseYmd(d).toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'short'})]); }
-  function timesFor(d){ var out=[], now=new Date(Date.now()+7*3600e3), start=d===today?now.getUTCHours()*60+now.getUTCMinutes()+10:6*60; start=Math.ceil(start/30)*30;
+  function timesFor(d){ var out=[], now=new Date(Date.now()+TZO()), start=d===today?now.getUTCHours()*60+now.getUTCMinutes()+10:6*60; start=Math.ceil(start/30)*30;
     for(var m=Math.max(start,6*60);m<=20*60;m+=30) out.push(String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')); return out; }
   function coachesFor(d){ return allCh.filter(function(x){ return !S.holidays.some(function(hd){ return hd.staff_id===x.id&&hd.status==='approved'&&hd.from<=d&&d<=hd.to; }); }); }
   function paysFor(d){ var pk=byId('purchases',(packOpts(c.id,{date:d}).slice(1).filter(function(o){ var k=byId('purchases',o[0]); return !k.expires_on||k.expires_on>=d; })[0]||[])[0]), st=(S.stays||[]).filter(function(x){ return x.customer_id===c.id&&stayOn(x,d)&&!x.settled; })[0];
@@ -12775,7 +12798,7 @@ if(!window.supabase||!window.supabase.createClient){
   sb=window.supabase.createClient(SB_URL,SB_KEY,Object.assign({auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true},global:{fetch:sbFetch}},window.MF_GYM?{db:{schema:'g_'+window.MF_GYM}}:{}));
   uiApply().catch(function(){});
   loadTheme().catch(function(){});
-  loadFeatures().catch(function(){}); loadPlatform().catch(function(){}); loadStore();
+  loadFeatures().catch(function(){}); loadRegion().catch(function(){}); loadPlatform().catch(function(){}); loadStore();
   loadOffer();
   if(READYTOKEN) readyClaim();
   if(EMAILOTP) sb.auth.verifyOtp({token_hash:EMAILOTP.h,type:EMAILOTP.t}).then(function(res){
