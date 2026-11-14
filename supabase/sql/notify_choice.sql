@@ -108,7 +108,7 @@ begin
     t := 'ขายหน้าร้าน / Till sale';
     b := to_char(o.total_thb, 'FM999,990') || ' THB' || coalesce(', ' || nullif(o.method, ''), '')
       || coalesce(': ' || (select string_agg(i.qty || ' x ' || i.name, ', ') from public.shop_order_items i where i.order_id = o.id and not coalesce(i.removed, false)), '')
-      || coalesce(' (' || by || ')', '') || '.';
+      || coalesce(' (' || byname || ')', '') || '.';
     url := '#shop';
   else return null; end if;
   return jsonb_build_object('title', t, 'body', left(b, 180), 'tag', p_kind || '-' || p_id, 'url', url,
