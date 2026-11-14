@@ -119,7 +119,7 @@ revoke all on function public.ai_learn_import_svc(jsonb, text) from public, anon
 -- for the learning job (service only): the last 6 months of customer chats, one block per chat, oldest first
 create or replace function public.ai_learn_corpus() returns jsonb language sql stable security definer set search_path to '' as $f$
   with app as (
-    select c.id::text as chat, c.kind as src, m.created_at as at, not m.from_visitor as us, m.via = 'ai' as ai, m.body
+    select c.id::text as chat, c.kind as src, m.created_at as at, not m.from_visitor as us, coalesce(to_jsonb(m)->>'via', '') = 'ai' as ai, m.body
     from public.chat_messages m join public.chats c on c.id = m.chat_id
     where c.kind in ('wa','fb','ig','web') and m.created_at > now() - interval '6 months' and coalesce(m.body, '') <> ''
   ), first_app as (select min(at) as t from app),
