@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=196"></script>
+<script src="changelog.js?v=197"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -9441,12 +9441,17 @@ function migrShare(){ var link=appQ(''), msg='Hi, we have moved to our own app. 
     h('div',{class:'row wrap'},btn('Copy',function(){ try{ navigator.clipboard.writeText(ta.value).then(function(){ toast('Copied.'); }); }catch(e){ ta.select(); } },'primary small'),
       h('a',{class:'btn small',href:'https://wa.me/?text='+encodeURIComponent(ta.value),target:'_blank',rel:'noopener'},'WhatsApp'),
       h('a',{class:'btn small',href:'https://line.me/R/share?text='+encodeURIComponent(ta.value),target:'_blank',rel:'noopener'},'LINE'))); }
+/* one-time notices remembered for the person (user_flags), so hiding them once is for every device */
+var FLAGS={};
+function flagsLoad(){ return sb.rpc('my_flags').then(function(r){ if(!r.error&&r.data){ FLAGS=r.data;
+  try{ if(FLAGS.setup_hide==='1') localStorage.setItem('setup_hide','1'); var ls=localStorage.getItem('cl_seen')||''; if(FLAGS.cl_seen&&FLAGS.cl_seen>ls) localStorage.setItem('cl_seen',FLAGS.cl_seen); else if(ls>(FLAGS.cl_seen||'')) flagSet('cl_seen',ls); }catch(e){} schedule(); } },function(){}); }
+function flagSet(k,v){ FLAGS[k]=v; sb.rpc('my_flag_set',{p_key:k,p_value:v}).then(function(){},function(){}); }
 function setupSteps(){
   var theme=!!pref('app_theme'), members=S.customers.filter(function(c){ return !c.is_agency; }).length;
   var checked=S.checkin_days.some(function(d){ return (d.entries||[]).length>0; });
   if(featOn('gym_import')&&MIGR===null){ MIGR={}; migrLoad(); }
   return [
-    featOn('gym_import')?{k:'move',t:'Moving from another system?',d:'Bring your members over in one upload and try this next to your old system. Nobody is contacted until you switch.',done:!!(MIGR&&(MIGR.from||MIGR.last_import)),go:function(){ SETT.tab='general'; go('settings'); }}:null,
+    featOn('gym_import')?{k:'move',t:'Moving from another system?',d:'Bring your members over in one upload and try this next to your old system. Nobody is contacted until you switch.',done:!!(MIGR&&(MIGR.from||MIGR.last_import))||members>=20,go:function(){ SETT.tab='general'; go('settings'); }}:null,
     {k:'look',t:'Make it yours',d:'Your logo and colours, so members see your gym.',done:theme,go:function(){ SETT.tab='look'; go('settings'); }},
     {k:'classes',t:'Add your classes',d:'Your weekly timetable, for example Muay Thai at 8:00 and 16:30.',done:S.classes.length>0,go:function(){ editClass({}); }},
     {k:'packages',t:'Add your packages',d:'What you sell: drop-ins, 10 class passes, monthly, privates.',done:S.packages.length>0,go:function(){ editPackage({}); }},
@@ -9458,14 +9463,15 @@ function setupSteps(){
 }
 function setupGuide(){
   if(!me||me.role!=='manager'||SPA||!featOn('setup_guide')) return null;
-  var hide=false; try{ hide=localStorage.getItem('setup_hide')==='1'; }catch(e){}
+  var hide=FLAGS.setup_hide==='1'; try{ hide=hide||localStorage.getItem('setup_hide')==='1'; }catch(e){}
   var st=setupSteps(), n=st.filter(function(x){ return x.done; }).length;
-  if(hide||n===st.length) return null;
+  /* a business already running (members, sales and check ins) does not need the guide */
+  if(hide||n===st.length||(S.purchases.length>=20&&S.customers.length>=20&&n>=st.length-2)) return null;
   var next=st.filter(function(x){ return !x.done; })[0];
   return h('section',{class:'panel pad setupg'},
     h('div',{class:'row',style:'justify-content:space-between;align-items:flex-start'},
       h('div',null,h('h2',{style:'margin:0'},'Get your gym ready'),h('p',{class:'sub',style:'margin:4px 0 0'},n+' of '+st.length+' done. Most gyms finish in about 15 minutes.')),
-      btn('Hide',function(){ try{ localStorage.setItem('setup_hide','1'); }catch(e){} schedule(); },'small')),
+      btn('Hide',function(){ try{ localStorage.setItem('setup_hide','1'); }catch(e){} flagSet('setup_hide','1'); schedule(); },'small')),
     h('div',{class:'setupbar',role:'progressbar','aria-valuemin':'0','aria-valuemax':String(st.length),'aria-valuenow':String(n)},h('i',{style:'width:'+Math.round(n/st.length*100)+'%'})),
     h('ol',{class:'setupl'},st.map(function(x,i){
       var isNext=x===next;
@@ -10545,8 +10551,8 @@ function featuresSection(){
       return h('div',{class:'featrow'},h('div',null,h('b',null,f.n),h('div',{class:'sub'},f.d||'')),platLocked(f.k)?chip((featOn(f.k)?'On':'Off')+', fixed in Master control'):featSwitch(f.k)); })); })));
 }
 function clList(){ return (window.CHANGELOG||[]).slice().sort(function(a,b){ return a.date<b.date?1:a.date>b.date?-1:0; }); }
-function clSeen(){ try{ return localStorage.getItem('cl_seen')||''; }catch(e){ return ''; } }
-function clMarkSeen(){ var l=clList(); if(!l.length) return; try{ localStorage.setItem('cl_seen',l[0].date); }catch(e){} }
+function clSeen(){ var f=FLAGS.cl_seen||''; try{ var l=localStorage.getItem('cl_seen')||''; return l>f?l:f; }catch(e){ return f; } }
+function clMarkSeen(){ var l=clList(); if(!l.length) return; try{ localStorage.setItem('cl_seen',l[0].date); }catch(e){} if((FLAGS.cl_seen||'')<l[0].date) flagSet('cl_seen',l[0].date); }
 function clUnseen(){ var seen=clSeen(); return clList().filter(function(x){ return x.date>seen; }); }
 function whatsNewSection(){
   var l=clList(); if(!l.length) return null; setTimeout(clMarkSeen,1500);
@@ -10559,7 +10565,7 @@ function whatsNewSection(){
 function clNotice(){
   if(!me||me.role!=='manager'||ui.tab==='settings'||ui.tab==='kiosk'||ui.clHide||document.body.classList.contains('kiosk')) return null; var n=clUnseen(); if(!n.length) return null;
   return h('div',{class:'pvbar clbar',role:'status'},h('span',null,h('b',null,'New in the app: '),n[0].title+(n.length>1?' and '+(n.length-1)+' more':'')),
-    h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; SETT.tab='news'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; schedule(); },'small')));
+    h('span',{class:'row'},btn("See what's new",function(){ ui.tab='settings'; SETT.tab='news'; schedule(); setTimeout(function(){ var e=document.getElementById('whatsnew'); if(e) e.scrollIntoView({block:'start'}); },80); },'small primary'),btn('Later',function(){ ui.clHide=true; clMarkSeen(); schedule(); },'small')));
 }
 /* ---------- Clean up (AI package): scan, see the report, tick what to fix, apply ---------- */
 var CLN=null;
@@ -11010,7 +11016,7 @@ function reload(col){
   }
   return sb.from(MAP[col].t).select(cols(MAP[col].t)).then(function(res){ S[col]=must(res).map(function(r){ return fromRow(col,r); }); schedule(); });
 }
-function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); if(seesNotices()) jobs.push(loadNotices()); jobs.push(loadTodayLayout()); jobs.push(loadPayExtras()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')){ jobs.push(loadReviewMsg().catch(function(){})); jobs.push(loadRenewMsg().catch(function(){})); } return Promise.all(jobs); }
+function loadAll(){ lastLoad=Date.now(); var jobs=COLS.map(reload); jobs.push(flagsLoad()); if(seesNotices()) jobs.push(loadNotices()); jobs.push(loadTodayLayout()); jobs.push(loadPayExtras()); if(me&&me.role==='manager') jobs.push(loadCode().catch(function(){})); if(me&&(me.role==='manager'||me.role==='front_desk')){ jobs.push(loadReviewMsg().catch(function(){})); jobs.push(loadRenewMsg().catch(function(){})); } return Promise.all(jobs); }
 function makeDb(){
   function changed(res){ var d=must(res); if(!d||!d.length) throw {message:'You do not have permission to change this, or it no longer exists.'}; }
   function then(q,col){ var d; return q.select('id').then(function(res){ d=res&&res.data; changed(res); }).then(function(){ return reload(col); }).then(function(){ return d&&d[0]?d[0].id:undefined; }); }
