@@ -18,6 +18,7 @@ create table if not exists public.gyg_products (
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
+alter table public.gyg_products add column if not exists horizon_days integer not null default 180;
 alter table public.gyg_products enable row level security;
 revoke all on public.gyg_products from public, anon, authenticated;
 
@@ -47,7 +48,7 @@ begin
   select * into k from public.gyg_products where id = p_product and active;
   if k.id is null then return; end if;
   d0 := greatest((p_from at time zone 'Asia/Bangkok')::date, private.bkk_today());
-  d1 := least((p_to at time zone 'Asia/Bangkok')::date, private.bkk_today() + 400);
+  d1 := least((p_to at time zone 'Asia/Bangkok')::date, private.bkk_today() + least(coalesce(k.horizon_days, 180), 400));
   for d in select g::date from generate_series(d0, d1, interval '1 day') g loop
     if k.kind = 'class' then
       for slot_at, free in
@@ -95,7 +96,7 @@ create or replace function private.gyg_err(c text, m text) returns jsonb languag
 $f$;
 
 -- every request from GetYourGuide: p = {op, user, pass, query or data}
-create or replace function public.gyg_api(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
+create or replace function private.gyg_handle(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
 declare op text := p->>'op'; q jsonb := coalesce(p->'query', '{}'::jsonb); d jsonb := coalesce(p->'data', '{}'::jsonb);
   cr jsonb; k public.gyg_products; h public.gyg_holds; t_at timestamptz; n int; v int; mx int; need int; r jsonb; nm text; tr jsonb; res jsonb; cats jsonb;
 begin
@@ -182,6 +183,15 @@ begin
       'date', to_char(h.at at time zone 'Asia/Bangkok', 'YYYY-MM-DD'), 'time', to_char(h.at at time zone 'Asia/Bangkok', 'HH24:MI'), 'minutes', k.minutes,
       'product', k.title, 'notes', left(concat_ws('. ', nullif(btrim(d->>'comment'), ''), 'Language ' || nullif(d->>'language', ''), 'Hotel ' || nullif(d->>'travelerHotel', '')), 500)));
     if not coalesce((r->>'ok')::boolean, false) then return private.gyg_err('INTERNAL_SYSTEM_FAILURE', coalesce(r->>'what', 'Could not save the booking.')); end if;
+    -- a change of date or time: GetYourGuide books the new time with the same reference, then cancels the old one
+    if exists (select 1 from public.agency_bookings b where b.id = (r->>'booking')::uuid
+               and (b.status = 'cancelled' or b.date <> (h.at at time zone 'Asia/Bangkok')::date or b.time is distinct from (h.at at time zone 'Asia/Bangkok')::time or b.people <> h.people)) then
+      update public.agency_bookings set date = (h.at at time zone 'Asia/Bangkok')::date, time = (h.at at time zone 'Asia/Bangkok')::time, people = h.people,
+        status = case when status = 'cancelled' then 'expected' else status end, updated_at = now() where id = (r->>'booking')::uuid;
+      update public.privates set date = (h.at at time zone 'Asia/Bangkok')::date, start_time = (h.at at time zone 'Asia/Bangkok')::time,
+        status = case when status = 'cancelled' then 'confirmed' else status end
+        where id = (select b.private_id from public.agency_bookings b where b.id = (r->>'booking')::uuid);
+    end if;
     update public.gyg_holds set status = 'booked', booking_id = (r->>'booking')::uuid, booking_ref = 'PK' || h.ref where id = h.id returning * into h;
     return jsonb_build_object('data', jsonb_build_object('bookingReference', h.booking_ref, 'tickets', jsonb_build_array(jsonb_build_object('category', 'COLLECTIVE', 'ticketCode', h.booking_ref, 'ticketCodeType', 'QR_CODE'))));
   end if;
@@ -191,8 +201,11 @@ begin
     if h.id is null then return private.gyg_err('INVALID_BOOKING', 'Unknown booking.'); end if;
     if h.status = 'cancelled' then return private.gyg_err('BOOKING_ALREADY_CANCELED', 'Already cancelled.'); end if;
     if h.at < now() then return private.gyg_err('BOOKING_IN_PAST', 'The activity has already started.'); end if;
-    r := public.agency_mail_ingest(jsonb_build_object('kind', k.kind, 'source', 'Get Your Guide', 'ref', h.gyg_ref, 'cancel', true));
     update public.gyg_holds set status = 'cancelled' where id = h.id;
+    -- the old time of a changed booking: the booking itself stays, at its new time
+    if not exists (select 1 from public.gyg_holds o where o.booking_id = h.booking_id and o.status = 'booked') then
+      r := public.agency_mail_ingest(jsonb_build_object('kind', k.kind, 'source', 'Get Your Guide', 'ref', h.gyg_ref, 'cancel', true));
+    end if;
     return jsonb_build_object('data', '{}'::jsonb);
   end if;
 
@@ -204,6 +217,25 @@ begin
   return private.gyg_err('VALIDATION_FAILURE', 'Unknown request.');
 exception when others then
   return private.gyg_err('INTERNAL_SYSTEM_FAILURE', left(sqlerrm, 200));
+end $f$;
+revoke all on function private.gyg_handle(jsonb) from public, anon, authenticated;
+-- every request and the answer's error (if any) is kept for 30 days, to fix problems in the tests.
+create table if not exists public.gyg_log (
+  id bigint generated always as identity primary key,
+  at timestamptz not null default now(),
+  op text, query jsonb, data jsonb, error text, message text
+);
+alter table public.gyg_log enable row level security;
+revoke all on public.gyg_log from public, anon, authenticated;
+
+create or replace function public.gyg_api(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
+declare r jsonb;
+begin
+  r := private.gyg_handle(p);
+  insert into public.gyg_log (op, query, data, error, message)
+    values (p->>'op', p->'query', (p->'data') - 'travelers', r->>'errorCode', left(coalesce(r->>'errorMessage', ''), 300));
+  delete from public.gyg_log where at < now() - interval '30 days';
+  return r;
 end $f$;
 revoke all on function public.gyg_api(jsonb) from public, anon, authenticated;
 
@@ -227,12 +259,12 @@ begin
   tm := array(select x from unnest(regexp_split_to_array(coalesce(p->>'times', ''), '[,; ]+')) x where x ~ '^\d{1,2}:\d{2}$' order by x);
   tm := array(select lpad(split_part(x, ':', 1), 2, '0') || ':' || split_part(x, ':', 2) from unnest(tm) x);
   if p->>'kind' = 'private' and coalesce(array_length(tm, 1), 0) = 0 then raise exception 'Add the start times, for example 08:00, 10:00, 14:00.'; end if;
-  insert into public.gyg_products (id, title, kind, match, times, minutes, capacity, cutoff_minutes, adult_thb, child_thb, active)
+  insert into public.gyg_products (id, title, kind, match, times, minutes, capacity, cutoff_minutes, adult_thb, child_thb, active, horizon_days)
   values (pid, left(btrim(p->>'title'), 200), case when p->>'kind' = 'private' then 'private' else 'class' end, nullif(btrim(coalesce(p->>'match', '')), ''), case when p->>'kind' = 'private' then tm end,
     coalesce(nullif(p->>'minutes', '')::int, 60), coalesce(nullif(p->>'capacity', '')::int, 10), coalesce(nullif(p->>'cutoff', '')::int, 60),
-    nullif(p->>'adult', '')::numeric::int, nullif(p->>'child', '')::numeric::int, coalesce((p->>'active')::boolean, true))
+    nullif(p->>'adult', '')::numeric::int, nullif(p->>'child', '')::numeric::int, coalesce((p->>'active')::boolean, true), greatest(1, least(400, coalesce(nullif(p->>'horizon', '')::int, 180))))
   on conflict (id) do update set title = excluded.title, kind = excluded.kind, match = excluded.match, times = excluded.times, minutes = excluded.minutes,
-    capacity = excluded.capacity, cutoff_minutes = excluded.cutoff_minutes, adult_thb = excluded.adult_thb, child_thb = excluded.child_thb, active = excluded.active;
+    capacity = excluded.capacity, cutoff_minutes = excluded.cutoff_minutes, adult_thb = excluded.adult_thb, child_thb = excluded.child_thb, active = excluded.active, horizon_days = excluded.horizon_days;
   return pid;
 end $f$;
 

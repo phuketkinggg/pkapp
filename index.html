@@ -1083,7 +1083,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=141; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=142; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -4175,10 +4175,10 @@ function gygSection(){
       btn('Edit',function(){ gygEdit(p); },'small')); })):h('p',{class:'sub'},'No products yet. Add one for each activity you sell on GetYourGuide, for example the group class and a private.'),
     (g.recent||[]).length?h('div',null,h('h3',{style:'margin:14px 0 6px'},'Latest from GetYourGuide'),(g.recent||[]).slice(0,8).map(function(r){ return h('div',{class:'sub'},fmtDate(String(r.at).slice(0,10))+' '+new Date(r.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+', '+r.people+(r.people===1?' person':' people')+', '+({held:'held',booked:'booked',released:'released',cancelled:'cancelled'}[r.status]||r.status)+' ('+r.gyg_ref+')'); })):null));
 }
-function gygEdit(p){ p=p||{kind:'class',capacity:10,minutes:60,cutoff_minutes:60,active:true};
+function gygEdit(p){ p=p||{kind:'class',capacity:10,minutes:60,cutoff_minutes:60,horizon_days:180,active:true};
   openForm({title:p.id?'Edit GetYourGuide product':'New GetYourGuide product',saveLabel:'Save',doneMsg:'Saved.',
     note:'One product for each activity option you sell on GetYourGuide. The product ID is what you choose in the GetYourGuide portal.',
-    values:{title:p.title,kind:p.kind,match:p.match,times:(p.times||[]).join(', '),minutes:p.minutes,capacity:p.capacity,cutoff:p.cutoff_minutes,adult:p.adult_thb,child:p.child_thb,active:p.active!==false},
+    values:{horizon:p.horizon_days||180,title:p.title,kind:p.kind,match:p.match,times:(p.times||[]).join(', '),minutes:p.minutes,capacity:p.capacity,cutoff:p.cutoff_minutes,adult:p.adult_thb,child:p.child_thb,active:p.active!==false},
     fields:[{key:'title',label:'Name',required:true,hint:'For example Muay Thai group class, or Private Muay Thai lesson.'},
       {key:'kind',label:'What it is',type:'select',options:[['class','A group class from the timetable'],['private','A private lesson']],onChange:function(v,set,get,o,show){ show('match',v==='class'); show('capacity',v==='class'); show('times',v==='private'); show('minutes',v==='private'); }},
       {key:'match',label:'Which classes',hide:p.kind==='private',hint:'Words in the class name or kind, for example Muay Thai. Every class in the timetable that matches can be booked. Leave empty for every class.'},
@@ -4186,6 +4186,7 @@ function gygEdit(p){ p=p||{kind:'class',capacity:10,minutes:60,cutoff_minutes:60
       {key:'times',label:'Start times',hide:p.kind!=='private',hint:'For example 08:00, 10:00, 14:00, 16:00. A time is free when a coach is free then.'},
       {key:'minutes',label:'How long (minutes)',type:'number',hide:p.kind!=='private'},
       {key:'cutoff',label:'Stop bookings this many minutes before',type:'number',hint:'For example 60, or 720 for the day before.'},
+      {key:'horizon',label:'Bookable this many days ahead',type:'number',hint:'For example 180. GetYourGuide sees no free places after that.'},
       {key:'adult',label:'Price for an adult (THB, optional)',type:'number',hint:'Only if your GetYourGuide prices come from the app. Leave empty when you set prices in GetYourGuide.'},
       {key:'child',label:'Price for a child (THB, optional)',type:'number'},
       {key:'active',label:'On sale',type:'checkbox'}],

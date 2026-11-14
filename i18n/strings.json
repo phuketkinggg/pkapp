@@ -24730,5 +24730,13 @@
 "tick the other coach and ": [
 "ติ๊กโค้ชอีกคนและ ",
 "အခြား နည်းပြကို အမှန်ခြစ်ပြီး "
+],
+"Bookable this many days ahead": [
+"จองล่วงหน้าได้กี่วัน",
+"ကြိုတင် ဘွတ်ကင်လုပ်နိုင်သော ရက်အရေအတွက်"
+],
+"For example 180. GetYourGuide sees no free places after that.": [
+"เช่น 180 หลังจากนั้น GetYourGuide จะไม่เห็นที่ว่าง",
+"ဥပမာ 180။ ထို့နောက် GetYourGuide တွင် နေရာလွတ် မမြင်ရပါ။"
 ]
 }
