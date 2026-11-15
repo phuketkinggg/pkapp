@@ -55,3 +55,5 @@ do $$ declare g record; r record; begin
   end loop;
 end $$;
 notify pgrst, 'reload schema';
+-- the app reads staff.support (who is Tech support): new gyms get the same column grant as the live app
+insert into mf.template (ord, phase, kind, name, sql) values (1197590, 11, 'patch', 'support_access:1197590', $TPL$grant select (support), insert (support), update (support) on __P__.staff to authenticated;$TPL$);
