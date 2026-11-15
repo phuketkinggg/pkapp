@@ -5535,7 +5535,7 @@ var PA_EMAIL={subject:'Get ready for Karahill Nail and Beauty, {first}',heading:
   intro:"We can't wait to have you{arrival}. Your Karahill Nail and Beauty app is ready. Open it now and take about 5 minutes to tell us:",
   asks:'Why you are coming: fight training, weight loss, fitness or something else\nYour Muay Thai experience and fitness level\nAny injuries, allergies or worries we should know about',
   gets_title:'Then you get',gets:'A simple daily plan for the next two weeks, so you arrive ready\nCoaches who already know you and your goals when you walk in',
-  button:'Tell us about you',after:'It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.',footer:'Work hard, Fight easy.\nTeam Karahill Nail and Beauty'};
+  button:'Tell us about you',after:'It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.',footer:'See you soon.\nTeam Karahill Nail and Beauty'};
 function paEmailEdit(){
   var cur=Object.assign({},PA_EMAIL,(PA.cfg&&PA.cfg.email)||{});
   openForm({title:'The Get ready email',note:'Write {first} for their first name and {arrival} for " on Monday 5 November" (empty if no date). The button always signs them straight into the app. Save, then use Send me a test email to see it.',
@@ -7817,7 +7817,7 @@ function receiptNode(o){
       vat?h('div',null,h('span',null,'Includes VAT '+vat.rate+'%'),h('span',null,thb(Math.round(o.total*vat.rate/(100+vat.rate))))):null,
       o.bill?h('div',null,h('span',null,'Not paid yet'),h('span')):h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
       o.change?h('div',null,h('span',null,'Change'),h('span',null,thb(o.change))):null),
-    h('div',{class:'rc-foot'},(RCINFO&&RCINFO.footer)||'Thank you. Work hard, fight easy.'));
+    h('div',{class:'rc-foot'},(RCINFO&&RCINFO.footer)||'Thank you. See you soon.'));
 }
 /* a receipt for the customer: a private link to the receipt page, sent the way they like (the last way used is picked first) */
 function rcBase(){ return location.protocol==='https:'?location.origin+location.pathname.replace(/[^\/]*$/,''):'./'; }

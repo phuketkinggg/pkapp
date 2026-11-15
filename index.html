@@ -5534,7 +5534,7 @@ var PA_EMAIL={subject:'Get ready for Phuket King, {first}',heading:'Your trainin
   intro:"We can't wait to have you{arrival}. Your Phuket King app is ready. Open it now and take about 5 minutes to tell us:",
   asks:'Why you are coming: fight training, weight loss, fitness or something else\nYour Muay Thai experience and fitness level\nAny injuries, allergies or worries we should know about',
   gets_title:'Then you get',gets:'A simple daily plan for the next two weeks, so you arrive ready\nCoaches who already know you and your goals when you walk in',
-  button:'Tell us about you',after:'It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.',footer:'Work hard, Fight easy.\nTeam Phuket King'};
+  button:'Tell us about you',after:'It takes about 5 minutes on your phone, no app or password needed. Add a photo so your coaches know you when you walk in.',footer:'See you soon.\nTeam Phuket King'};
 function paEmailEdit(){
   var cur=Object.assign({},PA_EMAIL,(PA.cfg&&PA.cfg.email)||{});
   openForm({title:'The Get ready email',note:'Write {first} for their first name and {arrival} for " on Monday 5 November" (empty if no date). The button always signs them straight into the app. Save, then use Send me a test email to see it.',
@@ -7816,7 +7816,7 @@ function receiptNode(o){
       vat?h('div',null,h('span',null,'Includes VAT '+vat.rate+'%'),h('span',null,thb(Math.round(o.total*vat.rate/(100+vat.rate))))):null,
       o.bill?h('div',null,h('span',null,'Not paid yet'),h('span')):h('div',null,h('span',null,'Paid by'),h('span',null,payName(o.method))),
       o.change?h('div',null,h('span',null,'Change'),h('span',null,thb(o.change))):null),
-    h('div',{class:'rc-foot'},(RCINFO&&RCINFO.footer)||'Thank you. Work hard, fight easy.'));
+    h('div',{class:'rc-foot'},(RCINFO&&RCINFO.footer)||'Thank you. See you soon.'));
 }
 /* a receipt for the customer: a private link to the receipt page, sent the way they like (the last way used is picked first) */
 function rcBase(){ return location.protocol==='https:'?location.origin+location.pathname.replace(/[^\/]*$/,''):'https://app.phuketking.com/'; }
@@ -9618,7 +9618,7 @@ function custBills(c){
 function openCustomer(id){ ackCustomer(id); ui.tab='customers'; if(ui.customerId!==id) ui.ctab='main'; ui.customerId=id; schedule(); }
 var REVIEW_URL='https://search.google.com/local/writereview?placeid=ChIJP3H551swUDARAlnVam0_73w';
 function reviewPhone(c){ var ph=String(c&&c.phone||'').replace(/[^0-9]/g,''); if(/^0/.test(ph)) ph='66'+ph.slice(1); return ph.length>=8?ph:''; }
-var REVIEW_DEF='Hi {name}, thanks so much for training with us at Phuket King! If you have a minute, a quick Google review helps us a lot: {link} Thank you, see you in class. Work hard, Fight easy.', REVIEW_MSG=null;
+var REVIEW_DEF='Hi {name}, thanks so much for training with us at Phuket King! If you have a minute, a quick Google review helps us a lot: {link} Thank you, see you in class.', REVIEW_MSG=null;
 function loadReviewMsg(){ return sb.from('app_settings').select('value').eq('key','review_message').maybeSingle().then(function(res){ REVIEW_MSG=res.data&&res.data.value?res.data.value:null; schedule(); }); }
 function reviewText(c){ var t=REVIEW_MSG||REVIEW_DEF; if(t.indexOf('{link}')<0) t+=' {link}'; return t.split('{name}').join(String(c&&c.name||'').split(' ')[0]).split('{link}').join(REVIEW_URL); }
 function editReviewMsg(){
@@ -9666,7 +9666,7 @@ function runningOut(day){ var soon=addDays(day,7), out={};
     if(next) return;
     if(!out[p.customer_id]) out[p.customer_id]={p:p,why:why.join(', ')}; });
   return out; }
-var RENEW_DEF='Hi {name}, a quick heads up: your {package} {why}. Want to keep training? Reply here and we will set up the next one for you. Work hard, Fight easy.', RENEW_MSG=null;
+var RENEW_DEF='Hi {name}, a quick heads up: your {package} {why}. Want to keep training? Reply here and we will set up the next one for you.', RENEW_MSG=null;
 function loadRenewMsg(){ return sb.from('app_settings').select('value').eq('key','renew_message').maybeSingle().then(function(res){ RENEW_MSG=res.data&&String(res.data.value||'').trim()?res.data.value:null; schedule(); }); }
 function renewText(c,r){ var pk=r&&r.p&&r.p.package_name||''; pk=/pack|pass|membership/i.test(pk)?pk:(pk?pk+' package':'package');
   var why=String(r&&r.why||'').replace(/(\d+|no) visits? left/,'has $&');
