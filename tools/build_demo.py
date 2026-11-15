@@ -124,6 +124,10 @@ def main():
     rc = swap(open(os.path.join(ROOT, 'receipt.html'), encoding='utf-8').read())
     if any(w in rc for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea')): sys.exit('Phuket King text left in receipt.html')
     open(os.path.join(OUT, 'receipt.html'), 'w', encoding='utf-8').write(rc)
+    # the gym website (feature gym_site)
+    gs = swap(open(os.path.join(ROOT, 'gymsite.html'), encoding='utf-8').read())
+    if any(w in gs for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea')): sys.exit('Phuket King text left in gymsite.html')
+    open(os.path.join(OUT, 'gymsite.html'), 'w', encoding='utf-8').write(gs)
     # what's new, the same for every app
     open(os.path.join(OUT, 'changelog.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'changelog.js'), encoding='utf-8').read()))
     for lang in ('th', 'my'):  # app languages, with the same name swaps

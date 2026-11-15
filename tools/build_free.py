@@ -76,6 +76,15 @@ def main():
     import check_js
     if not check_js.check(os.path.join(OUT, 'index.html')):
         sys.exit('The build has broken JavaScript: fix the swap or the code.')
+    # each gym's website (feature gym_site): muayfriend.com/site/?g=<gym>
+    site = swap(open(os.path.join(ROOT, 'gymsite.html'), encoding='utf-8').read())
+    if any(w in site for w in ('phuketking', bd.PK_REF, 'Phuket King', 'Pangea')):
+        sys.exit('Other app text left in gymsite.html')
+    sdir = os.path.join(ROOT, 'muayfriend', 'site')
+    os.makedirs(sdir, exist_ok=True)
+    open(os.path.join(sdir, 'index.html'), 'w', encoding='utf-8').write(site.replace('href="../icons/favicon-48.png"', 'href="../favicon.svg"'))
+    if not check_js.check(os.path.join(sdir, 'index.html')):
+        sys.exit('The gym website has broken JavaScript.')
     # the feature list for Master control on muayfriend.com/dash (names and texts as gyms see them)
     import subprocess
     subprocess.run(['node', '-e', r"""const fs=require('fs');const L=fs.readFileSync(process.argv[1],'utf8').split('\n');

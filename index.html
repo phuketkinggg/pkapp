@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=199"></script>
+<script src="changelog.js?v=200"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1049,6 +1049,8 @@ var FEATURES=[
   {k:'agency_mail',g:'Selling',n:'Booking emails',d:'Confirmation and cancellation emails from agencies and booking sites are read into the app by the AI: group class guests show on Today with Arrived and No show, privates go to a free coach (or wait for one), and room guests get their name, email and phone on the stay from the booking site. Set it up in Settings, General, Booking emails.'},
   {k:'web_booking',g:'Website',n:'Shop website with online booking',d:'A simple website for your shop with Book, Prices and About. Customers pick a treatment, a day, who and a free time, and the booking lands on your board. Treatments, prices and team come from the app. Set the texts in Settings, Website.',def:false,spa:true},
   {k:'centre_sites',g:'Website',n:'Centres and their websites',d:'For a business with several centres: each centre gets its own page on your website at its own address (for example /phuket), listed on the main page. Name, photo, story, what is there, booking, contact and map come from Settings, Website. A centre can show live prices, class times and coaches from the business that runs it. Planned centres collect emails from people who want to hear when they open.',def:false,spa:false},
+  {k:'gym_site',g:'Website',n:'Your gym website',d:'A fast two page website made from the app: Home (about, timetable, coaches, how to find you) and Prices (memberships with Join online, and a free trial request). The timetable, prices and coaches update by themselves. Set the words, photos and contact details in Settings, Website, Your gym website.',def:false,spa:false},
+  {k:'gym_site_trial',g:'Website',n:'Free trial requests on your website',d:'People ask for a free trial class on your gym website. They are added to Customers with the tag Free trial and the class they picked, so you can confirm with them.',spa:false},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
@@ -1086,7 +1088,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=145; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=146; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10806,7 +10808,7 @@ function vSettings(){
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
-  else if(t==='website') body=[mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
+  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
@@ -11802,6 +11804,9 @@ function startCustomer(){
   if(ui.goReady&&READY&&!PV){ ui.goReady=false; ui.tab=READY.done_at?'c_home':'c_ready'; }
   if(!PV&&!ui.helloSent){ ui.helloSent=true; sb.rpc('customer_hello').then(function(){},function(){}); }
   allReady=true; schedule();
+  var bp=null; try{ bp=sessionStorage.getItem('buy_pkg'); }catch(e){}
+  if(bp&&!PV){ try{ sessionStorage.removeItem('buy_pkg'); }catch(e){} var k=(CU.packages||[]).filter(function(x){ return x.id===bp; })[0];
+    if(k){ ui.tab='c_buy'; schedule(); setTimeout(function(){ orderPkg(k); },250); } }
 }
 function enterCustomer(){ me={role:'customer'}; db=makeDb(); return loadCustomer().then(startCustomer); }
 /* staff look at a customer's app exactly as the customer sees it: read only, nothing can be tapped */
@@ -12033,6 +12038,50 @@ function webTextEdit(t){
 }
 /* the shop's own simple website (Book, Prices, About): texts kept in app_settings spa_site, read by spa_web() */
 var SPASITE=null;
+/* Your gym website (feature gym_site): Home and Prices pages made from the app; the words, photos and contact details are set here */
+var GYMSITE=null;
+function gymSiteUrl(){ return window.MF_MULTI?location.origin+'/site/?g='+window.MF_GYM:location.origin+location.pathname.replace(/[^/]*$/,'')+'gymsite.html'; }
+function gymSiteSave(o){ var txt=JSON.stringify(o);
+  return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','gym_site').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'gym_site',value:txt}).then(must); }).then(function(){ GYMSITE=o; schedule(); }); }
+function gymSiteForm(o,title,note,fields){ var vals={}; fields.forEach(function(f){ var v=o[f.key]; vals[f.key]=Array.isArray(v)?v.join('\n'):(v||''); });
+  openForm({title:title,note:note,values:vals,fields:fields,saveLabel:'Save',doneMsg:'Saved. Your website shows it now.',
+    onSave:function(v){ var n=Object.assign({},o); fields.forEach(function(f){ var x=String(v[f.key]||'').trim(); if(f.list) x=x.split('\n').map(function(y){ return y.trim(); }).filter(Boolean).slice(0,f.list); if(x&&x.length) n[f.key]=x; else delete n[f.key]; }); return gymSiteSave(n); }});
+  document.querySelectorAll('dialog textarea, dialog input').forEach(function(t){ t.classList.add('notr'); }); }
+function gymSiteSection(){
+  if(GYMSITE===null){ GYMSITE=false; sb.from('app_settings').select('value').eq('key','gym_site').maybeSingle().then(function(res){ var v=must(res); try{ GYMSITE=v?JSON.parse(v.value)||{}:{}; }catch(e){ GYMSITE={}; } schedule(); }).catch(function(e){ GYMSITE={}; toast(errText(e)); schedule(); }); }
+  var o=GYMSITE||{}, pk=(S.packages||[]).filter(function(k){ return k.active!==false; });
+  var acts=GYMSITE?h('span',{class:'row'},
+    btn('Words',function(){ gymSiteForm(o,'Website words','The timetable, prices and coaches come from Classes, Packages and Staff. Put *stars* around a word in a heading to colour it.',[
+      {key:'eyebrow',label:'Small line above the name',hint:'For example: Muay Thai and MMA in Bradford.'},
+      {key:'headline',label:'Big heading',hint:'Empty: your business name. For example: Train *hard*. Fight easy.'},
+      {key:'tagline',label:'Line under the heading'},
+      {key:'about_title',label:'About heading',hint:'For example: More than a gym.'},
+      {key:'about',label:'About us',type:'textarea',rows:6,hint:'A blank line starts a new paragraph.'},
+      {key:'points',label:'Short points',type:'textarea',rows:4,list:8,hint:'One on each line, for example: Beginners welcome.'},
+      {key:'timetable_note',label:'Note under Timetable'},
+      {key:'prices_title',label:'Prices heading',hint:'Empty: Memberships.'},
+      {key:'prices_note',label:'Note under Prices'},
+      {key:'trial_title',label:'Free trial heading',hint:'Empty: Book your *free* trial.'},
+      {key:'trial_text',label:'Free trial text',type:'textarea',rows:3},
+      {key:'cta_title',label:'Last banner heading',hint:'Empty: Your first class is on us.'},
+      {key:'cta_text',label:'Last banner text'}]); },'small'),
+    btn('Contact',function(){ gymSiteForm(o,'Contact and opening hours','Shown in Find us and at the bottom of every page.',[
+      {key:'address',label:'Address'},{key:'map_url',label:'Google Maps link',hint:'Optional. Empty: a map search for your name and address.'},
+      {key:'hours',label:'Opening hours',type:'textarea',rows:3},{key:'phone',label:'Phone'},{key:'email',label:'Email'},
+      {key:'whatsapp',label:'WhatsApp number',hint:'With the country code, for example +44 7700 900123.'},
+      {key:'instagram',label:'Instagram name'},{key:'facebook',label:'Facebook page',hint:'The page name or the full link.'},{key:'tiktok',label:'TikTok name'}]); },'small'),
+    btn('Photos',function(){ gymSiteForm(o,'Website photos','Paste a link to each photo, for example from your old website. Wide photos work best at the top.',[
+      {key:'logo',label:'Logo link',hint:'A wide logo with no background looks best.'},{key:'hero',label:'Big photo at the top'},{key:'about_photo',label:'Photo next to About us'},
+      {key:'photos',label:'More photos',type:'textarea',rows:4,list:24,hint:'One link on each line.'}]); },'small'),
+    pk.length?btn('Prices shown',function(){ var hide=o.hide||[];
+      openForm({title:'Packages on your website',note:'Tick the packages to show on the Prices page. Free ones are offered as the free trial.',values:{show:pk.map(function(k){ return k.id; }).filter(function(id){ return hide.indexOf(id)<0; })},
+        fields:[{key:'show',label:'Show',type:'checks',options:pk.map(function(k){ return [k.id,k.name+(k.price_thb?', '+thb(k.price_thb):', free')]; })}],saveLabel:'Save',doneMsg:'Saved. Your website shows it now.',
+        onSave:function(v){ var n=Object.assign({},o), sh=v.show||[]; n.hide=pk.map(function(k){ return k.id; }).filter(function(id){ return sh.indexOf(id)<0; }); if(!n.hide.length) delete n.hide; return gymSiteSave(n); }}); },'small'):null):null;
+  return section('Your gym website',acts,h('div',{class:'panel pad'},
+    h('p',{style:'margin:0 0 8px'},!GYMSITE?'Loading.':(o.tagline||o.about?(o.tagline||String(o.about).slice(0,140)):'Your website is ready with your timetable, prices and coaches. Tap Words, Contact and Photos to make it yours.')),
+    h('p',{class:'row sub',style:'margin:0'},h('a',{href:gymSiteUrl(),target:'_blank',rel:'noopener'},'Open your website'),' ',btn('Copy link',function(){ copyText(gymSiteUrl(),'Website link copied.'); },'small'),
+      h('a',{href:gymSiteUrl()+(window.MF_MULTI?'&':'?')+'p=prices',target:'_blank',rel:'noopener'},'Prices page'))));
+}
 function spaSiteUrl(){ return location.origin+location.pathname.replace(/[^/]*$/,'')+'site/'; }
 /* website logo, big photo and gallery: picked from the phone, kept in the promos bucket, saved in spa_site */
 function spaSiteSave(val){ val=Object.assign({},val); Object.keys(val).forEach(function(k){ if(k.charAt(0)==='_') delete val[k]; }); var txt=JSON.stringify(val);
@@ -12776,6 +12825,7 @@ function enter(user){
 }
 
 var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
+(function(){ var m=start.match(/^buy=([0-9a-f-]{36})$/); if(!m) return; try{ sessionStorage.setItem('buy_pkg',m[1]); history.replaceState(null,'',location.pathname+location.search); }catch(e){} })();
 /* back from connecting YouTube: open Social media and say how it went */
 (function(){ var m=start.match(/^(yt|tt)=(ok|err)&m=(.*)$/); if(!m) return; var msg='', nm=m[1]==='tt'?'TikTok':'YouTube'; try{ msg=decodeURIComponent(m[3]); }catch(e){} ui.tab='social'; try{ history.replaceState(null,'',location.pathname+'#social'); }catch(e){}
   setTimeout(function(){ toast(msg||(m[2]==='ok'?nm+' connected.':nm+' did not connect.')); },800); })();
