@@ -76,6 +76,13 @@ def main():
     import check_js
     if not check_js.check(os.path.join(OUT, 'index.html')):
         sys.exit('The build has broken JavaScript: fix the swap or the code.')
+    # the feature list for Master control on muayfriend.com/dash (names and texts as gyms see them)
+    import subprocess
+    subprocess.run(['node', '-e', r"""const fs=require('fs');const L=fs.readFileSync(process.argv[1],'utf8').split('\n');
+const i=L.findIndex(l=>l.startsWith('var FEATURES=['));let j=i+1;while(!/\}\];\s*$/.test(L[j]))j++;
+const a=eval('['+L.slice(i+1,j+1).join('\n').replace(/\];\s*$/,'')+']');
+fs.writeFileSync(process.argv[2],JSON.stringify(a.map(f=>({k:f.k,g:f.g,n:f.n,d:f.d,def:f.def!==false}))));""",
+                    os.path.join(OUT, 'index.html'), os.path.join(OUT, 'features.json')], check=True)
     print('Free app built in muayfriend/app/')
 
 

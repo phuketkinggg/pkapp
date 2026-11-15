@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=198"></script>
+<script src="changelog.js?v=199"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -967,6 +967,7 @@ var FEATURES=[
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'custom_deals',g:'Selling',n:'Custom deals',d:'Managers can sell a package as a custom deal: their own length (for example 4 months) and their own price, with Fitness Zone included if they like, starting on the first visit, today or a chosen date. In Sell a package, tick Custom deal.',def:true,spa:true},
+  {k:'support_access',g:'Team',n:'Tech support access',d:'The app support team can open your back office to help you, without you making them a login. They show in Staff as Tech support while they are in, and you can remove them there. Turn this off and they are taken off straight away and cannot come in.'},
   {k:'owner_lock',g:'Team',n:'Owner',d:'One person owns the business: only they switch features, change money settings and add or change managers and admins. They keep recovery codes in case they are locked out. Set it in Settings, General, Owner.',def:true,spa:true},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
@@ -1086,7 +1087,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=144; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=145; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10145,7 +10146,7 @@ function vStaff(){
   var hol=sortBy(S.holidays.filter(function(x){return x.to>=day;}),'from');
   return [pageHead('Staff',null,h('div',{class:'row'},brPick(),btn('Add staff member',function(){ editStaff(); },'primary'))),
     table([
-      {label:'Name',cell:function(s){return h('span',{class:'staffname'},staffFace(s),linkBtn(s.name,function(){ editStaff(s); }),exChip(s),s.web_show?chip('On website','ok'):null);}},
+      {label:'Name',cell:function(s){return h('span',{class:'staffname'},staffFace(s),linkBtn(s.name,function(){ editStaff(s); }),exChip(s),s.support?chip('Tech support','warn'):null,s.web_show?chip('On website','ok'):null);}},
       {label:'Role',cell:function(s){ var A=s.access&&s.access.areas||[], P=s.access&&s.access.perms||[], AN={gym:'Gym',spa:'Spa',resort:'Resort',cafe:'Cafe'}, PN={edit:'change',refunds:'refunds',money:'money',staff:'staff',settings:'settings',marketing:'marketing'};
         var extra=s.role==='admin'||s.role==='front_desk'?(A.length?A.map(function(x){ return AN[x]||x; }).join(', '):'All departments')+(s.role==='admin'?'. '+(P.length?(P.indexOf('edit')<0?'View only, ':'')+P.filter(function(x){ return x!=='edit'; }).map(function(x){ return PN[x]; }).join(', '):'View only'):''):'';
         return h('span',null,s.role==='manager'?'Owner':ROLES[s.role]||s.role,extra?h('div',{class:'sub'},extra):null,brOn()?h('div',{class:'sub'},(s.branches&&s.branches.length)?s.branches.map(brName).filter(Boolean).join(', '):'All branches'):null); }},
@@ -10408,7 +10409,7 @@ function icalLine(){
 }
 /* ---------- backups: download everything as one file, and see the nightly copies ---------- */
 var BK=null;
-var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,branches,work_days,work_start,work_end,access,bio,photo_url,also_coach,private_rate_thb,privates_any,video_url,web_show,web_name,web_title,web_about,web_sort';
+var STAFF_COLS='id,user_id,name,email,role,commission_pct,phone,active,created_at,investor_zones,branches,work_days,work_start,work_end,access,bio,photo_url,also_coach,private_rate_thb,privates_any,video_url,web_show,web_name,web_title,web_about,web_sort,support';
 function cols(t){ return t==='staff'?STAFF_COLS:'*'; }
 var BACKUP_TABLES=['staff','customers','packages','purchases','classes','checkins','booking_sources','privates','holidays','rooms','stays','room_charges','minibar_items','room_cleanings','room_issues','app_settings'];
 function downloadBackup(){
@@ -12539,6 +12540,13 @@ function deleteAccBtn(){ return h('button',{type:'button',class:'btn small',oncl
     saveLabel:'Delete my account',fields:[{key:'confirm',label:'Type DELETE to confirm',required:true,autocomplete:'off'}],
     onSave:function(v){ if(String(v.confirm||'').trim().toUpperCase()!=='DELETE') return 'Type DELETE to confirm.';
       return sb.rpc('customer_delete_me',{p_confirm:'DELETE'}).then(must).then(function(){ setTimeout(function(){ toast('Your account is deleted.'); },100); return sb.auth.signOut(); }); }}); }},'Delete account'); }
+/* Tech support access (feature support_access): the app's support team opens a business's back office to help */
+function supportJoin(){ return sb.rpc('support_join').then(function(r){ if(r.error) throw r.error; try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} location.reload(); }); }
+function supportOffer(){ sb.rpc('app_platform').then(function(r){ if(r.error||!r.data||!r.data.owner) return;
+  if(/^#support$/.test(location.hash)) return supportJoin().catch(function(e){ toast(errText(e)); });
+  $who.lastChild.insertBefore(h('button',{type:'button',class:'btn small',onclick:function(ev){ ev.target.disabled=true; supportJoin().catch(function(e){ ev.target.disabled=false; toast(errText(e)); }); }},'Open as tech support'),$who.lastChild.firstChild); }).catch(function(){}); }
+function supportLeaveBtn(){ return h('button',{type:'button',class:'btn small',title:'Take tech support off this team',onclick:function(ev){ ev.target.disabled=true;
+  sb.rpc('support_leave').then(function(r){ if(r.error) throw r.error; location.reload(); }).catch(function(e){ ev.target.disabled=false; toast(errText(e)); }); }},'Leave as tech support'); }
 function signOutBtn(){ return h('button',{type:'button',class:'btn small',onclick:function(){ sb.auth.signOut({scope:'local'}); }},'Sign out'); }
 function passwordBtn(){ return h('button',{type:'button',class:'btn small',onclick:setPassword},'Password'); }
 function setPassword(){
@@ -12749,6 +12757,8 @@ function enter(user){
     var swap=staff?h('button',{type:'button',class:'btn small',onclick:function(){ switchView(asMember?'staff':'member'); }},asMember?(row.role==='coach'?'Coach app':'Back office'):'Member app'):null;
     $who.replaceChildren(h('span',null,h('b',null,staff?row.name:user.email),staff?' '+(ROLES[row.role]||''):''),h('span',{class:'row'},staff&&!asMember&&row.role!=='investor'?receiptBtn():null,swap,passwordBtn(),!staff?blockedBtn():null,!staff?deleteAccBtn():null,signOutBtn()));
     document.getElementById('mode').textContent=!staff||asMember?'Members':row.role==='coach'?'Coach':'Back office';
+    if(!staff&&featOn('support_access')) supportOffer();
+    if(staff&&row.support&&!asMember) $who.lastChild.insertBefore(supportLeaveBtn(),$who.lastChild.firstChild);
     if(!staff||asMember) return enterCustomer();
     if(window.MF_MULTI) setTimeout(function(){ loadMyPlan().catch(function(){}); },0);
     if(row.role!=='investor') loadAccStruct();

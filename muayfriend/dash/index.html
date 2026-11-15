@@ -81,6 +81,13 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
 .dots{display:inline-flex;gap:3px;vertical-align:middle}.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--green)}
 .tabs2{display:flex;gap:6px;flex-wrap:wrap;margin:26px 0 0}
 .feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ctl{border:1.5px solid var(--blue)}.ctl .fg{margin-top:16px}.ctl .fg h3{font-size:15px;margin:0 0 6px}
+.frow{display:grid;grid-template-columns:1fr 170px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--paper)}.frow .sub{color:var(--muted);font-size:13px}
+.frow select,.ctl select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;width:100%}
+.frow.set b{color:var(--blue)}.btnrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sbtn{font:600 13px var(--body);border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:99px;padding:4px 10px;cursor:pointer;text-decoration:none;display:inline-block;margin:2px 4px 2px 0}
+.sbtn.dark{background:var(--ink);color:#fff}
+@media(max-width:600px){.frow{grid-template-columns:1fr}}
 .feat div{background:var(--paper);border-radius:12px;padding:10px 12px}.feat b{font:800 26px var(--display);display:block}.feat span{font-size:13px;color:var(--muted)}
 </style>
 </head>
@@ -139,8 +146,9 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
     <div class="box">
       <h2>Every gym</h2>
       <p class="sub" style="margin:-4px 0 10px;color:var(--muted);font-size:14px">Getting started is 5 steps: members, packages, classes, a first sale and a first check-in. Call the gyms marked Stuck or Quiet, and offer an upgrade to the ones near their limit.</p>
-      <div class="scroll"><table><thead><tr><th>Gym</th><th>Status</th><th>Getting started</th><th>Members</th><th>Last 7 days</th><th>Last active</th><th>Plan</th></tr></thead><tbody id="health"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th>Gym</th><th>Status</th><th>Getting started</th><th>Members</th><th>Last 7 days</th><th>Last active</th><th>Plan</th><th>Control</th></tr></thead><tbody id="health"></tbody></table></div>
     </div>
+    <div class="box ctl" id="ctl" hidden></div>
     <div class="box"><h2>What gyms use</h2><div class="feat" id="feat"></div></div>
 
     <h1 style="margin-top:34px;font-size:clamp(30px,5vw,44px)">Money</h1>
@@ -236,7 +244,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
   var HL={active:'Active',new:'New',stuck:'Stuck',quiet:'Quiet',near_limit:'Near limit',at_limit:'At limit',broken:'Cannot read'};
   function ago(t){ if(!t) return 'never'; var m=(Date.now()-new Date(t).getTime())/60000; if(m<60) return Math.max(1,Math.round(m))+' min ago'; if(m<1440) return Math.round(m/60)+' h ago'; return Math.round(m/1440)+' days ago'; }
   function renderGyms(){
-    if(!H){ $('health').innerHTML='<tr><td colspan="7" class="empty">Could not load the gyms.</td></tr>'; return; }
+    if(!H){ $('health').innerHTML='<tr><td colspan="8" class="empty">Could not load the gyms.</td></tr>'; return; }
     var c=function(k){ return H.filter(function(g){ return g.health===k; }).length; };
     var act7=H.filter(function(g){ return g.last&&Date.now()-new Date(g.last).getTime()<7*864e5; }).length;
     $('htiles').innerHTML=tile('Gyms',n(H.length),n(H.filter(function(g){ return g.plan!=='free'; }).length)+' paying')+
@@ -247,15 +255,16 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
     var order={stuck:0,quiet:1,at_limit:2,near_limit:3,new:4,active:5,broken:6};
     var rows=H.slice().sort(function(a,b){ return (order[a.health]-order[b.health])||String(b.made).localeCompare(String(a.made)); });
     $('health').innerHTML=rows.length?rows.map(function(g){
-      if(g.health==='broken') return '<tr><td>'+esc(g.name)+'</td><td><span class="pill h-broken">Cannot read</span></td><td colspan="5" class="sub">This gym\'s tables could not be read. Check its setup.</td></tr>';
+      if(g.health==='broken') return '<tr><td>'+esc(g.name)+'</td><td><span class="pill h-broken">Cannot read</span></td><td colspan="6" class="sub">This gym\'s tables could not be read. Check its setup.</td></tr>';
       var st=['members','packages','classes','sales','checkins'], dots='<span class="dots" title="'+st.map(function(k){ return k+': '+(g[k]>0?'yes':'no'); }).join(', ')+'">'+st.map(function(k){ return '<i class="'+(g[k]>0?'on':'')+'"></i>'; }).join('')+'</span> '+g.steps+'/5';
       return '<tr><td><a href="../app/?g='+encodeURIComponent(g.slug)+'">'+esc(g.name)+'</a><div class="sub"><a href="mailto:'+esc(g.email)+'">'+esc(g.email)+'</a>\nJoined '+ago(g.made)+'</div></td>'+
         '<td><span class="pill h-'+g.health+'">'+HL[g.health]+'</span></td><td>'+dots+'</td>'+
         '<td>'+n(g.members)+(g.limit_members?' of '+n(g.limit_members):'')+'<div class="sub">'+n(g.staff)+(g.limit_staff?' of '+g.limit_staff:'')+' staff</div></td>'+
         '<td>'+n(g.checkins_7d)+' check-ins<div class="sub">'+n(g.sales_7d)+' sales, '+n(g.members_7d)+' new members</div></td>'+
         '<td>'+ago(g.last)+'<div class="sub">owner signed in '+ago(g.seen)+'</div></td>'+
-        '<td><span class="pill'+(g.plan!=='free'?' paid':'')+'">'+esc(PLAN[g.plan]||g.plan)+(g.cycle==='year'?', yearly':'')+'</span>'+(g.pay&&g.pay!=='active'?'<div class="sub">'+esc(pay(g.pay))+'</div>':'')+'</td></tr>'; }).join('')
-      :'<tr><td colspan="7" class="empty">No gyms yet.</td></tr>';
+        '<td><span class="pill'+(g.plan!=='free'?' paid':'')+'">'+esc(PLAN[g.plan]||g.plan)+(g.cycle==='year'?', yearly':'')+'</span>'+(g.pay&&g.pay!=='active'?'<div class="sub">'+esc(pay(g.pay))+'</div>':'')+'</td>'+
+        '<td><a class="sbtn dark" href="../app/?g='+encodeURIComponent(g.slug)+'#support" target="_blank" rel="noopener" title="Opens their back office as Tech support">Open</a><button class="sbtn" type="button" data-ctl="'+esc(g.slug)+'">Features and plan</button></td></tr>'; }).join('')
+      :'<tr><td colspan="8" class="empty">No gyms yet.</td></tr>';
     var used=function(k){ return H.filter(function(g){ return g[k]>0; }).length; }, F=[['checkins','Check-ins'],['sales','Selling packages'],['classes','Class timetable'],['privates','Privates'],['shop','Shop orders'],['courses','Online courses']];
     $('feat').innerHTML=F.map(function(f){ var u=used(f[0]); return '<div><b>'+u+'</b><span>'+f[1]+(H.length?', '+Math.round(u/H.length*100)+'% of gyms':'')+'</span></div>'; }).join('');
   }
@@ -280,6 +289,40 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       D=r.data; H=rs[1].error?null:rs[1].data; M=rs[2].error?null:rs[2].data; $('gate').hidden=true; $('dash').hidden=false; $('msg').textContent=''; render(); renderGyms(); renderMoney();
     }).catch(function(e){ $('msg').className='msg err'; $('msg').textContent='Could not load the numbers: '+(e.message||e)+'. Check your connection and refresh.'; });
   }
+
+  /* Master control for one gym: its plan, and each feature left to the gym, always on, or off and hidden */
+  var FL=null, CG=null, CC=null;
+  function feats(){ return FL?Promise.resolve(FL):fetch('../app/features.json',{cache:'no-cache'}).then(function(r){ return r.json(); }).then(function(a){ FL=a; return a; }); }
+  function openCtl(slug){ var g=(H||[]).filter(function(x){ return x.slug===slug; })[0]; if(!g) return; CG=g; var box=$('ctl'); box.hidden=false;
+    box.innerHTML='<h2>'+esc(g.name)+'</h2><p class="msg">Loading</p>'; box.scrollIntoView({behavior:'smooth',block:'start'});
+    Promise.all([feats(),sb.schema('g_'+slug).rpc('app_platform')]).then(function(rs){ var r=rs[1]; if(r.error) throw r.error; CC=(r.data&&r.data.cfg)||{}; drawCtl(); })
+      .catch(function(e){ box.innerHTML='<h2>'+esc(g.name)+'</h2><p class="msg err">Could not open this gym: '+esc(e.message||e)+'</p>'; }); }
+  function drawCtl(){ var g=CG, lock=CC.lock||{}, box=$('ctl'), groups=[];
+    FL.forEach(function(f){ if(groups.indexOf(f.g)<0) groups.push(f.g); });
+    var n=Object.keys(lock).length;
+    box.innerHTML='<div class="head" style="margin:0"><div><h2 style="margin:0">'+esc(g.name)+'</h2><p class="sub" style="margin:2px 0 0;color:var(--muted)">'+n+' feature'+(n===1?'':'s')+' fixed by you. The rest the gym chooses in Settings, Features.</p></div>'+
+      '<div class="btnrow"><a class="sbtn dark" href="../app/?g='+encodeURIComponent(g.slug)+'#support" target="_blank" rel="noopener">Open back office</a><button class="sbtn" type="button" id="ctlx">Close</button></div></div>'+
+      '<div class="fg"><h3>Plan</h3><div class="btnrow" style="max-width:520px"><select id="ctlplan">'+['free','gym','gym_plus','camp','master'].map(function(p){ return '<option value="'+p+'"'+(g.plan===p?' selected':'')+'>'+PLAN[p]+'</option>'; }).join('')+'</select>'+
+      '<button class="sbtn dark" type="button" id="ctlps">Save plan</button></div><p class="sub" style="color:var(--muted);font-size:13px">A plan you give here is free for them (not paid). Changing the plan sets the features of that plan again, so fix single features after.</p></div>'+
+      '<div class="btnrow" style="margin-top:14px"><button class="sbtn" type="button" id="ctlall">Every feature on</button><button class="sbtn" type="button" id="ctlnone">Clear, gym chooses all</button></div>'+
+      groups.map(function(gr){ return '<div class="fg"><h3>'+esc(gr)+'</h3>'+FL.filter(function(f){ return f.g===gr; }).map(function(f){ var v=lock[f.k]===true?'on':lock[f.k]===false?'off':'';
+        return '<div class="frow'+(v?' set':'')+'"><div><b>'+esc(f.n)+'</b><div class="sub">'+esc(f.d)+'</div></div><select data-k="'+esc(f.k)+'">'+
+          '<option value=""'+(v===''?' selected':'')+'>Gym chooses ('+(f.def?'on':'off')+' at start)</option><option value="on"'+(v==='on'?' selected':'')+'>Always on</option><option value="off"'+(v==='off'?' selected':'')+'>Off and hidden</option></select></div>'; }).join('')+'</div>'; }).join('')+
+      '<p class="msg" id="ctlmsg"></p>'; }
+  function saveLock(lock){ var m=$('ctlmsg'); if(m){ m.className='msg'; m.textContent='Saving'; }
+    return sb.schema('g_'+CG.slug).rpc('platform_save',{p:{lock:lock,hide:CC.hide||[],hide_set:CC.hide_set||[],names:CC.names||{}}}).then(function(r){ if(r.error) throw r.error;
+      CC=(r.data&&r.data.cfg)||Object.assign({},CC,{lock:lock}); drawCtl(); var m2=$('ctlmsg'); if(m2) m2.textContent='Saved. The gym sees it next time the app opens.'; })
+      .catch(function(e){ var m3=$('ctlmsg'); if(m3){ m3.className='msg err'; m3.textContent=e.message||'Not saved.'; } }); }
+  $('health').addEventListener('click',function(e){ var b=e.target.closest('[data-ctl]'); if(b) openCtl(b.getAttribute('data-ctl')); });
+  $('ctl').addEventListener('change',function(e){ var s=e.target.closest('select[data-k]'); if(!s) return; var lock=Object.assign({},CC.lock||{}), k=s.getAttribute('data-k');
+    if(s.value==='on') lock[k]=true; else if(s.value==='off') lock[k]=false; else delete lock[k]; saveLock(lock); });
+  $('ctl').addEventListener('click',function(e){ var t=e.target;
+    if(t.id==='ctlx'){ $('ctl').hidden=true; CG=null; return; }
+    if(t.id==='ctlall'){ var l={}; FL.forEach(function(f){ l[f.k]=true; }); saveLock(l); return; }
+    if(t.id==='ctlnone'){ saveLock({}); return; }
+    if(t.id==='ctlps'){ var pl=$('ctlplan').value, m=$('ctlmsg'); m.className='msg'; m.textContent='Saving the plan';
+      sb.rpc('mf_gym_plan',{p_slug:CG.slug,p_plan:pl,p_status:'comp'}).then(function(r){ if(r.error) throw r.error; CG.plan=pl; return load(); }).then(function(){ openCtl(CG.slug); })
+        .catch(function(er){ m.className='msg err'; m.textContent=er.message||'Not saved.'; }); } });
 
   $('range').addEventListener('click',function(e){ var b=e.target.closest('[data-d]'); if(!b) return;
     days=+b.getAttribute('data-d'); document.querySelectorAll('#range .chip').forEach(function(c){ c.classList.toggle('on',c===b); }); load(); });
