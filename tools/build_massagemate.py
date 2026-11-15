@@ -151,6 +151,8 @@ def build():
     rc = swap(open(os.path.join(ROOT, 'receipt.html'), encoding='utf-8').read())
     if any(w in rc for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea')): sys.exit('Phuket King text left in receipt.html')
     open(os.path.join(OUT, 'receipt.html'), 'w', encoding='utf-8').write(rc)
+    # the member card page (feature wallet_card)
+    open(os.path.join(OUT, 'card.html'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'card.html'), encoding='utf-8').read()))
     # what's new, the same for every app
     open(os.path.join(OUT, 'changelog.js'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'changelog.js'), encoding='utf-8').read()))
     for lang in ('th', 'my'):  # app languages, with the same name swaps

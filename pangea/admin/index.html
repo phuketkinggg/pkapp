@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=200"></script>
+<script src="changelog.js?v=201"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -967,6 +967,7 @@ var FEATURES=[
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'custom_deals',g:'Selling',n:'Custom deals',d:'Managers can sell a package as a custom deal: their own length (for example 4 months) and their own price, with Fitness Zone included if they like, starting on the first visit, today or a chosen date. In Sell a package, tick Custom deal.',def:true,spa:true},
   {k:'support_access',g:'Team',n:'Tech support access',d:'The app support team can open your back office to help you, without you making them a login. They show in Staff as Tech support while they are in, and you can remove them there. Turn this off and they are taken off straight away and cannot come in.'},
+  {k:'wallet_card',g:'Customers',n:'Member card in Apple Wallet and Google Wallet',d:'Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.',def:false,spa:false},
   {k:'owner_lock',g:'Team',n:'Owner',d:'One person owns the business: only they switch features, change money settings and add or change managers and admins. They keep recovery codes in case they are locked out. Set it in Settings, General, Owner.',def:true,spa:true},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
@@ -1088,7 +1089,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=147; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=148; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -9558,7 +9559,7 @@ function vToday(){
     var why=[]; if(p.expires_on&&p.expires_on<=soon) why.push('expires '+fmtDate(p.expires_on)); if(p.class_limit&&left(p)<=2) why.push(left(p)+' visits left');
     if(why.length) renew.push({p:p,why:why.join(', ')}); });
   var PART={
-    checkin:function(){ return [section('Check someone in',featOn('desk_sell')?h('div',{class:'row'},btn('New customer',function(){ deskSell(null,ui.q.trim()); },'primary small'),btn('Agency guest',function(){ walkIn(ui.q.trim(),target); },'small')):target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small'),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
+    checkin:function(){ return [section('Check someone in',featOn('desk_sell')?h('div',{class:'row'},featOn('wallet_card')?btn('Scan card',cardScan,'small'):null,btn('New customer',function(){ deskSell(null,ui.q.trim()); },'primary small'),btn('Agency guest',function(){ walkIn(ui.q.trim(),target); },'small')):h('div',{class:'row'},featOn('wallet_card')?btn('Scan card',cardScan,'small'):null,target&&target.kind==='private'?btn('Private for someone new',function(){ privNow(null); },'primary small'):btn('Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },'primary small')),h('div',{class:'panel'},h('div',{class:'pad row'},search,classSel),
       q&&!hits.length&&!guestHits.length?h('div',{class:'hit'},h('span',{class:'sub'},'Nobody matches that. '),h('div',{class:'row'},featOn('desk_sell')?btn('New customer',function(){ deskSell(null,ui.q.trim()); },'primary small'):null,target&&target.kind==='private'?null:btn(featOn('desk_sell')?'Agency guest':'Walk-in or agency guest',function(){ walkIn(ui.q.trim(),target); },featOn('desk_sell')?'small':'primary small'),btn('Add a customer',function(){ editCustomer({name:ui.q.trim()}); },'small'))):hitRows.concat(guestHits)))]; },
     staff:function(){ return [staffToday(false),coachBoardToday()]; },
     urgent:function(){ var unp=unpaidToday(); return [agencyToday(),claimsSection(),mealWaitingToday(),unp.length?section('Checked in today, not paid',null,h('div',{class:'panel'},unp.map(function(x){
@@ -9886,7 +9887,7 @@ function vCustomers(){
     if(ctabs&&ui.ctab==='info') return [h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; ui.ctab='main'; schedule(); })),pageHead(c.name),ctabs].concat(ciPanel(c));
     return [
       h('div',null,linkBtn('Back to all customers',function(){ ui.customerId=null; schedule(); })),
-      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),featOn('member_file')&&tabOn('coaching')&&!c.is_agency&&me&&(me.role==='manager'||me.role==='coach'||me.also_coach)?btn('Member file',function(){ mfOpen(c.id); }):null,isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),courseSellOk()&&!c.is_agency?btn('Add a course',function(){ sellCourse(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
+      pageHead(c.name,null,h('div',{class:'row'},btn('Edit',function(){ editCustomer(c); }),cardLinkBtn(c),featOn('member_file')&&tabOn('coaching')&&!c.is_agency&&me&&(me.role==='manager'||me.role==='coach'||me.also_coach)?btn('Member file',function(){ mfOpen(c.id); }):null,isDeskRole()&&chatOn()&&!c.is_agency?btn('Message',function(){ if(!c.user_id) toast(c.name+' has no app login yet. They see the message when they sign in.'); chatStart({p_customer:c.id},c.name); }):null,btn('Customer view',function(){ viewAsCustomer(c); }),reviewPhone(c)?btn(reviewAsked(c)?'Ask for a review again':'Ask for a Google review',function(){ reviewAsk(c); }):null,me&&(me.role==='manager'||me.role==='coach')?btn('Coaching',function(){ openCoaching(c.id); }):null,featOn('coaching')&&featOn('coach_choose')&&me&&['manager','admin','coach'].indexOf(me.role)>=0?btn('Coaching options',function(){ coachParts(c); }):null,me&&me.role==='manager'&&c.email?btn(c.user_id?'App access (has login)':'Give app access',function(){ giveAccess('customer',c); }):null,me&&me.role==='manager'?btn('Send an email',function(){ emailOne(c); }):null,me&&me.role==='manager'?btn('Merge',function(){ mergeCustomer(c); }):null,me&&me.role==='manager'?btn('Past check in',function(){ pastCheckIn(c); }):null,btn('Build a package',function(){ buildPackage(c); }),courseSellOk()&&!c.is_agency?btn('Add a course',function(){ sellCourse(c); }):null,btn('Sell a package',function(){ sellPackage(c); },'primary'))),
       ctabs,
       custBills(c),
       me&&me.role==='manager'?emailOneSection(c):null,
@@ -11618,6 +11619,18 @@ function fighterCard(){
     (f.last||[]).length?h('div',{class:'sub'},'Last fights: '+f.last.map(function(x){ return fmtDate(x.date)+' '+(x.result==='win'?'won':x.result==='loss'?'lost':x.result==='draw'?'draw':x.result)+(x.opponent?' vs '+x.opponent:''); }).join('. ')):null,
     h('div',{class:'row'},btn('Message my coach',function(){ go('c_coach'); },'small')))));
 }
+/* Member card in Apple Wallet and Google Wallet (feature wallet_card) */
+function cardUrl(tok){ return window.MF_MULTI?location.origin+location.pathname.replace(/[^/]*$/,'')+'card.html?g='+window.MF_GYM+'&t='+tok:location.origin+location.pathname.replace(/[^/]*$/,'')+'card.html?t='+tok; }
+function walletBtn(){ if(!featOn('wallet_card')||PV) return null;
+  return btn('Add to Wallet',function(ev){ var b=ev.target; b.disabled=true; sb.rpc('my_card').then(function(r){ b.disabled=false; if(r.error) throw r.error; if(!r.data||!r.data.token){ toast('Your member card is not ready yet. Ask at the front desk.'); return; } location.href=cardUrl(r.data.token); }).catch(function(e){ b.disabled=false; toast(errText(e)); }); },'small'); }
+function cardScan(){ scanQR('Point the camera at the QR code on the member card.',function(text){
+    var m=String(text||'').match(/(?:PKCARD:|[?&]t=)([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i); if(!m) return 'That is not a member card.';
+    sb.rpc('card_find',{p_token:m[1]}).then(function(r){ if(r.error) throw r.error; if(!r.data){ toast('That card is not one of ours, or it was replaced.'); return; }
+      ui.q=r.data.email||r.data.phone||r.data.name; go('today'); schedule(); setTimeout(function(){ var q=document.getElementById('q'); if(q){ q.value=ui.q; q.scrollIntoView({block:'center'}); } },80); toast('Card: '+r.data.name+'. Tap Check in.'); })
+      .catch(function(e){ toast(errText(e)); });
+    return true; }); }
+function cardLinkBtn(c){ if(!featOn('wallet_card')||c.is_agency) return null;
+  return btn('Wallet card',function(){ sb.rpc('card_token_for',{p_customer:c.id}).then(function(r){ if(r.error) throw r.error; copyText(cardUrl(r.data),'Wallet card link copied. Send it to '+c.name+' by WhatsApp or email.'); }).catch(function(e){ toast(errText(e)); }); },'small'); }
 function vCHome(){
   var day=CU.today, wd=cuWd(), first=String(CU.me.name||'').split(' ')[0];
   var waiting=CU.purchases.filter(function(p){ return !cuUsable(p); });
@@ -11626,7 +11639,7 @@ function vCHome(){
   var mine=CU.checkins.filter(function(e){ return e.day===day; });
   var todayC=CU.classes.filter(function(c){ return Number(c.day)===wd&&!classOff(c,day); });
   var nextP=CU.privates.filter(function(p){ return p.date>=day&&(p.status==='confirmed'||p.status==='requested'); })[0];
-  return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day),window.pkCanInstall&&window.pkCanInstall()&&!PV?btn('Install app',function(){ window.pkInstall(); },'small'):null),
+  return [pageHead('Hi '+first,DAYS[wd]+' '+fmtDate(day),h('span',{class:'row'},window.pkCanInstall&&window.pkCanInstall()&&!PV?btn('Install app',function(){ window.pkInstall(); },'small'):null,walletBtn())),
     readyCard(),
     fighterCard(),
     CU.owes>=20?h('div',{class:'panel pad row owebox'},h('b',null,'You owe '+thb(CU.owes)),h('span',{class:'sub'},'Pay at the front desk, or by card here.'+(onlineFee(CU.owes)?' Card payments have a card fee of '+cardFeeLong()+'.':'')),btn('PromptPay',function(){ payPromptPay('customer',null,'gym'); },'primary small'),btn(payCardLabel(CU.owes),function(){ stripePay('customer',null); },'small')):null,

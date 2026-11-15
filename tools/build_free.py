@@ -76,6 +76,8 @@ def main():
     import check_js
     if not check_js.check(os.path.join(OUT, 'index.html')):
         sys.exit('The build has broken JavaScript: fix the swap or the code.')
+    # the member card page (feature wallet_card): ?g=<gym>&t=<card>
+    open(os.path.join(OUT, 'card.html'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'card.html'), encoding='utf-8').read()))
     # each gym's website (feature gym_site): muayfriend.com/site/?g=<gym>
     site = swap(open(os.path.join(ROOT, 'gymsite.html'), encoding='utf-8').read())
     if any(w in site for w in ('phuketking', bd.PK_REF, 'Phuket King', 'Pangea')):

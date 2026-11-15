@@ -25238,5 +25238,53 @@
 "Empty: your business name. Put *stars* around a word to colour it.": [
 "ว่างไว้: ชื่อธุรกิจของคุณ ใส่ *ดอกจัน* รอบคำเพื่อให้เป็นสี",
 "ဗလာ- သင့်လုပ်ငန်းအမည်။ စကားလုံးကို အရောင်ပြောင်းရန် *ကြယ်* ထည့်ပါ။"
+],
+"Add to Wallet": [
+"เพิ่มลงใน Wallet",
+"Wallet ထဲ ထည့်မည်"
+],
+"Card: ": [
+"บัตร: ",
+"ကတ်- "
+],
+"Member card in Apple Wallet and Google Wallet": [
+"บัตรสมาชิกใน Apple Wallet และ Google Wallet",
+"Apple Wallet နှင့် Google Wallet ရှိ အသင်းဝင်ကတ်"
+],
+"Point the camera at the QR code on the member card.": [
+"หันกล้องไปที่ QR code บนบัตรสมาชิก",
+"အသင်းဝင်ကတ်ပေါ်ရှိ QR ကုဒ်ကို ကင်မရာဖြင့် ချိန်ပါ။"
+],
+"Scan card": [
+"สแกนบัตร",
+"ကတ် စကင်ဖတ်မည်"
+],
+"That card is not one of ours, or it was replaced.": [
+"บัตรนี้ไม่ใช่ของเรา หรือถูกเปลี่ยนแล้ว",
+"ထိုကတ်သည် ကျွန်ုပ်တို့၏ကတ် မဟုတ်ပါ သို့မဟုတ် အစားထိုးပြီးဖြစ်သည်။"
+],
+"Wallet card": [
+"บัตร Wallet",
+"Wallet ကတ်"
+],
+"Wallet card link copied. Send it to ": [
+"คัดลอกลิงก์บัตร Wallet แล้ว ส่งให้ ",
+"Wallet ကတ် လင့်ခ် ကူးယူပြီးပါပြီ။ ပို့ပေးရန် "
+],
+"Your member card is not ready yet. Ask at the front desk.": [
+"บัตรสมาชิกของคุณยังไม่พร้อม โปรดสอบถามที่เคาน์เตอร์",
+"သင့်အသင်းဝင်ကတ် မအဆင်သင့်သေးပါ။ ရှေ့ကောင်တာတွင် မေးပါ။"
+],
+" by WhatsApp or email.": [
+" ทาง WhatsApp หรืออีเมล",
+" ကို WhatsApp သို့မဟုတ် အီးမေးလ်ဖြင့်။"
+],
+". Tap Check in.": [
+" แตะ เช็คอิน",
+"။ ဝင်ရောက်မှတ်တမ်း ကိုနှိပ်ပါ။"
+],
+"Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.": [
+"สมาชิกเพิ่มบัตรลงใน Apple Wallet หรือ Google Wallet: ชื่อ แพ็กเกจ จำนวนคลาสที่เหลือ และวันหมดอายุ พร้อม QR code เคาน์เตอร์สแกนได้ที่หน้าเช็คอิน (สแกนบัตร) บน iPhone บัตรจะอัปเดตเองเมื่อขายแพ็กเกจหรือใช้คลาส สมาชิกที่มาซ้อมอย่างเดียวใช้บัตรแทนแอปได้ ต้องตั้งค่าใบรับรอง Apple pass และบัญชี Google Wallet ในเซิร์ฟเวอร์",
+"အသင်းဝင်များသည် ကတ်ကို Apple Wallet သို့မဟုတ် Google Wallet ထဲ ထည့်သည်- အမည်၊ ပက်ကေ့ချ်၊ ကျန်အတန်းနှင့် ကုန်ဆုံးရက်၊ QR ကုဒ်ပါ။ ရှေ့ကောင်တာက ဝင်ရောက်မှတ်တမ်း စာမျက်နှာတွင် စကင်ဖတ်သည် (ကတ် စကင်ဖတ်မည်)။ iPhone တွင် ပက်ကေ့ချ်ရောင်းသည့်အခါ သို့မဟုတ် အတန်းသုံးသည့်အခါ အလိုအလျောက် အပ်ဒိတ်ဖြစ်သည်။ လေ့ကျင့်ရုံသာ လာသူများ အက်ပ်အစား ကတ်ကို သုံးနိုင်သည်။ ဆာဗာဆက်တင်တွင် Apple pass လက်မှတ်နှင့် Google Wallet အကောင့် လိုအပ်သည်။"
 ]
 }
