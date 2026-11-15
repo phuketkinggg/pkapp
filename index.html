@@ -1088,7 +1088,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=146; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=147; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -12053,7 +12053,7 @@ function gymSiteSection(){
   var acts=GYMSITE?h('span',{class:'row'},
     btn('Words',function(){ gymSiteForm(o,'Website words','The timetable, prices and coaches come from Classes, Packages and Staff. Put *stars* around a word in a heading to colour it.',[
       {key:'eyebrow',label:'Small line above the name',hint:'For example: Muay Thai and MMA in Bradford.'},
-      {key:'headline',label:'Big heading',hint:'Empty: your business name. For example: Train *hard*. Fight easy.'},
+      {key:'headline',label:'Big heading',hint:'Empty: your business name. Put *stars* around a word to colour it.'},
       {key:'tagline',label:'Line under the heading'},
       {key:'about_title',label:'About heading',hint:'For example: More than a gym.'},
       {key:'about',label:'About us',type:'textarea',rows:6,hint:'A blank line starts a new paragraph.'},
