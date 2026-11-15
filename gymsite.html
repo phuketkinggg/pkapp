@@ -144,7 +144,7 @@ footer a{color:var(--soft)}
 (function(){
 'use strict';
 var SB_URL='https://jijnshwduhgegacfvpkh.supabase.co', SB_KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
-var Q=new URLSearchParams(location.search), G=(Q.get('g')||'').match(/^[a-z][a-z0-9_]{1,40}$/)?Q.get('g'):'', PAGE=Q.get('p')==='prices'?'prices':'home';
+var Q=new URLSearchParams(location.search), HG=/^[a-z][a-z0-9_]{1,40}$/.test(window.MF_HOST_GYM||'')?window.MF_HOST_GYM:'', G=HG||((Q.get('g')||'').match(/^[a-z][a-z0-9_]{1,40}$/)?Q.get('g'):''), PAGE=Q.get('p')==='prices'?'prices':'home';
 var D=null, FILTER='', $=function(id){ return document.getElementById(id); };
 var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 var CURS={THB:'฿',GBP:'£',USD:'$',EUR:'€',AUD:'A$',NZD:'NZ$',CAD:'C$',SGD:'S$',HKD:'HK$',JPY:'¥',INR:'₹',AED:'AED ',MYR:'RM ',PHP:'₱',IDR:'Rp ',VND:'₫',KRW:'₩'};
@@ -161,7 +161,7 @@ function tz(){ return ((D&&D.region)||{}).tz||'Asia/Bangkok'; }
 function todayIdx(){ var w=new Date().toLocaleDateString('en-GB',{weekday:'long',timeZone:tz()}); return DAYS.indexOf(w); }
 function paras(t){ return String(t||'').split(/\n\s*\n/).map(function(p){ return p.trim(); }).filter(Boolean).map(function(p){ return '<p>'+esc(p).replace(/\n/g,'<br>')+'</p>'; }).join(''); }
 function hi(t){ return esc(t).replace(/\*([^*]+)\*/g,'<em>$1</em>'); }
-function app(){ return G?'../app/?g='+encodeURIComponent(G):'./'; }
+function app(){ return HG?'/':G?'../app/?g='+encodeURIComponent(G):'./'; }
 function link(p,hash){ var q=[]; if(G) q.push('g='+encodeURIComponent(G)); if(p==='prices') q.push('p=prices'); return '?'+q.join('&')+(hash?'#'+hash:''); }
 function wa(){ var w=String(site().whatsapp||'').replace(/\D/g,''); return w?'https://wa.me/'+w:''; }
 function mapUrl(){ return site().map_url||('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(D.name+' '+(site().address||''))); }

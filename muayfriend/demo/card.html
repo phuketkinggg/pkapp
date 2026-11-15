@@ -30,7 +30,7 @@ h1{font-size:22px;margin:26px 0 6px}p{margin:0 0 16px;color:#555}
 (function(){
 'use strict';
 var SB_URL='https://yojllgjjekitbktzblcc.supabase.co';
-var Q=new URLSearchParams(location.search), T=Q.get('t')||'', G=(Q.get('g')||'').match(/^[a-z][a-z0-9_]{1,40}$/)?Q.get('g'):'';
+var Q=new URLSearchParams(location.search), T=Q.get('t')||'', G=/^[a-z][a-z0-9_]{1,40}$/.test(window.MF_HOST_GYM||'')?window.MF_HOST_GYM:((Q.get('g')||'').match(/^[a-z][a-z0-9_]{1,40}$/)?Q.get('g'):'');
 var FN=SB_URL+'/functions/v1/wallet?t='+encodeURIComponent(T)+(G?'&g='+G:'');
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 var ua=navigator.userAgent, ios=/iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&'ontouchend' in document), android=/Android/.test(ua);

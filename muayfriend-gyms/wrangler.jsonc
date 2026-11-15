@@ -1,0 +1,13 @@
+{
+  // Cloudflare Worker: every Muay Friend gym on its own address, <name>.muayfriend.com (see worker.js).
+  // In Cloudflare: Workers and Pages, Create, Import a repository (phuketkinggg/pkapp),
+  // root directory (Path) = muayfriend-gyms, build command empty, deploy command: npx wrangler deploy
+  // Needs a DNS record in muayfriend.com: AAAA, name *, address 100::, Proxied (orange cloud).
+  "name": "muayfriend-gyms",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "*.muayfriend.com/*", "zone_name": "muayfriend.com" }
+  ]
+}

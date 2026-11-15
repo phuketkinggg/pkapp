@@ -26,8 +26,11 @@ SWAPS = [(bd.PK_REF, FREE_REF), (bd.PK_KEY, FREE_KEY)] + [(a, b.replace('Muay Fi
          .replace('Chiang Mai', '')) for a, b in SWAPS]
 
 PREBOOT = """<script>
-/* Muay Friend free: which gym this is (?g=), remembered on this phone */
-window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/; try{ g=new URLSearchParams(location.search).get('g'); }catch(e){}
+/* Muay Friend free: which gym this is, remembered on this phone. On the gym's own address (<name>.muayfriend.com) the
+   Worker says which gym (window.MF_HOST_GYM) and that always wins, so a link can never open another gym there. Else ?g= */
+window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=window.MF_HOST_GYM;
+  if(hg&&ok.test(hg)){ window.MF_GYM=hg; return; }
+  try{ g=new URLSearchParams(location.search).get('g'); }catch(e){}
   if(g&&ok.test(g)){ try{ localStorage.setItem('mf_gym',g); }catch(e){} } else { try{ g=localStorage.getItem('mf_gym'); }catch(e){ g=null; } }
   if(g&&ok.test(g)) window.MF_GYM=g; })();
 </script>
