@@ -25286,5 +25286,137 @@
 "Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.": [
 "สมาชิกเพิ่มบัตรลงใน Apple Wallet หรือ Google Wallet: ชื่อ แพ็กเกจ จำนวนคลาสที่เหลือ และวันหมดอายุ พร้อม QR code เคาน์เตอร์สแกนได้ที่หน้าเช็คอิน (สแกนบัตร) บน iPhone บัตรจะอัปเดตเองเมื่อขายแพ็กเกจหรือใช้คลาส สมาชิกที่มาซ้อมอย่างเดียวใช้บัตรแทนแอปได้ ต้องตั้งค่าใบรับรอง Apple pass และบัญชี Google Wallet ในเซิร์ฟเวอร์",
 "အသင်းဝင်များသည် ကတ်ကို Apple Wallet သို့မဟုတ် Google Wallet ထဲ ထည့်သည်- အမည်၊ ပက်ကေ့ချ်၊ ကျန်အတန်းနှင့် ကုန်ဆုံးရက်၊ QR ကုဒ်ပါ။ ရှေ့ကောင်တာက ဝင်ရောက်မှတ်တမ်း စာမျက်နှာတွင် စကင်ဖတ်သည် (ကတ် စကင်ဖတ်မည်)။ iPhone တွင် ပက်ကေ့ချ်ရောင်းသည့်အခါ သို့မဟုတ် အတန်းသုံးသည့်အခါ အလိုအလျောက် အပ်ဒိတ်ဖြစ်သည်။ လေ့ကျင့်ရုံသာ လာသူများ အက်ပ်အစား ကတ်ကို သုံးနိုင်သည်။ ဆာဗာဆက်တင်တွင် Apple pass လက်မှတ်နှင့် Google Wallet အကောင့် လိုအပ်သည်။"
+],
+"Accounting": [
+"บัญชี",
+"စာရင်းကိုင်"
+],
+"Back to this step": [
+"กลับไปขั้นนี้",
+"ဤအဆင့်သို့ ပြန်သွားမည်"
+],
+"Book privates, coach timetables, coach view and coaching plans.": [
+"จองคลาสส่วนตัว ตารางโค้ช มุมมองโค้ช และแผนการโค้ช",
+"သီးသန့်အတန်း ကြိုတင်မှာခြင်း၊ နည်းပြအချိန်ဇယား၊ နည်းပြမြင်ကွင်းနှင့် လေ့ကျင့်ရေးအစီအစဉ်များ။"
+],
+"Check ins": [
+"เช็คอิน",
+"ဝင်ရောက်မှတ်တမ်း"
+],
+"Everything is on now. You can go back to steps in Settings, General.": [
+"เปิดทุกอย่างแล้ว กลับไปใช้แบบเป็นขั้นได้ที่ ตั้งค่า ทั่วไป",
+"အားလုံး ဖွင့်ထားပါပြီ။ ဆက်တင်၊ အထွေထွေ တွင် အဆင့်များသို့ ပြန်သွားနိုင်သည်။"
+],
+"Everything is on. Go back to steps if the app feels like too much for your team.": [
+"เปิดทุกอย่างอยู่ กลับไปใช้แบบเป็นขั้นได้ถ้าแอปดูเยอะเกินไปสำหรับทีม",
+"အားလုံး ဖွင့်ထားသည်။ အက်ပ်သည် သင့်အဖွဲ့အတွက် များလွန်းပါက အဆင့်များသို့ ပြန်သွားပါ။"
+],
+"Everything is on. Steps are for a new business: start with check ins, then add one part at a time.": [
+"เปิดทุกอย่างอยู่ การใช้แบบเป็นขั้นเหมาะกับธุรกิจใหม่: เริ่มจากเช็คอิน แล้วเพิ่มทีละส่วน",
+"အားလုံး ဖွင့်ထားသည်။ အဆင့်များသည် လုပ်ငန်းသစ်အတွက်- ဝင်ရောက်မှတ်တမ်းဖြင့် စပြီး တစ်ကြိမ်လျှင် တစ်ပိုင်းစီ ထည့်ပါ။"
+],
+"Getting started in steps": [
+"เริ่มต้นแบบเป็นขั้น",
+"အဆင့်လိုက် စတင်ခြင်း"
+],
+"Go to this step": [
+"ไปขั้นนี้",
+"ဤအဆင့်သို့ သွားမည်"
+],
+"Grow": [
+"เติบโต",
+"တိုးတက်ရန်"
+],
+"Members check in for classes, staff clock in and out. Add your members, their packages and your timetable.": [
+"สมาชิกเช็คอินเข้าคลาส พนักงานลงเวลาเข้าออก เพิ่มสมาชิก แพ็กเกจ และตารางเรียนของคุณ",
+"အသင်းဝင်များ အတန်းအတွက် ဝင်ရောက်မှတ်တမ်းတင်သည်၊ ဝန်ထမ်းများ အဝင်အထွက် မှတ်သည်။ အသင်းဝင်များ၊ ပက်ကေ့ချ်များနှင့် အချိန်ဇယား ထည့်ပါ။"
+],
+"Next step": [
+"ขั้นต่อไป",
+"နောက်အဆင့်"
+],
+"Next step: ": [
+"ขั้นต่อไป: ",
+"နောက်အဆင့်- "
+],
+"One inbox for the app, Instagram, Facebook and WhatsApp, and saved replies.": [
+"กล่องข้อความเดียวสำหรับแอป Instagram Facebook และ WhatsApp พร้อมข้อความตอบกลับที่บันทึกไว้",
+"အက်ပ်၊ Instagram၊ Facebook နှင့် WhatsApp အတွက် စာတိုက်ပုံးတစ်ခုနှင့် သိမ်းထားသော အဖြေများ။"
+],
+"One inbox for the app, Instagram, Facebook and WhatsApp, phone notifications and saved replies.": [
+"กล่องข้อความเดียวสำหรับแอป Instagram Facebook และ WhatsApp การแจ้งเตือนบนมือถือ และข้อความตอบกลับที่บันทึกไว้",
+"အက်ပ်၊ Instagram၊ Facebook နှင့် WhatsApp အတွက် စာတိုက်ပုံးတစ်ခု၊ ဖုန်းအသိပေးချက်များနှင့် သိမ်းထားသော အဖြေများ။"
+],
+"Packs and prices, take payments, receipts and the shop.": [
+"แพ็กและราคา รับชำระเงิน ใบเสร็จ และร้านค้า",
+"ပက်ကေ့ချ်နှင့် စျေးနှုန်း၊ ငွေလက်ခံခြင်း၊ ပြေစာနှင့် ဆိုင်။"
+],
+"Photo a receipt to add an expense, see money in and out, and the monthly report.": [
+"ถ่ายรูปใบเสร็จเพื่อเพิ่มค่าใช้จ่าย ดูเงินเข้าออก และรายงานรายเดือน",
+"ကုန်ကျစရိတ် ထည့်ရန် ပြေစာကို ဓာတ်ပုံရိုက်ပါ၊ ငွေအဝင်အထွက်နှင့် လစဉ်အစီရင်ခံစာ ကြည့်ပါ။"
+],
+"Photo a receipt to add an expense, therapist pay and the money report.": [
+"ถ่ายรูปใบเสร็จเพื่อเพิ่มค่าใช้จ่าย ค่าจ้างนักบำบัด และรายงานการเงิน",
+"ကုန်ကျစရိတ် ထည့်ရန် ပြေစာကို ဓာတ်ပုံရိုက်ပါ၊ ကုထုံးပညာရှင် လစာနှင့် ငွေကြေးအစီရင်ခံစာ။"
+],
+"Privates and coaches": [
+"คลาสส่วนตัวและโค้ช",
+"သီးသန့်အတန်းနှင့် နည်းပြများ"
+],
+"Sell packages at the desk and in the app, take payments, send receipts, see who owes what.": [
+"ขายแพ็กเกจที่เคาน์เตอร์และในแอป รับชำระเงิน ส่งใบเสร็จ ดูว่าใครค้างจ่ายเท่าไร",
+"ကောင်တာနှင့် အက်ပ်တွင် ပက်ကေ့ချ်ရောင်းပါ၊ ငွေလက်ခံပါ၊ ပြေစာပို့ပါ၊ မည်သူ ဘယ်လောက်ကြွေးရှိသည် ကြည့်ပါ။"
+],
+"Start in easy steps": [
+"เริ่มต้นแบบง่ายทีละขั้น",
+"လွယ်ကူသော အဆင့်များဖြင့် စတင်ပါ"
+],
+"The booking board, walk-ins, your treatments, beds and team.": [
+"บอร์ดการจอง ลูกค้า walk-in ทรีตเมนต์ เตียง และทีม",
+"ကြိုတင်မှာယူမှု ဘုတ်၊ ဝင်လာသူများ၊ ကုထုံးများ၊ ကုတင်များနှင့် အဖွဲ့။"
+],
+"The menu shows the steps you have reached. Pick a step to go forward or back, or see everything.": [
+"เมนูแสดงขั้นที่คุณมาถึงแล้ว เลือกขั้นเพื่อไปข้างหน้าหรือย้อนกลับ หรือดูทั้งหมด",
+"မီနူးသည် သင်ရောက်ရှိပြီးသော အဆင့်များကို ပြသည်။ ရှေ့ သို့မဟုတ် နောက်သို့ သွားရန် အဆင့်တစ်ခု ရွေးပါ၊ သို့မဟုတ် အားလုံးကြည့်ပါ။"
+],
+"This is the last step. ": [
+"นี่คือขั้นสุดท้าย ",
+"ဤသည်မှာ နောက်ဆုံးအဆင့်ဖြစ်သည်။ "
+],
+"Turn it on": [
+"เปิดใช้",
+"ဖွင့်မည်"
+],
+"Yes, next step": [
+"ใช่ ไปขั้นต่อไป",
+"ဟုတ်ကဲ့၊ နောက်အဆင့်"
+],
+"You are here": [
+"คุณอยู่ที่นี่",
+"သင် ဤနေရာတွင် ရှိသည်"
+],
+"You have used this step for a week. Ready for the next one? ": [
+"คุณใช้ขั้นนี้มาหนึ่งสัปดาห์แล้ว พร้อมไปขั้นต่อไปไหม ",
+"ဤအဆင့်ကို တစ်ပတ် သုံးပြီးပါပြီ။ နောက်အဆင့်အတွက် အဆင်သင့်ဖြစ်ပြီလား။ "
+],
+"Your website, wallet cards, review requests and social media.": [
+"เว็บไซต์ บัตร Wallet การขอรีวิว และโซเชียลมีเดีย",
+"သင့်ဝက်ဘ်ဆိုက်၊ wallet ကတ်များ၊ သုံးသပ်ချက်တောင်းခံမှုများနှင့် ဆိုရှယ်မီဒီယာ။"
+],
+"Your website, wallet cards, review requests, social media, online courses and affiliates.": [
+"เว็บไซต์ บัตร Wallet การขอรีวิว โซเชียลมีเดีย คอร์สออนไลน์ และพาร์ทเนอร์",
+"သင့်ဝက်ဘ်ဆိုက်၊ wallet ကတ်များ၊ သုံးသပ်ချက်တောင်းခံမှုများ၊ ဆိုရှယ်မီဒီယာ၊ အွန်လိုင်းသင်တန်းများနှင့် တွဲဖက်ရောင်းချသူများ။"
+],
+" It shows in the menu straight away. Everything you set up so far stays as it is.": [
+" จะแสดงในเมนูทันที ทุกอย่างที่ตั้งค่าไว้แล้วยังอยู่เหมือนเดิม",
+" ၎င်းသည် မီနူးတွင် ချက်ချင်းပေါ်မည်။ သင်သတ်မှတ်ထားသမျှ အားလုံး မပြောင်းလဲပါ။"
+],
+" is on: ": [
+" เปิดแล้ว: ",
+" ဖွင့်ပြီး- "
+],
+"Next: ": [
+"ถัดไป: ",
+"နောက်တစ်ခု- "
 ]
 }

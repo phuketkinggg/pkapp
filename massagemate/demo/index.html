@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=201"></script>
+<script src="changelog.js?v=202"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -969,6 +969,7 @@ var FEATURES=[
   {k:'custom_deals',g:'Selling',n:'Custom deals',d:'Managers can sell a package as a custom deal: their own length (for example 4 months) and their own price, with Fitness Zone included if they like, starting on the first visit, today or a chosen date. In Sell a package, tick Custom deal.',def:true,spa:true},
   {k:'support_access',g:'Team',n:'Tech support access',d:'The app support team can open your back office to help you, without you making them a login. They show in Staff as Tech support while they are in, and you can remove them there. Turn this off and they are taken off straight away and cannot come in.'},
   {k:'wallet_card',g:'Customers',n:'Member card in Apple Wallet and Google Wallet',d:'Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.',def:false,spa:false},
+  {k:'onboard_steps',g:'Team',n:'Start in easy steps',d:'A new business starts with only the basics: check ins for members and staff in the first week. When you are happy, tap Next step and the next part comes in: selling, then accounting, messages, privates and coaches, and growing your business. The menu only shows the steps you have reached, so nothing is overwhelming. You choose when to move on, and See everything opens it all at any time. Settings, General, Getting started in steps.'},
   {k:'owner_lock',g:'Team',n:'Owner',d:'One person owns the business: only they switch features, change money settings and add or change managers and admins. They keep recovery codes in case they are locked out. Set it in Settings, General, Owner.',def:true,spa:true},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
@@ -1090,7 +1091,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=148; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=149; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1131,7 +1132,53 @@ function uiApply(){ var l=uiLang(); I18N.l=l; document.documentElement.lang=l; d
 function i18nFixLoad(){ if(!window.sb||!sb.rpc) return; sb.rpc('i18n_fixes').then(function(r){ if(r&&!r.error&&r.data&&typeof r.data==='object'){ I18N.fix=r.data; trBuild(); I18N.seen=new WeakMap(); trNode(document.body); } },function(){}); }
 function langPick(){ var ls=[['en','English']].concat(featOn('lang_th')?[['th','ไทย']]:[]).concat(featOn('lang_my')?[['my','မြန်မာ']]:[]); if(ls.length<2) return null;
   return h('select',{class:'navlang notr','aria-label':'Language',translate:'no',onchange:function(e){ setUiLang(e.target.value); }},ls.map(function(x){ return h('option',{value:x[0],selected:I18N.l===x[0]},x[1]); })); }
-function tabOn(t){ if(platHidden(t)) return false; var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
+function tabOn(t){ if(platHidden(t)) return false; if(!stepTabOk(t)) return false; var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
+/* Start in easy steps (feature onboard_steps): a new business sees one part of the app at a time, and moves on when it is ready.
+   app_settings onboard = {path:'gym'|'spa', step:1, since:'yyyy-mm-dd', all:false}. No onboard setting: everything shows, as before. */
+var ONB=null;
+var STEPS={
+  gym:[{n:'Check ins',win:'Members check in for classes, staff clock in and out. Add your members, their packages and your timetable.',tabs:['today','customers','packages','timetable','staff','hours']},
+    {n:'Selling',win:'Sell packages at the desk and in the app, take payments, send receipts, see who owes what.',tabs:['shop','receipts','emails']},
+    {n:'Accounting',win:'Photo a receipt to add an expense, see money in and out, and the monthly report.',tabs:['accounts','commission','actions','work']},
+    {n:'Messages',win:'One inbox for the app, Instagram, Facebook and WhatsApp, phone notifications and saved replies.',tabs:['chat','contacts','email']},
+    {n:'Privates and coaches',win:'Book privates, coach timetables, coach view and coaching plans.',tabs:['privates','coach','coaching','custview','fights']},
+    {n:'Grow',win:'Your website, wallet cards, review requests, social media, online courses and affiliates.',tabs:['webpages','sitestats','social','affiliates','courses']}],
+  spa:[{n:'Bookings',win:'The booking board, walk-ins, your treatments, beds and team.',tabs:['board','spasetup','customers','staff','hours']},
+    {n:'Selling',win:'Packs and prices, take payments, receipts and the shop.',tabs:['packages','shop','receipts','emails']},
+    {n:'Accounting',win:'Photo a receipt to add an expense, therapist pay and the money report.',tabs:['accounts','commission','actions','work']},
+    {n:'Messages',win:'One inbox for the app, Instagram, Facebook and WhatsApp, and saved replies.',tabs:['chat','contacts','email']},
+    {n:'Grow',win:'Your website, wallet cards, review requests and social media.',tabs:['webpages','sitestats','social','affiliates','courses']}]};
+function stepsOn(){ return !!(ONB&&!ONB.all&&featOn('onboard_steps')&&STEPS[ONB.path]); }
+function stepList(){ return STEPS[(ONB&&ONB.path)||(SPA?'spa':'gym')]; }
+function stepTabOk(t){ if(!stepsOn()||t==='settings') return true; var L=stepList(), any=false;
+  for(var i=0;i<L.length;i++){ if(L[i].tabs.indexOf(t)>=0){ any=true; if(i<ONB.step) return true; } }
+  return !any&&ONB.step>=L.length; }
+function loadOnboard(){ return sb.from('app_settings').select('value').eq('key','onboard').maybeSingle().then(function(r){ var v=null; try{ v=r.data&&r.data.value?JSON.parse(r.data.value):null; }catch(e){ v=null; }
+  if(v&&typeof v==='object'){ v.path=STEPS[v.path]?v.path:(SPA?'spa':'gym'); v.step=Math.max(1,Math.min(Number(v.step)||1,STEPS[v.path].length)); ONB=v; } else ONB=null; schedule(); }).catch(function(){}); }
+function onboardSave(n,msg){ var v=JSON.stringify(n);
+  return run(sb.from('app_settings').update({value:v,updated_at:new Date().toISOString()}).eq('key','onboard').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'onboard',value:v}).then(must); }).then(function(){ ONB=n; schedule(); }),msg); }
+function stepGo(step,all){ var L=stepList(); onboardSave(Object.assign({},ONB||{path:SPA?'spa':'gym'},{step:Math.max(1,Math.min(step,L.length)),since:ymd(new Date()),all:!!all}),all?'Everything is on now. You can go back to steps in Settings, General.':'Step '+step+' is on: '+L[step-1].n+'. It is in the menu now.'); }
+function stepsBanner(){ if(!stepsOn()||!me||me.role!=='manager') return null;
+  var L=stepList(), i=ONB.step-1, cur=L[i], nxt=L[i+1], days=ONB.since?Math.floor((Date.now()-new Date(ONB.since+'T00:00:00').getTime())/864e5):0, ready=days>=7;
+  return h('section',{class:'panel pad setupg'},
+    h('div',{class:'row',style:'justify-content:space-between;align-items:flex-start;gap:12px'},
+      h('div',null,h('div',{class:'sub'},'Step '+(i+1)+' of '+L.length),h('h2',{style:'margin:2px 0 4px'},cur.n),h('p',{class:'sub',style:'margin:0'},cur.win)),
+      h('div',{class:'row'},L.map(function(x,j){ return h('span',{title:x.n,style:'display:inline-block;width:22px;height:6px;border-radius:3px;background:'+(j<=i?'var(--accent,#2759DA)':'var(--line,#ddd)')}); }))),
+    nxt?h('div',{class:'row wrap',style:'margin-top:12px;align-items:center'},
+      h('span',{class:'sub'},ready?'You have used this step for a week. Ready for the next one? ':'Next: '+nxt.n+'. Move on whenever you are ready. '),
+      btn(ready?'Yes, next step':'Next step',function(){ openForm({title:'Next step: '+nxt.n,note:nxt.win+' It shows in the menu straight away. Everything you set up so far stays as it is.',saveLabel:'Turn it on',fields:[],onSave:function(){ stepGo(i+2); return Promise.resolve(); }}); },ready?'primary small':'small'),
+      btn('See everything',function(){ stepGo(i+1,true); },'small')):
+      h('div',{class:'row wrap',style:'margin-top:12px'},h('span',{class:'sub'},'This is the last step. '),btn('See everything',function(){ stepGo(i+1,true); },'primary small')));
+}
+function stepsSection(){ if(!me||me.role!=='manager'||!featOn('onboard_steps')) return null;
+  var L=stepList(), on=stepsOn(), cur=on?ONB.step:0;
+  return section('Getting started in steps',null,h('div',{class:'panel pad'},
+    h('p',{class:'sub',style:'margin:0 0 10px'},on?'The menu shows the steps you have reached. Pick a step to go forward or back, or see everything.':ONB?'Everything is on. Go back to steps if the app feels like too much for your team.':'Everything is on. Steps are for a new business: start with check ins, then add one part at a time.'),
+    h('div',null,L.map(function(x,j){ return h('div',{class:'row',style:'justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line,#eee)'},
+      h('div',null,h('b',null,(j+1)+'. '+x.n),h('div',{class:'sub'},x.win)),
+      on&&j+1===cur?chip('You are here','ok'):on&&j+1<cur?chip('On','ok'):btn(on?(j+1>cur?'Go to this step':'Back to this step'):'Start here',function(){ stepGo(j+1); },'small')); })),
+    on?h('p',{style:'margin:10px 0 0'},btn('See everything',function(){ stepGo(cur,true); },'small')):null));
+}
 /* the online course offered with packages (Courses, Offer with packages) */
 var OFFER=null;
 function loadOffer(){ try{ sb.rpc('course_offer').then(function(r){ OFFER=r&&!r.error&&r.data&&r.data.id?r.data:null; }); }catch(e){} }
@@ -9604,6 +9651,7 @@ function vToday(){
   };
   return [
     pageHead('Today',new Date().toLocaleDateString(LOC(),{weekday:'long',day:'numeric',month:'long'}),h('div',{class:'row'},me&&me.role==='manager'&&can('settings')?btn('Arrange',todayArrange,'small'):null,gymOn?btn('Desk mode',startDeskMode):null)),
+    stepsBanner(),
     setupGuide(),
     h('div',{class:'stats'},gymOn?h('span',null,h('b',null,entries.length),'checked in'):null,gymOn?h('span',null,h('b',null,pToday.length),'privates today'):null,h('span',null,h('b',null,waiting.length+moves.length),'waiting for a manager'),orders.length?h('span',null,h('b',null,orders.length),'app orders to pay'):null)
   ].concat(todayWidgets(PART));
@@ -10827,10 +10875,10 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection(),mgr&&featOn('gyg_connect')?gygSection():null];
-  else body=[mgr?regionSection():null,mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[mgr?stepsSection():null,mgr?regionSection():null,mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
-var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ return vSpaBoard(); },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
+var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ var v=vSpaBoard(); if(Array.isArray(v)&&v.length) v.splice(1,0,stepsBanner()); return v; },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
 
 /* Messages: a floating button on phones, and the first item in the menu on computers, with the unread count */
 var $fab=null;
@@ -12831,7 +12879,7 @@ function enter(user){
     if(row.role==='coach'){ me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'mine'; setCoLang(coLang()); return loadCoach().then(function(){ allReady=true; schedule(); }); }
     me=row.role==='admin'?Object.assign({},row,{role:'manager',admin:true}):row; db=makeDb();
     if(me.admin&&!can('edit')) $who.firstChild.appendChild(h('span',{class:'chip warn',style:'margin-left:6px'},'View only'));
-    TABS=staffTabs(row); loadPlatform().catch(function(){}); if(SPA&&ui.tab==='today') ui.tab='board';
+    TABS=staffTabs(row); loadPlatform().catch(function(){}); loadOnboard(); if(SPA&&ui.tab==='today') ui.tab='board';
     if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
     if(!TABS.some(function(t){return t[0]===ui.tab;})&&!(ui.tab==='chat'&&ui.openChatId)) ui.tab=TABS[0][0];
     return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });

@@ -181,7 +181,9 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
 (function(){
   var SB_URL='https://bnglnfdgptvnmugntiom.supabase.co', SB_KEY='sb_publishable_I2cEA2hEPelGTNMwf2zWwA_98_mxHT1';
   var sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-  var days=30, D=null, H=null, M=null, timer=null;
+  var days=30, D=null, H=null, M=null, STP={}, timer=null;
+  var STEPN={gym:['Check ins','Selling','Accounting','Messages','Privates and coaches','Grow'],spa:['Bookings','Selling','Accounting','Messages','Grow']};
+  function stepTxt(slug){ var o=STP[slug]; if(!o) return ''; if(o.all) return 'Steps: everything on'; var L=STEPN[o.path]||STEPN.gym, i=Math.max(1,Math.min(Number(o.step)||1,L.length)); return 'Step '+i+' of '+L.length+': '+L[i-1]; }
   var $=function(id){ return document.getElementById(id); };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function n(x){ return Number(x||0).toLocaleString('en-US'); }
@@ -262,7 +264,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
         '<td>'+n(g.members)+(g.limit_members?' of '+n(g.limit_members):'')+'<div class="sub">'+n(g.staff)+(g.limit_staff?' of '+g.limit_staff:'')+' staff</div></td>'+
         '<td>'+n(g.checkins_7d)+' check-ins<div class="sub">'+n(g.sales_7d)+' sales, '+n(g.members_7d)+' new members</div></td>'+
         '<td>'+ago(g.last)+'<div class="sub">owner signed in '+ago(g.seen)+'</div></td>'+
-        '<td><span class="pill'+(g.plan!=='free'?' paid':'')+'">'+esc(PLAN[g.plan]||g.plan)+(g.cycle==='year'?', yearly':'')+'</span>'+(g.pay&&g.pay!=='active'?'<div class="sub">'+esc(pay(g.pay))+'</div>':'')+'</td>'+
+        '<td><span class="pill'+(g.plan!=='free'?' paid':'')+'">'+esc(PLAN[g.plan]||g.plan)+(g.cycle==='year'?', yearly':'')+'</span>'+(g.pay&&g.pay!=='active'?'<div class="sub">'+esc(pay(g.pay))+'</div>':'')+(stepTxt(g.slug)?'<div class="sub">'+esc(stepTxt(g.slug))+'</div>':'')+'</td>'+
         '<td><a class="sbtn dark" href="../app/?g='+encodeURIComponent(g.slug)+'#support" target="_blank" rel="noopener" title="Opens their back office as Tech support">Open</a><button class="sbtn" type="button" data-ctl="'+esc(g.slug)+'">Features and plan</button></td></tr>'; }).join('')
       :'<tr><td colspan="8" class="empty">No gyms yet.</td></tr>';
     var used=function(k){ return H.filter(function(g){ return g[k]>0; }).length; }, F=[['checkins','Check-ins'],['sales','Selling packages'],['classes','Class timetable'],['privates','Privates'],['shop','Shop orders'],['courses','Online courses']];
@@ -284,7 +286,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       :'<tr><td colspan="5" class="empty">No plan changes in this period.</td></tr>';
   }
   function load(){
-    return Promise.all([sb.rpc('mf_dash',{p_days:days}),sb.rpc('mf_gym_health'),sb.rpc('mf_money',{p_days:days})]).then(function(rs){
+    return Promise.all([sb.rpc('mf_dash',{p_days:days}),sb.rpc('mf_gym_health'),sb.rpc('mf_money',{p_days:days}),sb.rpc('mf_gym_steps')]).then(function(rs){ STP=(rs[3]&&!rs[3].error&&rs[3].data)||{};
       var r=rs[0]; if(r.error){ if(/team/i.test(r.error.message)){ $('gate').hidden=false; $('dash').hidden=true; return; } throw r.error; }
       D=r.data; H=rs[1].error?null:rs[1].data; M=rs[2].error?null:rs[2].data; $('gate').hidden=true; $('dash').hidden=false; $('msg').textContent=''; render(); renderGyms(); renderMoney();
     }).catch(function(e){ $('msg').className='msg err'; $('msg').textContent='Could not load the numbers: '+(e.message||e)+'. Check your connection and refresh.'; });
