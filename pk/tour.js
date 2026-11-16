@@ -9,7 +9,7 @@ var css='.gt-map{position:relative;border-radius:14px;overflow:hidden;background
   '.gt-z span{background:rgba(17,17,17,.82);color:#fff;font-weight:600;font-size:clamp(11px,1.6vw,15px);padding:5px 10px;border-radius:99px;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.3);pointer-events:none}'+
   '.gt-z span:after{content:" +";opacity:.7}'+
   '.gt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.gt-chips button{font:inherit;border:1px solid var(--line,#ddd);background:#fff;color:inherit;border-radius:99px;padding:7px 14px;cursor:pointer}'+
-  '.gt-ov{position:fixed;inset:0;z-index:100;background:rgba(10,10,10,.92);display:flex;flex-direction:column;color:#fff}'+
+  '.gt-ov{position:fixed;inset:0;z-index:2147483000;background:#0d0d0d;display:flex;flex-direction:column;color:#fff}'+
   '.gt-top{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}.gt-top h3{margin:0;font-size:20px;flex:1;color:#fff}'+
   '.gt-x{font:inherit;font-size:15px;background:#fff;color:#111;border:0;border-radius:99px;padding:8px 16px;cursor:pointer;font-weight:600}'+
   '.gt-main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;padding:0 8px}.gt-main img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}'+
@@ -27,7 +27,7 @@ PK.rest('rpc/site_tour').then(function(T){
   var sec=box.closest('section'); if(sec) sec.hidden=false;
   var img=T.image||'img/gym-aerial.jpg';
   box.innerHTML=(T.title||T.text?'<div class="center" style="margin-bottom:22px">'+(T.title?'<h2>'+esc(T.title)+'</h2><span class="rule"></span>':'')+(T.text?'<p class="lead">'+esc(T.text)+'</p>':'')+'</div>':'')+
-    '<div class="gt-map"><img src="'+esc(img)+'" alt="Aerial view of the gym from above" loading="lazy">'+
+    '<div class="gt-map"><img src="'+esc(img)+'" alt="Aerial view of the gym from above" width="1260" height="956">'+
     Z.map(function(z,i){ return '<button type="button" class="gt-z" data-i="'+i+'" style="left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%" aria-label="See '+esc(z.name)+'"><span>'+esc(z.name)+'</span></button>'; }).join('')+'</div>'+
     '<div class="gt-chips">'+Z.map(function(z,i){ return '<button type="button" data-i="'+i+'">'+esc(z.name)+'</button>'; }).join('')+'</div>';
   box.addEventListener('click',function(e){ var b=e.target.closest('[data-i]'); if(b) open(Z[+b.getAttribute('data-i')]); });
