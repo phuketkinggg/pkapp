@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=203"></script>
+<script src="changelog.js?v=204"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -12322,9 +12322,13 @@ function tourLoad(){ TOUR=false; sb.rpc('site_tour').then(function(r){ TOUR=(r&&
 function tourImg(){ var u=(TOUR&&TOUR.image)||'img/gym-aerial.jpg'; return /^img\//.test(u)?'pk/'+u:u; }
 function tourSave(t,msg){ var c=JSON.parse(JSON.stringify(t)); return sb.rpc('site_tour_save',{p:c}).then(function(r){ if(r.error) throw r.error; TOUR=r.data||c; if(!Array.isArray(TOUR.zones)) TOUR.zones=[]; schedule(); if(msg) toast(msg); }); }
 function tourUpload(files,prefix){ var out=[];
-  return files.reduce(function(pr,f,i){ return pr.then(function(){ return shrinkPhoto(f,2000).then(function(blob){ var path='site/'+prefix+'-'+Date.now()+'-'+i+'.jpg';
-    return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; out.push(sb.storage.from('promos').getPublicUrl(path).data.publicUrl); }); }); }); },Promise.resolve()).then(function(){ return out; }); }
-function tourPick(multi,cb){ var inp=h('input',{type:'file',accept:'image/*',multiple:!!multi,hidden:true,onchange:function(){ var f=[].slice.call(inp.files||[]); inp.remove(); if(f.length) cb(f); }}); document.body.appendChild(inp); inp.click(); }
+  return files.reduce(function(pr,f,i){ return pr.then(function(){
+    if(/^video\//.test(f.type||'')){ if(f.size>50*1024*1024) throw {plain:true,message:'That video is over 50 MB. Keep clips short (under about 30 seconds) or put longer videos on YouTube and add the link.'};
+      var ext=/webm/.test(f.type)?'webm':/quicktime/.test(f.type)?'mov':'mp4', vpath='site/'+prefix+'-'+Date.now()+'-'+i+'.'+ext;
+      return sb.storage.from('promos').upload(vpath,f,{contentType:f.type,upsert:false}).then(function(r){ if(r.error) throw r.error; out.push({url:sb.storage.from('promos').getPublicUrl(vpath).data.publicUrl,video:true}); }); }
+    return shrinkPhoto(f,2000).then(function(blob){ var path='site/'+prefix+'-'+Date.now()+'-'+i+'.jpg';
+    return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; out.push({url:sb.storage.from('promos').getPublicUrl(path).data.publicUrl}); }); }); }); },Promise.resolve()).then(function(){ return out; }); }
+function tourPick(multi,cb,vid){ var inp=h('input',{type:'file',accept:vid?'image/*,video/mp4,video/quicktime,video/webm':'image/*',multiple:!!multi,hidden:true,onchange:function(){ var f=[].slice.call(inp.files||[]); inp.remove(); if(f.length) cb(f); }}); document.body.appendChild(inp); inp.click(); }
 function tourZoneEdit(i){ var t=TOUR, z=i==null?{name:'',text:'',pano:'',photos:[],x:40,y:40,w:15,h:15}:t.zones[i];
   openForm({title:i==null?'New area':z.name,note:i==null?'Then tap Mark on the photo to show where it is.':null,values:{name:z.name||'',text:z.text||'',pano:z.pano||''},
     fields:[{key:'name',label:'Name',required:true,hint:'Short, for example Ring, Bag zone, Recovery zone.'},{key:'text',label:'What is here',type:'textarea',rows:3,hint:'One or two lines visitors read with the photos.'},
@@ -12350,9 +12354,13 @@ function tourMark(i){ var z=TOUR.zones[i]; if(!z) return; var a=null;
     h('p',{style:'margin:12px 0 0'},btn('Done',function(){ ov.remove(); },'primary small'))));
   document.body.appendChild(ov); }
 function tourPhotos(i){ var z=TOUR.zones[i]; tourPick(true,function(files){ if((z.photos||[]).length+files.length>30){ toast('Keep each area to 30 photos or fewer.'); return; }
-  WEBP.busy='tour'+i; schedule(); toast(files.length>1?'Uploading '+files.length+' photos.':'Uploading the photo.');
-  tourUpload(files,'tour').then(function(urls){ var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{photos:(zs[i].photos||[]).concat(urls.map(function(u){ return {url:u,caption:''}; }))}); return tourSave(Object.assign({},TOUR,{zones:zs}),urls.length>1?urls.length+' photos added.':'Photo added.'); })
-    .catch(function(e){ toast(errText(e)); }).then(function(){ WEBP.busy=null; schedule(); }); }); }
+  WEBP.busy='tour'+i; schedule(); toast(files.length>1?'Uploading '+files.length+' files. Videos take a little longer.':'Uploading.');
+  tourUpload(files,'tour').then(function(items){ var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{photos:(zs[i].photos||[]).concat(items.map(function(u){ return Object.assign({caption:''},u); }))}); return tourSave(Object.assign({},TOUR,{zones:zs}),items.length>1?items.length+' added.':'Added.'); })
+    .catch(function(e){ toast(errText(e)); }).then(function(){ WEBP.busy=null; schedule(); }); },true); }
+function tourYouTube(i){ openForm({title:'Add a YouTube video',note:'Put the video on YouTube (it can be unlisted), then paste its link. 360 videos work too.',values:{url:'',caption:''},
+  fields:[{key:'url',label:'YouTube link',required:true},{key:'caption',label:'Caption',hint:'Optional.'}],saveLabel:'Add',doneMsg:'Added. The website shows it within a minute.',
+  onSave:function(v){ var u=v.url.trim(); if(!/^https:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{6,20}/.test(u)) return 'That needs to be a YouTube link, starting with https://youtu.be/ or https://www.youtube.com/';
+    var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{photos:(zs[i].photos||[]).concat([{url:u,caption:v.caption.trim(),yt:true}])}); return tourSave(Object.assign({},TOUR,{zones:zs})); }}); }
 function tourPhotoEdit(i,j){ var z=TOUR.zones[i], p=z.photos[j];
   openForm({title:z.name+', photo '+(j+1),values:{caption:p.caption||''},fields:[{key:'caption',label:'Caption',hint:'Optional, for example: The main ring at sunset.'}],saveLabel:'Save',doneMsg:'Saved.',
     extraBtn:['Remove photo',function(){ $dlg.close(); var zs=TOUR.zones.slice(), ph=zs[i].photos.slice(); ph.splice(j,1); zs[i]=Object.assign({},zs[i],{photos:ph}); tourSave(Object.assign({},TOUR,{zones:zs}),'Photo removed.').catch(function(e){ toast(errText(e)); }); }],
@@ -12365,16 +12373,16 @@ function tourSection(){ if(TOUR===null) tourLoad();
       h('span',{class:'notr',style:'background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:3px 8px;border-radius:99px;white-space:nowrap'},z.name)); }));
   return h('div',{style:'margin:18px 0 6px'},
     h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},'Gym tour'),h('a',{href:'pk/about.html#tour',target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
-    h('p',{class:'sub'},'The aerial photo on the About page. Visitors tap an area to see its photos. Add photos to each area here, and a 360 link when you have one.'),
+    h('p',{class:'sub'},'The aerial photo on the About page. Visitors tap an area to see its photos and videos. Add photos, short video clips (under 50 MB) or YouTube links to each area here, and a 360 link when you have one.'),
     h('div',{class:'row wrap'},btn('Add an area',function(){ tourZoneEdit(null); },'small'),btn('Title and text',function(){ openForm({title:'Gym tour',values:{title:t.title||'',text:t.text||''},fields:[{key:'title',label:'Heading',hint:'For example: Take a look around.'},{key:'text',label:'Line under it',type:'textarea',rows:2}],saveLabel:'Save',doneMsg:'Saved.',onSave:function(v){ return tourSave(Object.assign({},t,{title:v.title.trim(),text:v.text.trim()})); }}); },'small'),
-      btn('Change the aerial photo',function(){ tourPick(false,function(f){ toast('Uploading the photo.'); tourUpload(f,'tour-aerial').then(function(u){ return tourSave(Object.assign({},t,{image:u[0]}),'Aerial photo changed. Check each area is still in the right place.'); }).catch(function(e){ toast(errText(e)); }); }); },'small')),
+      btn('Change the aerial photo',function(){ tourPick(false,function(f){ toast('Uploading the photo.'); tourUpload(f,'tour-aerial').then(function(u){ return tourSave(Object.assign({},t,{image:u[0].url}),'Aerial photo changed. Check each area is still in the right place.'); }).catch(function(e){ toast(errText(e)); }); }); },'small')),
     TOUR===false?h('div',{class:'panel empty'},'Loading the tour.'):map,
     t.zones.length?h('div',{style:'margin-top:12px'},t.zones.map(function(z,i){ var busy=WEBP.busy==='tour'+i;
       return h('div',{class:'panel pad',style:'margin-top:8px'},
         h('div',{class:'row',style:'justify-content:space-between;align-items:center;gap:8px'},h('b',{class:'notr'},z.name),
-          h('span',{class:'row'},btn(busy?'Uploading.':'Add photos',function(){ if(!WEBP.busy) tourPhotos(i); },'primary small'),btn('Mark on the photo',function(){ tourMark(i); },'small'),btn('Edit',function(){ tourZoneEdit(i); },'small'))),
+          h('span',{class:'row'},btn(busy?'Uploading.':'Add photos or videos',function(){ if(!WEBP.busy) tourPhotos(i); },'primary small'),btn('Add YouTube',function(){ tourYouTube(i); },'small'),btn('Mark on the photo',function(){ tourMark(i); },'small'),btn('Edit',function(){ tourZoneEdit(i); },'small'))),
         z.text?h('p',{class:'sub notr',style:'margin:6px 0 0'},z.text):null,
-        (z.photos||[]).length?h('div',{style:'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px'},z.photos.map(function(p,j){ return h('button',{type:'button',onclick:function(){ tourPhotoEdit(i,j); },style:'padding:0;border:0;border-radius:6px;overflow:hidden;width:84px;height:60px;cursor:pointer;background:#222','aria-label':'Edit photo '+(j+1)},h('img',{src:p.url,alt:p.caption||'',loading:'lazy',style:'width:100%;height:100%;object-fit:cover;display:block'})); }))
+        (z.photos||[]).length?h('div',{style:'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px'},z.photos.map(function(p,j){ return h('button',{type:'button',onclick:function(){ tourPhotoEdit(i,j); },style:'padding:0;border:0;border-radius:6px;overflow:hidden;width:84px;height:60px;cursor:pointer;background:#222','aria-label':'Edit photo '+(j+1)},p.video||p.yt?h('span',{style:'display:flex;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600'},p.yt?'YouTube':'Video'):h('img',{src:p.url,alt:p.caption||'',loading:'lazy',style:'width:100%;height:100%;object-fit:cover;display:block'})); }))
           :h('p',{class:'sub',style:'margin:6px 0 0'},'No photos yet. Visitors see "photos coming soon".'),
         z.pano?h('p',{class:'sub',style:'margin:6px 0 0'},'360 view: ',h('a',{href:z.pano,target:'_blank',rel:'noopener'},'open')):null); })):null);
 }
