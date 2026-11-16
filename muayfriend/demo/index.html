@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=202"></script>
+<script src="changelog.js?v=203"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1054,6 +1054,7 @@ var FEATURES=[
   {k:'centre_sites',g:'Website',n:'Centres and their websites',d:'For a business with several centres: each centre gets its own page on your website at its own address (for example /phuket), listed on the main page. Name, photo, story, what is there, booking, contact and map come from Settings, Website. A centre can show live prices, class times and coaches from the business that runs it. Planned centres collect emails from people who want to hear when they open.',def:false,spa:false},
   {k:'gym_site',g:'Website',n:'Your gym website',d:'A fast two page website made from the app: Home (about, timetable, coaches, how to find you) and Prices (memberships with Join online, and a free trial request). The timetable, prices and coaches update by themselves. Set the words, photos and contact details in Settings, Website, Your gym website.',def:false,spa:false},
   {k:'gym_site_trial',g:'Website',n:'Free trial requests on your website',d:'People ask for a free trial class on your gym website. They are added to Customers with the tag Free trial and the class they picked, so you can confirm with them.',spa:false},
+  {k:'site_tour',g:'Website',n:'Gym tour on the website',d:'An aerial photo of your gym with each area marked (ring, bag zone, fitness, recovery and so on). Visitors tap an area to see its photos, and a 360 view when you add one. Set it in Settings, Website, Gym tour.',def:false,spa:false},
   {k:'web_team',g:'Website',n:'Website team from Staff',d:'The team on your website comes from Staff: photo, video, title and text.'}];
 var FEAT={}; (function(){ try{ FEAT=JSON.parse(localStorage.getItem('app_features')||'{}')||{}; }catch(e){ FEAT={}; } })();
 function featDef(f){ return SPA&&f.spa!==undefined?f.spa:f.def!==false; }
@@ -1091,7 +1092,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=149; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=150; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10858,7 +10859,7 @@ function vSettings(){
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
-  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),SPA?null:webTextSection(),SPA?null:blogSection()];
+  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),mgr&&!SPA&&featOn('site_tour')&&can('settings')?tourSection():null,SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
@@ -12306,6 +12307,68 @@ function galleryVideo(){
     saveLabel:'Save',doneMsg:'Saved. The website shows it within a minute.',
     onSave:function(v){ var u=v.url.trim(); if(u&&!/^https:\/\/(www\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/)[A-Za-z0-9_-]{6,20}/.test(u)) return 'That needs to be a YouTube link, starting with https://youtu.be/ or https://www.youtube.com/';
       g.stay_video=u; return saveGallery(g); }});
+}
+/* Gym tour on the website (feature site_tour): the aerial photo, its areas, and the photos of each area */
+var TOUR=null;
+function tourLoad(){ TOUR=false; sb.rpc('site_tour').then(function(r){ TOUR=(r&&!r.error&&r.data)||{}; if(!Array.isArray(TOUR.zones)) TOUR.zones=[]; schedule(); }).catch(function(){ TOUR={zones:[]}; schedule(); }); }
+function tourImg(){ var u=(TOUR&&TOUR.image)||'img/gym-aerial.jpg'; return /^img\//.test(u)?'pk/'+u:u; }
+function tourSave(t,msg){ var c=JSON.parse(JSON.stringify(t)); return sb.rpc('site_tour_save',{p:c}).then(function(r){ if(r.error) throw r.error; TOUR=r.data||c; if(!Array.isArray(TOUR.zones)) TOUR.zones=[]; schedule(); if(msg) toast(msg); }); }
+function tourUpload(files,prefix){ var out=[];
+  return files.reduce(function(pr,f,i){ return pr.then(function(){ return shrinkPhoto(f,2000).then(function(blob){ var path='site/'+prefix+'-'+Date.now()+'-'+i+'.jpg';
+    return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; out.push(sb.storage.from('promos').getPublicUrl(path).data.publicUrl); }); }); }); },Promise.resolve()).then(function(){ return out; }); }
+function tourPick(multi,cb){ var inp=h('input',{type:'file',accept:'image/*',multiple:!!multi,hidden:true,onchange:function(){ var f=[].slice.call(inp.files||[]); inp.remove(); if(f.length) cb(f); }}); document.body.appendChild(inp); inp.click(); }
+function tourZoneEdit(i){ var t=TOUR, z=i==null?{name:'',text:'',pano:'',photos:[],x:40,y:40,w:15,h:15}:t.zones[i];
+  openForm({title:i==null?'New area':z.name,note:i==null?'Then tap Mark on the photo to show where it is.':null,values:{name:z.name||'',text:z.text||'',pano:z.pano||''},
+    fields:[{key:'name',label:'Name',required:true,hint:'Short, for example Ring, Bag zone, Recovery zone.'},{key:'text',label:'What is here',type:'textarea',rows:3,hint:'One or two lines visitors read with the photos.'},
+      {key:'pano',label:'360 view link',hint:'Optional. A YouTube 360 video or a link to a 360 photo. It shows with a 360 view button.'}],
+    saveLabel:'Save',doneMsg:'Saved. The website shows it within a minute.',
+    extraBtn:i==null?null:['Remove area',function(){ $dlg.close(); if(!confirm('Remove '+z.name+' and its photos from the tour?')) return; var n=Object.assign({},t,{zones:t.zones.filter(function(x,j){ return j!==i; })}); tourSave(n,'Area removed.').catch(function(e){ toast(errText(e)); }); }],
+    onSave:function(v){ if(v.pano&&!/^https:\/\//.test(v.pano.trim())) return 'The 360 link must start with https://';
+      var nz=Object.assign({},z,{name:v.name.trim().slice(0,40),text:v.text.trim(),pano:v.pano.trim()}), zs=t.zones.slice(); if(i==null) zs.push(nz); else zs[i]=nz;
+      return tourSave(Object.assign({},t,{zones:zs})).then(function(){ if(i==null) setTimeout(function(){ tourMark(TOUR.zones.length-1); },300); }); }});
+  document.querySelectorAll('dialog textarea, dialog input').forEach(function(x){ x.classList.add('notr'); }); }
+function tourMark(i){ var z=TOUR.zones[i]; if(!z) return; var a=null;
+  var img=h('img',{src:tourImg(),alt:'',style:'display:block;width:100%;height:auto;user-select:none;-webkit-user-drag:none'});
+  var rect=h('div',{style:'position:absolute;border:3px solid #E5484D;background:rgba(229,72,77,.18);border-radius:6px;pointer-events:none;left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%'});
+  var say=h('p',{class:'sub',style:'margin:8px 0 0'},'Tap the top left corner of '+z.name+', then the bottom right corner.');
+  var wrap=h('div',{style:'position:relative;cursor:crosshair;border-radius:8px;overflow:hidden'},img,rect);
+  wrap.addEventListener('click',function(e){ var r=wrap.getBoundingClientRect(), px=Math.max(0,Math.min(100,(e.clientX-r.left)/r.width*100)), py=Math.max(0,Math.min(100,(e.clientY-r.top)/r.height*100));
+    if(!a){ a=[px,py]; rect.style.left=px+'%'; rect.style.top=py+'%'; rect.style.width='1%'; rect.style.height='1%'; say.textContent='Now tap the bottom right corner.'; return; }
+    var x=Math.min(a[0],px), y=Math.min(a[1],py), w=Math.max(1.5,Math.abs(px-a[0])), hh=Math.max(1.5,Math.abs(py-a[1])); a=null;
+    rect.style.left=x+'%'; rect.style.top=y+'%'; rect.style.width=w+'%'; rect.style.height=hh+'%'; say.textContent='Saving.';
+    var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{x:Math.round(x*10)/10,y:Math.round(y*10)/10,w:Math.round(w*10)/10,h:Math.round(hh*10)/10});
+    tourSave(Object.assign({},TOUR,{zones:zs}),z.name+' marked on the photo.').then(function(){ say.textContent='Saved. Tap again to redo it, or close.'; }).catch(function(er){ say.textContent=errText(er); }); });
+  var ov=h('div',{class:'scanwrap'},h('div',{class:'panel pad',style:'max-width:900px;width:calc(100% - 24px);max-height:92vh;overflow:auto'},h('h2',{style:'margin:0 0 10px'},'Mark '+z.name),wrap,say,
+    h('p',{style:'margin:12px 0 0'},btn('Done',function(){ ov.remove(); },'primary small'))));
+  document.body.appendChild(ov); }
+function tourPhotos(i){ var z=TOUR.zones[i]; tourPick(true,function(files){ if((z.photos||[]).length+files.length>30){ toast('Keep each area to 30 photos or fewer.'); return; }
+  WEBP.busy='tour'+i; schedule(); toast(files.length>1?'Uploading '+files.length+' photos.':'Uploading the photo.');
+  tourUpload(files,'tour').then(function(urls){ var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{photos:(zs[i].photos||[]).concat(urls.map(function(u){ return {url:u,caption:''}; }))}); return tourSave(Object.assign({},TOUR,{zones:zs}),urls.length>1?urls.length+' photos added.':'Photo added.'); })
+    .catch(function(e){ toast(errText(e)); }).then(function(){ WEBP.busy=null; schedule(); }); }); }
+function tourPhotoEdit(i,j){ var z=TOUR.zones[i], p=z.photos[j];
+  openForm({title:z.name+', photo '+(j+1),values:{caption:p.caption||''},fields:[{key:'caption',label:'Caption',hint:'Optional, for example: The main ring at sunset.'}],saveLabel:'Save',doneMsg:'Saved.',
+    extraBtn:['Remove photo',function(){ $dlg.close(); var zs=TOUR.zones.slice(), ph=zs[i].photos.slice(); ph.splice(j,1); zs[i]=Object.assign({},zs[i],{photos:ph}); tourSave(Object.assign({},TOUR,{zones:zs}),'Photo removed.').catch(function(e){ toast(errText(e)); }); }],
+    onSave:function(v){ if(v.caption.length>140) return 'Keep the caption short.'; var zs=TOUR.zones.slice(), ph=zs[i].photos.slice(); ph[j]=Object.assign({},ph[j],{caption:v.caption.trim()}); zs[i]=Object.assign({},zs[i],{photos:ph}); return tourSave(Object.assign({},TOUR,{zones:zs})); }});
+  document.querySelectorAll('dialog input').forEach(function(x){ x.classList.add('notr'); }); }
+function tourSection(){ if(TOUR===null) tourLoad();
+  var t=TOUR||{zones:[]};
+  var map=h('div',{style:'position:relative;border-radius:10px;overflow:hidden;max-width:760px;margin-top:10px;background:#222'},h('img',{src:tourImg(),alt:'Aerial photo of the gym',loading:'lazy',style:'display:block;width:100%;height:auto'}),
+    t.zones.map(function(z,i){ return h('button',{type:'button',title:z.name,onclick:function(){ tourZoneEdit(i); },style:'position:absolute;left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;border:2px solid #fff;border-radius:6px;background:rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0'},
+      h('span',{class:'notr',style:'background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:3px 8px;border-radius:99px;white-space:nowrap'},z.name)); }));
+  return h('div',{style:'margin:18px 0 6px'},
+    h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},'Gym tour'),h('a',{href:'pk/about.html#tour',target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
+    h('p',{class:'sub'},'The aerial photo on the About page. Visitors tap an area to see its photos. Add photos to each area here, and a 360 link when you have one.'),
+    h('div',{class:'row wrap'},btn('Add an area',function(){ tourZoneEdit(null); },'small'),btn('Title and text',function(){ openForm({title:'Gym tour',values:{title:t.title||'',text:t.text||''},fields:[{key:'title',label:'Heading',hint:'For example: Take a look around.'},{key:'text',label:'Line under it',type:'textarea',rows:2}],saveLabel:'Save',doneMsg:'Saved.',onSave:function(v){ return tourSave(Object.assign({},t,{title:v.title.trim(),text:v.text.trim()})); }}); },'small'),
+      btn('Change the aerial photo',function(){ tourPick(false,function(f){ toast('Uploading the photo.'); tourUpload(f,'tour-aerial').then(function(u){ return tourSave(Object.assign({},t,{image:u[0]}),'Aerial photo changed. Check each area is still in the right place.'); }).catch(function(e){ toast(errText(e)); }); }); },'small')),
+    TOUR===false?h('div',{class:'panel empty'},'Loading the tour.'):map,
+    t.zones.length?h('div',{style:'margin-top:12px'},t.zones.map(function(z,i){ var busy=WEBP.busy==='tour'+i;
+      return h('div',{class:'panel pad',style:'margin-top:8px'},
+        h('div',{class:'row',style:'justify-content:space-between;align-items:center;gap:8px'},h('b',{class:'notr'},z.name),
+          h('span',{class:'row'},btn(busy?'Uploading.':'Add photos',function(){ if(!WEBP.busy) tourPhotos(i); },'primary small'),btn('Mark on the photo',function(){ tourMark(i); },'small'),btn('Edit',function(){ tourZoneEdit(i); },'small'))),
+        z.text?h('p',{class:'sub notr',style:'margin:6px 0 0'},z.text):null,
+        (z.photos||[]).length?h('div',{style:'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px'},z.photos.map(function(p,j){ return h('button',{type:'button',onclick:function(){ tourPhotoEdit(i,j); },style:'padding:0;border:0;border-radius:6px;overflow:hidden;width:84px;height:60px;cursor:pointer;background:#222','aria-label':'Edit photo '+(j+1)},h('img',{src:p.url,alt:p.caption||'',loading:'lazy',style:'width:100%;height:100%;object-fit:cover;display:block'})); }))
+          :h('p',{class:'sub',style:'margin:6px 0 0'},'No photos yet. Visitors see "photos coming soon".'),
+        z.pano?h('p',{class:'sub',style:'margin:6px 0 0'},'360 view: ',h('a',{href:z.pano,target:'_blank',rel:'noopener'},'open')):null); })):null);
 }
 function staySection(){
   var g=webGallery(), busy=WEBP.busy==='gallery';
