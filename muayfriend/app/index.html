@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=208"></script>
+<script src="changelog.js?v=209"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1102,7 +1102,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=154; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=155; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10120,6 +10120,8 @@ function upgFor(cid){ var k=cid||'me', x=UPG[k];
   if(!x||(!x.busy&&Date.now()-x.at>20000)){ UPG[k]={busy:true,list:x&&x.list,at:Date.now()};
     sb.rpc('upgrade_offers',cid?{p_customer:cid}:{}).then(function(r){ UPG[k]={list:r.error?[]:(r.data||[]),at:Date.now()}; schedule(); },function(){ UPG[k]={list:[],at:Date.now()}; }); }
   return (UPG[k]&&UPG[k].list)||[]; }
+/* an upgrade already ordered and not paid yet: take the payment (card gives a link to send them) */
+function upgPayPending(o,cid){ reload('purchases').then(function(){ var p=byId('purchases',o.pending); if(p) takePayment(p); else toast('Could not find the upgrade. Refresh and try again.'); }).catch(function(e){ toast(errText(e)); }); }
 function upgIncl(o){ return (o.covers&&o.covers.length?'Includes '+o.covers.join(', '):'')+'. No weekly limit.'; }
 function upgSell(o,cid){ sb.rpc('upgrade_order',{p_purchase:o.purchase_id}).then(must).then(function(id){ delete UPG[cid];
     return reload('purchases').then(function(){ var p=byId('purchases',id); toast('Upgrade added: '+thb(o.price)+' to pay.'); if(p) takePayment(p); }); }).catch(function(e){ toast(errText(e)); }); }
@@ -10141,8 +10143,8 @@ function upgAfter(o,ch,cid){ delete UPG[cid||'me'];
   return sb.rpc('upgrade_order',{p_purchase:o.purchase_id}).then(must).then(function(id){ if(ch==='card') setTimeout(function(){ stripePay('purchase',id,'Upgrade to '+o.to); },300); return id; }); }
 function upgDesk(c){ if(!featOn('upgrades')) return null; var l=upgFor(c.id); if(!l.length) return null;
   return section('Upgrade offer',null,cards(l.map(function(o){ return {when:o.from+' to '+o.to,right:thb(o.price),
-    note:(o.pro_rata?'For the time left (full difference '+thb(o.full)+'). ':'The price difference. ')+(o.pending?'The upgrade is waiting for payment in Packages below.':o.offered?'Offered '+fmtDate(String(o.offered_at).slice(0,10))+'. It does not pop up at check in again.':'It pops up when they check in. Once paid, their package gets the new rules straight away.'),
-    act:o.pending?null:[btn('Sell upgrade',function(){ upgSell(o,c.id); },'primary small'),o.offered?null:btn('Spoke to them',function(){ sb.rpc('upgrade_seen',{p_purchase:o.purchase_id}).then(must).then(function(){ delete UPG[c.id]; toast('Noted. It will not pop up at check in.'); schedule(); }).catch(function(e){ toast(errText(e)); }); },'small')]}; }),'')); }
+    note:(o.pro_rata?'For the time left (full difference '+thb(o.full)+'). ':'The price difference. ')+(o.pending?'Ordered and waiting for payment. Take payment here, or pick Card for a link to send them.':o.offered?'Offered '+fmtDate(String(o.offered_at).slice(0,10))+'. It does not pop up at check in again.':'It pops up when they check in. Once paid, their package gets the new rules straight away.'),
+    act:o.pending?[btn('Take payment',function(){ upgPayPending(o,c.id); },'primary small'),btn('Cancel the upgrade',function(){ sb.from('purchases').update({cancelled:true}).eq('id',o.pending).eq('paid',false).then(must).then(function(){ delete UPG[c.id]; return reload('purchases'); }).then(function(){ toast('Upgrade cancelled. You can offer it again.'); schedule(); }).catch(function(e){ toast(errText(e)); }); },'small')]:[btn('Sell upgrade',function(){ upgSell(o,c.id); },'primary small'),o.offered?null:btn('Spoke to them',function(){ sb.rpc('upgrade_seen',{p_purchase:o.purchase_id}).then(must).then(function(){ delete UPG[c.id]; toast('Noted. It will not pop up at check in.'); schedule(); }).catch(function(e){ toast(errText(e)); }); },'small')]}; }),'')); }
 function cuUpgrades(){ if(!featOn('upgrades')||!CU) return null; var l=upgFor(PV?PV.cid:null); if(!l.length) return null;
   return section('Upgrade offer',null,cards(l.map(function(o){ return {when:'Upgrade to '+o.to,right:thb(o.price),
     note:'Your '+o.from+' becomes '+o.to+'. '+upgIncl(o)+' '+(o.pro_rata?'Priced for the time you have left.':'You only pay the difference.')+(o.pending?' Your upgrade is waiting for payment above.':''),
