@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=205"></script>
+<script src="changelog.js?v=206"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1101,7 +1101,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=151; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=152; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -2747,9 +2747,10 @@ function editStay(st){
     {key:'room_price_thb',label:'Room price for the whole stay (THB)',type:'number',onChange:function(){ typed=true; },
       hint:st.mp_price!=null&&Number(st.mp_price)!==Number(st.room_price_thb)?'MotoPress shows '+thb(Math.round(Number(st.mp_price)))+'. The price here is the one on the bill.':
         /^mphb:/.test(String(st.external_id||''))?'Filled in from MotoPress. Type a different price and the app keeps yours.':'The price the guest agreed. Leave empty if the room is free or paid elsewhere.'},
-    {key:'room_paid_thb',label:'Room money already paid (THB)',type:'number',def:0,hint:'Deposit or online payment. Leave 0 if they pay at the desk.'},
+    st.id&&Number(st.app_paid_thb)>0?{key:'paid_info',label:'Paid in the app',type:'info',def:thb(Number(st.app_paid_thb))+(st.settled?', the bill is settled.':' so far.')+' Card and online payments show here and on the bill, not in the box below.'}:null,
+    {key:'room_paid_thb',label:'Paid outside the app (THB)',type:'number',def:0,hint:'Only money paid somewhere else before arrival, for example a bank transfer or a deposit taken by a booking site. Card payments on your website or in the app are counted by themselves.'},
     {key:'training_included',label:'Group Muay Thai included for 1 person (untick if booked without it, for example on Booking.com)',type:'checkbox',def:true},
-    {key:'notes',label:'Notes',type:'textarea'}];
+    {key:'notes',label:'Notes',type:'textarea'}].filter(Boolean);
   if(featOn('stay_sell')){ var gN=[]; for(var gi=1;gi<=Math.max(maxGuests(),2);gi++) gN.push([gi===1?'1 adult':gi+' adults',gi===1?'1 person':gi+' people']);
     if(st.guests&&!gN.some(function(x){ return x[0]===st.guests; })) gN.push([st.guests,st.guests]);
     fields.splice(fields.length-1,0,{key:'guests',label:'How many people in the room',type:'select',options:[['','Not set']].concat(gN),def:''},
