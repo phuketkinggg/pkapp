@@ -310,7 +310,7 @@ function call(body){ return fetch(FN,{method:'POST',headers:{'Content-Type':'app
 function show(id,on){ $(id).hidden=!on; }
 function room(id){ return (INFO.rooms||[]).filter(function(r){ return r.id===id; })[0]; }
 /* 360 photos of each room type (Settings, Website, Room 360 photos) */
-var R360={}; if(window.PK&&PK.rest) PK.rest('rpc/room_360').then(function(d){ R360=d&&typeof d==='object'?d:{}; if(Q&&Q.rooms) try{ render(); }catch(e){} }).catch(function(){});
+var R360={}; /* loaded below, once site.js is there */
 function look360(g){ var l=R360[g.id]; if(!window.PKPano||!Array.isArray(l)||!l.length) return null;
   return el('button',{type:'button',cls:'btn look360',onclick:function(){ PKPano.open({title:g.name.replace(/^[A-Z]\d+,\s*/,''),scenes:l}); }},'Look inside in 360'); }
 function group(id){ return (INFO.groups||[]).filter(function(g){ return g.id===id; })[0]; }
@@ -577,6 +577,7 @@ call({mode:'info'}).then(function(d){ INFO=d;
 <script src="pk/qrcode.js?v=1"></script>
 <script src="pk/site.js?v=23"></script>
 <script src="pk/pano.js?v=1"></script>
+<script>if(window.PK&&PK.rest) PK.rest('rpc/room_360').then(function(d){ R360=d&&typeof d==='object'?d:{}; if(Q&&Q.rooms) try{ render(); }catch(e){} }).catch(function(){});</script>
 <script src="pk/chat.js?v=2" defer></script>
 <script src="pk/reviews.js?v=1" defer></script>
 <script>
