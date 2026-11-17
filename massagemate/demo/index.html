@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=204"></script>
+<script src="changelog.js?v=205"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -938,6 +938,7 @@ var FEATURES=[
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
+  {k:'stays_list',g:'Rooms',n:'Bookings list',d:'A Bookings view in Stays: every booking in one list, sorted the way you pick: newest bookings, next check ins, next check outs, staying now, by room, by guest or not paid yet. Search by name, room or booking site.',spa:false},
   {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
   {k:'timetable',g:'Training',n:'Class timetable',d:'Group classes, check in to classes, the timetable in the app and on the website.',tabs:['timetable','c_classes'],spa:false},
   {k:'privates',g:'Training',n:'Privates',d:'Private sessions with a coach, online booking and the coach view.',tabs:['privates','coach','c_pt'],spa:true},
@@ -1092,7 +1093,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=150; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=151; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -3574,6 +3575,42 @@ function vStayExtras(here,day){
       {label:'',cell:function(r){ return h('span',{class:'row'},btn('Open',function(){ stayDialog(r.st); },'small'),r.meals.length||r.other.length?btn('Change or remove',function(){ stayItemsDlg(r.st); },'small'):null,!r.st.settled&&featOn('stay_extras')&&needRates()&&(RATES.extras||[]).length?btn('Add extras',function(){ stayExDlg(r.st); },'small'):null); }}],
       rows,'Nobody staying or arriving in the next 7 days.'))];
 }
+/* Bookings list (feature stays_list): every booking in one list, sorted the way you pick */
+var STAY_SORTS=[['new','Newest bookings'],['in','Next check ins'],['out','Next check outs'],['now','Staying now'],['room','By room'],['guest','By guest'],['owe','Not paid yet']];
+function vStayList(day){
+  var sort=ui.staySort||pref('pk_stay_sort')||'new', q=String(ui.stayQ||'').trim().toLowerCase(), old=!!ui.stayOld;
+  var gName=function(st){ return ((byId('customers',st.customer_id)||{}).name)||'Guest'; };
+  var roomOf=function(st){ return byId('rooms',st.room_id)||{}; };
+  var all=S.stays.filter(function(st){ return !st.hold_until&&(old||st.status!=='cancelled'); });
+  var list=all.filter(function(st){
+    if(sort==='in') return st.status==='booked'&&st.check_in>=day;
+    if(sort==='out') return st.status!=='cancelled'&&st.check_out>=day&&st.check_in<=addDays(day,60);
+    if(sort==='now') return stayOn(st,day);
+    if(sort==='owe') return st.status!=='cancelled'&&!st.settled&&billTotal(st)>0;
+    return old||st.check_out>=addDays(day,-30); });
+  if(q) list=list.filter(function(st){ return (gName(st)+' '+(roomOf(st).name||'')+' '+(st.source_id?nameOf('sources',st.source_id):'')+' '+(st.guest_names||'')).toLowerCase().indexOf(q)>=0; });
+  var cmp={new:function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); },
+    in:function(a,b){ return a.check_in.localeCompare(b.check_in)||((roomOf(a).sort||0)-(roomOf(b).sort||0)); },
+    out:function(a,b){ return a.check_out.localeCompare(b.check_out); },
+    now:function(a,b){ return (roomOf(a).sort||0)-(roomOf(b).sort||0); },
+    room:function(a,b){ return ((roomOf(a).sort||0)-(roomOf(b).sort||0))||a.check_in.localeCompare(b.check_in); },
+    guest:function(a,b){ return gName(a).localeCompare(gName(b))||a.check_in.localeCompare(b.check_in); },
+    owe:function(a,b){ return a.check_out.localeCompare(b.check_out); }}[sort]||function(){ return 0; };
+  list=list.slice().sort(cmp);
+  var when=function(st){ var n=nights(st), d=st.check_in<=day&&st.check_out>day?'Staying now':st.check_in===day?'Arriving today':st.check_out===day?'Leaving today':st.check_in>day?'In '+Math.round((parseYmd(st.check_in)-parseYmd(day))/864e5)+' days':'Left';
+    return d+', '+n+' night'+(n===1?'':'s'); };
+  var sel=h('select',{'aria-label':'Sort bookings by',onchange:function(ev){ ui.staySort=ev.target.value; pref('pk_stay_sort',ev.target.value); schedule(); }},STAY_SORTS.map(function(o){ return h('option',{value:o[0],selected:o[0]===sort},o[1]); }));
+  var search=h('input',{type:'search',class:'search',placeholder:'Guest, room or booking site',value:ui.stayQ||'','aria-label':'Search bookings',oninput:function(ev){ ui.stayQ=ev.target.value; schedule(); }});
+  var oldBox=h('label',{class:'row',style:'gap:6px;align-items:center'},h('input',{type:'checkbox',checked:old,onchange:function(ev){ ui.stayOld=ev.target.checked; schedule(); }}),'Show cancelled and older stays');
+  var rows=list.slice(0,200).map(function(st){ var owe=!st.settled&&billTotal(st)>0, room=roomOf(st);
+    return {when:fmtDate(st.check_in)+' to '+fmtDate(st.check_out),right:st.status==='cancelled'?chip('Cancelled','bad'):st.settled?chip('Paid','ok'):owe?chip('Owes '+thb(billTotal(st)),'warn'):(st.room_price_thb!=null?thb(st.room_price_thb):null),
+      title:gName(st)+', '+(room.name||'No room yet'),
+      note:when(st)+(st.source_id?'. Via '+nameOf('sources',st.source_id):'')+(st.created_at?'. Booked '+bookedWhen(st):''),
+      act:btn('Open',function(){ editStay(st); },'small')}; });
+  return [h('div',{class:'panel pad row wrap',style:'gap:10px;align-items:center'},h('label',{class:'row',style:'gap:6px;align-items:center'},'Sort by ',sel),search,oldBox),
+    h('p',{class:'sub'},list.length+' booking'+(list.length===1?'':'s')+(list.length>200?', showing the first 200':'')+'.'),
+    cards(rows,'No bookings match.')];
+}
 function vStays(){
   if(MPSYNC===null&&!ui.mpAsked){ ui.mpAsked=true; loadMpSync().catch(function(){}); }
   var day=ymd(new Date()), soon=addDays(day,30);
@@ -3586,10 +3623,11 @@ function vStays(){
   var open=sortBy(S.stays.filter(function(st){ return !st.settled&&(st.status==='out'||(st.status!=='cancelled'&&st.check_out<day))&&billTotal(st)>0; }),'check_out');
   var free=rooms.filter(function(r){ return !here.some(function(st){ return st.room_id===r.id&&st.check_out>day; }); });
   var view=ui.stayView||'calendar';
-  var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],['list','Today and bills'],['extras','Meals and extras'],['aff','Referrals']].map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
+  var seg=h('div',{class:'seg',role:'group','aria-label':'Show'},[['calendar','Calendar'],featOn('stays_list')?['all','Bookings']:null,['list','Today and bills'],['extras','Meals and extras'],['aff','Referrals']].filter(Boolean).map(function(o){ return h('button',{type:'button','aria-pressed':view===o[0]?'true':'false',onclick:function(){ ui.stayView=o[0]; schedule(); }},o[1]); }));
   var head=[pageHead('Stays',tonight+' of '+rooms.length+' rooms taken tonight',h('div',{class:'row'},seg,btn('Check availability',function(){ availability(); }),btn('Add a stay',function(){ editStay(); },'primary'))),syncLine(),icalLine(),me&&me.role==='resort'?noticesBox():null];
   if(view==='calendar') return head.concat(vCalendar());
   if(view==='aff') return head.concat(vAff());
+  if(view==='all'&&featOn('stays_list')) return head.concat(vStayList(day));
   if(view==='extras') return head.concat(vStayExtras(here,day));
   return head.concat([
     section('In the resort',null,cards(here.map(function(st){ return stayCard(st,day); }),'Nobody staying today.')),
