@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=209"></script>
+<script src="changelog.js?v=210"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -938,6 +938,7 @@ var FEATURES=[
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
+  {k:'stay_share',g:'Rooms',n:'Sharing a room',d:'Link someone to a room booked under another guest\'s name (on their customer page, Sharing a room). They can then charge packages, privates, shop and cafe to that room\'s bill, and see the room in their app.',spa:true},
   {k:'stay_plan',g:'Rooms',n:'Payment plan for long stays',d:'Long stays booked well ahead can pay on the website with a payment plan: a first part now, then the same amount each month from the saved card, and the rest on arrival. Set it in Settings, Website offer. Failed payments get a pay link and are tried again; not paid in time, the booking is cancelled and payments are kept.',spa:false},
   {k:'stays_list',g:'Rooms',n:'Bookings list',d:'A Bookings view in Stays: every booking in one list, sorted the way you pick: newest bookings, next check ins, next check outs, staying now, by room, by guest or not paid yet. Search by name, room or booking site.',spa:false},
   {k:'stays',g:'Rooms',n:'Rooms and stays',d:'Room bookings, room bills, welcome emails and housekeeping.',tabs:['stays','housekeeping'],spa:false},
@@ -1094,7 +1095,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=155; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=156; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -1541,7 +1542,9 @@ function sellCourse(c){
   }).catch(function(e){ toast(errText(e)); });
 }
 /* a package sold from a stay (feature stay_sell): for the guest or someone else in the room, and it can go on the room bill */
-function openStayOf(cid){ var d=ymd(new Date()); return sortBy((S.stays||[]).filter(function(s){ return s.customer_id===cid&&(s.status==='booked'||s.status==='in')&&!s.settled&&s.check_in<=d&&d<=s.check_out; }),'check_in').pop()||null; }
+/* sharing a room (feature stay_share): someone linked to a stay booked under another guest's name can charge to that room too */
+function inStay(s,cid){ return !!s&&(s.customer_id===cid||(featOn('stay_share')&&(s.guest_ids||[]).indexOf(cid)>=0)); }
+function openStayOf(cid){ var d=ymd(new Date()); return sortBy((S.stays||[]).filter(function(s){ return inStay(s,cid)&&(s.status==='booked'||s.status==='in')&&!s.settled&&s.check_in<=d&&d<=s.check_out; }),'check_in').pop()||null; }
 function stayNames(st){ return String(st&&st.guest_names||'').split(/\n|,/).map(function(x){ return x.trim(); }).filter(Boolean); }
 function sellPackage(c,o){ o=o||{}; var dealOk=featOn('custom_deals')&&!!me&&(me.role==='manager'||me.role==='admin');
   var group=c.price_group||'standard', sOn=featOn('stay_sell'), rst=sOn&&payOk('room')?(o.stay&&(o.stay.status==='booked'||o.stay.status==='in')&&!o.stay.settled?o.stay:o.stay?null:openStayOf(c.id)):null;
@@ -1619,6 +1622,7 @@ function sellPackage(c,o){ o=o||{}; var dealOk=featOn('custom_deals')&&!!me&&(me
         /* a new name goes on the stay, so the room shows everyone in it */
         if(o.stay&&stayNames(o.stay).map(function(x){ return x.toLowerCase(); }).indexOf(wn.toLowerCase())<0){ var all=stayNames(o.stay); if(!all.length) all=[String(c.name||'').trim()]; all.push(wn);
           sb.from('stays').update({guest_names:all.join('\n')}).eq('id',o.stay.id).then(function(){ reload('stays'); }); }
+        if(o.stay&&featOn('stay_share')&&id&&id!==o.stay.customer_id&&(o.stay.guest_ids||[]).indexOf(id)<0) sb.rpc('stay_share',{p_stay:o.stay.id,p_customer:id,p_on:true}).then(function(){ reload('stays'); },function(){});
         return id; });
       var tgt=null;
       return cidP.then(function(id){ tgt=id; p.customer_id=id; return sb.from('purchases').insert(toRow('purchases',p,true)).select('id').single().then(must); }).then(function(d){
@@ -2714,6 +2718,20 @@ function availability(pre){
   shopDlg(h('div',{class:'billbox avbox'},h('h2',null,'Check availability'),h('div',{class:'fgrid'},field('av-in','Arrives',a),field('av-out','Leaves',b)),out,
     h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
   if(RATES) show(); else loadRates().then(show,show);
+}
+/* sharing a room (feature stay_share): link this customer to a room booked under someone else's name, so they can charge to it */
+function staySharePanel(c){ if(!featOn('stay_share')) return null; var d=ymd(new Date());
+  var mine=(S.stays||[]).filter(function(st){ return (st.guest_ids||[]).indexOf(c.id)>=0&&st.status!=='cancelled'&&st.check_out>=d; });
+  var open=sortBy((S.stays||[]).filter(function(st){ return (st.status==='booked'||st.status==='in')&&!st.settled&&st.check_out>=d&&st.customer_id!==c.id&&(st.guest_ids||[]).indexOf(c.id)<0; }),'check_in');
+  if(!mine.length&&!open.length) return null;
+  function set(st,on){ return sb.rpc('stay_share',{p_stay:st.id,p_customer:c.id,p_on:on}).then(must).then(function(){ return reload('stays'); }); }
+  return section('Sharing a room',open.length?btn('Link to a room',function(){
+    openForm({title:'Link '+c.name+' to a room',note:'For someone staying in a room booked under another guest\u2019s name. Once linked, what they buy can go on that room\u2019s bill (choose Charge to room), and they see the room in their app.',saveLabel:'Link',doneMsg:'Linked. They can now charge to that room.',
+      fields:[{key:'stay',label:'Room',type:'select',required:true,options:open.map(function(st){ return [st.id,nameOf('rooms',st.room_id)+', '+nameOf('customers',st.customer_id)+', '+fmtDate(st.check_in)+' to '+fmtDate(st.check_out)]; })}],
+      onSave:function(v){ var st=byId('stays',v.stay); if(!st) return 'Choose a room.'; return set(st,true); }}); },'small'):null,
+    mine.length?cards(mine.map(function(st){ return {when:nameOf('rooms',st.room_id)+', with '+nameOf('customers',st.customer_id),right:fmtDate(st.check_in)+' to '+fmtDate(st.check_out),
+      note:'Linked to this room. What they buy can go on its bill.',act:[btn('Unlink',function(){ set(st,false).then(function(){ toast('Unlinked from '+nameOf('rooms',st.room_id)+'.'); }).catch(function(e){ toast(errText(e)); }); },'small')]}; }),''):
+      h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'Staying in a room booked under someone else\u2019s name? Link them to it, so what they buy can go on that room\u2019s bill.')));
 }
 function editStay(st){
   st=st||{}; var day=ymd(new Date());
@@ -10017,6 +10035,7 @@ function vCustomers(){
           {label:'Extras on bill',num:true,cell:function(st){ var x=extrasTotal(st); return x?thb(x):''; }},
           {label:'To pay',num:true,cell:function(st){ var o=(st.settled?0:Math.max(0,billTotal(st)))+stayExtras(st).reduce(function(t,x){ return t+x.owe; },0); return o?chip(thb(o),'warn'):chip(st.settled?'Settled':'Nothing','ok'); }},
           {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),st.status==='booked'||st.status==='in'?btn('Extend',function(){ extendStay(st); },'small'):null,btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
+      staySharePanel(c),
       foodPlansPanel(c),
       upgDesk(c),
       section('Packages',null,table([
@@ -12628,7 +12647,7 @@ function kPrivHere(c,x){
   }).catch(function(e){ ui.kerr=(e&&e.message)||'That did not work. See the front desk.'; }).then(function(){ ui.kbusy=false; schedule(); });
 }
 /* desk mode: a customer books a private for now, or buys a package and picks how to pay */
-function kStay(c,day){ return (S.stays||[]).filter(function(st){ return st.customer_id===c.id&&stayOn(st,day)&&!st.settled; })[0]||null; }
+function kStay(c,day){ return (S.stays||[]).filter(function(st){ return inStay(st,c.id)&&stayOn(st,day)&&!st.settled; })[0]||null; }
 function kPrivate(c){
   var today=ymd(new Date()), group=c.price_group||'standard';
   var allCh=coaches(); if(!allCh.length){ ui.kerr='Privates can not be booked here yet. See the front desk.'; schedule(); return; }
