@@ -12409,7 +12409,7 @@ function tourZoneEdit(i){ var t=TOUR, z=i==null?{name:'',text:'',pano:'',photos:
     saveLabel:'Save',doneMsg:'Saved. The website shows it within a minute.',
     extraBtn:i==null?null:['Remove area',function(){ $dlg.close(); if(!confirm('Remove '+z.name+' and its photos from the tour?')) return; var n=Object.assign({},t,{zones:t.zones.filter(function(x,j){ return j!==i; })}); tourSave(n,'Area removed.').catch(function(e){ toast(errText(e)); }); }],
     onSave:function(v){ if(v.pano&&!/^https:\/\//.test(v.pano.trim())) return 'The 360 link must start with https://';
-      var nz=Object.assign({},z,{name:v.name.trim().slice(0,40),text:v.text.trim(),pano:v.pano.trim()}), zs=t.zones.slice(); if(i==null) zs.push(nz); else zs[i]=nz;
+      var nz=Object.assign({},z,{name:v.name.trim().slice(0,40),text:v.text.trim(),pano:v.pano.trim()}), zs=t.zones.slice(); if(nz.pano!==(z.pano||'')){ nz.pano_vaov=null; nz.pano_yaw=null; } if(i==null) zs.push(nz); else zs[i]=nz;
       return tourSave(Object.assign({},t,{zones:zs})).then(function(){ if(i==null) setTimeout(function(){ tourMark(TOUR.zones.length-1); },300); }); }});
   document.querySelectorAll('dialog textarea, dialog input').forEach(function(x){ x.classList.add('notr'); }); }
 function tourMark(i){ var z=TOUR.zones[i]; if(!z) return; var a=null;
@@ -12435,7 +12435,7 @@ function tour360(i){ tourPick(false,function(files){ var f=files[0];
   WEBP.busy='tour'+i; schedule(); toast('Uploading the 360 photo.');
   shrinkPhoto(f,4096).then(function(blob){ var path='site/tour360-'+Date.now()+'.jpg';
     return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error;
-      var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{pano:sb.storage.from('promos').getPublicUrl(path).data.publicUrl});
+      var zs=TOUR.zones.slice(); zs[i]=Object.assign({},zs[i],{pano:sb.storage.from('promos').getPublicUrl(path).data.publicUrl,pano_vaov:null,pano_yaw:null});
       return tourSave(Object.assign({},TOUR,{zones:zs}),'360 photo added. Visitors see it first when they tap '+zs[i].name+'.'); }); })
     .catch(function(e){ toast(errText(e)); }).then(function(){ WEBP.busy=null; schedule(); }); }); }
 function tourYouTube(i){ openForm({title:'Add a YouTube video',note:'Put the video on YouTube (it can be unlisted), then paste its link. 360 videos work too.',values:{url:'',caption:''},
