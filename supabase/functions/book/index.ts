@@ -124,10 +124,15 @@ function quote(R: Rates, g: Group, from: string, to: string) {
 type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number; month_first: boolean; terms: string };
 type Promo = { id: string; name: string; text: string; from: string; to: string; pct: number; book_by: string; limit: number; free: string; left: number | null };
 type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean; promos: Promo[];
-  nudge: boolean; vgift: { over: number; text: string } | null };
+  nudge: boolean; vgift: { over: number; text: string } | null; plan: PlanCfg };
+// payment plan (Settings, Website offer, Payment plan): long stays booked well ahead pay a first part now, then the same amount each month
+// (charged to the saved card) until last_days before arrival, so at least min_pct is paid before they come; the rest on arrival
+type PlanCfg = { on: boolean; nights: number; ahead: number; first_pct: number; min_pct: number; last_days: number; grace: number; terms: string };
 async function offer(): Promise<Offer> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "stay_offer").maybeSingle();
   let j: Record<string, unknown> = {}; try { j = JSON.parse(data?.value ?? "{}"); } catch { /* none */ }
+  // the payment plan also needs the stay_plan feature (Settings, Features)
+  try { const { data: fz } = await admin.from("app_settings").select("value").eq("key", "features").maybeSingle(); if (JSON.parse(fz?.value ?? "{}").stay_plan === false) j.plan_on = false; } catch { /* on */ }
   const on = j.on === true, pct = Math.max(0, Math.min(50, Number(j.pct) || 0)), gn = Math.max(0, Math.min(90, Math.round(Number(j.gift_nights) || 0)));
   // includes: what every room comes with (for example unlimited group classes for 1 person), shown on each room; not part of the offer switch
   return { on, pct: on ? pct : 0, gift_nights: on && String(j.gift ?? "").trim() ? gn : 0, gift: on ? String(j.gift ?? "").trim().slice(0, 80) : "", includes: String(j.includes ?? "").trim().slice(0, 120),
@@ -141,6 +146,8 @@ async function offer(): Promise<Offer> {
     quote: j.quote_on !== false,
     // a kind line with what they save, and a thank you gift for bookings over an amount (not part of the offer switch)
     nudge: j.nudge_on !== false,
+    plan: { on: j.plan_on === true, nights: clampN(j.plan_nights, 30, 7, 365), ahead: clampN(j.plan_ahead, 60, 30, 365), first_pct: clampN(j.plan_first_pct, 15, 5, 80),
+      min_pct: clampN(j.plan_min_pct, 50, 20, 100), last_days: clampN(j.plan_last_days, 14, 3, 60), grace: clampN(j.plan_grace, 7, 2, 30), terms: String(j.plan_terms ?? "").trim().slice(0, 400) },
     vgift: j.vgift_on === true && Number(j.vgift_over) > 0 && String(j.vgift ?? "").trim() ? { over: Math.round(Number(j.vgift_over)), text: String(j.vgift).trim().slice(0, 80) } : null,
     // dated offers (Settings, Website offer, Offers for dates): nights between from and to get their own % off instead of the book direct discount.
     // Shown on the booking page until they end. Not part of the offer switch.
@@ -182,6 +189,23 @@ function depositPlan(R: Rates, O: Offer, from: string, nights: number, room: num
   const total = room + extras, now = Math.min(total, Math.ceil((dep + extras) / 100) * 100);
   if (now >= total * 0.85) return null;
   return { now, rest: total - now, due, monthly };
+}
+// the payment plan for a stay: the first part now, then one payment a month (same day of the month) until last_days before arrival.
+// null when it does not apply. The booking page works out the same plan to show it.
+const up100 = (n: number) => Math.ceil(n / 100) * 100;
+function addMonths(d: string, m: number) { const [y, mo, da] = d.split("-").map(Number); const t = new Date(Date.UTC(y, mo - 1 + m, 1)); const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), Math.min(da, last))).toISOString().slice(0, 10); }
+function stayPlan(P: PlanCfg, from: string, nights: number, total: number) {
+  if (!P.on || nights < P.nights || !(total > 0)) return null;
+  const t = today(); if (Date.parse(from) - Date.parse(t) < P.ahead * 864e5) return null;
+  const last = addDays(from, -P.last_days), dues: string[] = [];
+  for (let m = 1; m < 24; m++) { const d = addMonths(t, m); if (d > last) break; dues.push(d); }
+  if (!dues.length) return null;
+  const first = Math.min(total, up100(total * P.first_pct / 100)), target = Math.max(first, Math.min(total, up100(total * P.min_pct / 100)));
+  const each = up100((target - first) / dues.length);
+  let left = target - first; const items = dues.map((d, i) => { const a = i === dues.length - 1 ? left : Math.min(left, each); left -= a; return { due: d, amount: a }; }).filter((x) => x.amount > 0);
+  if (!items.length) return null;
+  return { first, items, rest: total - first - items.reduce((a, x) => a + x.amount, 0), total };
 }
 async function bizStay(): Promise<string> {
   const { data } = await admin.from("app_settings").select("value").eq("key", "acc_names").maybeSingle();
@@ -296,7 +320,7 @@ function backUrl(u: unknown): string {
   return PAGE;
 }
 // qr: Thai QR (PromptPay) through the Thai Stripe account, THB only, no card fee. Stripe confirms the payment by itself, like a card.
-async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string, cur = "thb", rate = 1, qr = false) {
+async function stripeSession(lines: { name: string; amount: number }[], amount: number, stayId: string, email: string, back: string, cur = "thb", rate = 1, qr = false, save = false): Promise<any> {
   const p = new URLSearchParams();
   p.set("mode", "payment");
   p.set("success_url", back + "?paid=1&ref=" + stayId);
@@ -310,6 +334,8 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   });
   p.set("payment_method_types[0]", qr ? "promptpay" : "card");
   p.set("customer_email", email);
+  // a payment plan: Stripe keeps the card for the monthly payments the guest agreed to
+  if (save) { p.set("customer_creation", "always"); p.set("payment_intent_data[setup_future_usage]", "off_session"); }
   const rule = await cardRule(), fee = qr ? 0 : cardFee(amount, rule, true);
   if (fee > 0) { const i = lines.length; p.set(`line_items[${i}][quantity]`, "1"); p.set(`line_items[${i}][price_data][currency]`, cur); p.set(`line_items[${i}][price_data][unit_amount]`, String(Math.round(fee * rate * 100))); p.set(`line_items[${i}][price_data][product_data][name]`, cardLabel(amount, rule)); }
   // amount is always the THB value; the app records the stay in THB whatever currency was charged
@@ -319,7 +345,7 @@ async function stripeSession(lines: { name: string; amount: number }[], amount: 
   });
   const j = await r.json();
   if (!r.ok) throw new Error(j?.error?.message ?? `Stripe said ${r.status}`);
-  return j.url as string;
+  return save ? { url: j.url as string, id: j.id as string } : j.url as string;
 }
 
 // "Email me this price": the guest gets the price for the room and dates they looked at, with a link back to book it.
@@ -449,6 +475,126 @@ ${after.map((p) => `<p>${escH(p)}</p>`).join("")}<p><a href="https://wa.me/${wa}
   return json({ ok: true, sent });
 }
 
+// Payment plans (mode plans: the database, twice a day, with the sync token). For each plan:
+// the first payment: once Stripe has it, the saved card is kept for the rest. Each later payment is charged to the saved card on its day.
+// A reminder goes 3 days before. A payment that fails: the guest gets an email with a link to pay, and the card is tried again every 2 days.
+// Still not paid after the grace days: the booking is cancelled and what was paid is kept (the terms the guest agreed to).
+type PlanItem = { n: number; due: string; amount: number; status: string; tries: number; tried_at?: string; paid_at?: string; ref?: string; link?: string; link_url?: string; reminded?: boolean; first?: boolean };
+async function stripeApi(key: string, path: string, body?: URLSearchParams) {
+  const r = await fetch("https://api.stripe.com/v1/" + path, { method: body ? "POST" : "GET", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded", "Stripe-Version": "2024-06-20" }, body });
+  const j = await r.json().catch(() => ({})); return { ok: r.ok, j };
+}
+async function mailGuest(to: string, name: string, subject: string, paras: string[], button: [string, string] | null, campaign: string) {
+  if (!RESEND || !to) return false;
+  const STAY = await bizStay();
+  const { data: ms } = await admin.from("app_settings").select("value").eq("key", "mail_from").maybeSingle();
+  let mf: { from?: string; reply_to?: string; whatsapp?: string } = {}; try { mf = JSON.parse(ms?.value ?? "{}"); } catch { /* defaults */ }
+  const wa = String(mf.whatsapp ?? "66969076150").replace(/\D/g, ""), hi = name ? name.split(/\s+/)[0] : "there";
+  const text = [`Hi ${hi},`, "", ...paras.flatMap((x) => [x, ""]), ...(button ? [`${button[0]}: ${button[1]}`, ""] : []), `WhatsApp: https://wa.me/${wa}`, "", `See you soon,`, `The ${STAY} team`].join("\n");
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#22201c;line-height:1.55"><p>Hi ${escH(hi)},</p>${paras.map((x) => `<p>${escH(x)}</p>`).join("")}
+${button ? `<p style="margin:22px 0"><a href="${escH(button[1])}" style="background:#1a3325;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:bold">${escH(button[0])}</a></p>` : ""}
+<p><a href="https://wa.me/${wa}">Message us on WhatsApp</a></p><p>See you soon,<br>The ${escH(STAY)} team</p></div>`;
+  let okm = false, err: string | null = null, rid: string | null = null;
+  try {
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: mf.from || `${STAY} <hello@app.phuketking.com>`, to: [to], reply_to: mf.reply_to || "hello@phuketking.com", subject, html, text }) });
+    const j = await r.json().catch(() => ({})); if (r.ok) { okm = true; rid = j?.id ?? null; } else err = j?.message || `Email service said ${r.status}`;
+  } catch (e) { err = (e as Error).message; }
+  await admin.from("sent_emails").insert({ to_email: to, to_name: name || null, subject, body: text, status: okm ? "sent" : "failed", error: err, resend_id: rid, sent_at: okm ? new Date().toISOString() : null, campaign });
+  return okm;
+}
+async function runPlans(req: Request) {
+  const { data: ok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
+  if (ok !== true) return json({ error: "Not allowed." }, 401);
+  const O = await offer(), rule = await cardRule(), t = today(), STAY = await bizStay();
+  const { data: plans } = await admin.from("stay_plans").select("*").in("status", ["pending", "active"]).limit(200);
+  const out: Record<string, number> = { charged: 0, failed: 0, reminded: 0, cancelled: 0, started: 0 };
+  for (const pl of (plans ?? []) as any[]) {
+    try {
+      const key = pl.acct === "th" ? (KEY_TH || KEY_MAIN) : (KEY_MAIN || KEY_TH);
+      const items = (pl.items ?? []) as PlanItem[];
+      const { data: st } = await admin.from("stays").select("id, status, check_in, check_out, customer_id, notes").eq("id", pl.stay_id).maybeSingle();
+      const { data: cu } = st?.customer_id ? await admin.from("customers").select("name, email").eq("id", st.customer_id).maybeSingle() : { data: null };
+      const who = cu?.name || cu?.email || "Guest", when = st ? `${dayW(st.check_in)} to ${dayW(st.check_out)}` : "";
+      const save = async (ch: Record<string, unknown>) => { await admin.from("stay_plans").update({ ...ch, items, updated_at: new Date().toISOString() }).eq("id", pl.id); };
+      // the booking was cancelled (by the team, or it was never paid): the plan stops
+      if (!st || st.status === "cancelled") { await save({ status: "cancelled" }); continue; }
+      if (pl.status === "pending") {
+        const { ok: sok, j: cs } = await stripeApi(key, `checkout/sessions/${pl.first_session}?expand[]=payment_intent`);
+        if (!sok || cs.payment_status !== "paid") continue;
+        const pi = cs.payment_intent ?? {};
+        items[0].status = "paid"; items[0].paid_at = new Date().toISOString(); items[0].ref = pi.id ?? null;
+        await save({ status: "active", stripe_customer: pi.customer ?? cs.customer ?? null, payment_method: pi.payment_method ?? null });
+        pl.status = "active"; pl.payment_method = pi.payment_method; pl.stripe_customer = pi.customer ?? cs.customer; out.started++;
+      }
+      let changed = false;
+      for (const it of items) {
+        if (it.status === "paid") continue;
+        // paid with the link we sent
+        if (it.link) {
+          const { data: pay } = await admin.from("payments").select("id").like("stripe_session", `${it.link}%`).limit(1);
+          if (pay?.length) { it.status = "paid"; it.paid_at = new Date().toISOString(); it.ref = it.link; changed = true; continue; }
+        }
+        // a reminder 3 days before
+        if (it.due > t) {
+          if (!it.reminded && addDays(t, 3) >= it.due && cu?.email) {
+            await mailGuest(cu.email, cu.name, `Your next payment for ${STAY}`, [`A reminder that the next payment for your stay (${when}) is ${T(it.amount)}${cardFee(it.amount, rule, true) ? ` plus the card fee of ${T(cardFee(it.amount, rule, true))}` : ""}. It is taken from your saved card on ${dayW(it.due)}, so you do not need to do anything.`, `If your card has changed, reply to this email or message us and we will send you a link to pay.`], null, "stay_plan");
+            it.reminded = true; changed = true; out.reminded++;
+          }
+          continue;
+        }
+        // due: charge the saved card (again every 2 days if it failed)
+        if (it.tried_at && Date.now() - Date.parse(it.tried_at) < 46 * 3600e3) continue;
+        if (!pl.payment_method || !pl.stripe_customer) continue;
+        const fee = cardFee(it.amount, rule, true);
+        const b = new URLSearchParams({ amount: String((it.amount + fee) * 100), currency: "thb", customer: pl.stripe_customer, payment_method: pl.payment_method, off_session: "true", confirm: "true",
+          description: `${STAY}: payment plan ${it.n + 1} of ${items.length}` });
+        for (const [k, v] of Object.entries({ kind: "stay", id: pl.stay_id, amount: String(it.amount), currency: "thb", fee: String(fee), plan: pl.id, part: String(it.n) })) b.set(`metadata[${k}]`, v);
+        const { ok: pok, j: pi } = await stripeApi(key, "payment_intents", b);
+        it.tries = (it.tries || 0) + 1; it.tried_at = new Date().toISOString(); changed = true;
+        if (pok && pi.status === "succeeded") {
+          const { error: re } = await admin.rpc("stripe_record", { p_session: pi.id, p_kind: "stay", p_id: pl.stay_id, p_amount: it.amount, p_method: "stripe" });
+          if (re) throw new Error(re.message);
+          if (fee > 0) await admin.rpc("stripe_fee_record", { p_session: pi.id, p_kind: "stay", p_id: pl.stay_id, p_fee: fee });
+          it.status = "paid"; it.paid_at = new Date().toISOString(); it.ref = pi.id; out.charged++;
+          if (cu?.email) await mailGuest(cu.email, cu.name, `Payment received, thank you`, [`We took ${T(it.amount + fee)} from your saved card for your stay with us (${when}). Thank you.`,
+            ...(items.some((x) => x.status !== "paid") ? [`Next payment: ${T(items.find((x) => x.status !== "paid")!.amount)} on ${dayW(items.find((x) => x.status !== "paid")!.due)}.`] : [pl.rest_thb > 0 ? `That is the last payment before you come. The rest, ${T(pl.rest_thb)}, is paid when you arrive.` : `Your stay is now paid.`])], null, "stay_plan");
+          await admin.from("notices").insert({ kind: "stay", customer_id: st.customer_id, title: `Plan payment taken: ${who}, ${T(it.amount)}`, detail: `Payment ${it.n + 1} of ${items.length} for the stay ${when}.` });
+        } else {
+          it.status = "failed"; out.failed++;
+          const why = pi?.error?.message || pi?.last_payment_error?.message || "The card was declined.";
+          // a link to pay this one (open for a day; a new one is sent with each retry)
+          const lp = new URLSearchParams({ mode: "payment", success_url: "https://www.phuketking.com/book?paid=1", cancel_url: "https://www.phuketking.com/book", customer: pl.stripe_customer, "payment_method_types[0]": "card",
+            "line_items[0][quantity]": "1", "line_items[0][price_data][currency]": "thb", "line_items[0][price_data][unit_amount]": String((it.amount + fee) * 100), "line_items[0][price_data][product_data][name]": `${STAY}: payment plan ${it.n + 1} of ${items.length}`,
+            expires_at: String(Math.floor(Date.now() / 1000) + 23 * 3600), "payment_intent_data[setup_future_usage]": "off_session" });
+          for (const [k, v] of Object.entries({ kind: "stay", id: pl.stay_id, amount: String(it.amount), currency: "thb", fee: String(fee) })) { lp.set(`metadata[${k}]`, v); lp.set(`payment_intent_data[metadata][${k}]`, v); }
+          const { ok: lok, j: ls } = await stripeApi(key, "checkout/sessions", lp);
+          if (lok) { it.link = ls.id; it.link_url = ls.url; }
+          const firstFail = !pl.fail_since; if (firstFail) pl.fail_since = t;
+          const deadline = addDays(pl.fail_since, O.plan.grace);
+          if (t >= deadline) {
+            await admin.from("stays").update({ status: "cancelled", hold_until: null, notes: `${st.notes ?? ""}\nCancelled: a payment plan payment was not made by ${deadline}. Payments made are kept, as agreed.`.trim() }).eq("id", st.id);
+            await save({ status: "failed" }); changed = false; out.cancelled++;
+            if (cu?.email) await mailGuest(cu.email, cu.name, `Your booking with ${STAY} is cancelled`, [`We could not take the payment of ${T(it.amount)} for your stay (${when}), and it was not paid by ${dayW(deadline)}, so the booking is now cancelled.`, `As in the terms you agreed to, the payments already made are kept. If you still want to come, message us and we will see what we can do.`], null, "stay_plan");
+            await admin.from("notices").insert({ kind: "stay", customer_id: st.customer_id, title: `Plan booking cancelled: ${who}`, detail: `A plan payment of ${T(it.amount)} was not made by ${deadline}. The stay ${when} is cancelled and payments are kept.` });
+            break;
+          }
+          if (cu?.email) await mailGuest(cu.email, cu.name, `Your payment for ${STAY} did not go through`, [`We tried to take ${T(it.amount + fee)} from your saved card for your stay (${when}), but it did not go through (${why}).`,
+            `Please pay with the link below by ${dayW(deadline)} to keep your booking. We will also try the card again in 2 days.`], ls?.url ? ["Pay now", ls.url] : null, "stay_plan");
+          await admin.from("notices").insert({ kind: "stay", customer_id: st.customer_id, title: `Plan payment failed: ${who}, ${T(it.amount)}`, detail: `${why} The guest has a link to pay. If it is not paid by ${deadline}, the stay ${when} is cancelled.` });
+        }
+        break; // one charge per plan per run
+      }
+      if (changed) {
+        const allPaid = items.every((x) => x.status === "paid"), anyFailed = items.some((x) => x.status === "failed");
+        await save({ status: allPaid ? "done" : "active", fail_since: anyFailed ? pl.fail_since : null });
+        if (allPaid) await admin.from("notices").insert({ kind: "stay", customer_id: st.customer_id, title: `Payment plan paid: ${who}`, detail: `Every plan payment for ${when} is in.${pl.rest_thb > 0 ? ` ${T(pl.rest_thb)} to pay on arrival.` : ""}` });
+      }
+    } catch (e) { console.error("plan", pl.id, (e as Error).message); }
+  }
+  return json({ ok: true, ...out });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -512,13 +658,17 @@ Deno.serve(async (req) => {
       const total = q.total + items.reduce((t, i) => t + i.price, 0);
       // the thank you gift for a bigger booking, written on the stay for the front desk
       const giftNote = O.vgift && total >= O.vgift.over ? `Thank you gift: ${O.vgift.text} (booking of ${total} THB).` : "";
-      const plan = body.deposit ? depositPlan(R, O, from, nightsN, q.total, total - q.total, rp.monthly) : null;
+      const pplan = body.plan ? stayPlan(O.plan, from, nightsN, total) : null;
+      if (body.plan && (!pplan || cur !== "thb" || pp)) return json({ error: "A payment plan is not available for this stay. Pay the whole stay or a deposit, or WhatsApp us." });
+      if (pplan && body.agree !== true) return json({ error: "Tick that you agree to the payment plan terms." });
+      const plan = body.deposit && !pplan ? depositPlan(R, O, from, nightsN, q.total, total - q.total, rp.monthly) : null;
       if (body.deposit && !plan) return json({ error: "A deposit is not available for this stay. Pay the whole stay, or WhatsApp us." });
-      const payNow = plan ? plan.now : total, STAY = await bizStay();
+      const payNow = pplan ? pplan.first : plan ? plan.now : total, STAY = await bizStay();
+      const planNote = pplan ? `Website payment plan, ${total} THB: ${pplan.first} THB now, then ${pplan.items.map((x) => `${x.amount} THB on ${x.due}`).join(", ")}${pplan.rest > 0 ? `, and ${pplan.rest} THB on arrival` : ""}. Charged to the saved card.` : "";
       const depNote = plan ? `Website deposit ${plan.now} THB of ${total} THB. ${plan.rest} THB left, ${plan.monthly ? "month by month, each month 7 days before it starts" : "due by " + plan.due}.` : "";
       await admin.rpc("web_holds_cleanup");
       const { data, error } = await admin.rpc("web_reserve", { p_room: roomId, p_from: from, p_to: to, p_price: q.total, p_name: String(body.name ?? ""), p_email: String(body.email ?? ""),
-        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote, giftNote, depNote].filter(Boolean).join("\n") });
+        p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote, giftNote, depNote, planNote].filter(Boolean).join("\n") });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
       // the guest came back while the room was still held: the same booking carries on, so its earlier extras are replaced by the ones chosen now
@@ -526,9 +676,19 @@ Deno.serve(async (req) => {
       if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref), p_at: isNaN(Date.parse(String(body.ref_at ?? ""))) ? null : new Date(String(body.ref_at)).toISOString() });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
-        if (plan) { const { error: de } = await admin.from("stays").update({ web_pay_now_thb: plan.now }).eq("id", stayId); if (de) throw new Error(de.message); }
+        if (plan || pplan) { const { error: de } = await admin.from("stays").update({ web_pay_now_thb: pplan ? pplan.first : plan!.now }).eq("id", stayId); if (de) throw new Error(de.message); }
         if (rp.promo) await admin.from("stays").update({ web_promo: rp.promo.id }).eq("id", stayId);
         if (pp) return json({ pp: acc, stay_id: stayId, total: payNow, all: total, deposit: !!plan, what: `${plan ? "Deposit: " : ""}${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}` });
+        if (pplan) {
+          const toMain = !!KEY_MAIN && await staysToMain();
+          const { url, id: sid } = await stripeSession([{ name: `Payment plan, first payment: ${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}`, amount: pplan.first }], pplan.first, stayId, (data as { email: string }).email, backUrl(body.back), "thb", 1, false, true);
+          const { data: st0 } = await admin.from("stays").select("customer_id").eq("id", stayId).maybeSingle();
+          await admin.from("stay_plans").delete().eq("stay_id", stayId);
+          const { error: pe } = await admin.from("stay_plans").insert({ stay_id: stayId, customer_id: st0?.customer_id ?? null, total_thb: total, rest_thb: pplan.rest, acct: toMain ? "main" : "th", first_session: sid, terms: O.plan.terms || null,
+            items: [{ n: 0, due: today(), amount: pplan.first, status: "due", tries: 0, first: true }].concat(pplan.items.map((x, i) => ({ n: i + 1, due: x.due, amount: x.amount, status: "due", tries: 0, first: false }))) });
+          if (pe) throw new Error(pe.message);
+          return json({ url, stay_id: stayId, total: pplan.first, all: total, plan: true });
+        }
         const lines = plan
           ? [{ name: `Deposit: ${STAY}, ${rm?.name ?? "room"}, ${from} to ${to} (rest ${plan.rest.toLocaleString("en-US")} THB${plan.monthly ? " monthly" : " by " + plan.due})`, amount: plan.now }]
           : [{ name: `${STAY}, ${rm?.name ?? "room"}, ${from} to ${to}${rp.monthly ? ", monthly price" : q.total < full ? `, ${offLabel(rp, O).toLowerCase()}` : ""}`, amount: q.total }].concat(items.filter((i) => i.price > 0).map((i) => ({ name: i.name, amount: i.price })));
@@ -541,6 +701,7 @@ Deno.serve(async (req) => {
       }
     }
     if (body.mode === "mail_quote") return await mailQuote(R, body);
+    if (body.mode === "plans") return await runPlans(req);
     if (body.mode === "followups") { await admin.rpc("web_holds_cleanup"); return await followups(req); }
     if (body.mode === "claim") {
       if (!/^[0-9a-f-]{36}$/.test(String(body.ref ?? ""))) return json({ error: "Not found." });

@@ -94,6 +94,7 @@ h2 em{font-style:normal;color:var(--gold)}
 .pw input{width:auto;min-height:0;margin-top:3px}.pw span{display:flex;flex-direction:column}.pw small{color:var(--muted);font-size:13px}
 .pw:has(input:checked){border-color:var(--btn);box-shadow:0 0 0 1px var(--btn)}
 @media (max-width:640px){.paywith{grid-template-columns:1fr}}
+.planagree{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;line-height:1.45}.planagree input{width:auto;min-height:0;margin-top:3px;flex:none}.pw[hidden],.planagree[hidden]{display:none}
 .ppqr{max-width:280px;margin:12px auto;background:#fff;padding:10px;border-radius:12px}.ppqr svg{width:100%;height:auto;display:block}
 .ppsteps{padding-left:20px;margin:12px 0;text-align:left}.ppsteps li{margin:0 0 6px}
 .formnext{margin:18px auto 0;max-width:460px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--sunken)}.formnext p{margin:6px 0 12px}
@@ -185,8 +186,10 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
       </fieldset>
       <fieldset class="wide paywith" id="howmuch" hidden><legend>How much now</legend>
         <label class="pw"><input type="radio" name="hm" value="all" checked><span><b>The whole stay</b><small id="hm-all"></small></span></label>
-        <label class="pw"><input type="radio" name="hm" value="dep"><span><b id="hm-depb">A deposit</b><small id="hm-dep"></small></span></label>
+        <label class="pw" id="hm-depl"><input type="radio" name="hm" value="dep"><span><b id="hm-depb">A deposit</b><small id="hm-dep"></small></span></label>
+        <label class="pw" id="hm-planl" hidden><input type="radio" name="hm" value="plan"><span><b id="hm-planb">A payment plan</b><small id="hm-plan"></small></span></label>
       </fieldset>
+      <label class="wide planagree" id="planagree" hidden><input type="checkbox" id="plan-ok"> <span id="plan-terms"></span></label>
       <p class="sub wide" id="paynote">You pay the whole stay now. Your room is held for 30 minutes while you pay.</p>
       <p class="err wide" id="gerr" role="alert" hidden></p>
       <div class="wide"><button class="btn primary" type="submit" id="pay">Pay by card</button></div>
@@ -246,6 +249,16 @@ function depPlan(room,extras,monthly){ var D=(INFO.offer||{}).deposit, n=Q.night
   if(monthly) dep=Math.max(dep,room*Math.min(mn,n)/n);
   var total=room+extras, now=Math.min(total,Math.ceil((dep+extras)/100)*100); if(now>=total*0.85) return null;
   return {now:now,rest:total-now,due:due,monthly:monthly}; }
+/* the payment plan (Settings, Website offer): the same plan the booking function works out */
+function addMonths(d,m){ var p=d.split('-').map(Number), t=new Date(Date.UTC(p[0],p[1]-1+m,1)), last=new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth()+1,0)).getUTCDate();
+  return new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth(),Math.min(p[2],last))).toISOString().slice(0,10); }
+function payPlan(total){ var P=(INFO.offer||{}).plan, t=INFO.today||today; if(!P||!P.on||Q.nights<P.nights||!(total>0)||cur()!=='thb') return null;
+  if(Date.parse(Q.from)-Date.parse(t)<P.ahead*864e5) return null;
+  var last=addDays(Q.from,-P.last_days), dues=[]; for(var m=1;m<24;m++){ var d=addMonths(t,m); if(d>last) break; dues.push(d); } if(!dues.length) return null;
+  var up=function(n){ return Math.ceil(n/100)*100; }, first=Math.min(total,up(total*P.first_pct/100)), target=Math.max(first,Math.min(total,up(total*P.min_pct/100))), each=up((target-first)/dues.length), left=target-first;
+  var items=dues.map(function(d,i){ var a=i===dues.length-1?left:Math.min(left,each); left-=a; return {due:d,amount:a}; }).filter(function(x){ return x.amount>0; }); if(!items.length) return null;
+  return {first:first,items:items,rest:total-first-items.reduce(function(a,x){ return a+x.amount; },0),terms:P.terms||'',grace:P.grace}; }
+function wantPlan(){ var x=document.querySelector('input[name=hm]:checked'); return !$('howmuch').hidden&&!$('hm-planl').hidden&&x&&x.value==='plan'; }
 function wantDep(){ var x=document.querySelector('input[name=hm]:checked'); return !$('howmuch').hidden&&x&&x.value==='dep'; }
 /* Thai QR straight to our bank: the QR has the amount in it; the guest taps I have paid, the room is held 12 hours and the front desk confirms */
 function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
@@ -436,14 +449,23 @@ function summary(){
   if(gets) lines.push(el('div',{cls:'offnote'},el('span',null,'Thank you gift: '+vg.text),el('span',null,'Free')));
   lines.push(el('div',null,el('b',null,'Total'),el('b',null,thb(tot))));
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); }); if(crsPrice()) amts.push(crsPrice());
-  var plan=depPlan(r.total,ex,!!r.monthly); $('howmuch').hidden=!plan;
+  var plan=depPlan(r.total,ex,!!r.monthly), pp2=payPlan(tot); $('howmuch').hidden=!plan&&!pp2; $('hm-depl').hidden=!plan; $('hm-planl').hidden=!pp2;
+  var hmx=document.querySelector('input[name=hm]:checked'); if(hmx&&((hmx.value==='dep'&&!plan)||(hmx.value==='plan'&&!pp2))) document.querySelector('input[name=hm][value=all]').checked=true;
+  if(!plan) $('hm-all').textContent=thb(tot)+' now.';
+  if(pp2){ $('hm-planb').textContent='A payment plan, '+thb(pp2.first)+' now'; $('hm-plan').textContent='Then '+thb(pp2.items[0].amount)+' a month, '+pp2.items.length+' time'+(pp2.items.length===1?'':'s')+', from your saved card'+(pp2.rest>0?', and '+thb(pp2.rest)+' when you arrive.':'.'); }
+  var usePlan=pp2&&wantPlan(); $('planagree').hidden=!usePlan;
+  var ppi=document.querySelector('input[name=pw][value=pp]'); if(ppi){ ppi.disabled=!!usePlan; if(usePlan&&ppi.checked) document.querySelector('input[name=pw][value=card]').checked=true; }
+  if(usePlan){ $('plan-terms').textContent='I agree to the payment plan: my card is saved and charged on the dates shown. If a payment is not made within '+pp2.grace+' days, the booking is cancelled and the payments made are kept.'+(pp2.terms?' '+pp2.terms:''); plan=null; }
   if(plan){ $('hm-all').textContent=thb(tot)+' now.'; $('hm-depb').textContent='A deposit, '+thb(plan.now);
     $('hm-dep').textContent='Then '+thb(plan.rest)+(plan.monthly?' month by month, each month 7 days before it starts.':plan.due===Q.from?' when you arrive.':' by '+fmt(plan.due)+'.'); }
-  var dep=plan&&wantDep(), now=dep?plan.now:tot;
+  var dep=plan&&wantDep(), now=dep?plan.now:usePlan?pp2.first:tot;
+  if(usePlan){ lines.push(el('div',{cls:'offnote'},el('span',null,'First payment, now'),el('span',null,thb(pp2.first))));
+    pp2.items.forEach(function(x){ lines.push(el('div',null,el('span',null,fmt(x.due)+', saved card'),el('span',null,thb(x.amount)))); });
+    if(pp2.rest>0) lines.push(el('div',null,el('span',null,'On arrival'),el('span',null,thb(pp2.rest)))); amts=[pp2.first]; }
   if(dep){ lines.push(el('div',{cls:'offnote'},el('span',null,'Deposit, pay now'),el('span',null,thb(plan.now)))); lines.push(el('div',null,el('span',null,plan.monthly?'Then month by month':plan.due===Q.from?'Then on arrival':'Then by '+fmt(plan.due)),el('span',null,thb(plan.rest)))); amts=[plan.now]; }
   var DT=((INFO.offer||{}).deposit||{}).terms||'';
-  $('paynote').textContent=(dep?(!plan.monthly&&plan.due===Q.from?'You pay the deposit now and the rest when you arrive.':'You pay the deposit now. We send you a link to pay the rest before it is due.')+(DT?' '+DT:''):'You pay the whole stay now.')+' Your room is held for 30 minutes while you pay.';
-  var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&now<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=now>0&&payWith()==='card'?Math.round(now*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,dep?'You pay now by card':'You pay by card'),el('b',null,thb(now+fee)))); amts.push(fee); }
+  $('paynote').textContent=usePlan?'You pay the first part now by card. Stripe keeps your card safe for the monthly payments, and we email you 3 days before each one. Your room is held for 30 minutes while you pay.':(dep?(!plan.monthly&&plan.due===Q.from?'You pay the deposit now and the rest when you arrive.':'You pay the deposit now. We send you a link to pay the rest before it is due.')+(DT?' '+DT:''):'You pay the whole stay now.')+' Your room is held for 30 minutes while you pay.';
+  var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&now<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=now>0&&payWith()==='card'?Math.round(now*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,dep||usePlan?'You pay now by card':'You pay by card'),el('b',null,thb(now+fee)))); amts.push(fee); }
   var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
   $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';
   /* a kind word before they pay: what this booking saves them, and the thank you gift */
@@ -456,7 +478,7 @@ function summary(){
   $('chosen').innerHTML='';
   $('chosen').appendChild(el('div',{style:'flex:1;min-width:240px'},el('b',null,rr.name+', '+(g?g.name.replace(/^[A-Z]\d+,\s*/,''):'')),el('div',{cls:'sub'},fmt(Q.from)+' to '+fmt(Q.to)+'. Group Muay Thai classes included for one guest.'),el('div',{cls:'totals'},lines),nd.length?el('div',{cls:'nudge'},nd):null));
   $('paywith').hidden=cur()!=='thb'; pick.how=payWith()==='pp'?' with Thai QR':' by card';
-  $('pay').textContent='Pay '+(dep?'deposit ':'')+(fc||thb(now+fee))+pick.how; pick.total=tot; pick.dep=!!dep; pick.label=(dep?'deposit ':'')+(fc||thb(now+fee));
+  $('pay').textContent='Pay '+(dep?'deposit ':usePlan?'first payment ':'')+(fc||thb(now+fee))+pick.how; pick.total=tot; pick.dep=!!dep; pick.plan=!!usePlan; pick.label=(dep?'deposit ':usePlan?'first payment ':'')+(fc||thb(now+fee));
   askBar(rr,tot);
 }
 function T(e,i){ try{ if(window.PK&&PK.track) PK.track(e,i); }catch(x){} }
@@ -501,15 +523,16 @@ $('guest').addEventListener('submit',function(e){ e.preventDefault(); var b=$('p
   var name=$('g-name').value.trim(), email=$('g-email').value.trim();
   if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('g-name').focus(); return; }
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can send your booking.'; err.hidden=false; $('g-email').focus(); return; }
-  T('stay_pay',payWith()+(pick.dep?', deposit':''));
+  if(pick.plan&&!$('plan-ok').checked){ err.textContent='Tick that you agree to the payment plan.'; err.hidden=false; $('plan-ok').focus(); return; }
+  T('stay_pay',payWith()+(pick.dep?', deposit':pick.plan?', plan':''));
   b.disabled=true; b.textContent=payWith()==='pp'?'Making your QR':'Opening the card payment';
-  call({mode:'reserve',guests_n:GUESTS,room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),deposit:!!pick.dep,extras:exPicks(),course:crsPrice()?INFO.course.id:null,back:location.origin+location.pathname})
+  call({mode:'reserve',guests_n:GUESTS,room_id:pick.id,from:pick.from,to:pick.to,name:name,email:email,phone:$('g-phone').value.trim(),guests:$('g-guests').value,note:$('g-note').value.trim(),ref:(window.PKREF&&PKREF())||null,ref_at:window.PKREFAT?PKREFAT():null,currency:cur(),pay:payWith(),deposit:!!pick.dep,plan:!!pick.plan,agree:!!pick.plan&&$('plan-ok').checked,extras:exPicks(),course:crsPrice()?INFO.course.id:null,back:location.origin+location.pathname})
     .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
     .catch(function(x){ b.disabled=false; b.textContent='Pay '+(pick.label||thb(pick.total))+(pick.how||' by card'); err.textContent=x.message; err.hidden=false;
       if(/just booked/.test(x.message)) $('dates').requestSubmit(); }); });
 
 function paidText(s){ var left=s&&s.total&&s.paid_thb!=null?s.total-s.paid_thb:0;
-  return s&&s.pay_now&&left>0?'Deposit received. '+thb(left)+' is left to pay, and we send you a link for it before it is due. We email you the details. See you at Pangea.':'Payment received. We email you the details. See you at Pangea.'; }
+  return s&&s.pay_now&&left>0?(s.plan?'First payment received. The next ones are taken from your saved card on their dates, and we email you 3 days before each. ':'Deposit received. '+thb(left)+' is left to pay, and we send you a link for it before it is due. ')+'We email you the details. See you at Pangea.':'Payment received. We email you the details. See you at Pangea.'; }
 /* after paying: the guest form, so the coaches know them before they arrive */
 function formBtn(box,s){ if(!s||!s.form) return;
   box.appendChild(el('div',{cls:'formnext'},el('b',null,'One more thing: tell your coaches about you'),el('p',{cls:'sub'},'About 5 minutes. Your level, your goals and a photo, so we know you when you walk in.'),
