@@ -26,12 +26,12 @@ insert into mf.template (ord, phase, kind, name, sql) values (1002232, 10, 'patc
 declare r record; d text; n text; f oid;
 begin
   for r in select * from (values
-    ('private', 'charge_purchase_to_room', 's.customer_id = new.customer_id and s.status', '(s.customer_id = new.customer_id or new.customer_id = any(s.guest_ids)) and s.status'),
-    ('private', 'private_room_charge', 's.customer_id = new.customer_id and s.status', '(s.customer_id = new.customer_id or new.customer_id = any(s.guest_ids)) and s.status'),
-    ('public', 'customer_private_pay', 's.customer_id = c.id and s.status', '(s.customer_id = c.id or c.id = any(s.guest_ids)) and s.status'),
-    ('public', 'customer_stay', 's.customer_id = v_customer and s.status', '(s.customer_id = v_customer or v_customer = any(s.guest_ids)) and s.status'),
-    ('public', 'customer_stay_as', 's.customer_id = v_customer and s.status', '(s.customer_id = v_customer or v_customer = any(s.guest_ids)) and s.status'),
-    ('public', 'shop_app_order', 'where customer_id = me_c and status', 'where (customer_id = me_c or me_c = any(guest_ids)) and status')
+    ('__Q__', 'charge_purchase_to_room', 's.customer_id = new.customer_id and s.status', '(s.customer_id = new.customer_id or new.customer_id = any(s.guest_ids)) and s.status'),
+    ('__Q__', 'private_room_charge', 's.customer_id = new.customer_id and s.status', '(s.customer_id = new.customer_id or new.customer_id = any(s.guest_ids)) and s.status'),
+    ('__P__', 'customer_private_pay', 's.customer_id = c.id and s.status', '(s.customer_id = c.id or c.id = any(s.guest_ids)) and s.status'),
+    ('__P__', 'customer_stay', 's.customer_id = v_customer and s.status', '(s.customer_id = v_customer or v_customer = any(s.guest_ids)) and s.status'),
+    ('__P__', 'customer_stay_as', 's.customer_id = v_customer and s.status', '(s.customer_id = v_customer or v_customer = any(s.guest_ids)) and s.status'),
+    ('__P__', 'shop_app_order', 'where customer_id = me_c and status', 'where (customer_id = me_c or me_c = any(guest_ids)) and status')
   ) v(sch, fn, a, b) loop
     for f in select p.oid from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace where ns.nspname = r.sch and p.proname = r.fn loop
       d := pg_get_functiondef(f);
