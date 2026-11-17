@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=212"></script>
+<script src="changelog.js?v=213"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -937,6 +937,7 @@ var FEATURES=[
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
+  {k:'room_360',g:'Rooms',n:'Room 360 photos',d:'A Look inside in 360 button on each room type on the website booking page. Guests drag around the room before they book. Add the photos in Settings, Website, Room 360 photos.',spa:false},
   {k:'backdated_pay',g:'Money',n:'Late entered sales count on the day bought',d:'When you add a package today with an earlier Bought date and take the payment as you add it, the money counts in the accounts on the day it was bought, not today. A package added back then and paid now still counts today.',spa:true},
   {k:'stay_share',g:'Rooms',n:'Sharing a room',d:'Link someone to a room booked under another guest\'s name (on their customer page, Sharing a room). They can then charge packages, privates, shop and cafe to that room\'s bill, and see the room in their app.',spa:true},
   {k:'stay_plan',g:'Rooms',n:'Payment plan for long stays',d:'Long stays booked well ahead can pay on the website with a payment plan: a first part now, then the same amount each month from the saved card, and the rest on arrival. Set it in Settings, Website offer. Failed payments get a pay link and are tried again; not paid in time, the booking is cancelled and payments are kept.',spa:false},
@@ -1095,7 +1096,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=157; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=158; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
@@ -10940,7 +10941,7 @@ function vSettings(){
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
-  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),mgr&&!SPA&&featOn('site_tour')&&can('settings')?tourSection():null,SPA?null:webTextSection(),SPA?null:blogSection()];
+  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),mgr&&!SPA&&featOn('site_tour')&&can('settings')?tourSection():null,mgr&&!SPA&&featOn('room_360')&&can('settings')?room360Section():null,SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
@@ -12390,6 +12391,32 @@ function galleryVideo(){
       g.stay_video=u; return saveGallery(g); }});
 }
 /* Gym tour on the website (feature site_tour): the aerial photo, its areas, and the photos of each area */
+/* Room 360 photos (feature room_360): 360 photos of each room type, opened from "Look inside in 360" on the booking page */
+var R360=null;
+function room360Save(v,msg){ return sb.rpc('room_360_save',{p:v}).then(function(r){ if(r.error) throw r.error; R360=r.data||v; schedule(); if(msg) toast(msg); }); }
+function room360Section(){
+  if(R360===null){ R360=false; sb.rpc('room_360').then(function(r){ R360=(r&&!r.error&&r.data)||{}; schedule(); }).catch(function(){ R360={}; schedule(); }); }
+  if(RATES===null){ RATES=false; loadRates().catch(function(){ RATES=null; }); }
+  var gs=(RATES&&RATES.groups)||[], v=R360||{};
+  function pic(g){ tourPick(false,function(files){ var f=files[0]; WEBP.busy='r360'+g.id; schedule(); toast('Uploading the 360 photo.');
+    shrinkPhoto(f,4096).then(function(blob){ var path='site/room360-'+g.id+'-'+Date.now()+'.jpg';
+      return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error;
+        var n=Object.assign({},v); n[g.id]=(n[g.id]||[]).concat([{url:sb.storage.from('promos').getPublicUrl(path).data.publicUrl,caption:''}]); return room360Save(n,'360 photo added to '+g.name+'.'); }); })
+      .catch(function(e){ toast(errText(e)); }).then(function(){ WEBP.busy=null; schedule(); }); }); }
+  function edit(g,j){ var l=(v[g.id]||[]).slice(), x=l[j];
+    openForm({title:g.name+', 360 photo '+(j+1),values:{caption:x.caption||''},fields:[{key:'caption',label:'Name on the button',hint:'Short, for example: Bedroom, Bathroom, View from the door. Up to 40 letters.'}],saveLabel:'Save',doneMsg:'Saved.',
+      extraBtn:['Remove',function(){ $dlg.close(); l.splice(j,1); var n=Object.assign({},v); n[g.id]=l; room360Save(n,'Removed.').catch(function(e){ toast(errText(e)); }); }],
+      onSave:function(f){ l[j]=Object.assign({},x,{caption:f.caption.trim().slice(0,40)}); var n=Object.assign({},v); n[g.id]=l; return room360Save(n); }});
+    document.querySelectorAll('dialog input').forEach(function(i){ i.classList.add('notr'); }); }
+  return h('div',{style:'margin:18px 0 6px'},h('h3',{style:'margin:0'},'Room 360 photos'),
+    h('p',{class:'sub'},'Guests tap Look inside in 360 on each room type on the booking page. Use the flat 360 photo from your 360 camera (twice as wide as it is tall).'),
+    !RATES||R360===false?h('div',{class:'panel empty'},'Loading.'):!gs.length?h('div',{class:'panel empty'},'Add your room price groups first, in Rooms, Room prices.'):
+    gs.map(function(g){ var l=v[g.id]||[], busy=WEBP.busy==='r360'+g.id;
+      return h('div',{class:'panel pad',style:'margin-top:8px'},h('div',{class:'row',style:'justify-content:space-between;align-items:center;gap:8px'},h('b',{class:'notr'},g.name),btn(busy?'Uploading.':'Add 360 photo',function(){ if(!WEBP.busy) pic(g); },'small')),
+        l.length?h('div',{style:'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px'},l.map(function(x,j){ return h('button',{type:'button',onclick:function(){ edit(g,j); },style:'padding:0;border:0;border-radius:6px;overflow:hidden;width:160px;cursor:pointer;background:#222;text-align:left','aria-label':'Edit 360 photo '+(j+1)},
+          h('img',{src:/^img\//.test(x.url)?'pk/'+x.url:x.url,alt:'',loading:'lazy',style:'width:160px;height:80px;object-fit:cover;display:block'}),h('span',{class:'notr',style:'display:block;padding:4px 6px;font-size:12px;color:#fff'},x.caption||'360 photo')); }))
+          :h('p',{class:'sub',style:'margin:6px 0 0'},'No 360 photos yet.')); }));
+}
 var TOUR=null;
 function tourLoad(){ TOUR=false; sb.rpc('site_tour').then(function(r){ TOUR=(r&&!r.error&&r.data)||{}; if(!Array.isArray(TOUR.zones)) TOUR.zones=[]; schedule(); }).catch(function(){ TOUR={zones:[]}; schedule(); }); }
 function tourImg(){ var u=(TOUR&&TOUR.image)||'img/gym-aerial.jpg'; return /^img\//.test(u)?'pk/'+u:u; }

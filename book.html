@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://jijnshwduhgegacfvpkh.supabase.co; connect-src https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://www.youtube-nocookie.com; media-src 'self' https://jijnshwduhgegacfvpkh.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://jijnshwduhgegacfvpkh.supabase.co; connect-src 'self' blob: https://jijnshwduhgegacfvpkh.supabase.co; frame-src https://www.youtube-nocookie.com; media-src 'self' https://jijnshwduhgegacfvpkh.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Stay at Pangea Resort | Lakeside Bungalows at Phuket King, Kathu</title>
 <meta name="description" content="Book a lakeside bungalow at Pangea Resort, Kathu, Phuket, home of Phuket King Muay Thai. See which rooms are free on the map and pay securely by card or Thai QR.">
@@ -94,6 +94,7 @@ h2 em{font-style:normal;color:var(--gold)}
 .pw input{width:auto;min-height:0;margin-top:3px}.pw span{display:flex;flex-direction:column}.pw small{color:var(--muted);font-size:13px}
 .pw:has(input:checked){border-color:var(--btn);box-shadow:0 0 0 1px var(--btn)}
 @media (max-width:640px){.paywith{grid-template-columns:1fr}}
+.look360{margin:8px 0 4px;font-size:14px;padding:8px 14px}
 .planagree{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;line-height:1.45}.planagree input{width:auto;min-height:0;margin-top:3px;flex:none}.pw[hidden],.planagree[hidden]{display:none}
 .ppqr{max-width:280px;margin:12px auto;background:#fff;padding:10px;border-radius:12px}.ppqr svg{width:100%;height:auto;display:block}
 .ppsteps{padding-left:20px;margin:12px 0;text-align:left}.ppsteps li{margin:0 0 6px}
@@ -308,6 +309,10 @@ function md(m){ return new Date('2026-'+m+'T00:00:00Z').toLocaleDateString('en-G
 function call(body){ return fetch(FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify(body)}).then(function(r){ return r.json(); }).then(function(d){ if(d&&d.error) throw new Error(d.error); return d; }); }
 function show(id,on){ $(id).hidden=!on; }
 function room(id){ return (INFO.rooms||[]).filter(function(r){ return r.id===id; })[0]; }
+/* 360 photos of each room type (Settings, Website, Room 360 photos) */
+var R360={}; if(window.PK&&PK.rest) PK.rest('rpc/room_360').then(function(d){ R360=d&&typeof d==='object'?d:{}; if(Q&&Q.rooms) try{ render(); }catch(e){} }).catch(function(){});
+function look360(g){ var l=R360[g.id]; if(!window.PKPano||!Array.isArray(l)||!l.length) return null;
+  return el('button',{type:'button',cls:'btn look360',onclick:function(){ PKPano.open({title:g.name.replace(/^[A-Z]\d+,\s*/,''),scenes:l}); }},'Look inside in 360'); }
 function group(id){ return (INFO.groups||[]).filter(function(g){ return g.id===id; })[0]; }
 function short(n){ return String(n).replace(/^Mango Grove /,'MG ').replace(/^Lake View /,'LV ').replace(/ \(single\)$/,''); }
 
@@ -363,7 +368,7 @@ function render(){
     if(q){ var by=[]; q.nights.forEach(function(n){ var l=by.filter(function(x){ return x.s===n.season&&x.p===n.price; })[0]; if(l) l.n++; else by.push({s:n.season,p:n.price,n:1}); });
       parts=by.map(function(x){ return x.n+' night'+(x.n===1?'':'s')+' '+x.s+' at '+thb(x.p); }); }
     var chosen=pick&&rs.some(function(r){ return r.id===pick.id; });
-    gs.appendChild(el('div',{cls:'g'+(chosen?' chosen':'')},el('h3',null,g.name.replace(/^[A-Z]\d+,\s*/,'')),el('div',{cls:'sub'},g.note||''),
+    gs.appendChild(el('div',{cls:'g'+(chosen?' chosen':'')},el('h3',null,g.name.replace(/^[A-Z]\d+,\s*/,'')),el('div',{cls:'sub'},g.note||''),look360(g),
       q?el('div',null,q.full>q.total?el('span',{cls:'was'},thb(q.full)):null,el('span',{cls:'price'},thb(q.total)),el('span',{cls:'sub'},' for '+Q.nights+' night'+(Q.nights===1?'':'s'))):el('div',{cls:'err'},'Full for these dates'),
       q&&q.full>q.total?el('div',{cls:'offnote'},q.monthly?'Monthly price'+(q.promo?' with '+q.promo:'')+', you save '+thb(q.full-q.total):'You save '+thb(q.full-q.total)+(q.promo?', '+q.promo:' booking direct')):null,
       (INFO.offer||{}).includes?el('div',{cls:'incl'},'\u2713 '+INFO.offer.includes):null,
@@ -571,6 +576,7 @@ call({mode:'info'}).then(function(d){ INFO=d;
 </script>
 <script src="pk/qrcode.js?v=1"></script>
 <script src="pk/site.js?v=23"></script>
+<script src="pk/pano.js?v=1"></script>
 <script src="pk/chat.js?v=2" defer></script>
 <script src="pk/reviews.js?v=1" defer></script>
 <script>
