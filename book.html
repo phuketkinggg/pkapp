@@ -240,6 +240,7 @@ document.querySelectorAll('input[name=pw],input[name=hm]').forEach(function(r){ 
 function seasonAt(d){ var md=d.slice(5), hit=null; (INFO.seasons||[]).forEach(function(s){ if(!s.base&&(s.ranges||[]).some(function(r){ return r.from&&r.to&&(r.from<=r.to?md>=r.from&&md<=r.to:md>=r.from||md<=r.to); })) hit=s; });
   return hit||(INFO.seasons||[]).filter(function(s){ return s.base; })[0]||null; }
 function depPlan(room,extras,monthly){ var D=(INFO.offer||{}).deposit, n=Q.nights; if(!D||!D.on||n<D.nights||!(room>0)) return null;
+  monthly=monthly&&D.month_first!==false;
   var mn=INFO.month_nights||28, due=monthly?addDays(Q.from,mn-7):addDays(Q.from,-D.balance_days); if(!monthly&&due<=addDays(today,2)) return null;
   var s=seasonAt(Q.from), high=!!s&&!s.base, dep=Math.max(room*(high?D.high_pct:D.pct)/100,room*Math.min(D.min_nights,n)/n);
   if(monthly) dep=Math.max(dep,room*Math.min(mn,n)/n);
@@ -437,10 +438,11 @@ function summary(){
   var amts=[r.total]; (INFO.extras||[]).forEach(function(e){ var pr=exPrice(e,EX[e.id]); if(pr>0) amts.push(pr); }); if(crsPrice()) amts.push(crsPrice());
   var plan=depPlan(r.total,ex,!!r.monthly); $('howmuch').hidden=!plan;
   if(plan){ $('hm-all').textContent=thb(tot)+' now.'; $('hm-depb').textContent='A deposit, '+thb(plan.now);
-    $('hm-dep').textContent='Then '+thb(plan.rest)+(plan.monthly?' month by month, each month 7 days before it starts.':' by '+fmt(plan.due)+'.'); }
+    $('hm-dep').textContent='Then '+thb(plan.rest)+(plan.monthly?' month by month, each month 7 days before it starts.':plan.due===Q.from?' when you arrive.':' by '+fmt(plan.due)+'.'); }
   var dep=plan&&wantDep(), now=dep?plan.now:tot;
-  if(dep){ lines.push(el('div',{cls:'offnote'},el('span',null,'Deposit, pay now'),el('span',null,thb(plan.now)))); lines.push(el('div',null,el('span',null,plan.monthly?'Then month by month':'Then by '+fmt(plan.due)),el('span',null,thb(plan.rest)))); amts=[plan.now]; }
-  $('paynote').textContent=(dep?'You pay the deposit now. We send you a link to pay the rest before it is due.':'You pay the whole stay now.')+' Your room is held for 30 minutes while you pay.';
+  if(dep){ lines.push(el('div',{cls:'offnote'},el('span',null,'Deposit, pay now'),el('span',null,thb(plan.now)))); lines.push(el('div',null,el('span',null,plan.monthly?'Then month by month':plan.due===Q.from?'Then on arrival':'Then by '+fmt(plan.due)),el('span',null,thb(plan.rest)))); amts=[plan.now]; }
+  var DT=((INFO.offer||{}).deposit||{}).terms||'';
+  $('paynote').textContent=(dep?(!plan.monthly&&plan.due===Q.from?'You pay the deposit now and the rest when you arrive.':'You pay the deposit now. We send you a link to pay the rest before it is due.')+(DT?' '+DT:''):'You pay the whole stay now.')+' Your room is held for 30 minutes while you pay.';
   var pct=Number(INFO.card_pct)||0, cfx=INFO.card_fixed!=null&&now<(INFO.card_fixed_under!=null?Number(INFO.card_fixed_under):2000)?Number(INFO.card_fixed)||0:0, fee=now>0&&payWith()==='card'?Math.round(now*pct/100)+cfx:0; if(fee>0){ lines.push(el('div',null,el('span',null,'Card fee ('+pct+'%'+(cfx?' + '+cfx+' THB':'')+')'),el('span',null,thb(fee)))); lines.push(el('div',null,el('b',null,dep?'You pay now by card':'You pay by card'),el('b',null,thb(now+fee)))); amts.push(fee); }
   var fc=inCur(amts); if(fc) lines.push(el('div',null,el('span',null,'You pay in '+cur().toUpperCase()),el('b',null,fc)));
   $('curnote').hidden=!fc; if(fc) $('curnote').textContent='Charged in '+CURN[cur()]+' at today\'s rate, worked out from our Thai baht price.';

@@ -25526,5 +25526,25 @@
 "Only money paid somewhere else before arrival, for example a bank transfer or a deposit taken by a booking site. Card payments on your website or in the app are counted by themselves.": [
 "เฉพาะเงินที่ชำระที่อื่นก่อนมาถึง เช่น โอนผ่านธนาคาร หรือมัดจำที่เว็บจองเก็บไป การชำระด้วยบัตรบนเว็บไซต์หรือในแอปจะนับให้อัตโนมัติ",
 "ရောက်မလာမီ အခြားနေရာတွင် ပေးချေသော ငွေသာ၊ ဥပမာ ဘဏ်လွှဲ သို့မဟုတ် ကြိုတင်မှာယူသည့်ဆိုက်က ယူသော စရံ။ ဝက်ဘ်ဆိုက် သို့မဟုတ် အက်ပ်ရှိ ကတ်ပေးချေမှုများကို အလိုအလျောက် ရေတွက်သည်။"
+],
+"Monthly price stays pay the first month up front": [
+"การพักราคารายเดือนจ่ายเดือนแรกล่วงหน้า",
+"လစဉ်စျေးဖြင့် တည်းခိုသူများ ပထမလကို ကြိုပေးရမည်"
+],
+"Deposit terms shown before paying": [
+"เงื่อนไขมัดจำที่แสดงก่อนชำระ",
+"ငွေမပေးမီ ပြသော စရံ စည်းကမ်းများ"
+],
+"0 means the rest is paid when they arrive. Stays starting within 2 days pay in full.": [
+"0 คือจ่ายส่วนที่เหลือเมื่อมาถึง การพักที่เริ่มภายใน 2 วันจ่ายเต็มจำนวน",
+"0 ဆိုလျှင် ကျန်ငွေကို ရောက်ချိန်တွင် ပေးသည်။ ၂ ရက်အတွင်း စတင်သော တည်းခိုမှုများ အပြည့်ပေးရသည်။"
+],
+"On: stays on a monthly price pay at least the first month, then month by month. Off: they get the same deposit as other long stays, and the rest when it is due.": [
+"เปิด: การพักราคารายเดือนจ่ายอย่างน้อยเดือนแรก แล้วจ่ายรายเดือน ปิด: ใช้มัดจำเหมือนการพักยาวอื่น และจ่ายส่วนที่เหลือเมื่อถึงกำหนด",
+"ဖွင့်- လစဉ်စျေး တည်းခိုမှုများ အနည်းဆုံး ပထမလ ပေးပြီး လစဉ်ပေးသည်။ ပိတ်- အခြား ကြာရှည်တည်းခိုမှုကဲ့သို့ စရံပေးပြီး ကျန်ငွေကို သတ်မှတ်ရက်တွင် ပေးသည်။"
+],
+"For example: The deposit is not refundable if you cancel or do not arrive.": [
+"ตัวอย่าง: มัดจำไม่สามารถขอคืนได้หากยกเลิกหรือไม่มา",
+"ဥပမာ- ပယ်ဖျက်ပါက သို့မဟုတ် မလာပါက စရံ ပြန်မအမ်းပါ။"
 ]
 }

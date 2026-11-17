@@ -121,7 +121,7 @@ function quote(R: Rates, g: Group, from: string, to: string) {
 // the website offer (app_settings stay_offer): a direct booking discount on the room, and a gift for long stays
 // deposit: from "nights" nights the guest can pay part now (pct % of the room, high_pct % when they arrive in a busier season, never less than min_nights nights),
 // extras in full; the rest is due balance_days days before arrival. Monthly price stays pay at least the first month.
-type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number };
+type Deposit = { on: boolean; nights: number; pct: number; high_pct: number; min_nights: number; balance_days: number; month_first: boolean; terms: string };
 type Promo = { id: string; name: string; text: string; from: string; to: string; pct: number; book_by: string; limit: number; free: string; left: number | null };
 type Offer = { on: boolean; pct: number; gift_nights: number; gift: string; includes: string; month_banner: string; all_include: string; deposit: Deposit; quote: boolean; promos: Promo[];
   nudge: boolean; vgift: { over: number; text: string } | null };
@@ -135,7 +135,9 @@ async function offer(): Promise<Offer> {
     month_banner: String(j.month_banner ?? "").trim().slice(0, 80), all_include: String(j.all_include ?? "").trim().slice(0, 120),
     // the deposit and "email me this price" are not part of the offer switch
     deposit: { on: j.dep_on === true, nights: clampN(j.dep_nights, 14, 1, 90), pct: clampN(j.dep_pct, 30, 5, 95), high_pct: clampN(j.dep_high_pct, 50, 5, 95),
-      min_nights: clampN(j.dep_min_nights, 7, 0, 60), balance_days: clampN(j.dep_balance_days, 14, 0, 90) },
+      min_nights: clampN(j.dep_min_nights, 7, 0, 60), balance_days: clampN(j.dep_balance_days, 14, 0, 90),
+      // month_first: monthly price stays pay at least the first month, then month by month (off: the same deposit as other stays, the rest by the due date)
+      month_first: j.dep_month_first !== false, terms: String(j.dep_terms ?? "").trim().slice(0, 300) },
     quote: j.quote_on !== false,
     // a kind line with what they save, and a thank you gift for bookings over an amount (not part of the offer switch)
     nudge: j.nudge_on !== false,
@@ -171,6 +173,7 @@ const clampN = (v: unknown, d: number, lo: number, hi: number) => { const x = Ma
 // the part paid now when the guest picks the deposit (null: pay the whole stay). Same sum as book.html.
 function depositPlan(R: Rates, O: Offer, from: string, nights: number, room: number, extras: number, monthly: boolean) {
   const D = O.deposit; if (!D.on || nights < D.nights || !(room > 0)) return null;
+  monthly = monthly && D.month_first;
   const due = monthly ? addDays(from, monthNights(R) - 7) : addDays(from, -D.balance_days);
   if (!monthly && due <= addDays(today(), 2)) return null;
   const s = seasonOf(R, from), high = !!s && s.id !== R.base;
@@ -518,6 +521,8 @@ Deno.serve(async (req) => {
         p_phone: String(body.phone ?? ""), p_guests: String(body.guests ?? ""), p_note: [String(body.note ?? "").slice(0, 400), offerNote, giftNote, depNote].filter(Boolean).join("\n") });
       if (error) return json({ error: error.message });
       const stayId = (data as { stay_id: string }).stay_id;
+      // the guest came back while the room was still held: the same booking carries on, so its earlier extras are replaced by the ones chosen now
+      if ((data as { resumed?: boolean }).resumed) await admin.from("purchases").update({ cancelled: true }).eq("for_stay", stayId).eq("ordered_in_app", true).eq("paid", false);
       if (body.ref && /^[a-z0-9-]{2,30}$/i.test(String(body.ref))) await admin.rpc("affiliate_tag_stay", { p_stay: stayId, p_code: String(body.ref), p_at: isNaN(Date.parse(String(body.ref_at ?? ""))) ? null : new Date(String(body.ref_at)).toISOString() });
       try {
         if (items.length) { const { error: ie } = await admin.rpc("web_add_items", { p_stay: stayId, p_items: items }); if (ie) throw new Error(ie.message); }
