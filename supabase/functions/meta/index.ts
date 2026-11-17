@@ -650,11 +650,14 @@ Deno.serve(async (req) => {
         const phone = String(b.phone_id ?? "").trim(), waba = String(b.waba_id ?? "").trim();
         if (!/^\d{6,}$/.test(phone)) return json({ error: "The phone number ID is the long number in Meta, WhatsApp, API setup." });
         const tok = env("WA_TOKEN") || pageToken();
-        const n = await call(phone, { fields: "display_phone_number,verified_name" }, "GET", tok);
+        const n = await call(phone, { fields: "display_phone_number,verified_name,status,platform_type" }, "GET", tok);
+        // a new number only for the app: register it for sending (a random two step PIN), unless it is already on the Cloud API
+        let registered: string | boolean = n.platform_type === "CLOUD_API";
+        if (!registered) { try { await call(`${phone}/register`, {}, "POST", tok, { messaging_product: "whatsapp", pin: String(Math.floor(100000 + Math.random() * 900000)) }); registered = true; } catch (e) { registered = "failed: " + (e as Error).message; } }
         if (/^\d{6,}$/.test(waba)) { try { await call(`${waba}/subscribed_apps`, {}, "POST", tok); } catch (e) { return json({ error: "Could not switch on messages for that account: " + (e as Error).message }); } }
         await admin.rpc("wa_set", { p: { phone_id: phone, waba_id: waba, number: n.display_phone_number, name: n.verified_name, token: "", coexist: false } });
         wa = null;
-        return json({ ok: true, number: n.display_phone_number, name: n.verified_name, subs: await waSubs() });
+        return json({ ok: true, number: n.display_phone_number, name: n.verified_name, registered, subs: await waSubs() });
       }
       if (b.mode === "wa_check") {
         const l = await waLink(true);
