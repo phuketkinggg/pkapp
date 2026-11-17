@@ -61,7 +61,11 @@ function open(z){
       '<div class="gt-main">'+main+'</div><div class="gt-bot">'+(showPano&&panoImg(pano)?'<div class="gt-hint">Drag to look around. Pinch or scroll to zoom.</div>':'')+(z.text?'<p>'+esc(z.text)+'</p>':'')+
       (!showPano&&ph.length?'<div class="gt-cap">'+esc(ph[i].caption||'')+(ph.length>1?(ph[i].caption?' · ':'')+(i+1)+' of '+ph.length:'')+'</div>':'')+
       (!showPano&&ph.length>1?'<div class="gt-th">'+ph.map(function(p,j){ return '<button type="button" data-j="'+j+'" class="'+(j===i?'on':'')+'" aria-label="'+(p.video||p.yt?'Video ':'Photo ')+(j+1)+'">'+thumb(p)+'</button>'; }).join('')+'</div>':'')+'</div>';
-    var pvBox=ov.querySelector('#gt-pv'); if(pvBox) pnLoad().then(function(P){ if(!pvBox.isConnected) return; pv=P.viewer(pvBox,{type:'equirectangular',panorama:pano,autoLoad:true,autoRotate:-2,autoRotateInactivityDelay:4000,showZoomCtrl:false,showFullscreenCtrl:true,compass:false,hfov:100,crossOrigin:'anonymous'}); }).catch(function(){ pvBox.outerHTML='<div class="gt-empty"><p>The 360 view could not open here.</p></div>'; });
+    var pvBox=ov.querySelector('#gt-pv'); if(pvBox) pnLoad().then(function(P){ if(!pvBox.isConnected) return; var va=Number(z.pano_vaov)||180, cfg={type:'equirectangular',panorama:pano,autoLoad:true,autoRotate:-2,autoRotateInactivityDelay:4000,showZoomCtrl:false,showFullscreenCtrl:true,compass:false,hfov:100,crossOrigin:'anonymous'};
+      /* a 360 photo with the bottom cut off (the camera holder): the view stops at the edge of the photo */
+      if(z.pano_yaw!=null) cfg.yaw=Number(z.pano_yaw)||0;
+      if(va<180) Object.assign(cfg,{haov:360,vaov:va,vOffset:90-va/2,minPitch:90-va,maxPitch:90});
+      pv=P.viewer(pvBox,cfg); }).catch(function(){ pvBox.outerHTML='<div class="gt-empty"><p>The 360 view could not open here.</p></div>'; });
     ov.querySelectorAll('[data-wa]').forEach(function(a){ if(PK.wa){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; } });
   }
   function go(d){ if(!ph.length) return; i=(i+d+ph.length)%ph.length; draw(); }
@@ -70,7 +74,9 @@ function open(z){
   ov.addEventListener('click',function(e){ var t=e.target;
     if(t.closest('.gt-close')) return close(); if(t.closest('.gt-pano')){ showPano=!showPano; return draw(); }
     if(t.closest('.gt-prev')) return go(-1); if(t.closest('.gt-next')) return go(1);
-    var b=t.closest('[data-j]'); if(b){ i=+b.getAttribute('data-j'); draw(); } else if(t===ov) close(); });
+    var b=t.closest('[data-j]'); if(b){ i=+b.getAttribute('data-j'); draw(); } else if(t===ov&&downOv) close(); });
+  /* only a tap on the dark background closes it, not a 360 drag that ends there */
+  var downOv=false; ov.addEventListener('pointerdown',function(e){ downOv=e.target===ov; });
   var sx=null; ov.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
   ov.addEventListener('touchend',function(e){ if(sx==null||showPano) return; var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>50) go(dx<0?1:-1); sx=null; });
   document.addEventListener('keydown',key); document.body.style.overflow='hidden'; document.body.appendChild(ov); draw();
