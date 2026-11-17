@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=213"></script>
+<script src="changelog.js?v=214"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -671,7 +671,8 @@ button.hdot{cursor:pointer}.hdot.on{background:var(--ok);border-color:var(--ok);
 .cofcard{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;border-left:4px solid var(--gold)}.cofcard img{width:100%;aspect-ratio:16/7;object-fit:cover}.cofcard .in{display:flex;flex-direction:column;gap:6px;padding:14px 16px}.cofcard .crsgo{margin-left:auto;font-weight:700}
 .cmnone b{font-size:18px}
 .navlang{margin:10px 8px 4px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:14px;max-width:140px}
-.lang-th #view{line-height:1.6}.lang-th h1,.lang-my h1{text-transform:none;letter-spacing:0}
+.lang-th #view{line-height:1.6}
+body.lang-ru{--display:'Roboto Condensed','Barlow Condensed',system-ui,sans-serif;--body:'Roboto','Barlow',system-ui,sans-serif}.lang-th h1,.lang-my h1{text-transform:none;letter-spacing:0}
 .setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}.setcard{position:relative;display:flex;flex-direction:column;gap:4px;text-align:left;padding:16px 34px 16px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:inherit;font:inherit;cursor:pointer;min-height:84px}.setcard b{font-size:16px}.setcard .crsgo{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--muted)}.setcard:hover{border-color:var(--gold)}
 .setinfo{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.setinfo>div{display:flex;flex-direction:column;gap:2px;min-width:0}.setinfo b{overflow-wrap:anywhere}
 .crshero{position:relative;overflow:hidden;border-radius:16px;margin:8px 0 16px;background:linear-gradient(135deg,#1b2a4a,#3a2a6b);color:#fff;min-height:150px;display:flex;align-items:flex-end}
@@ -964,6 +965,7 @@ var FEATURES=[
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
   {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.',spa:false},
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
+  {k:'lang_ru',g:'Languages',n:'Russian',d:'Everyone can switch the app to Russian: customers, staff and coaches. Phones set to Russian start in Russian. The words are translated by AI and kept with your data; fix any of them in Settings, Languages.',def:false},
   {k:'lang_my',g:'Languages',n:'Myanmar (Burmese)',d:'Everyone can switch the app to Myanmar (Burmese). Good for staff from Myanmar.',def:false},
   {k:'course_offer',g:'Selling',n:'Course offer when buying a package or a room',d:'One online course can be offered when someone buys a package (on the website and at the desk) or books a room on the website, with its own price and words. Set it on the course, in Courses.',spa:false},
   {k:'pkg_welcome',g:'Selling',n:'Package welcome email',d:'When someone buys a training package on your website and it is paid, they get a welcome email by themselves: their package and start date, your class times, how to get the app and sign in, what to bring and where you are. Change the wording in Settings, Messages, Package welcome email.'},
@@ -1071,36 +1073,36 @@ function sbFetch(url,opts){ return fetch(url,opts).then(function(r){
 document.addEventListener('visibilitychange',function(){ try{ if(typeof sb==='undefined'||!sb||!sb.auth) return; if(document.visibilityState==='visible'){ sb.auth.startAutoRefresh(); sb.auth.getSession(); } else sb.auth.stopAutoRefresh(); }catch(e){} });
 function featOn(k){ var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(platLocked(k)) return platCfg().lock[k]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
 /* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
-var LANGED={q:'',th:null,my:null,fix:null};
-function langLoadAll(){ ['th','my'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
-    var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+I18N_V; sc.onload=function(){ LANGED[l]=(window['I18N_'+l]||{}).d||{}; schedule(); }; document.head.appendChild(sc); });
+var LANGED={q:'',th:null,my:null,ru:null,fix:null};
+function langLoadAll(){ ['th','my','ru'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
+    i18nGet(l).then(function(){ LANGED[l]=(window['I18N_'+l]||{}).d||{}; schedule(); }); });
   if(!LANGED.fix){ LANGED.fix={}; sb.rpc('i18n_fixes').then(function(r){ LANGED.fix=(r&&r.data)||{}; schedule(); },function(){}); } }
 function langSave(fix){ return sb.from('app_settings').update({value:JSON.stringify(fix),updated_at:new Date().toISOString()}).eq('key','i18n_fix').select('key').then(must).then(function(d){ if(!d||!d.length) throw new Error('Only a manager can change this.'); LANGED.fix=fix; I18N.fix=fix; if(I18N.d) trBuild(); }); }
 function langEdit(k){ var f=LANGED.fix[k]||{};
-  openForm({title:'Fix a translation',note:k,values:{th:f.th||(LANGED.th||{})[k]||'',my:f.my||(LANGED.my||{})[k]||''},
-    fields:[featOn('lang_th')?{key:'th',label:'Thai',type:'textarea',rows:3}:null,featOn('lang_my')?{key:'my',label:'Myanmar (Burmese)',type:'textarea',rows:3}:null].filter(Boolean),
+  openForm({title:'Fix a translation',note:k,values:{th:f.th||(LANGED.th||{})[k]||'',my:f.my||(LANGED.my||{})[k]||'',ru:f.ru||(LANGED.ru||{})[k]||''},
+    fields:[featOn('lang_th')?{key:'th',label:'Thai',type:'textarea',rows:3}:null,featOn('lang_my')?{key:'my',label:'Myanmar (Burmese)',type:'textarea',rows:3}:null,featOn('lang_ru')?{key:'ru',label:'Russian',type:'textarea',rows:3}:null].filter(Boolean),
     saveLabel:'Save',doneMsg:'Saved. Everyone sees it next time the app opens.',
-    onSave:function(v){ var fix=JSON.parse(JSON.stringify(LANGED.fix||{})); fix[k]={th:v.th||'',my:v.my||''}; return langSave(fix); },
+    onSave:function(v){ var fix=JSON.parse(JSON.stringify(LANGED.fix||{})); fix[k]={th:v.th||'',my:v.my||'',ru:v.ru||''}; return langSave(fix); },
     onDelete:LANGED.fix[k]?function(){ var fix=JSON.parse(JSON.stringify(LANGED.fix)); delete fix[k]; return langSave(fix); }:null});
   document.querySelectorAll('dialog textarea').forEach(function(t){ t.classList.add('notr'); }); }
 function langSection(){ langLoadAll();
-  var q=LANGED.q.trim().toLowerCase(), keys=Object.keys(LANGED.th&&Object.keys(LANGED.th).length?LANGED.th:LANGED.my||{});
-  var fixed=Object.keys(LANGED.fix||{}), list=q?keys.filter(function(k){ return k.toLowerCase().indexOf(q)>=0||String((LANGED.th||{})[k]||'').indexOf(LANGED.q.trim())>=0||String((LANGED.my||{})[k]||'').indexOf(LANGED.q.trim())>=0; }).slice(0,30):fixed.slice(0,30);
+  var q=LANGED.q.trim().toLowerCase(), keys=Object.keys(LANGED.th&&Object.keys(LANGED.th).length?LANGED.th:LANGED.my&&Object.keys(LANGED.my).length?LANGED.my:LANGED.ru||{});
+  var fixed=Object.keys(LANGED.fix||{}), list=q?keys.filter(function(k){ return k.toLowerCase().indexOf(q)>=0||String((LANGED.th||{})[k]||'').indexOf(LANGED.q.trim())>=0||String((LANGED.my||{})[k]||'').indexOf(LANGED.q.trim())>=0||String((LANGED.ru||{})[k]||'').toLowerCase().indexOf(q)>=0; }).slice(0,30):fixed.slice(0,30);
   return section('Languages',null,h('div',{class:'notr',translate:'no'},
-    h('p',{class:'sub'},'Staff and customers pick English'+(featOn('lang_th')?', Thai':'')+(featOn('lang_my')?', Myanmar':'')+' at the bottom of the menu. Phones set to Thai start in Thai. Turn languages on or off in Features. If a word reads wrong, search it here (in English, or in the language) and fix it.'),
+    h('p',{class:'sub'},'Staff and customers pick English'+(featOn('lang_th')?', Thai':'')+(featOn('lang_my')?', Myanmar':'')+(featOn('lang_ru')?', Russian':'')+' at the bottom of the menu. Phones set to Thai start in Thai. Turn languages on or off in Features. If a word reads wrong, search it here (in English, or in the language) and fix it.'),
     h('input',{id:'lang-q',type:'search',placeholder:'Search a word or sentence',value:LANGED.q,oninput:function(e){ LANGED.q=e.target.value; schedule(); }}),
     list.length?h('div',{class:'panel'},list.map(function(k){ var f=LANGED.fix[k]||{};
       return h('button',{type:'button',class:'lrow',onclick:function(){ langEdit(k); }},h('span',{class:'lt'},h('b',null,k),
-        featOn('lang_th')?h('small',{class:'sub'},'ไทย: '+(f.th||(LANGED.th||{})[k]||'')):null,featOn('lang_my')?h('small',{class:'sub'},'မြန်မာ: '+(f.my||(LANGED.my||{})[k]||'')):null),f.th||f.my?chip('Fixed','ok'):null); })):
+        featOn('lang_th')?h('small',{class:'sub'},'ไทย: '+(f.th||(LANGED.th||{})[k]||'')):null,featOn('lang_my')?h('small',{class:'sub'},'မြန်မာ: '+(f.my||(LANGED.my||{})[k]||'')):null,featOn('lang_ru')?h('small',{class:'sub'},'Русский: '+(f.ru||(LANGED.ru||{})[k]||'')):null),f.th||f.my||f.ru?chip('Fixed','ok'):null); })):
       h('p',{class:'sub'},q?'Nothing found.':'No fixes yet.')));
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
 var I18N_V=158; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
-function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':'en'; }
-  return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))?l:'en'; }
-function LOC(){ return I18N.l==='th'?'th-TH-u-ca-gregory':I18N.l==='my'?'my-MM-u-nu-latn':'en-GB'; }
+function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
+  return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
+function LOC(){ return I18N.l==='th'?'th-TH-u-ca-gregory':I18N.l==='my'?'my-MM-u-nu-latn':I18N.l==='ru'?'ru-RU':'en-GB'; }
 function trWord(t){ if(I18N.l==='en'||!I18N.d||!t) return t; var core=t.trim(); if(!core||!/[A-Za-z]/.test(core)) return t;
   var hit=I18N.c[t]; if(hit!==undefined) return hit;
   var f=I18N.fix[core], v=f&&f[I18N.l]||I18N.d[core], out;
@@ -1125,17 +1127,24 @@ function trBuild(){ var keys=Object.keys(I18N.d).concat(Object.keys(I18N.fix)).f
   try{ I18N.rx=keys.length?new RegExp(alt,'g'):null; }catch(e){ try{ I18N.rx=new RegExp(keys.map(esc).join('|'),'g'); }catch(e2){ I18N.rx=null; } } I18N.c={}; }
 function setUiLang(l,quiet){ pref('pk_ui_lang',l==='en'?null:l); pref('pk_ui_lang_set','1');
   /* the staff screens that already had their own language follow */
-  pref('pk_lang_coach',l==='th'?'th':null); pref('pk_lang',l==='my'?'my':null); pref('pk_lang_mt',l==='en'?null:l);
+  pref('pk_lang_coach',l==='th'?'th':null); pref('pk_lang',l==='my'?'my':null); pref('pk_lang_mt',l==='th'||l==='my'?l:null);
   if(quiet) return uiApply(); location.reload(); }
-function uiApply(){ var l=uiLang(); I18N.l=l; document.documentElement.lang=l; document.body.classList.toggle('lang-my',l==='my'); document.body.classList.toggle('lang-th',l==='th');
+function uiApply(){ var l=uiLang(); I18N.l=l; document.documentElement.lang=l; document.body.classList.toggle('lang-my',l==='my'); document.body.classList.toggle('lang-th',l==='th'); document.body.classList.toggle('lang-ru',l==='ru');
+  /* Russian: the app's own fonts have no Cyrillic, so a matching pair that does */
+  if(l==='ru'&&!document.getElementById('font-ru')){ var fl=document.createElement('link'); fl.id='font-ru'; fl.rel='stylesheet'; fl.href='https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@600;700&family=Roboto:wght@400;500;700&display=swap'; document.head.appendChild(fl); }
   if(l==='en') return Promise.resolve();
-  return new Promise(function(ok){ if(window['I18N_'+l]) return ok(); var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+I18N_V; sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); })
+  return i18nGet(l)
     .then(function(){ var src=window['I18N_'+l]; if(!src) { I18N.l='en'; return; } I18N.d=src.d; I18N.part=src.p||{}; trBuild();
       if(!I18N.obs){ I18N.obs=new MutationObserver(function(ms){ if(I18N.l==='en') return; ms.forEach(function(m){ if(m.type==='characterData') trNode(m.target); else m.addedNodes.forEach(trNode); }); });
         I18N.obs.observe(document.body,{childList:true,subtree:true,characterData:true}); }
       trNode(document.body); i18nFixLoad(); }); }
+/* the words for a language: Thai and Myanmar come with the app (i18n-th.js, i18n-my.js); Russian is translated by AI and kept in the database (i18n_pack) */
+var I18N_DB=['ru'];
+function i18nGet(l){ return new Promise(function(ok){ if(window['I18N_'+l]) return ok();
+  if(I18N_DB.indexOf(l)>=0){ if(!window.sb||!sb.rpc) return ok(); sb.rpc('i18n_pack',{p_lang:l}).then(function(r){ var d=r&&!r.error&&r.data; if(d&&d.d&&Object.keys(d.d).length) window['I18N_'+l]={d:d.d,p:d.p||{}}; ok(); },function(){ ok(); }); return; }
+  var sc=document.createElement('script'); sc.src='i18n-'+l+'.js?v='+I18N_V; sc.onload=ok; sc.onerror=ok; document.head.appendChild(sc); }); }
 function i18nFixLoad(){ if(!window.sb||!sb.rpc) return; sb.rpc('i18n_fixes').then(function(r){ if(r&&!r.error&&r.data&&typeof r.data==='object'){ I18N.fix=r.data; trBuild(); I18N.seen=new WeakMap(); trNode(document.body); } },function(){}); }
-function langPick(){ var ls=[['en','English']].concat(featOn('lang_th')?[['th','ไทย']]:[]).concat(featOn('lang_my')?[['my','မြန်မာ']]:[]); if(ls.length<2) return null;
+function langPick(){ var ls=[['en','English']].concat(featOn('lang_th')?[['th','ไทย']]:[]).concat(featOn('lang_my')?[['my','မြန်မာ']]:[]).concat(featOn('lang_ru')?[['ru','Русский']]:[]); if(ls.length<2) return null;
   return h('select',{class:'navlang notr','aria-label':'Language',translate:'no',onchange:function(e){ setUiLang(e.target.value); }},ls.map(function(x){ return h('option',{value:x[0],selected:I18N.l===x[0]},x[1]); })); }
 function tabOn(t){ if(platHidden(t)) return false; if(!stepTabOk(t)) return false; var f=FEATURES.filter(function(x){ return (x.tabs||[]).indexOf(t)>=0; })[0]; return f?featOn(f.k):true; }
 /* Start in easy steps (feature onboard_steps): a new business sees one part of the app at a time, and moves on when it is ready.
