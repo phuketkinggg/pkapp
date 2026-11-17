@@ -47,8 +47,8 @@ begin
   if not exists (select 1 from public.stay_plans where status in ('pending', 'active')) then return; end if;
   select value into base from private.sync_settings where key = 'functions_url';
   select value into tok from private.sync_settings where key = 'sync_token';
-  if base is null or tok is null then return; end if;
-  perform net.http_post(url := base || '/book', headers := jsonb_build_object('Content-Type', 'application/json', 'x-sync-token', tok),
+  if tok is null then return; end if;
+  perform net.http_post(url := coalesce(base, 'https://jijnshwduhgegacfvpkh.supabase.co/functions/v1') || '/book', headers := jsonb_build_object('Content-Type', 'application/json', 'x-sync-token', tok),
     body := '{"mode":"plans"}'::jsonb, timeout_milliseconds := 120000);
 end $f$;
 revoke all on function private.stay_plans_run() from public, anon, authenticated;
