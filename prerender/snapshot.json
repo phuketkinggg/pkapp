@@ -1,5 +1,5 @@
 {
- "at": "2026-11-14T18:14:33Z",
+ "at": "2026-11-17T12:54:36Z",
  "classes": [
   {
    "day": 0,
@@ -222,6 +222,14 @@
   },
   {
    "covers": [
+    "Muay Thai",
+    "Striking"
+   ],
+   "name": "Fighter Techniques with Kru Pot",
+   "price": 200
+  },
+  {
+   "covers": [
     "Fitness zone",
     "Open gym"
    ],
@@ -231,10 +239,10 @@
   {
    "covers": [
     "Muay Thai",
-    "Striking"
+    "Kids"
    ],
-   "name": "Fighter Techniques with Kru Pot",
-   "price": 200
+   "name": "Kids, 1 class",
+   "price": 300
   },
   {
    "covers": [
@@ -245,11 +253,10 @@
   },
   {
    "covers": [
-    "Muay Thai",
-    "Kids"
+    "Yoga"
    ],
-   "name": "Kids, 1 class",
-   "price": 300
+   "name": "Yoga, 1 Session",
+   "price": 400
   },
   {
    "covers": [],
@@ -261,13 +268,6 @@
     "Muay Thai"
    ],
    "name": "Training Only, 1 Session",
-   "price": 400
-  },
-  {
-   "covers": [
-    "Yoga"
-   ],
-   "name": "Yoga, 1 Session",
    "price": 400
   },
   {
@@ -330,9 +330,10 @@
   },
   {
    "covers": [
-    "Spa"
+    "Muay Thai",
+    "Kids"
    ],
-   "name": "Spa Access, 1 Week",
+   "name": "Kids monthly, 8am or 6:30pm class  (Under 15s)",
    "price": 1800
   },
   {
@@ -345,11 +346,17 @@
   },
   {
    "covers": [
-    "Muay Thai",
-    "Kids"
+    "Spa"
    ],
-   "name": "Kids monthly, 8am or 6:30pm class  (Under 15s)",
+   "name": "Spa Access, 1 Week",
    "price": 1800
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "Training Only, 1 Week",
+   "price": 2500
   },
   {
    "covers": [
@@ -370,13 +377,6 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "Training Only, 1 Week",
-   "price": 2500
-  },
-  {
-   "covers": [
-    "Muay Thai"
-   ],
    "name": "Ed visa letter fee",
    "price": 3000
   },
@@ -389,17 +389,17 @@
   },
   {
    "covers": [
-    "Muay Thai",
-    "Kids"
+    "Yoga"
    ],
-   "name": "2+1 Free for kids",
+   "name": "Yoga, 10 Sessions",
    "price": 3600
   },
   {
    "covers": [
-    "Yoga"
+    "Muay Thai",
+    "Kids"
    ],
-   "name": "Yoga, 10 Sessions",
+   "name": "2+1 Free for kids",
    "price": 3600
   },
   {
@@ -496,14 +496,14 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 30 Group Classes, 6 months",
+   "name": "DTV 9 Months Lite",
    "price": 24000
   },
   {
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 9 Months Lite",
+   "name": "DTV 30 Group Classes, 6 months",
    "price": 24000
   },
   {
@@ -545,6 +545,13 @@
    ],
    "name": "DTV 60 Group Classes, 12 months",
    "price": 32000
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "Training Only 5 months",
+   "price": 35000
   },
   {
    "covers": [
