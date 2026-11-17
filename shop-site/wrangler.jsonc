@@ -1,0 +1,11 @@
+{
+  // Karahill Nail and Beauty on its own domain: the website at /, the shop app at /app/ (see worker.js).
+  // In Cloudflare: Workers and Pages, Create, Continue with GitHub, phuketkinggg/pkapp,
+  // root directory (Path) = shop-site, build command empty, deploy command: npx wrangler deploy.
+  // Then this Worker, Settings, Domains and Routes, Add, Custom domain: the shop's domain, and again with www.
+  "name": "karahill-site",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "vars": { "SHOP_PATH": "massagemate/karahill" }
+}
