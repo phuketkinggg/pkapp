@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Class schedule</title>
+<style>
+/* the week's group classes as a page to view, print or save as a PDF (feature schedule_print). Made from the app's timetable. */
+:root{--ac:#B88A44;--ink:#1d1a16;--muted:#5c564c;--bg:#f7f4ee;--line:#e4ddd0}
+*{box-sizing:border-box}
+html,body{margin:0;background:#e9e5dd;color:var(--ink);font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif}
+.bar{position:sticky;top:0;z-index:2;background:#1d1d1f;color:#fff;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.bar b{font-size:15px}.acts{display:flex;flex-wrap:wrap;gap:8px}
+.bar button{font:inherit;font-weight:600;font-size:14px;padding:10px 16px;border-radius:10px;border:1px solid #555;background:#2a2a2c;color:#fff;cursor:pointer;min-height:44px}
+.bar button.primary{background:var(--ac);border-color:var(--ac);color:#1d1d1f}
+.sheet{width:297mm;min-height:210mm;margin:16px auto 32px;background:var(--bg);padding:12mm 13mm 10mm;box-shadow:0 2px 14px rgba(0,0,0,.12);display:flex;flex-direction:column}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px solid var(--ac);padding-bottom:5mm;margin-bottom:5mm}
+h1{margin:0;font-size:30pt;line-height:1;letter-spacing:.02em;text-transform:uppercase;font-weight:800;color:var(--ac)}
+h1 span{color:var(--ink)}.sub{font-size:12pt;color:var(--muted);margin-top:2mm}
+.when{text-align:right;font-size:10pt;color:var(--muted);white-space:nowrap}
+table{width:100%;border-collapse:separate;border-spacing:2mm;table-layout:fixed;margin:-2mm}
+th{font-size:11pt;letter-spacing:.06em;text-transform:uppercase;font-weight:800;padding:1mm 0}
+th.t{width:17mm}td.t{font-weight:800;font-size:12pt;color:var(--ac);text-align:center;vertical-align:middle}
+td{border-radius:2.5mm;padding:2mm 2.4mm;vertical-align:top;font-size:9.5pt;line-height:1.25}
+td.c{background:#fff;border-left:2mm solid var(--k,#b3261e)}td.e{background:transparent}
+td.rest{background:#ece7dd;text-align:center;vertical-align:middle;color:var(--muted);font-weight:700;letter-spacing:.05em}
+.tm{font-weight:600;font-size:8.5pt;color:var(--muted)}.nm{font-weight:700;font-size:10.5pt;margin-top:.5mm}.co{color:var(--muted);font-size:8.5pt;margin-top:.6mm}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;margin-top:auto;padding-top:5mm;font-size:9.5pt;color:var(--muted)}
+.key span{display:inline-flex;align-items:center;gap:1.5mm;margin-right:4mm}.key i{width:3.5mm;height:3.5mm;border-radius:1mm;display:inline-block}
+.msg{max-width:600px;margin:40px auto;padding:16px;background:#fff;border-radius:12px;text-align:center}
+@media screen and (max-width:1150px){.sheet{zoom:.75}}@media screen and (max-width:860px){.sheet{zoom:.5}}@media screen and (max-width:600px){.sheet{zoom:.34}}
+@media print{@page{size:A4 landscape;margin:0}html,body{background:var(--bg)}.bar{display:none}.sheet{margin:0;box-shadow:none;zoom:1;height:210mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="bar" id="bar" hidden><b id="ttl">Class schedule</b><div class="acts"><button type="button" id="share">Share link</button><button type="button" class="primary" id="print">Print or save as PDF</button></div></div>
+<main id="main"><div class="msg">Loading the schedule.</div></main>
+<script>
+(function(){
+'use strict';
+var SB_URL='https://bnglnfdgptvnmugntiom.supabase.co', SB_KEY='sb_publishable_I2cEA2hEPelGTNMwf2zWwA_98_mxHT1';
+var Q=new URLSearchParams(location.search), G=/^[a-z][a-z0-9_]{1,40}$/.test(window.MF_HOST_GYM||'')?window.MF_HOST_GYM:((Q.get('g')||'').match(/^[a-z][a-z0-9_]{1,40}$/)?Q.get('g'):'');
+var coach=/^[0-9a-f-]{36}$/.test(Q.get('coach')||'')?Q.get('coach'):null, disc=(Q.get('d')||'').slice(0,40)||null, showCo=Q.get('co')!=='0', title=(Q.get('title')||'').slice(0,80);
+var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+var KIND={'muay thai':'#b3261e','boxing':'#1f4e9c','kickboxing':'#6b2fa3','mma':'#2f6b4f','bjj':'#3d3d8f','yoga':'#5f8f4e','fitness':'#c48a2a','kids':'#d06a1f'};
+function kcol(d){ d=String(d||'').toLowerCase(); return KIND[d]||'#7a6a55'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+var main=document.getElementById('main'), hd={apikey:SB_KEY,'Content-Type':'application/json'}; if(G){ hd['Content-Profile']='g_'+G; hd['Accept-Profile']='g_'+G; }
+fetch(SB_URL+'/rest/v1/rpc/schedule_public',{method:'POST',headers:hd,body:JSON.stringify({p_coach:coach,p_discipline:disc})}).then(function(r){ if(!r.ok) throw new Error(); return r.json(); }).then(function(d){
+  if(!d||d.off){ main.innerHTML='<div class="msg">The schedule is not shared.</div>'; return; }
+  document.documentElement.style.setProperty('--ac',d.accent||'#B88A44');
+  var cl=d.classes||[], name=d.business||'', head=title||(d.coach?d.coach+', weekly schedule':disc?disc+' classes':'Weekly class schedule');
+  document.title=(name?name+', ':'')+head; document.getElementById('ttl').textContent=head; document.getElementById('bar').hidden=false;
+  if(!cl.length){ main.innerHTML='<div class="msg">No classes on this schedule yet.</div>'; return; }
+  var days=DAYS.map(function(_,i){ return cl.some(function(c){ return Number(c.day)===i; }); }), lastOn=days.lastIndexOf(true);
+  var show=DAYS.map(function(_,i){ return days[i]||i<=Math.max(5,lastOn); });
+  var times=[]; cl.forEach(function(c){ if(times.indexOf(c.start)<0) times.push(c.start); }); times.sort();
+  var kinds=[]; cl.forEach(function(c){ var k=c.discipline||'Class'; if(kinds.indexOf(k)<0) kinds.push(k); });
+  var h='<div class="sheet"><div class="top"><div><h1>'+esc(name)+'</h1><div class="sub">'+esc(head)+'</div></div><div class="when">'+esc(new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}))+'</div></div>';
+  h+='<table><tr><th class="t"></th>'+DAYS.map(function(dn,i){ return show[i]?'<th>'+dn+'</th>':''; }).join('')+'</tr>';
+  times.forEach(function(t,ti){ h+='<tr><td class="t">'+esc(t)+'</td>';
+    DAYS.forEach(function(_,i){ if(!show[i]) return;
+      if(!days[i]){ if(ti===0) h+='<td class="rest" rowspan="'+times.length+'">'+(coach?'DAY OFF':'NO CLASSES')+'</td>'; return; }
+      var here=cl.filter(function(c){ return Number(c.day)===i&&c.start===t; });
+      if(!here.length){ h+='<td class="e"></td>'; return; }
+      h+='<td class="c" style="--k:'+kcol(here[0].discipline)+'">'+here.map(function(c){ var co=(c.coaches||[]).join(', ');
+        return '<div class="tm">'+esc(c.start)+(c.end?' to '+esc(c.end):'')+'</div><div class="nm">'+esc(c.title)+'</div>'+(showCo&&co&&!coach?'<div class="co">'+esc(co)+'</div>':''); }).join('<hr style="border:0;border-top:1px solid #eee;margin:1.5mm 0">')+'</td>'; });
+    h+='</tr>'; });
+  h+='</table><div class="foot"><div class="key">'+kinds.map(function(k){ return '<span><i style="background:'+kcol(k)+'"></i>'+esc(k)+'</span>'; }).join('')+'</div><div>'+esc(location.host)+'</div></div></div>';
+  main.innerHTML=h;
+}).catch(function(){ main.innerHTML='<div class="msg">The schedule could not load. Check your connection and try again.</div>'; });
+document.getElementById('print').onclick=function(){ window.print(); };
+document.getElementById('share').onclick=function(){ var u=location.href, t=document.title;
+  if(navigator.share) navigator.share({title:t,url:u}).catch(function(){});
+  else if(navigator.clipboard) navigator.clipboard.writeText(u).then(function(){ document.getElementById('share').textContent='Link copied'; },function(){ prompt('Copy this link',u); });
+  else prompt('Copy this link',u); };
+})();
+</script>
+</body>
+</html>

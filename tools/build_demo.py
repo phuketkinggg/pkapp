@@ -126,6 +126,8 @@ def main():
     open(os.path.join(OUT, 'receipt.html'), 'w', encoding='utf-8').write(rc)
     # the member card page (feature wallet_card)
     open(os.path.join(OUT, 'card.html'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'card.html'), encoding='utf-8').read()))
+    # the timetable to print or share (feature schedule_print)
+    open(os.path.join(OUT, 'schedule.html'), 'w', encoding='utf-8').write(swap(open(os.path.join(ROOT, 'schedule.html'), encoding='utf-8').read()))
     # the gym website (feature gym_site)
     gs = swap(open(os.path.join(ROOT, 'gymsite.html'), encoding='utf-8').read())
     if any(w in gs for w in ('phuketking', PK_REF, 'Phuket King', 'Pangea')): sys.exit('Phuket King text left in gymsite.html')
