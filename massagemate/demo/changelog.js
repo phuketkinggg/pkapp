@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-18', title: 'Several 360 photos for each area of the gym tour', what: 'In Settings, Website, Gym tour, tap Add 360 photo as many times as you like for an area (up to 8). Give each one a name, for example Ice bath or Sauna, and visitors tap the names to switch between the views. Tap a 360 photo to rename it, remove it or show it first.', feature: 'site_tour'},
   {date: '2026-11-18', title: 'Print or share the timetable', what: 'In Timetable, tap Print or share: the week opens as a clear page in your colours. Print it, save it as a PDF, or share the link (it always shows the timetable as it is now). Choose all classes, one coach\'s schedule or one kind of class, with or without the coaches.', feature: 'schedule_print'},
   {date: '2026-11-17', title: 'Russian language', what: 'Customers, staff and coaches can switch the app to Russian at the bottom of the menu, and phones set to Russian start in Russian. The words are translated by AI and kept with your data; if one reads wrong, fix it in Settings, Languages.', feature: 'lang_ru'},
   {date: '2026-11-17', title: 'Room 360 photos on the booking page', what: 'Each room type on the website booking page can have 360 photos (the room, the bathroom, the view). Guests tap Look inside in 360 and drag around the room before they book. Add them in Settings, Website, Room 360 photos.', feature: 'room_360'},

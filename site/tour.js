@@ -23,7 +23,8 @@ var css='.gt-map{position:relative;border-radius:14px;overflow:hidden;background
   '.gt-bot{padding:10px 16px calc(14px + env(safe-area-inset-bottom));max-width:1100px;margin:0 auto;width:100%}.gt-bot p{margin:0 0 10px;opacity:.85;font-size:15px}.gt-cap{font-size:14px;opacity:.75;margin-bottom:8px;min-height:1.2em}'+
   '.gt-th{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}.gt-th button{flex:none;width:72px;height:52px;padding:0;border:2px solid transparent;border-radius:6px;overflow:hidden;cursor:pointer;background:#333}.gt-th button.on{border-color:#fff}.gt-th img,.gt-th video{width:100%;height:100%;object-fit:cover;display:block}.gt-th button{position:relative}.gt-th .pl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;text-shadow:0 1px 4px #000}'+
   '.gt-empty{text-align:center;opacity:.85;max-width:420px;padding:20px}.gt-empty a{color:#fff}'+
-  '.gt-360{width:min(100%,1400px);height:100%;min-height:260px;border-radius:8px;overflow:hidden;background:#000}.gt-hint{font-size:13px;opacity:.7;margin-bottom:8px}';
+  '.gt-360{width:min(100%,1400px);height:100%;min-height:260px;border-radius:8px;overflow:hidden;background:#000}.gt-hint{font-size:13px;opacity:.7;margin-bottom:8px}'+
+  '.gt-sc{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.gt-sc button{font:inherit;font-size:14px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;border-radius:99px;padding:7px 14px;cursor:pointer}.gt-sc button[aria-pressed=true]{background:#fff;color:#111;border-color:#fff}';
 var st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function yt(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
@@ -48,7 +49,9 @@ function thumb(p){ var id=p.yt?yt(p.url):null;
   if(p.video) return '<video src="'+esc(p.url)+'#t=0.5" muted playsinline preload="metadata"></video><span class="pl">&#9654;</span>';
   return '<img src="'+esc(p.url)+'" alt="" loading="lazy">'; }
 function open(z){
-  var ph=(z.photos||[]).filter(function(p){ return p&&p.url; }), i=0, pano=z.pano||'', showPano=!!pano&&(!ph.length||panoImg(pano)), pv=null;
+  /* an area can have several 360 photos (panos: [{url, caption, yaw, vaov}]); the older single pano still works */
+  var P=(Array.isArray(z.panos)?z.panos:[]).filter(function(q){ return q&&q.url; }); if(!P.length&&z.pano) P=[{url:z.pano,yaw:z.pano_yaw,vaov:z.pano_vaov}];
+  var ph=(z.photos||[]).filter(function(p){ return p&&p.url; }), i=0, pi=0, pano=P.length?P[0].url:'', showPano=!!pano&&(!ph.length||panoImg(pano)), pv=null;
   var ov=document.createElement('div'); ov.className='gt-ov'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); ov.setAttribute('aria-label',z.name);
   function draw(){
     var main;
@@ -58,12 +61,12 @@ function open(z){
     else if(ph.length) main=item(ph[i])+(ph.length>1?'<button type="button" class="gt-nav gt-prev" aria-label="Previous photo">&#8249;</button><button type="button" class="gt-nav gt-next" aria-label="Next photo">&#8250;</button>':'');
     else main='<div class="gt-empty"><p>Photos of the '+esc(z.name.toLowerCase())+' are coming soon.</p><p><a data-wa="Hi Phuket King, can I see the '+esc(z.name.toLowerCase())+'?">Ask us for a video on WhatsApp</a></p></div>';
     ov.innerHTML='<div class="gt-top"><h3>'+esc(z.name)+'</h3>'+(pano&&ph.length?'<button type="button" class="gt-x gt-pano">'+(showPano?'Photos':'360 view')+'</button>':'')+'<button type="button" class="gt-x gt-close">Close</button></div>'+
-      '<div class="gt-main">'+main+'</div><div class="gt-bot">'+(showPano&&panoImg(pano)?'<div class="gt-hint">Drag to look around. Pinch or scroll to zoom.</div>':'')+(z.text?'<p>'+esc(z.text)+'</p>':'')+
+      '<div class="gt-main">'+main+'</div><div class="gt-bot">'+(showPano&&P.length>1?'<div class="gt-sc">'+P.map(function(q,j){ return '<button type="button" data-p="'+j+'" aria-pressed="'+(j===pi)+'">'+esc(q.caption||('View '+(j+1)))+'</button>'; }).join('')+'</div>':'')+(showPano&&panoImg(pano)?'<div class="gt-hint">Drag to look around. Pinch or scroll to zoom.</div>':'')+(z.text?'<p>'+esc(z.text)+'</p>':'')+
       (!showPano&&ph.length?'<div class="gt-cap">'+esc(ph[i].caption||'')+(ph.length>1?(ph[i].caption?' · ':'')+(i+1)+' of '+ph.length:'')+'</div>':'')+
       (!showPano&&ph.length>1?'<div class="gt-th">'+ph.map(function(p,j){ return '<button type="button" data-j="'+j+'" class="'+(j===i?'on':'')+'" aria-label="'+(p.video||p.yt?'Video ':'Photo ')+(j+1)+'">'+thumb(p)+'</button>'; }).join('')+'</div>':'')+'</div>';
-    var pvBox=ov.querySelector('#gt-pv'); if(pvBox) pnLoad().then(function(P){ if(!pvBox.isConnected) return; var va=Number(z.pano_vaov)||180, cfg={type:'equirectangular',panorama:pano,autoLoad:true,autoRotate:-2,autoRotateInactivityDelay:4000,showZoomCtrl:false,showFullscreenCtrl:true,compass:false,hfov:100,crossOrigin:'anonymous'};
+    var pvBox=ov.querySelector('#gt-pv'); if(pvBox) pnLoad().then(function(P){ if(!pvBox.isConnected) return; var cur=P[pi]||{}, va=Number(cur.vaov)||180, cfg={type:'equirectangular',panorama:pano,autoLoad:true,autoRotate:-2,autoRotateInactivityDelay:4000,showZoomCtrl:false,showFullscreenCtrl:true,compass:false,hfov:100,crossOrigin:'anonymous'};
       /* a 360 photo with the bottom cut off (the camera holder): the view stops at the edge of the photo */
-      if(z.pano_yaw!=null) cfg.yaw=Number(z.pano_yaw)||0;
+      if(cur.yaw!=null) cfg.yaw=Number(cur.yaw)||0;
       if(va<180) Object.assign(cfg,{haov:360,vaov:va,vOffset:90-va/2,minPitch:90-va,maxPitch:90});
       pv=P.viewer(pvBox,cfg); }).catch(function(){ pvBox.outerHTML='<div class="gt-empty"><p>The 360 view could not open here.</p></div>'; });
     ov.querySelectorAll('[data-wa]').forEach(function(a){ if(PK.wa){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; } });
@@ -73,6 +76,7 @@ function open(z){
   function key(e){ if(e.key==='Escape') close(); else if(showPano) return; else if(e.key==='ArrowLeft') go(-1); else if(e.key==='ArrowRight') go(1); }
   ov.addEventListener('click',function(e){ var t=e.target;
     if(t.closest('.gt-close')) return close(); if(t.closest('.gt-pano')){ showPano=!showPano; return draw(); }
+    var pb=t.closest('[data-p]'); if(pb){ pi=+pb.getAttribute('data-p'); pano=P[pi].url; return draw(); }
     if(t.closest('.gt-prev')) return go(-1); if(t.closest('.gt-next')) return go(1);
     var b=t.closest('[data-j]'); if(b){ i=+b.getAttribute('data-j'); draw(); } else if(t===ov&&downOv) close(); });
   /* only a tap on the dark background closes it, not a 360 drag that ends there */
