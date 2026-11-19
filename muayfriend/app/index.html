@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=222"></script>
+<script src="changelog.js?v=223"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1115,7 +1115,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=166; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=167; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -6343,11 +6343,11 @@ function wpgMake(){
     err,h('div',{class:'factions'},h('span'),h('div',{class:'row'},btn('Cancel',function(){ $dlg.close(); }),go))));
   if($dlg.showModal) $dlg.showModal(); else $dlg.setAttribute('open','');
 }
-function wpgOpen(p){ (p.sections||[]).forEach(function(s){ if(!s.id) s.id='s'+cRand(); }); WPG.edit=p; WPG.undo=[]; schedule(); window.scrollTo(0,0); }
+function wpgOpen(p){ (p.sections||[]).forEach(function(s){ if(!s.id) s.id='s'+cRand(); }); if(p.base===undefined) p.base=p.updated_at||null; WPG.edit=p; WPG.undo=[]; schedule(); window.scrollTo(0,0); }
 function wpgSave(after){ var p=WPG.edit;
   if(!p.slug) p.slug=String(p.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
-  return sb.rpc('site_page_save',{p:{id:p.id||null,slug:p.slug,title:p.title,description:p.description,sections:p.sections,status:p.status||'draft',in_footer:!!p.in_footer,footer_label:p.footer_label||''}}).then(must)
-    .then(function(r){ p.id=r.id; p.slug=r.slug; p.preview_token=r.preview_token; WPG.list=null; if(after) after(r); return r; }); }
+  return sb.rpc('site_page_save',{p:{id:p.id||null,slug:p.slug,title:p.title,description:p.description,sections:p.sections,status:p.status||'draft',in_footer:!!p.in_footer,footer_label:p.footer_label||'',base:p.base||null}}).then(must)
+    .then(function(r){ if(r.updated_at) p.base=r.updated_at; p.id=r.id; p.slug=r.slug; p.preview_token=r.preview_token; WPG.list=null; if(after) after(r); return r; }); }
 function wpgEditor(){
   var p=WPG.edit, S_=p.sections=p.sections||[];
   function mv(i,d){ var j=i+d; if(j<0||j>=S_.length) return; S_.splice(j,0,S_.splice(i,1)[0]); schedule(); }
