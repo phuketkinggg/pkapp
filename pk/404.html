@@ -51,6 +51,13 @@
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
 <script>
+/* old or mistyped addresses people still use: send them to the right page (and anything under an old /contact/ folder to the page itself) */
+(function(){ var p=location.pathname.replace(/\/+$/,'').toLowerCase(), q=location.search, M={'/price':'/prices','/pricing':'/prices','/stay':'/book.html','/rooms':'/book.html','/contact':'/about','/muay-thai-for-beginners':'/muay-thai-for-beginners-phuket','/beginners':'/beginners-muay-thai','/sitemap':'/sitemap.xml','/sitemap.html':'/sitemap.xml','/sitemap.aspx':'/sitemap.xml','/sitemap-index.xml':'/sitemap.xml','/sitemap.txt':'/sitemap.xml'};
+  var to=M[p.replace(/\.html$/,'')]||M[p];
+  if(!to&&/^\/contact\/./.test(p)) to='/'+p.replace(/^\/contact\//,'').replace(/\/book(\.html)?$/,'book.html');
+  if(to&&to!==location.pathname) location.replace(to+q); })();
+</script>
+<script>
 /* a new blog post or page that has no short address yet: send them to it */
 (function(){ var m=location.pathname.match(/^\/([a-z0-9-]{3,121})\/?$/); if(!m) return; var s=m[1], K='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i', R='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/';
   function has(t,f){ return fetch(R+t+'?select=slug&slug=eq.'+s+f,{headers:{apikey:K}}).then(function(r){ return r.ok?r.json():[]; }).then(function(l){ return l.length>0; }).catch(function(){ return false; }); }
