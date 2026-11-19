@@ -1,7 +1,7 @@
 -- Courses bought with Apple In-App Purchase in the iPhone and iPad app (feature ios_iap).
 -- Each course can have an Apple product id (made in App Store Connect, In-App Purchases, Non-Consumable).
 -- The app buys it with Apple, the function iap-apple checks Apple's signed receipt and calls iap_apple_grant,
--- which records the purchase (method apple) and so unlocks the course on every device (web, Android and iPhone).
+-- which records the purchase (method agent: Apple collects the money and pays it out) and so unlocks the course on every device (web, Android and iPhone).
 alter table public.courses add column if not exists apple_product_id text;
 create unique index if not exists courses_apple_product_id on public.courses (apple_product_id) where apple_product_id is not null;
 
@@ -48,7 +48,7 @@ begin
   -- the price the person paid, in baht when Apple charged baht; else the course price (Apple pays out in baht)
   thb := case when upper(coalesce(p->>'currency', '')) = 'THB' and (p->>'price') ~ '^[0-9]+$' then round((p->>'price')::numeric / 1000) else coalesce(c.price_thb, 0) end;
   insert into public.purchases (customer_id, package_name, price_thb, paid, paid_thb, method, course_id, purchased_on, fee_thb, ordered_in_app, covers)
-    values (cid, 'Online course: ' || c.title || ' (App Store)', thb, true, thb, 'apple', c.id, (now() at time zone 'Asia/Bangkok')::date, round(thb * 0.15), true, '{}')
+    values (cid, 'Online course: ' || c.title || ' (App Store)', thb, true, thb, 'agent', c.id, (now() at time zone 'Asia/Bangkok')::date, round(thb * 0.15), true, '{}')
     returning id into pid;
   insert into public.course_access (customer_id, course_id, source) values (cid, c.id, 'bought') on conflict do nothing;
   insert into public.iap_apple (transaction_id, original_transaction_id, customer_id, course_id, product_id, environment, price, currency, purchase_id)
