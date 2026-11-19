@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-19', title: 'Courses and videos hidden in the iPhone app', what: 'The App Store app on iPhone and iPad no longer shows online courses, the technique videos or the course offer, because Apple only allows digital content sold with its own In-App Purchase. Your website, the web app and Android still show them.', feature: 'ios_digital'},
   {date: '2026-11-19', title: 'Extras on any package', what: 'Any package can now have extras people add when they buy it on your website, for example a single class for 200 with recovery added for 100. Edit the package and tick them under Extras people can add. The website shows them as Add buttons, the price adds up, and each extra goes on the customer as its own line.', feature: 'package_extras'},
   {date: '2026-11-19', title: 'Page buttons that sell a package', what: 'When you make a website page, a button can now be A package to buy. Choose the package and the button opens its checkout on your prices page, so visitors can pay straight from the page.'},
   {date: '2026-11-19', title: 'Colours for the gym tour map', what: 'Each area on the gym tour map now has its own colour, on the map and on the buttons under it, so visitors can tell the areas apart at a glance. Change an area\'s colour in Settings, Website, Gym tour, Edit.', feature: 'site_tour'},

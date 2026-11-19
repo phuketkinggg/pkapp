@@ -25870,5 +25870,13 @@
 "When someone buys this package on your website, they can add these, for example Recovery +100. Each one is another package with its own price. Tick none for no extras.": [
 "เมื่อมีคนซื้อแพ็กเกจนี้บนเว็บไซต์ จะเพิ่มรายการเหล่านี้ได้ เช่น รีคัฟเวอรี +100 แต่ละรายการคือแพ็กเกจอื่นที่มีราคาของตัวเอง ไม่ต้องเลือกถ้าไม่มีส่วนเสริม",
 "တစ်စုံတစ်ယောက်က ဤပက်ကေ့ချ်ကို ဝက်ဘ်ဆိုက်တွင် ဝယ်သည့်အခါ ဤအရာများကို ထည့်နိုင်သည်၊ ဥပမာ Recovery +100။ တစ်ခုစီသည် ကိုယ်ပိုင်စျေးနှုန်းရှိသော အခြားပက်ကေ့ချ်ဖြစ်သည်။ အပိုမရှိလျှင် ဘာမှမရွေးပါနှင့်။"
+],
+"Courses and videos in the iPhone app": [
+"คอร์สและวิดีโอในแอป iPhone",
+"iPhone အက်ပ်ရှိ သင်တန်းများနှင့် ဗီဒီယိုများ"
+],
+"Off: the App Store app on iPhone and iPad hides online courses, the technique videos and the course offer, because Apple only allows digital content sold with its own In-App Purchase. People still get them on your website, the web app and Android. Turn on only if Apple has approved them.": [
+"ปิด: แอปจาก App Store บน iPhone และ iPad จะซ่อนคอร์สออนไลน์ วิดีโอเทคนิค และข้อเสนอคอร์ส เพราะ Apple อนุญาตให้ขายเนื้อหาดิจิทัลผ่าน In-App Purchase ของ Apple เท่านั้น ลูกค้ายังใช้ได้บนเว็บไซต์ เว็บแอป และ Android เปิดเฉพาะเมื่อ Apple อนุมัติแล้ว",
+"ပိတ်ထားလျှင် iPhone နှင့် iPad ရှိ App Store အက်ပ်တွင် အွန်လိုင်းသင်တန်းများ၊ နည်းပညာဗီဒီယိုများနှင့် သင်တန်းကမ်းလှမ်းချက်ကို ဖျောက်ထားသည်၊ အကြောင်းမှာ Apple သည် ဒစ်ဂျစ်တယ်အကြောင်းအရာကို ၎င်း၏ In-App Purchase ဖြင့်သာ ရောင်းခွင့်ပြုသောကြောင့်ဖြစ်သည်။ ဝက်ဘ်ဆိုက်၊ ဝက်ဘ်အက်ပ်နှင့် Android တွင် ဆက်လက်ရနိုင်သည်။ Apple ခွင့်ပြုမှသာ ဖွင့်ပါ။"
 ]
 }
