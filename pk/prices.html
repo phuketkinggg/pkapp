@@ -71,6 +71,7 @@
     <p class="sub">We never see your card number. Use the same email to sign in to the Phuket King app and see your package.</p>
     <p class="err" id="berr" role="alert" hidden></p>
     <button class="btn red" type="submit" id="payBtn">Pay</button>
+    <p class="sub" style="margin:12px 0 0;text-align:center">Questions first? <a id="buyWa" href="#" target="_blank" rel="noopener">WhatsApp us</a>, we reply fast.</p>
   </form>
 </dialog>
 <dialog class="basket" id="done" aria-labelledby="doneTitle">
@@ -197,8 +198,15 @@ function privDone(pv,paid){
     '<p style="margin:0 0 6px">'+(paid?'We will confirm it within 30 minutes (during opening hours) and email you.':'As soon as the front desk sees your payment, we confirm your private and email you.')+' '+
     (pv.any?'If '+PK.esc(pv.coach_name||'your coach')+' is unable to take it, you will be given another coach.':'You asked for '+PK.esc(pv.coach_name||'this coach')+' only. If that time does not work, we book your backup time: <b>'+window.PrivPick.longDay(pv.alt_date)+', '+pv.alt_time+'</b>.')+'</p></div>';
 }
+/* how far people get in the buy box, and where they leave: buy_step (name, email, phone, PromptPay), buy_err, buy_leave */
+var BST={stage:'opened',paid:false,seen:{}};
+function bstep(k){ if(!cur||BST.seen[k]) return; BST.seen[k]=1; BST.stage=k; T('buy_step',cur.name+': '+k); }
+['name','email','phone','note'].forEach(function(k){ var el=document.getElementById('b-'+k); if(el) el.addEventListener('input',function(){ if(el.value.trim().length>1) bstep(k); }); });
+Array.prototype.forEach.call(document.querySelectorAll('input[name=bpay]'),function(r){ r.addEventListener('change',function(){ if(r.checked) bstep(r.value==='pp'?'promptpay':'card'); }); });
+document.getElementById('buy').addEventListener('close',function(){ if(cur&&!BST.paid) T('buy_leave',cur.name+': '+BST.stage); });
 function buy(p,g){
-  cur=p; T('buy_open',p.name); $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
+  cur=p; BST={stage:'opened',paid:false,seen:{}}; T('buy_open',p.name);
+  var wa=document.getElementById('buyWa'); if(wa){ wa.href=PK.wa('Hi Phuket King, I have a question about '+p.name+'.'); wa.onclick=function(){ T('buy_wa',p.name); }; } $('buyTitle').textContent='Buy: '+tidy(g.short(p.name));
   var dtv=/^DTV/i.test(p.name), priv=(p.covers||[]).indexOf('Privates')>=0;
   $('buyWhat').innerHTML='<p style="margin:0 0 6px"><b>'+PK.esc(p.name)+'</b><br><span style="font-size:26px;font-weight:700">'+PK.thb(p.price)+'</span></p><p class="sub" style="margin:0">'+PK.esc(detail(p))+'</p>';
   var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false; REC=null; ADDQ={}; ADD=false;
@@ -210,7 +218,7 @@ function buy(p,g){
     var within=p.start_within>1?' Start within '+p.start_within+' days of buying.':'';
     sb.innerHTML='<p class="note" style="margin:0">'+(priv?'<b>Book your time after paying.</b> WhatsApp us or use the app to choose your private session.':
       (p.covers||[]).indexOf('Muay Thai')>=0?'<b>No booking needed.</b> Just turn up to any group class. Your package starts automatically from your first class.':
-      '<b>No booking needed.</b> Just come in. Your package starts automatically from your first visit.')+within+(dtv?' We prepare your DTV paperwork after payment. DTV courses cannot be refunded once the paperwork is issued.':'')+'</p>';
+      '<b>No booking needed.</b> Just come in. Your package starts automatically from your first visit.')+within+(!priv&&!dtv&&(p.visits===1||p.days===1)?' <b>Prefer to pay at the gym?</b> No problem, just turn up 10 minutes early and pay at the front desk.':'')+(dtv?' We prepare your DTV paperwork after payment. DTV courses cannot be refunded once the paperwork is issued.':'')+'</p>';
   }
   if(!(priv&&p.visits)&&p.id){ var xb=document.createElement('div'); sb.appendChild(xb); recBox(xb,p); }
   if(offerFits(p)){ var ob=document.createElement('div'); sb.appendChild(ob); offerBox(ob); }
@@ -223,8 +231,9 @@ $('closeDone').onclick=function(){ $('done').close(); };
 $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur) return;
   var err=$('berr'), btn=$('payBtn'), name=$('b-name').value.trim(), email=$('b-email').value.trim(), st=$('b-start');
   err.hidden=true;
-  if(name.length<2){ err.textContent='Type your full name.'; err.hidden=false; $('b-name').focus(); return; }
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent='Type your email, so we can find your package when you arrive.'; err.hidden=false; $('b-email').focus(); return; }
+  var bad=function(m){ T('buy_err',cur.name+': '+m); };
+  if(name.length<2){ bad('name'); err.textContent='Type your full name.'; err.hidden=false; $('b-name').focus(); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ bad('email'); err.textContent='Type your email, so we can find your package when you arrive.'; err.hidden=false; $('b-email').focus(); return; }
   if(st&&!st.value){ err.textContent='Choose the date you want to start.'; err.hidden=false; st.focus(); return; }
   if(PVon&&PV){ var pe=PV.check(); if(pe){ err.textContent=pe; err.hidden=false; PV.el.scrollIntoView({block:'center',behavior:'smooth'}); return; } }
   try{ localStorage.setItem('pk_buyer',JSON.stringify({name:name,email:email,phone:$('b-phone').value.trim()})); }catch(x){}
@@ -232,8 +241,8 @@ $('buyForm').addEventListener('submit',function(e){ e.preventDefault(); if(!cur)
   var pay=(document.querySelector('input[name=bpay]:checked')||{}).value||'card';
   btn.disabled=true; btn.textContent=pay==='pp'?'Making your QR':'Opening the secure payment page';
   call({mode:'order',ref:window.PKREF?PKREF():null,ref_at:window.PKREFAT?PKREFAT():null,pay:pay,package_id:cur.id,name:name,email:email,phone:$('b-phone').value.trim(),note:$('b-note').value.trim(),start_on:st?st.value:'',private:PVon&&PV&&PV.value().coach?PV.value():null,addons:addsList().map(function(a){ return {package_id:a.package_id,qty:a.qty}; }),course_addon:ADD&&OFR?OFR.id:null,back:location.origin+location.pathname})
-    .then(function(d){ if(d.pp) showPP(d); else location.href=d.url; })
-    .catch(function(x){ btn.disabled=false; payLabel(); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
+    .then(function(d){ BST.paid=true; if(d.pp) showPP(d); else location.href=d.url; })
+    .catch(function(x){ T('buy_err',cur.name+': '+String(x.message||'').slice(0,60)); btn.disabled=false; payLabel(); err.textContent=x.message; err.hidden=false; if(PVon&&PV&&/free|time/i.test(x.message)) PV.reload(); });
 });
 /* PromptPay straight to the gym bank account: QR with the amount, the buyer taps I have paid, the front desk checks the bank and confirms */
 function ppCrc(str){ var c=0xFFFF; for(var i=0;i<str.length;i++){ c^=str.charCodeAt(i)<<8; for(var j=0;j<8;j++) c=(c&0x8000)?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF; } return ('0000'+c.toString(16).toUpperCase()).slice(-4); }
