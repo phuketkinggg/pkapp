@@ -57,6 +57,7 @@ function img(u){ return IMG.test(String(u||''))?esc(u):''; }
 function link(u,txt){ u=String(u||'').trim(); if(!txt) return '';
   if(u==='whatsapp') return '<a class="btn red" href="'+esc(PK.wa('Hi Phuket King, I saw your page "'+title+'" and I have a question.'))+'" target="_blank" rel="noopener">'+esc(txt)+'</a>';
   if(/^https:\/\/\S+$/.test(u)) return '<a class="btn red" href="'+esc(u)+'"'+(u.indexOf('phuketking')<0?' target="_blank" rel="noopener"':'')+'>'+esc(txt)+'</a>';
+  if(/^prices\.html\?buy=[0-9a-z-]{1,40}$/i.test(u)) return '<a class="btn red" href="'+esc(u)+'">'+esc(txt)+'</a>';
   if(/^([a-z0-9-]+\.html)?(#[a-z0-9-]+)?$/i.test(u)&&u){ u=u==='book.html'?'../book.html':u; return '<a class="btn red" href="'+esc(u)+'">'+esc(txt)+'</a>'; }
   return ''; }
 function head(s,cls){ return (s.eyebrow?'<div class="eyebrow">'+esc(s.eyebrow)+'</div>':'')+(s.heading?'<h2>'+esc(s.heading)+'</h2><span class="rule"></span>':''); }

@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=217"></script>
+<script src="changelog.js?v=218"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1108,7 +1108,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=161; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=162; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -6059,7 +6059,7 @@ function coProgEditor(){
 var WPG={list:null,busy:false,edit:null,undo:[],ai:false};
 var WPG_FN='https://bnglnfdgptvnmugntiom.supabase.co/functions/v1/pages-ai';
 var WPG_TYPES=[['hero','Big photo at the top'],['text','Text'],['split','Photo and text side by side'],['cards','Cards'],['steps','Numbered steps'],['gallery','Photo gallery'],['quote','Quote from a customer'],['faq','Questions and answers'],['video','YouTube video'],['cta','Call to action']];
-var WPG_LINKS=[['','No button'],['whatsapp','WhatsApp us'],['prices.html','Prices page'],['book.html','Stay with us'],['index.html#schedule','Schedule'],['about.html','About'],['wellness.html','Wellness'],['dtv.html','DTV visa'],['courses.html','Online courses'],['shop.html','Shop'],['blog.html','Blog'],['custom','Another link']];
+var WPG_LINKS=[['','No button'],['whatsapp','WhatsApp us'],['prices.html','Prices page'],['book.html','Stay with us'],['index.html#schedule','Schedule'],['about.html','About'],['wellness.html','Wellness'],['dtv.html','DTV visa'],['courses.html','Online courses'],['shop.html','Shop'],['blog.html','Blog'],['package','A package to buy'],['custom','Another link']];
 function wpgType(t){ var x=WPG_TYPES.filter(function(a){ return a[0]===t; })[0]; return x?x[1]:t; }
 function wpgCall(body){ return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
   return fetch(WPG_FN,{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(t||'')},body:JSON.stringify(body)}).then(function(x){ return x.json(); }); })
@@ -6324,10 +6324,15 @@ function wpgEditor(){
   function photo(o,k,id){ var u=o[k];
     return h('div',{class:'field'},h('label',null,'Photo'),h('div',{class:'wpimg'},u?h('img',{src:u,alt:''}):h('div',{class:'wpnoimg'},'No photo'),
       h('div',{class:'row'},btn(u?'Upload another':'Upload',function(){ wpgPickPhotos(false,function(x){ o[k]=x[0]; schedule(); }); },'small'),btn('Website photos',function(){ wpgLibraryPick(function(x){ o[k]=x; schedule(); }); },'small'),u?btn('Remove',function(){ o[k]=''; schedule(); },'small'):null))); }
-  function button(o,id){ var known=WPG_LINKS.some(function(x){ return x[0]===(o.button_link||'')&&x[0]!=='custom'; }), mode=known?(o.button_link||''):'custom';
-    var sel=h('select',{id:id+'-bl',onchange:function(ev){ var v=ev.target.value; o.button_link=v==='custom'?'https://':v; if(!v){ o.button_text=''; } else if(!o.button_text) o.button_text=WPG_LINKS.filter(function(x){ return x[0]===v; })[0][1]; schedule(); }},WPG_LINKS.map(function(x){ return h('option',{value:x[0]},x[1]); }));
+  /* a button can open the checkout for one package on the prices page (prices.html?buy=<package>) */
+  function button(o,id){ var pkm=/^prices\.html\?buy=/.test(o.button_link||''), known=WPG_LINKS.some(function(x){ return x[0]===(o.button_link||'')&&x[0]!=='custom'&&x[0]!=='package'; }), mode=pkm?'package':known?(o.button_link||''):'custom';
+    var sel=h('select',{id:id+'-bl',onchange:function(ev){ var v=ev.target.value; o.button_link=v==='custom'?'https://':v==='package'?'prices.html?buy=':v; if(!v){ o.button_text=''; } else if(!o.button_text&&v!=='package') o.button_text=WPG_LINKS.filter(function(x){ return x[0]===v; })[0][1]; schedule(); }},WPG_LINKS.map(function(x){ return h('option',{value:x[0]},x[1]); }));
+    var pks=sortBy(S.packages.filter(function(k){ return k.active!==false&&k.price_thb!=null&&k.price_thb>=20&&(k.audience||'all')==='all'; }),'name'), cur=pkm?(o.button_link||'').slice(15):'';
+    var psel=mode==='package'?h('select',{id:id+'-bp',onchange:function(ev){ var k=pks.filter(function(x){ return String(x.id)===ev.target.value; })[0]; o.button_link='prices.html?buy='+ev.target.value; if(k&&(!o.button_text||/^Buy /.test(o.button_text))) o.button_text='Buy '+k.name; schedule(); }},
+      [h('option',{value:''},'Choose a package')].concat(pks.map(function(k){ return h('option',{value:String(k.id)},k.name+', '+thb(k.price_thb)); }))):null; if(psel) psel.value=cur;
     sel.value=mode; return h('div',{class:'row wpbtn'},h('div',{class:'field'},h('label',{for:id+'-bl'},'Button'),sel),
-      o.button_link?h('div',{class:'field'},h('label',{for:id+'-bt'},'Button words'),inp(o,'button_text',id+'-bt')):null,
+      psel?h('div',{class:'field'},h('label',{for:id+'-bp'},'Package'),psel,h('small',null,'The button opens the checkout for this package on your prices page.')):null,
+      o.button_link&&(mode!=='package'||cur)?h('div',{class:'field'},h('label',{for:id+'-bt'},'Button words'),inp(o,'button_text',id+'-bt')):null,
       mode==='custom'&&o.button_link?h('div',{class:'field'},h('label',{for:id+'-bu'},'Link'),inp(o,'button_link',id+'-bu',{placeholder:'https://'})):null); }
   function items(s,id){ var it=s.items=s.items||[], faq=s.type==='faq';
     return h('div',{class:'wpitems'},it.map(function(x,i){ return h('div',{class:'wpitem'},

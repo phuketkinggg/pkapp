@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-19', title: 'Page buttons that sell a package', what: 'When you make a website page, a button can now be A package to buy. Choose the package and the button opens its checkout on your prices page, so visitors can pay straight from the page.'},
   {date: '2026-11-19', title: 'Colours for the gym tour map', what: 'Each area on the gym tour map now has its own colour, on the map and on the buttons under it, so visitors can tell the areas apart at a glance. Change an area\'s colour in Settings, Website, Gym tour, Edit.', feature: 'site_tour'},
   {date: '2026-11-18', title: 'Several 360 photos for each area of the gym tour', what: 'In Settings, Website, Gym tour, tap Add 360 photo as many times as you like for an area (up to 8). Give each one a name, for example Ice bath or Sauna, and visitors tap the names to switch between the views. Tap a 360 photo to rename it, remove it or show it first.', feature: 'site_tour'},
   {date: '2026-11-18', title: 'Print or share the timetable', what: 'In Timetable, tap Print or share: the week opens as a clear page in your colours. Print it, save it as a PDF, or share the link (it always shows the timetable as it is now). Choose all classes, one coach\'s schedule or one kind of class, with or without the coaches.', feature: 'schedule_print'},
