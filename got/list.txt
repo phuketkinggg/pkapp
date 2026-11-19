@@ -1,5 +1,0 @@
-total 13268
-drwxr-xr-x 2 runner runner     4096 Nov 18 13:33 .
-drwxr-xr-x 5 runner runner     4096 Nov 18 13:33 ..
--rw------- 1 runner runner 13578240 Nov 18 13:32 1SXFMqCpcPb2GFHdiZWGSi7hg9EgtVtqo.jpg
--rw-r--r-- 1 runner runner        0 Nov 18 13:33 list.txt
