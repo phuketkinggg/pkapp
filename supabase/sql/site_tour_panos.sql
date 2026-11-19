@@ -1,7 +1,7 @@
 -- Gym tour: an area can have several 360 photos (zones[].panos: [{url, caption, yaw, vaov}]), shown with a button for each.
 -- Replaces site_tour_save from site_tour.sql with the extra checks. Feature site_tour.
 create or replace function public.site_tour_save(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
-declare z jsonb; ph jsonb; ok_url text := '^(https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/|img/|https://[a-z0-9.-]+/)[^"<>\s]{1,400}$';
+declare z jsonb; ph jsonb; ok_url text := '^(https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/|img/|https://[a-z0-9.-]+/)[^"<>\s]+$';
 begin
   if coalesce(private.staff_role(), '') <> 'manager' or not private.can('settings') then raise exception 'Only a manager can change the website.'; end if;
   if jsonb_typeof(p) <> 'object' or jsonb_typeof(coalesce(p->'zones', '[]'::jsonb)) <> 'array' then raise exception 'The tour could not be saved.'; end if;

@@ -8,7 +8,7 @@ create or replace function public.site_tour() returns jsonb language sql stable 
 $f$;
 
 create or replace function public.site_tour_save(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
-declare z jsonb; ph jsonb; ok_url text := '^(https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/|img/|https://[a-z0-9.-]+/)[^"<>\s]{1,400}$';
+declare z jsonb; ph jsonb; ok_url text := '^(https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/|img/|https://[a-z0-9.-]+/)[^"<>\s]+$';
 begin
   if coalesce(private.staff_role(), '') <> 'manager' or not private.can('settings') then raise exception 'Only a manager can change the website.'; end if;
   if jsonb_typeof(p) <> 'object' or jsonb_typeof(coalesce(p->'zones', '[]'::jsonb)) <> 'array' then raise exception 'The tour could not be saved.'; end if;

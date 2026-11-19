@@ -8,7 +8,7 @@ create or replace function public.room_360() returns jsonb language sql stable s
 $f$;
 
 create or replace function public.room_360_save(p jsonb) returns jsonb language plpgsql security definer set search_path to '' as $f$
-declare g text; l jsonb; s jsonb; ok_url text := '^(https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/|img/)[^"<>\s]{1,400}$';
+declare g text; l jsonb; s jsonb; ok_url text := '^(https://[a-z0-9]+\.supabase\.co/storage/v1/object/public/|img/)[^"<>\s]+$';
 begin
   if coalesce(private.staff_role(), '') <> 'manager' or not private.can('settings') then raise exception 'Only a manager can change the website.'; end if;
   if jsonb_typeof(p) <> 'object' then raise exception 'The 360 photos could not be saved.'; end if;
