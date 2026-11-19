@@ -25878,5 +25878,53 @@
 "Off: the App Store app on iPhone and iPad hides online courses, the technique videos and the course offer, because Apple only allows digital content sold with its own In-App Purchase. People still get them on your website, the web app and Android. Turn on only if Apple has approved them.": [
 "ปิด: แอปจาก App Store บน iPhone และ iPad จะซ่อนคอร์สออนไลน์ วิดีโอเทคนิค และข้อเสนอคอร์ส เพราะ Apple อนุญาตให้ขายเนื้อหาดิจิทัลผ่าน In-App Purchase ของ Apple เท่านั้น ลูกค้ายังใช้ได้บนเว็บไซต์ เว็บแอป และ Android เปิดเฉพาะเมื่อ Apple อนุมัติแล้ว",
 "ပိတ်ထားလျှင် iPhone နှင့် iPad ရှိ App Store အက်ပ်တွင် အွန်လိုင်းသင်တန်းများ၊ နည်းပညာဗီဒီယိုများနှင့် သင်တန်းကမ်းလှမ်းချက်ကို ဖျောက်ထားသည်၊ အကြောင်းမှာ Apple သည် ဒစ်ဂျစ်တယ်အကြောင်းအရာကို ၎င်း၏ In-App Purchase ဖြင့်သာ ရောင်းခွင့်ပြုသောကြောင့်ဖြစ်သည်။ ဝက်ဘ်ဆိုက်၊ ဝက်ဘ်အက်ပ်နှင့် Android တွင် ဆက်လက်ရနိုင်သည်။ Apple ခွင့်ပြုမှသာ ဖွင့်ပါ။"
+],
+" package. Or buy it here with your Apple account.": [
+" ใดก็ได้ หรือซื้อที่นี่ด้วยบัญชี Apple ของคุณ",
+" ပက်ကေ့ချ်တစ်ခုခုဖြင့် အခမဲ့ပါဝင်သည်။ သို့မဟုတ် သင့် Apple အကောင့်ဖြင့် ဤနေရာတွင် ဝယ်ပါ။"
+],
+"Apple did not send the purchase. Tap Restore purchases.": [
+"Apple ไม่ได้ส่งข้อมูลการซื้อมา แตะ กู้คืนการซื้อ",
+"Apple က ဝယ်ယူမှုကို မပို့ပေးပါ။ ဝယ်ယူမှုများ ပြန်ယူရန် ကို နှိပ်ပါ။"
+],
+"Apple product id (iPhone app)": [
+"รหัสสินค้า Apple (แอป iPhone)",
+"Apple ကုန်ပစ္စည်း ID (iPhone အက်ပ်)"
+],
+"Buy courses with Apple in the iPhone app": [
+"ซื้อคอร์สผ่าน Apple ในแอป iPhone",
+"iPhone အက်ပ်တွင် Apple ဖြင့် သင်တန်းများ ဝယ်ရန်"
+],
+"Buy it once with your Apple account to unlock every lesson, on this phone and on your other devices.": [
+"ซื้อครั้งเดียวด้วยบัญชี Apple เพื่อปลดล็อกทุกบทเรียน ทั้งในโทรศัพท์นี้และอุปกรณ์อื่นของคุณ",
+"သင့် Apple အကောင့်ဖြင့် တစ်ကြိမ်ဝယ်ပြီး သင်ခန်းစာအားလုံးကို ဤဖုန်းနှင့် သင့်အခြားစက်များတွင် ဖွင့်ပါ။"
+],
+"Buy the course": [
+"ซื้อคอร์ส",
+"သင်တန်းကို ဝယ်ရန်"
+],
+"Course unlocked. Enjoy!": [
+"ปลดล็อกคอร์สแล้ว ขอให้สนุก!",
+"သင်တန်း ဖွင့်ပြီးပါပြီ။ ပျော်ရွှင်ပါစေ!"
+],
+"No course purchases found for this Apple account.": [
+"ไม่พบการซื้อคอร์สในบัญชี Apple นี้",
+"ဤ Apple အကောင့်တွင် သင်တန်းဝယ်ယူမှု မတွေ့ပါ။"
+],
+"Restore did not work. Try again.": [
+"กู้คืนไม่สำเร็จ ลองอีกครั้ง",
+"ပြန်ယူခြင်း မအောင်မြင်ပါ။ ထပ်ကြိုးစားပါ။"
+],
+"Restore purchases": [
+"กู้คืนการซื้อ",
+"ဝယ်ယူမှုများ ပြန်ယူရန်"
+],
+"The iPhone and iPad app shows your courses and sells them with Apple In-App Purchase. Give each course its Apple product id (Courses, edit the course) after making it in App Store Connect. A course bought with Apple opens on every device, and one bought on your website also opens in the iPhone app. Apple keeps 15 to 30 percent.": [
+"แอป iPhone และ iPad จะแสดงคอร์สและขายผ่าน In-App Purchase ของ Apple ใส่รหัสสินค้า Apple ให้แต่ละคอร์ส (คอร์ส แก้ไขคอร์ส) หลังสร้างใน App Store Connect คอร์สที่ซื้อผ่าน Apple เปิดได้ทุกอุปกรณ์ และคอร์สที่ซื้อบนเว็บไซต์ก็เปิดในแอป iPhone ได้ Apple หักไว้ 15 ถึง 30 เปอร์เซ็นต์",
+"iPhone နှင့် iPad အက်ပ်သည် သင့်သင်တန်းများကို ပြပြီး Apple In-App Purchase ဖြင့် ရောင်းသည်။ App Store Connect တွင် ပြုလုပ်ပြီးနောက် သင်တန်းတစ်ခုစီကို ၎င်း၏ Apple ကုန်ပစ္စည်း ID (သင်တန်းများ၊ သင်တန်းပြင်ရန်) ပေးပါ။ Apple ဖြင့်ဝယ်သော သင်တန်းသည် စက်အားလုံးတွင် ဖွင့်နိုင်ပြီး ဝက်ဘ်ဆိုက်တွင် ဝယ်သော သင်တန်းလည်း iPhone အက်ပ်တွင် ဖွင့်နိုင်သည်။ Apple က ၁၅ မှ ၃၀ ရာခိုင်နှုန်း ယူသည်။"
+],
+"To sell it in the iPhone app: make a Non-Consumable In-App Purchase for it in App Store Connect and paste its Product ID here, for example course.kicking. Leave empty to not sell it there.": [
+"หากจะขายในแอป iPhone: สร้าง In-App Purchase แบบ Non-Consumable ใน App Store Connect แล้ววาง Product ID ที่นี่ เช่น course.kicking เว้นว่างไว้ถ้าไม่ขายในนั้น",
+"iPhone အက်ပ်တွင် ရောင်းရန် App Store Connect တွင် Non-Consumable In-App Purchase ပြုလုပ်ပြီး ၎င်း၏ Product ID ကို ဤနေရာတွင် ထည့်ပါ၊ ဥပမာ course.kicking။ မရောင်းလိုလျှင် ဗလာထားပါ။"
 ]
 }

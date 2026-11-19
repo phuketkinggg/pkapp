@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=220"></script>
+<script src="changelog.js?v=221"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -965,6 +965,7 @@ var FEATURES=[
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
   {k:'ios_digital',g:'Training',n:'Courses and videos in the iPhone app',d:'Off: the App Store app on iPhone and iPad hides online courses, the technique videos and the course offer, because Apple only allows digital content sold with its own In-App Purchase. People still get them on your website, the web app and Android. Turn on only if Apple has approved them.',def:false,spa:false},
+  {k:'ios_iap',g:'Training',n:'Buy courses with Apple in the iPhone app',d:'The iPhone and iPad app shows your courses and sells them with Apple In-App Purchase. Give each course its Apple product id (Courses, edit the course) after making it in App Store Connect. A course bought with Apple opens on every device, and one bought on your website also opens in the iPhone app. Apple keeps 15 to 30 percent.',def:false,spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
   {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.',spa:false},
   {k:'lang_th',g:'Languages',n:'Thai',d:'Everyone can switch the app to Thai: staff, coaches and customers. Phones set to Thai start in Thai.'},
@@ -1079,7 +1080,7 @@ document.addEventListener('visibilitychange',function(){ try{ if(typeof sb==='un
    so they are hidden there unless the business turns on ios_digital. The website, the web app and Android keep them. */
 var IOS_DIGITAL=['courses','techniques','course_offer'];
 function iosStore(){ try{ return inStoreApp()&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='ios'; }catch(e){ return false; } }
-function featOn(k){ if(IOS_DIGITAL.indexOf(k)>=0&&FEAT.ios_digital!==true&&iosStore()) return false; var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(platLocked(k)) return platCfg().lock[k]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
+function featOn(k){ if(IOS_DIGITAL.indexOf(k)>=0&&FEAT.ios_digital!==true&&iosStore()&&!(k==='courses'&&FEAT.ios_iap===true)) return false; var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(platLocked(k)) return platCfg().lock[k]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
 /* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
 var LANGED={q:'',th:null,my:null,ru:null,fix:null};
 function langLoadAll(){ ['th','my','ru'].forEach(function(l){ if(LANGED[l]||!featOn('lang_'+l)) return; LANGED[l]={}; if(window['I18N_'+l]){ LANGED[l]=window['I18N_'+l].d; return; }
@@ -1106,7 +1107,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=164; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=165; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -4877,7 +4878,39 @@ function lessonOpens(ts){ var d=new Date(ts), days=Math.round((Date.parse(cDayOf
 function lessonWhen(l){ return [l.open_day?'Opens day '+l.open_day:null,l.open_on?'from '+fmtDate(l.open_on):null].filter(Boolean).join(', '); }
 /* store apps (feature store_courses_hide): customers see no courses, only the technique library */
 function noCrs(){ return featOn('store_courses_hide')&&!!(window.pkNative&&window.pkNative())&&!!me&&me.role==='customer'; }
+/* Apple In-App Purchase for courses in the iPhone app (feature ios_iap): StoreKit through the NativePurchases plugin,
+   checked by the iap-apple function, which unlocks the course on the account */
+var IAP={map:null,prices:{},busy:false};
+function iapPlugin(){ try{ return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.NativePurchases||null; }catch(e){ return null; } }
+function iapOn(){ return iosStore()&&featOn('ios_iap')&&!!iapPlugin()&&!!me&&me.role==='customer'; }
+function iapLoad(){ if(IAP.map!==null) return; IAP.map={};
+  sb.rpc('course_apple_products').then(must).then(function(list){ var m={}; (list||[]).forEach(function(x){ if(x.product) m[x.id]=x.product; }); IAP.map=m; schedule();
+    var ids=Object.keys(m).map(function(k){ return m[k]; }); if(!ids.length) return;
+    return iapPlugin().getProducts({productIdentifiers:ids}).then(function(r){ ((r&&r.products)||[]).forEach(function(pr){ IAP.prices[pr.identifier]=pr.priceString; }); schedule(); }); }).catch(function(){}); }
+function iapSend(jws){ if(!jws) return Promise.reject(new Error('Apple did not send the purchase. Tap Restore purchases.'));
+  return sb.auth.getSession().then(function(r){ var tok=r&&r.data&&r.data.session&&r.data.session.access_token;
+    return fetch(SB_URL+'/functions/v1/iap-apple',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+(tok||SB_KEY)},body:JSON.stringify({jws:jws})}); })
+    .then(function(r){ return r.json(); }).then(function(d){ if(!d||d.error) throw new Error((d&&d.error)||'The purchase could not be checked.'); return d; }); }
+function iapBuy(c){ var pid=IAP.map&&IAP.map[c.id]; if(!pid||IAP.busy) return; IAP.busy=true; schedule();
+  var cid=CU&&CU.me&&CU.me.id; iapPlugin().purchaseProduct(Object.assign({productIdentifier:pid},/^[0-9a-f-]{36}$/.test(cid||'')?{appAccountToken:cid}:{}))
+    .then(function(t){ return iapSend(t&&t.jwsRepresentation); })
+    .then(function(){ toast('Course unlocked. Enjoy!'); return crsOpen(c.id); })
+    .catch(function(e){ var m=String((e&&e.message)||e||''); if(!/cancel/i.test(m)) toast(m||'The purchase did not go through.'); })
+    .then(function(){ IAP.busy=false; schedule(); }); }
+function iapRestore(){ if(IAP.busy) return; IAP.busy=true; schedule(); var mine=Object.keys(IAP.map||{}).map(function(k){ return IAP.map[k]; }), n=0;
+  iapPlugin().getPurchases({onlyCurrentEntitlements:true}).then(function(r){ var list=((r&&r.purchases)||[]).filter(function(t){ return t.jwsRepresentation&&mine.indexOf(t.productIdentifier)>=0; });
+    return list.reduce(function(pr,t){ return pr.then(function(){ return iapSend(t.jwsRepresentation).then(function(){ n++; }); }); },Promise.resolve()); })
+    .then(function(){ toast(n?n+(n>1?' courses':' course')+' restored.':'No course purchases found for this Apple account.'); CRS.list=null; schedule(); })
+    .catch(function(e){ toast(String((e&&e.message)||'Restore did not work. Try again.')); })
+    .then(function(){ IAP.busy=false; schedule(); }); }
+function iapLocked(c){ var pid=IAP.map[c.id], price=IAP.prices[pid];
+  return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
+    h('p',{class:'sub'},c.members_free?'It is included free with any active '+BIZ_MAIN+' package. Or buy it here with your Apple account.':'Buy it once with your Apple account to unlock every lesson, on this phone and on your other devices.'),
+    h('div',{class:'row'},btn(IAP.busy?'One moment.':price?'Buy the course, '+price:'Buy the course',function(){ iapBuy(c); },'primary'),
+      c.members_free?btn('See packages',function(){ CRS.view=null; ui.tab='c_buy'; schedule(); },'small'):null),
+    h('p',{class:'sub'},linkBtn('Restore purchases',iapRestore))); }
 function crsLocked(c){
+  if(iapOn()){ iapLoad(); if(IAP.map&&IAP.map[c.id]) return iapLocked(c); }
   /* in the store apps, courses are not sold inside the app (Google and Apple want their own billing for digital content): no price or buy link there */
   if(window.pkNative&&window.pkNative()) return h('div',{class:'panel pad crslock'},h('b',null,'This course is locked'),
     h('p',{class:'sub'},c.members_free?'It is included free with any active '+BIZ_MAIN+' package.':'Ask the team at reception about this course.'),
@@ -4906,9 +4939,12 @@ function vCourses(){
 }
 function crsEdit(id){ return Promise.all([sb.rpc('course_view',{p_course:id}).then(must),sb.rpc('course_groups',{p_course:id}).then(must).catch(function(){ return []; })]).then(function(r){ var d=r[0]; d.groups=r[1]||[]; CRS.edit=d; schedule(); window.scrollTo(0,0); }).catch(function(e){ toast(errText(e)); }); }
 function crsSlug(t){ return String(t||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60); }
+var APPLEIDS;
 function editCourse(c){ c=c||{status:'draft',members_free:true};
+  if(featOn('ios_iap')&&APPLEIDS===undefined){ sb.rpc('course_apple_ids').then(must).then(function(m){ APPLEIDS=m||{}; editCourse(c); }).catch(function(){ APPLEIDS={}; editCourse(c); }); return; }
+  var apl=(APPLEIDS&&c.id&&APPLEIDS[c.id])||'';
   var cover=c.cover||null;
-  openForm({title:c.id?'Edit course':'New course',values:{title:c.title||'',slug:c.slug||'',summary:c.summary||'',about:c.about||'',price:c.price,stay_price:c.stay_price,members_free:c.members_free!==false,status:c.status||'draft',sort:c.sort||0},
+  openForm({title:c.id?'Edit course':'New course',values:{title:c.title||'',slug:c.slug||'',summary:c.summary||'',about:c.about||'',price:c.price,stay_price:c.stay_price,members_free:c.members_free!==false,status:c.status||'draft',sort:c.sort||0,apple:apl},
     fields:[{key:'title',label:'Course name',required:true,live:true,onChange:function(v,set){ if(!c.id) set('slug',crsSlug(v)); }},
       {key:'slug',label:'Short name for the web address',required:true,hint:'Small letters and dashes, for example: kicking-fundamentals.'},
       {key:'summary',label:'One line about it',hint:'Shown on the course card.'},
@@ -4916,10 +4952,12 @@ function editCourse(c){ c=c||{status:'draft',members_free:true};
       {key:'price',label:'Price (THB)',type:'number',hint:'Leave empty or 0 for a free course.'},
       {key:'stay_price',hide:!featOn('course_stay_price'),label:'Price for resort guests (THB)',type:'number',hint:'Anyone with a stay booked or staying now pays this when they buy with the same email. Leave empty for the normal price.'},
       {key:'members_free',label:'Free for members with an active package',type:'checkbox'},
+      {key:'apple',label:'Apple product id (iPhone app)',hide:!featOn('ios_iap'),hint:'To sell it in the iPhone app: make a Non-Consumable In-App Purchase for it in App Store Connect and paste its Product ID here, for example course.kicking. Leave empty to not sell it there.'},
       {key:'status',label:'Show it',type:'select',options:[['draft','Draft (only managers see it)'],['published','On the website and in the app']]},
       {key:'sort',label:'Order',type:'number'}],
     onSave:function(v){ var sl=crsSlug(v.slug); if(!sl) return 'Add a short name for the web address.';
       return sb.rpc('course_save',{p:{id:c.id||null,title:v.title,slug:sl,summary:v.summary,about:v.about,price:v.price,stay_price:featOn('course_stay_price')?(v.stay_price==null?'':v.stay_price):undefined,members_free:v.members_free,status:v.status,sort:v.sort,cover_url:cover}}).then(must)
+        .then(function(id){ var ap=String(v.apple||'').trim(); return (featOn('ios_iap')&&ap!==apl?sb.rpc('course_apple_set',{p_course:id,p_product:ap}).then(must).then(function(){ if(APPLEIDS){ if(ap) APPLEIDS[id]=ap; else delete APPLEIDS[id]; } }):Promise.resolve()).then(function(){ return id; }); })
         .then(function(id){ CRS.list=null; return crsEdit(id); }); }});
   var anchor=document.getElementById('f-summary'); if(!anchor) return;
   var pic=h('img',{alt:'',style:'width:160px;height:90px;object-fit:cover;border-radius:8px;background:#222'+(cover?'':';display:none'),src:cover||''});
