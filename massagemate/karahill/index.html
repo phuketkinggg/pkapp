@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=216"></script>
+<script src="changelog.js?v=217"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1100,7 +1100,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=160; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=161; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -12451,14 +12451,17 @@ function tourUpload(files,prefix){ var out=[];
     return shrinkPhoto(f,2000).then(function(blob){ var path='site/'+prefix+'-'+Date.now()+'-'+i+'.jpg';
     return sb.storage.from('promos').upload(path,blob,{contentType:'image/jpeg',upsert:false}).then(function(r){ if(r.error) throw r.error; out.push({url:sb.storage.from('promos').getPublicUrl(path).data.publicUrl}); }); }); }); },Promise.resolve()).then(function(){ return out; }); }
 function tourPick(multi,cb,vid){ var inp=h('input',{type:'file',accept:vid?'image/*,video/mp4,video/quicktime,video/webm':'image/*',multiple:!!multi,hidden:true,onchange:function(){ var f=[].slice.call(inp.files||[]); inp.remove(); if(f.length) cb(f); }}); document.body.appendChild(inp); inp.click(); }
+var TOUR_COLS=[['#C92634','Red'],['#1F6FD1','Blue'],['#2E9E5B','Green'],['#E08A1E','Orange'],['#7B4FC9','Purple'],['#14989C','Teal'],['#D04A8C','Pink'],['#5B6770','Grey']];
+function tourCol(z,i){ return /^#[0-9a-f]{6}$/i.test(z.color||'')?z.color:TOUR_COLS[i%TOUR_COLS.length][0]; }
 function tourZoneEdit(i){ var t=TOUR, z=i==null?{name:'',text:'',pano:'',photos:[],x:40,y:40,w:15,h:15}:t.zones[i];
-  openForm({title:i==null?'New area':z.name,note:i==null?'Then tap Mark on the photo to show where it is.':null,values:{name:z.name||'',text:z.text||'',pano:z.pano||''},
+  openForm({title:i==null?'New area':z.name,note:i==null?'Then tap Mark on the photo to show where it is.':null,values:{name:z.name||'',text:z.text||'',pano:z.pano||'',color:z.color||''},
     fields:[{key:'name',label:'Name',required:true,hint:'Short, for example Ring, Bag zone, Recovery zone.'},{key:'text',label:'What is here',type:'textarea',rows:3,hint:'One or two lines visitors read with the photos.'},
+      {key:'color',label:'Colour on the map',type:'select',options:[['','Automatic']].concat(TOUR_COLS)},
       {key:'pano',label:'360 view',hint:'Optional. Easiest: close this and tap Add 360 photo. Or paste a YouTube 360 video link. Empty it to remove the 360 view.'}],
     saveLabel:'Save',doneMsg:'Saved. The website shows it within a minute.',
     extraBtn:i==null?null:['Remove area',function(){ $dlg.close(); if(!confirm('Remove '+z.name+' and its photos from the tour?')) return; var n=Object.assign({},t,{zones:t.zones.filter(function(x,j){ return j!==i; })}); tourSave(n,'Area removed.').catch(function(e){ toast(errText(e)); }); }],
     onSave:function(v){ if(v.pano&&!/^https:\/\//.test(v.pano.trim())) return 'The 360 link must start with https://';
-      var nz=Object.assign({},z,{name:v.name.trim().slice(0,40),text:v.text.trim(),pano:v.pano.trim()}), zs=t.zones.slice(); if(nz.pano!==(z.pano||'')){ nz.pano_vaov=null; nz.pano_yaw=null; nz.panos=[]; } if(i==null) zs.push(nz); else zs[i]=nz;
+      var nz=Object.assign({},z,{name:v.name.trim().slice(0,40),text:v.text.trim(),pano:v.pano.trim(),color:/^#[0-9a-f]{6}$/i.test(v.color||'')?v.color:''}), zs=t.zones.slice(); if(nz.pano!==(z.pano||'')){ nz.pano_vaov=null; nz.pano_yaw=null; nz.panos=[]; } if(i==null) zs.push(nz); else zs[i]=nz;
       return tourSave(Object.assign({},t,{zones:zs})).then(function(){ if(i==null) setTimeout(function(){ tourMark(TOUR.zones.length-1); },300); }); }});
   document.querySelectorAll('dialog textarea, dialog input').forEach(function(x){ x.classList.add('notr'); }); }
 function tourMark(i){ var z=TOUR.zones[i]; if(!z) return; var a=null;
@@ -12510,8 +12513,8 @@ function tourPhotoEdit(i,j){ var z=TOUR.zones[i], p=z.photos[j];
 function tourSection(){ if(TOUR===null) tourLoad();
   var t=TOUR||{zones:[]};
   var map=h('div',{style:'position:relative;border-radius:10px;overflow:hidden;max-width:760px;margin-top:10px;background:#222'},h('img',{src:tourImg(),alt:'Aerial photo of the gym',loading:'lazy',style:'display:block;width:100%;height:auto'}),
-    t.zones.map(function(z,i){ return h('button',{type:'button',title:z.name,onclick:function(){ tourZoneEdit(i); },style:'position:absolute;left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;border:2px solid #fff;border-radius:6px;background:rgba(0,0,0,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0'},
-      h('span',{class:'notr',style:'background:rgba(0,0,0,.75);color:#fff;font-size:12px;padding:3px 8px;border-radius:99px;white-space:nowrap'},z.name)); }));
+    t.zones.map(function(z,i){ return h('button',{type:'button',title:z.name,onclick:function(){ tourZoneEdit(i); },style:'position:absolute;left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%;border:3px solid '+tourCol(z,i)+';border-radius:6px;background:'+tourCol(z,i)+'4d;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0'},
+      h('span',{class:'notr',style:'background:'+tourCol(z,i)+';color:#fff;font-size:12px;padding:3px 8px;border-radius:99px;white-space:nowrap'},z.name)); }));
   return h('div',{style:'margin:18px 0 6px'},
     h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},'Gym tour'),h('a',{href:'pk/about.html#tour',target:'_blank',rel:'noopener',class:'sub'},'Open the page')),
     h('p',{class:'sub'},'The aerial photo on the About page. Visitors tap an area to see its photos and videos. Add photos, short video clips (under 50 MB) or YouTube links to each area here, and a 360 link when you have one.'),

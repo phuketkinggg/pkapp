@@ -7,13 +7,17 @@ var box=document.getElementById('gymtour'); if(!box||!window.PK) return;
 var BASE=(document.currentScript&&document.currentScript.src||'').replace(/[^\/]*$/,''), PN=null;
 function pnLoad(){ if(PN) return PN; PN=new Promise(function(res,rej){ var l=document.createElement('link'); l.rel='stylesheet'; l.href=BASE+'vendor/pannellum.css'; document.head.appendChild(l);
   var sc=document.createElement('script'); sc.src=BASE+'vendor/pannellum.js'; sc.onload=function(){ res(window.pannellum); }; sc.onerror=function(){ PN=null; rej(new Error('360 viewer did not load')); }; document.head.appendChild(sc); }); return PN; }
+/* each area has its own colour on the map (zones[].color, a #hex), else one from this set in order */
+var PAL=['#C92634','#1F6FD1','#2E9E5B','#E08A1E','#7B4FC9','#14989C','#D04A8C','#5B6770'];
+function zcol(z,i){ return /^#[0-9a-f]{6}$/i.test(z.color||'')?z.color:PAL[i%PAL.length]; }
+function rgba(h,a){ var n=parseInt(h.slice(1),16); return 'rgba('+(n>>16)+','+(n>>8&255)+','+(n&255)+','+a+')'; }
 function panoImg(u){ return /^img\//.test(u||'')||/\.(jpe?g|png|webp)(\?|#|$)/i.test(u||''); }
 var css='.gt-map{position:relative;border-radius:14px;overflow:hidden;background:#1a1a1a;box-shadow:0 14px 40px rgba(0,0,0,.18)}.gt-map img{display:block;width:100%;height:auto}'+
-  '.gt-z{position:absolute;border:2px solid rgba(255,255,255,.75);border-radius:8px;background:rgba(0,0,0,.08);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;font:inherit}'+
-  '.gt-z:hover,.gt-z:focus-visible{background:rgba(201,38,52,.28);border-color:#fff;outline:none}'+
-  '.gt-z span{background:rgba(17,17,17,.82);color:#fff;font-weight:600;font-size:clamp(11px,1.6vw,15px);padding:5px 10px;border-radius:99px;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.3);pointer-events:none}'+
+  '.gt-z{position:absolute;border:3px solid var(--c,#fff);border-radius:8px;background:var(--cf,rgba(0,0,0,.08));cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;font:inherit}'+
+  '.gt-z:hover,.gt-z:focus-visible{background:var(--ch,rgba(201,38,52,.28));border-color:#fff;outline:none}'+
+  '.gt-z span{background:var(--c,rgba(17,17,17,.82));color:#fff;font-weight:600;font-size:clamp(11px,1.6vw,15px);padding:5px 10px;border-radius:99px;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.3);pointer-events:none}'+
   '.gt-z span:after{content:" +";opacity:.7}'+
-  '.gt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.gt-chips button{font:inherit;border:1px solid var(--line,#ddd);background:#fff;color:inherit;border-radius:99px;padding:7px 14px;cursor:pointer}'+
+  '.gt-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.gt-chips button{font:inherit;border:1px solid var(--line,#ddd);background:#fff;color:inherit;border-radius:99px;padding:7px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.gt-chips i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}'+
   '.gt-ov{position:fixed;inset:0;z-index:2147483000;background:#0d0d0d;display:flex;flex-direction:column;color:#fff}'+
   '.gt-top{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}.gt-top h3{margin:0;font-size:20px;flex:1;color:#fff}'+
   '.gt-x{font:inherit;font-size:15px;background:#fff;color:#111;border:0;border-radius:99px;padding:8px 16px;cursor:pointer;font-weight:600}'+
@@ -35,8 +39,8 @@ PK.rest('rpc/site_tour').then(function(T){
   var img=T.image||'img/gym-aerial.jpg';
   box.innerHTML=(T.title||T.text?'<div class="center" style="margin-bottom:22px">'+(T.title?'<h2>'+esc(T.title)+'</h2><span class="rule"></span>':'')+(T.text?'<p class="lead">'+esc(T.text)+'</p>':'')+'</div>':'')+
     '<div class="gt-map"><img src="'+esc(img)+'" alt="Aerial view of the gym from above" width="1260" height="956">'+
-    Z.map(function(z,i){ return '<button type="button" class="gt-z" data-i="'+i+'" style="left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%" aria-label="See '+esc(z.name)+'"><span>'+esc(z.name)+'</span></button>'; }).join('')+'</div>'+
-    '<div class="gt-chips">'+Z.map(function(z,i){ return '<button type="button" data-i="'+i+'">'+esc(z.name)+'</button>'; }).join('')+'</div>';
+    Z.map(function(z,i){ return '<button type="button" class="gt-z" data-i="'+i+'" style="--c:'+zcol(z,i)+';--cf:'+rgba(zcol(z,i),.3)+';--ch:'+rgba(zcol(z,i),.55)+';left:'+z.x+'%;top:'+z.y+'%;width:'+z.w+'%;height:'+z.h+'%" aria-label="See '+esc(z.name)+'"><span>'+esc(z.name)+'</span></button>'; }).join('')+'</div>'+
+    '<div class="gt-chips">'+Z.map(function(z,i){ return '<button type="button" data-i="'+i+'" style="--c:'+zcol(z,i)+'"><i></i>'+esc(z.name)+'</button>'; }).join('')+'</div>';
   box.addEventListener('click',function(e){ var b=e.target.closest('[data-i]'); if(b) open(Z[+b.getAttribute('data-i')]); });
 }).catch(function(){});
 
