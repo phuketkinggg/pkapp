@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=218"></script>
+<script src="changelog.js?v=219"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -978,6 +978,7 @@ var FEATURES=[
   {k:'wallet_card',g:'Customers',n:'Member card in Apple Wallet and Google Wallet',d:'Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.',def:false,spa:false},
   {k:'onboard_steps',g:'Team',n:'Start in easy steps',d:'A new business starts with only the basics: check ins for members and staff in the first week. When you are happy, tap Next step and the next part comes in: selling, then accounting, messages, privates and coaches, and growing your business. The menu only shows the steps you have reached, so nothing is overwhelming. You choose when to move on, and See everything opens it all at any time. Settings, General, Getting started in steps.'},
   {k:'owner_lock',g:'Team',n:'Owner',d:'One person owns the business: only they switch features, change money settings and add or change managers and admins. They keep recovery codes in case they are locked out. Set it in Settings, General, Owner.',def:true,spa:true},
+  {k:'package_extras',g:'Website',n:'Extras on packages',d:'Each package can have extras people add when they buy it on your website, for example a class with recovery added for a little more. Tick them on the package, under Extras people can add. Each extra is paid with the package and shows on the customer as its own line.',def:true,spa:false},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
   {k:'cust_info',g:'Customers',n:'Customer Info tab',d:'An Info tab on each customer: everything you know about them in one list, newest first. When they were added and made their app account, every stay they booked and how, packages and courses with where they bought them, website orders, payments, privates, shop orders, emails sent, visits and forms. Health shows only for the people allowed to see it.',def:true,spa:true},
@@ -1099,7 +1100,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=162; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=163; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -1411,11 +1412,12 @@ function editPackage(p){ p=p||{}; if(SPA) return editSpaPack(p);
     {key:'start_within_days',label:'Must start within (days of buying)',type:'number',hint:'Leave empty for no deadline.'},
     {key:'clock',label:'The clock starts',type:'select',def:'first',options:[['first','At their first class'],['purchase','On the day it is bought']]},
     {key:'active',label:'On sale now',type:'checkbox',def:true},
+    {key:'extra_ids',label:'Extras people can add (website)',type:'checks',hide:!featOn('package_extras'),options:sortBy(S.packages.filter(function(k){ return k.id!==p.id&&k.active!==false&&Number(k.price_thb)>=1&&(k.audience||'all')==='all'; }),'name').map(function(k){ return [String(k.id),k.name+', +'+thb(k.price_thb)]; }),hint:'When someone buys this package on your website, they can add these, for example Recovery +100. Each one is another package with its own price. Tick none for no extras.'},
     {key:'badge',label:'Badge (optional)',hint:'Makes it stand out on your website and in the app, for example Best seller, New or Limited offer. Leave empty for none.'},
     {key:'was_thb',label:'Normal price, shown crossed out (THB, optional)',type:'number',hint:'For a promotion: the price before, shown crossed out next to the new price, with how much they save. Leave empty for none.'},
     {key:'notes',label:'Notes',type:'textarea'}],
     onSave:function(v){ var t,tl,gp; try{ t=parseTiers(v.tiers_txt); tl=parseTiers(v.tiers_local_txt); gp=featOn('private_group_price')?grpParse(v.group_txt):p.group_prices||null; }catch(e){ return e.message; }
-      v.badge=String(v.badge||'').trim().slice(0,30)||null; if(v.was_thb!=null&&!(Number(v.was_thb)>0)) v.was_thb=null;
+      v.badge=String(v.badge||'').trim().slice(0,30)||null; if(featOn('package_extras')) v.extra_ids=(v.extra_ids||[]).slice(0,12); else delete v.extra_ids; if(v.was_thb!=null&&!(Number(v.was_thb)>0)) v.was_thb=null;
       // a time ticked on every day it runs is kept as just the time, so it also covers that class on days added later
       var pick=v.times||[], out=[], done={};
       pick.forEach(function(k){ var tm=slot[k].t; if(done[tm]) return; var all=slotKeys.filter(function(x){ return slot[x].t===tm; });

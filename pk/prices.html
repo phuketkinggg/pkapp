@@ -166,21 +166,22 @@ function offerBox(box){
 function topNote(){ var t=coachTop(), el=document.getElementById('topnote'); if(!el) return; el.hidden=!t; if(t){ var v=PV.value(); el.textContent=v.coach_name+' has their own rate of '+PK.thb(v.rate)+' a session. Your first session with '+v.coach_name+' includes a '+PK.thb(t)+' top up. Other sessions in the pack can be with any coach, or with '+v.coach_name+' for the same top up, paid at the gym.'; } }
 function payLabel(){ $('payBtn').textContent='Pay '+PK.thb(recTotal()); }
 /* add-ons with privates: the items the business chose in the app (Settings, Privates, Add-ons with privates), as many as they want, each with how many */
-var ADDS=null, ADDQ={};
-function addsLoad(){ if(!ADDS) ADDS=fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/private_addons',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:'{}'})
-  .then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; }); return ADDS; }
+/* any package can have its own extras (package_addons); privates without their own list get the extras with privates */
+var ADDS={}, ADDQ={};
+function addsLoad(id){ if(!ADDS[id]) ADDS[id]=fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/package_addons',{method:'POST',headers:{'Content-Type':'application/json',apikey:KEY},body:JSON.stringify({p_package:id})})
+  .then(function(r){ return r.ok?r.json():[]; }).catch(function(){ return []; }); return ADDS[id]; }
 function addsList(){ return Object.keys(ADDQ).filter(function(k){ return ADDQ[k]&&ADDQ[k].qty>0; }).map(function(k){ return ADDQ[k]; }); }
 function addsTotal(){ return addsList().reduce(function(t,a){ return t+a.price*a.qty; },0); }
-function recBox(box){
-  addsLoad().then(function(items){ if(!items||!items.length) return;
+function recBox(box,p){ var pid=p.id, priv=(p.covers||[]).indexOf('Privates')>=0;
+  addsLoad(pid).then(function(items){ if(!items||!items.length||!cur||cur.id!==pid) return;
     var wrap=document.createElement('div'); wrap.className='recbox'; box.appendChild(wrap);
     function draw(){
-      var h='<b style="display:block;margin:0 0 4px">Add extras?</b><p class="sub" style="margin:0 0 10px">Add anything you want with your private. Each one is added to your order.</p><div class="addlist">';
+      var h='<b style="display:block;margin:0 0 4px">Add extras?</b><p class="sub" style="margin:0 0 10px">Add anything you want with your '+(priv?'private':'package')+'. Each one is added to your order.</p><div class="addlist">';
       items.forEach(function(it){ var a=ADDQ[it.id], q=a?a.qty:0;
         h+='<div class="additem'+(q?' on':'')+'"><div class="addtxt"><b>'+PK.esc(it.spa?tidy(it.name.replace(/^Spa Access,\s*/i,'Recovery, ')):it.name)+'</b>'+(it.note?'<span class="sub">'+PK.esc(it.note)+'</span>':'')+'<span class="addp">'+PK.thb(it.price)+(it.qty?' each':'')+'</span></div><div class="pp-yn">'+
           (q&&it.qty?'<button type="button" data-a="'+it.id+'" data-d="-1" aria-label="Fewer">−</button><b class="addn">'+q+'</b><button type="button" data-a="'+it.id+'" data-d="1" aria-label="More">+</button>'
             :'<button type="button" data-a="'+it.id+'" data-d="'+(q?'-1':'1')+'" aria-pressed="'+(q?'true':'false')+'">'+(q?'Added':'Add')+'</button>')+'</div></div>'; });
-      h+='</div>'; if(addsList().length) h+='<p class="sub" style="margin:10px 0 0">Extras: '+PK.thb(addsTotal())+'. They go on your account with the private.</p>';
+      h+='</div>'; if(addsList().length) h+='<p class="sub" style="margin:10px 0 0">Extras: '+PK.thb(addsTotal())+'. They go on your account with the '+(priv?'private':'package')+'.</p>';
       wrap.innerHTML=h;
       Array.prototype.forEach.call(wrap.querySelectorAll('[data-a]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-a'), d=Number(b.getAttribute('data-d')), it=items.filter(function(x){ return x.id===id; })[0];
         var q=Math.max(0,Math.min(it.qty?20:1,((ADDQ[id]&&ADDQ[id].qty)||0)+d)); if(q) ADDQ[id]={package_id:id,qty:q,price:it.price}; else delete ADDQ[id];
@@ -200,7 +201,7 @@ function buy(p,g){
   var dtv=/^DTV/i.test(p.name), priv=(p.covers||[]).indexOf('Privates')>=0;
   $('buyWhat').innerHTML='<p style="margin:0 0 6px"><b>'+PK.esc(p.name)+'</b><br><span style="font-size:26px;font-weight:700">'+PK.thb(p.price)+'</span></p><p class="sub" style="margin:0">'+PK.esc(detail(p))+'</p>';
   var sb=$('startBox'); sb.innerHTML=''; PV=null; PVon=false; REC=null; ADDQ={}; ADD=false;
-  if(priv&&p.visits){ privBox(p,sb); var rb=document.createElement('div'); sb.appendChild(rb); recBox(rb); }
+  if(priv&&p.visits){ privBox(p,sb); var rb=document.createElement('div'); sb.appendChild(rb); recBox(rb,p); }
   else if(p.pick_start){
     sb.innerHTML='<label>When do you want to start?<input type="date" id="b-start" required></label><p class="sub" style="margin:0">Your package runs from this date'+(p.days?' for '+span(p.days):'')+'.</p>';
     var i=$('b-start'); i.min=bkk(0); i.max=bkk(180); i.value=bkk(0);
@@ -210,6 +211,7 @@ function buy(p,g){
       (p.covers||[]).indexOf('Muay Thai')>=0?'<b>No booking needed.</b> Just turn up to any group class. Your package starts automatically from your first class.':
       '<b>No booking needed.</b> Just come in. Your package starts automatically from your first visit.')+within+(dtv?' We prepare your DTV paperwork after payment. DTV courses cannot be refunded once the paperwork is issued.':'')+'</p>';
   }
+  if(!(priv&&p.visits)&&p.id){ var xb=document.createElement('div'); sb.appendChild(xb); recBox(xb,p); }
   if(offerFits(p)){ var ob=document.createElement('div'); sb.appendChild(ob); offerBox(ob); }
   payLabel(); $('payBtn').disabled=false; $('berr').hidden=true; $('buyForm').hidden=false; $('ppView').hidden=true; $('buyWhat').hidden=false;
   try{ var m=JSON.parse(localStorage.getItem('pk_buyer')||'{}'); ['name','email','phone'].forEach(function(k){ if(m[k]&&!$('b-'+k).value) $('b-'+k).value=m[k]; }); }catch(e){}
