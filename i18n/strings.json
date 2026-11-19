@@ -25926,5 +25926,17 @@
 "To sell it in the iPhone app: make a Non-Consumable In-App Purchase for it in App Store Connect and paste its Product ID here, for example course.kicking. Leave empty to not sell it there.": [
 "หากจะขายในแอป iPhone: สร้าง In-App Purchase แบบ Non-Consumable ใน App Store Connect แล้ววาง Product ID ที่นี่ เช่น course.kicking เว้นว่างไว้ถ้าไม่ขายในนั้น",
 "iPhone အက်ပ်တွင် ရောင်းရန် App Store Connect တွင် Non-Consumable In-App Purchase ပြုလုပ်ပြီး ၎င်း၏ Product ID ကို ဤနေရာတွင် ထည့်ပါ၊ ဥပမာ course.kicking။ မရောင်းလိုလျှင် ဗလာထားပါ။"
+],
+"Not on the website yet": [
+"ยังไม่อยู่บนเว็บไซต์",
+"ဝက်ဘ်ဆိုက်ပေါ်တွင် မရှိသေးပါ"
+],
+"Take off the website": [
+"เอาออกจากเว็บไซต์",
+"ဝက်ဘ်ဆိုက်မှ ဖြုတ်ရန်"
+],
+" You can add, check and name the photos here first. Guests only see them once you tap Show on the website.": [
+" คุณเพิ่ม ตรวจ และตั้งชื่อรูปที่นี่ได้ก่อน แขกจะเห็นก็ต่อเมื่อคุณแตะ แสดงบนเว็บไซต์",
+" ဓာတ်ပုံများကို ဤနေရာတွင် ဦးစွာ ထည့်၊ စစ်ဆေးပြီး အမည်ပေးနိုင်သည်။ ဝက်ဘ်ဆိုက်တွင် ပြရန် ကို နှိပ်မှသာ ဧည့်သည်များ မြင်ရမည်။"
 ]
 }

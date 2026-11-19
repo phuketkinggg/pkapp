@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=221"></script>
+<script src="changelog.js?v=222"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1106,7 +1106,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=165; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=166; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -11012,7 +11012,7 @@ function vSettings(){
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
-  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),mgr&&!SPA&&featOn('site_tour')&&can('settings')?tourSection():null,mgr&&!SPA&&featOn('room_360')&&can('settings')?room360Section():null,SPA?null:webTextSection(),SPA?null:blogSection()];
+  else if(t==='website') body=[mgr&&featOn('gym_site')?gymSiteSection():null,mgr&&featOn('centre_sites')?centresSection():null,featOn('web_booking')?spaSiteSection():null,SPA?null:webPhotosSection(),mgr&&!SPA&&featOn('site_tour')&&can('settings')?tourSection():null,mgr&&!SPA&&(featOn('room_360')||featOn('stays'))&&can('settings')?room360Section():null,SPA?null:webTextSection(),SPA?null:blogSection()];
   else if(t==='rooms') body=[
     section('Rooms',btn('Add room',function(){ editRoom(); },'small'),table([
       {label:'Room',cell:function(r){ return linkBtn(r.name,function(){ editRoom(r); }); }},
@@ -12479,8 +12479,10 @@ function room360Section(){
       extraBtn:['Remove',function(){ $dlg.close(); l.splice(j,1); var n=Object.assign({},v); n[g.id]=l; room360Save(n,'Removed.').catch(function(e){ toast(errText(e)); }); }],
       onSave:function(f){ l[j]=Object.assign({},x,{caption:f.caption.trim().slice(0,40)}); var n=Object.assign({},v); n[g.id]=l; return room360Save(n); }});
     document.querySelectorAll('dialog input').forEach(function(i){ i.classList.add('notr'); }); }
-  return h('div',{style:'margin:18px 0 6px'},h('h3',{style:'margin:0'},'Room 360 photos'),
-    h('p',{class:'sub'},'Guests tap Look inside in 360 on each room type on the booking page. Use the flat 360 photo from your 360 camera (twice as wide as it is tall).'),
+  var live=featOn('room_360');
+  return h('div',{style:'margin:18px 0 6px'},h('div',{class:'row',style:'justify-content:space-between;align-items:center'},h('h3',{style:'margin:0'},'Room 360 photos'),
+      h('span',{class:'row'},live?chip('On the website','ok'):chip('Not on the website yet'),btn(live?'Take off the website':'Show on the website',function(){ featToggle('room_360',!live).catch(function(e){ toast(errText(e)); }); },'small'))),
+    h('p',{class:'sub'},'Guests tap Look inside in 360 on each room type on the booking page. Use the flat 360 photo from your 360 camera (twice as wide as it is tall).'+(live?'':' You can add, check and name the photos here first. Guests only see them once you tap Show on the website.')),
     !RATES||R360===false?h('div',{class:'panel empty'},'Loading.'):!gs.length?h('div',{class:'panel empty'},'Add your room price groups first, in Rooms, Room prices.'):
     gs.map(function(g){ var l=v[g.id]||[], busy=WEBP.busy==='r360'+g.id;
       return h('div',{class:'panel pad',style:'margin-top:8px'},h('div',{class:'row',style:'justify-content:space-between;align-items:center;gap:8px'},h('b',{class:'notr'},g.name),btn(busy?'Uploading.':'Add 360 photo',function(){ if(!WEBP.busy) pic(g); },'small')),
