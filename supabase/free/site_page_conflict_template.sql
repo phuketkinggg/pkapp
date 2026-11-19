@@ -1,5 +1,5 @@
 delete from mf.template where name like 'site_page_conflict:%';
-insert into mf.template (ord, phase, kind, name, sql) values (1000301, 10, 'patch', 'site_page_conflict:1000301', $TPL$do $patch$
+insert into mf.template (ord, phase, kind, name, sql) values (1002271, 10, 'patch', 'site_page_conflict:1002271', $TPL$do $patch$
 declare s text; n text;
 begin
   if to_regprocedure('__P__.site_page_save(jsonb)') is null then raise notice 'site_page_conflict: no site_page_save here, skipped'; return; end if;
