@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=226"></script>
+<script src="changelog.js?v=227"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1117,7 +1117,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=169; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=170; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -9707,6 +9707,24 @@ function setupGuide(){
         h('div',{class:'setupt'},h('b',null,x.t),isNext||!x.done?h('span',{class:'sub'},x.d):null),
         x.done?h('span',{class:'sub'},'Done'):btn(isNext?'Start':'Open',function(){ x.go(); },isNext?'primary small':'small')); })));
 }
+/* check ins on Today: today, or an earlier day (the last 60 days are loaded), with how many came to each class */
+function checkinsDay(today,todayEntries){
+  var d=ui.ciDay&&ui.ciDay<today&&ui.ciDay>=addDays(today,-59)?ui.ciDay:today, isToday=d===today, list=isToday?todayEntries:entriesOf(d);
+  var go=function(n){ var x=addDays(d,n); ui.ciDay=x>=today?null:x; schedule(); };
+  var nav=h('div',{class:'row'},btn('Earlier day',function(){ go(-1); },'small'+(d>addDays(today,-59)?'':' hide')),h('b',null,isToday?'Today':fmtDate(d)),
+    !isToday?btn('Later day',function(){ go(1); },'small'):null,!isToday?btn('Back to today',function(){ ui.ciDay=null; schedule(); },'small'):null);
+  var by={}, order=[]; list.forEach(function(e){ var k=entryWhat(e)||'Other'; if(!by[k]){ by[k]=0; order.push(k); } by[k]++; });
+  order.sort();
+  return section(isToday?'Checked in today':'Checked in on '+fmtDate(d),nav,h('div',null,
+    order.length?h('div',{class:'row wrap',style:'margin-bottom:8px'},order.map(function(k){ return chip(k+': '+by[k]); })):null,
+    table([
+      {label:'Time',cell:function(e){return e.time;}},
+      {label:'Customer',cell:function(e){return linkBtn(nameOf('customers',e.customer_id),function(){ openCustomer(e.customer_id); });}},
+      {label:'For',cell:entryWhat},
+      {label:'Package',cell:function(e){ var p=byId('purchases',e.purchase_id); return p?p.package_name:''; }},
+      {label:'',cell:function(e){return isToday?btn('Undo',function(){ undoCheckIn(e); },'small'):null;}}],
+      isToday?list.slice().reverse():list.slice().sort(function(a,b){ var x=entryWhat(a), y=entryWhat(b); return x<y?-1:x>y?1:(a.time<b.time?-1:1); }),
+      isToday?'Nobody has checked in yet today. Search for a customer above to check in the first one.':'Nobody checked in on this day.'))); }
 function vToday(){
   var day=ymd(new Date()), wd=(new Date().getDay()+6)%7;
   var entries=entriesOf(day), todays=sortBy(S.classes.filter(function(c){return Number(c.day)===wd&&!classOff(c,day);}),'time');
@@ -9783,12 +9801,7 @@ function vToday(){
       {label:'',cell:function(p){ return h('div',{class:'row'},moveReady(p.reschedule)?btn('Authorize',function(){ authorizeMove(p); },'primary small'):null,btn('Refuse',function(){ refuseMove(p); },'small')); }}],moves,'')):null]; },
     notices:function(){ return [noticesBox(),dashTodo()]; },
     sales:function(){ return todaySales(day); },
-    checkedin:function(){ return [section('Checked in today',null,table([
-      {label:'Time',cell:function(e){return e.time;}},
-      {label:'Customer',cell:function(e){return nameOf('customers',e.customer_id);}},
-      {label:'For',cell:entryWhat},
-      {label:'Package',cell:function(e){ var p=byId('purchases',e.purchase_id); return p?p.package_name:''; }},
-      {label:'',cell:function(e){return btn('Undo',function(){ undoCheckIn(e); },'small');}}],entries.slice().reverse(),'Nobody has checked in yet today. Search for a customer above to check in the first one.'))]; },
+    checkedin:function(){ return [checkinsDay(day,entries)]; },
     privates:function(){ return [section('Privates today',btn('Book a private',function(){ editPrivate(); },'small'),table([
       {label:'Time',cell:function(p){return pSpan(p);}},
       {label:'Customer',cell:function(p){return pWho(p);}},
