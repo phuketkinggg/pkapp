@@ -39,7 +39,7 @@ end $f$;
 
 -- a coach or manager gives a customer a level (the hours start again from that day)
 create or replace function public.grading_award(p_customer uuid, p_level integer, p_note text default null) returns uuid language plpgsql security definer set search_path to '' as $f$
-declare lv jsonb; id uuid;
+declare lv jsonb; new_id uuid;
 begin
   if not private.feature('grading', false) then raise exception 'Grading is not switched on.'; end if;
   if coalesce(private.staff_role(), '') not in ('manager', 'admin', 'coach') then raise exception 'Only a coach or a manager can give a level.'; end if;
@@ -48,8 +48,8 @@ begin
   if not exists (select 1 from public.customers where id = p_customer) then raise exception 'Customer not found.'; end if;
   insert into public.customer_grades (customer_id, level, on_day, by_staff, note)
     values (p_customer, p_level, (now() at time zone private.tz())::date, private.my_staff_id(), nullif(btrim(coalesce(p_note, '')), ''))
-    returning customer_grades.id into id;
-  return id;
+    returning customer_grades.id into new_id;
+  return new_id;
 end $f$;
 
 -- a manager takes back a level given by mistake

@@ -32,7 +32,7 @@ begin
       from __P__.customer_grades g where g.customer_id = cid), '[]'::jsonb));
 end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (403802, 4, 'patch', 'kids_grading:403802', $TPL$create or replace function __P__.grading_award(p_customer uuid, p_level integer, p_note text default null) returns uuid language plpgsql security definer set search_path to '' as $f$
-declare lv jsonb; id uuid;
+declare lv jsonb; new_id uuid;
 begin
   if not __Q__.feature('grading', false) then raise exception 'Grading is not switched on.'; end if;
   if coalesce(__Q__.staff_role(), '') not in ('manager', 'admin', 'coach') then raise exception 'Only a coach or a manager can give a level.'; end if;
@@ -41,8 +41,8 @@ begin
   if not exists (select 1 from __P__.customers where id = p_customer) then raise exception 'Customer not found.'; end if;
   insert into __P__.customer_grades (customer_id, level, on_day, by_staff, note)
     values (p_customer, p_level, (now() at time zone __Q__.tz())::date, __Q__.my_staff_id(), nullif(btrim(coalesce(p_note, '')), ''))
-    returning customer_grades.id into id;
-  return id;
+    returning customer_grades.id into new_id;
+  return new_id;
 end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (403803, 4, 'patch', 'kids_grading:403803', $TPL$create or replace function __P__.grading_undo(p_id uuid) returns void language plpgsql security definer set search_path to '' as $f$
 begin
