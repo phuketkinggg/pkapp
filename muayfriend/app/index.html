@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=224"></script>
+<script src="changelog.js?v=225"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -947,6 +947,7 @@ var FEATURES=[
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
+  {k:'grading',g:'Training',n:'Grading levels',d:'Levels customers work up through, for example kids armbands. Set the levels and the grading hours each one needs on Timetable, and tick Counts for grading on the classes that count. Every check in at those classes adds its hours. A coach or manager gives the level on the customer, and customers see their hours to the next level in their app.',def:false,spa:false},
   {k:'schedule_print',g:'Training',n:'Print or share the timetable',d:'A Print or share button on Timetable: the week as a clear page to print, save as a PDF or send as a link. All classes, one coach\'s schedule or one kind of class.'},
   {k:'room_360',g:'Rooms',n:'Room 360 photos',d:'A Look inside in 360 button on each room type on the website booking page. Guests drag around the room before they book. Add the photos in Settings, Website, Room 360 photos.',spa:false},
   {k:'backdated_pay',g:'Money',n:'Late entered sales count on the day bought',d:'When you add a package today with an earlier Bought date and take the payment as you add it, the money counts in the accounts on the day it was bought, not today. A package added back then and paid now still counts today.',spa:true},
@@ -1115,7 +1116,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=167; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=168; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -1690,8 +1691,9 @@ function editClass(c){ c=c||{};
     {key:'discipline',label:'Discipline',type:'select',def:'Muay Thai',options:DISCIPLINES.map(function(d){return [d,d];})},
     {key:'checkin',label:'Check in',type:'select',def:'yes',options:[['yes','Check in needed'],['no','No check in needed']],hint:'No check in needed: the class shows on the timetable, but nobody checks in for it and it never uses a visit from a package.'},
     {key:'blocks_privates',hide:featOn('classes_block_privates'),label:'Blocks privates (the hall is in use, so no private can be booked at this time)',type:'checkbox',hint:'For example yoga. Without an end time it blocks one hour. When the class is off, privates can be booked.'},
+    {key:'grading',hide:!featOn('grading'),label:'Counts for grading (each check in adds its hours towards the next grading level)',type:'checkbox'},
     {key:'coach_ids',label:'Coaches',type:'checks',options:coaches().map(function(x){ return [x.id,x.name]; }),hint:'The coaches ticked here clock in and out for this class. Coaches not ticked do not have to. A coach on approved holiday is left out for those days.'}],
-    onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; var nc=v.checkin==='no'; delete v.checkin; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null,no_checkin:nc,blocks_privates:!!v.blocks_privates})); },
+    onSave:function(v){ v.coach_ids=v.coach_ids||[]; if(v.end&&v.time&&v.end<=v.time) return 'The end time must be after the start time.'; if(v.end&&!v.time) return 'Add the start time too.'; var nc=v.checkin==='no'; delete v.checkin; return save('classes',c.id,Object.assign({},c,v,{end:v.end||null,no_checkin:nc,blocks_privates:!!v.blocks_privates,grading:!!v.grading})); },
     onDelete:c.id?function(){ return db.doc('classes/'+c.id).delete(); }:null});
 }
 function packOpts(customerId,priv){
@@ -10108,6 +10110,7 @@ function vCustomers(){
       staySharePanel(c),
       foodPlansPanel(c),
       upgDesk(c),
+      grdDesk(c),
       section('Packages',null,table([
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
@@ -10310,6 +10313,60 @@ function vPackages(){
       {label:'On sale',cell:function(p){return p.active===false?chip('Off'):chip('On','ok');}}],
       sortBy(S.packages,'name'),'No packages yet. Add your first package, for example a single class or a monthly pass.')];
 }
+/* grading levels (feature grading): the levels are in app_settings 'grading' ({levels:[{name,hours,months}]}). Classes ticked
+   Counts for grading add their hours at each check in; a coach or manager gives the level on the customer (kids_grading.sql). */
+var GRDL=null, GRDP={};
+function grdLevels(){ if(GRDL===null){ GRDL=false; sb.from('app_settings').select('value').eq('key','grading').maybeSingle().then(function(res){ var v=res.data, o=null; try{ o=v?JSON.parse(v.value):null; }catch(e){} GRDL=o&&Array.isArray(o.levels)?o.levels:[]; schedule(); },function(){ GRDL=[]; }); } return GRDL||[]; }
+function grdSave(list){ var txt=JSON.stringify({levels:list});
+  return sb.from('app_settings').update({value:txt,updated_at:new Date().toISOString()}).eq('key','grading').select('key').then(must).then(function(rows){ if(!rows||!rows.length) return sb.from('app_settings').insert({key:'grading',value:txt}).then(must); }).then(function(){ GRDL=list; GRDP={}; schedule(); }); }
+function grdEdit(i){ var list=grdLevels().slice(), x=i==null?{}:list[i];
+  openForm({title:i==null?'Add a grading level':'Change grading level',values:{name:x.name||'',hours:x.hours!=null?String(x.hours):'',months:x.months!=null?String(x.months):''},
+    fields:[{key:'name',label:'Level name',required:true,hint:'For example: White, Rookie.'},
+      {key:'hours',label:'Grading hours needed',type:'number',required:true,hint:'Hours in grading classes since the level before.'},
+      {key:'months',label:'Minimum months since the level before',type:'number',hint:'Optional. The earliest they should get this level.'}],
+    onSave:function(v){ var hrs=Number(v.hours), mo=v.months===''||v.months==null?null:Number(v.months);
+      if(!(hrs>0)) return 'Write the grading hours needed.'; if(mo!=null&&!(mo>=0)) return 'Months must be 0 or more.';
+      var y={name:String(v.name).trim(),hours:hrs,months:mo}; if(i==null) list.push(y); else list[i]=y; return grdSave(list); },
+    onDelete:i==null?null:function(){ list.splice(i,1); return grdSave(list); }});
+  document.querySelectorAll('dialog input[type=text]').forEach(function(el){ el.classList.add('notr'); }); }
+function grdSection(){ if(!featOn('grading')) return null; var list=grdLevels(), man=me&&(me.role==='manager'||me.role==='admin');
+  return section('Grading levels',man?btn('Add level',function(){ grdEdit(null); },'small'):null,h('div',null,
+    h('p',{class:'sub'},'Tick Counts for grading on the classes that count. Each check in at those classes adds its hours towards the next level, and the hours start again when a coach or manager gives the level on the customer.'),
+    table([{label:'Level',cell:function(x){ return h('span',{class:'notr'},(list.indexOf(x)+1)+'. '+x.name); }},
+      {label:'Grading hours',num:true,cell:function(x){ return String(x.hours); }},
+      {label:'Minimum time',cell:function(x){ return x.months?x.months+' '+(Number(x.months)===1?'month':'months'):''; }},
+      {label:'',cell:function(x){ return man?btn('Change',function(){ grdEdit(list.indexOf(x)); },'small'):null; }}],list,GRDL===false?'Loading.':'No levels yet. Add your first level, for example White, 8 hours.'))); }
+function grdFor(cid){ var k=cid||'me', x=GRDP[k];
+  if(!x||(!x.busy&&Date.now()-x.at>20000)){ GRDP[k]={busy:true,d:x&&x.d,at:Date.now()};
+    sb.rpc('grading_progress',cid?{p_customer:cid}:{}).then(function(r){ GRDP[k]={d:r.error?null:r.data,at:Date.now()}; schedule(); },function(){ GRDP[k]={d:null,at:Date.now()}; }); }
+  return GRDP[k]&&GRDP[k].d; }
+function grdMonths(s,n){ var d=parseYmd(s), day=d.getDate(); d.setDate(1); d.setMonth(d.getMonth()+Math.floor(n)); d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate())); return ymd(d); }
+function grdHrs(n){ n=Number(n)||0; return String(Math.round(n*10)/10); }
+function grdState(d){ if(!d||!Array.isArray(d.levels)||!d.levels.length) return null;
+  var cur=d.level==null?-1:Number(d.level), nx=d.levels[cur+1]||null, need=nx?Number(nx.hours)||0:0, hrs=Number(d.hours)||0;
+  return {cur:cur,curName:cur>=0&&d.levels[cur]?d.levels[cur].name:null,next:nx,need:need,hrs:hrs,left:Math.max(0,need-hrs),pct:need?Math.min(100,Math.round(hrs*100/need)):100,
+    earliest:nx&&Number(nx.months)>0&&d.since?grdMonths(d.since,Number(nx.months)):null}; }
+function grdBar(s){ return h('div',{class:'crsbar',role:'progressbar','aria-valuenow':String(s.pct),'aria-valuemin':'0','aria-valuemax':'100'},h('i',{style:'width:'+s.pct+'%'})); }
+function grdLine(s){ if(!s.next) return h('div',{class:'sub'},'Top level reached.');
+  return h('div',{class:'sub'},grdHrs(s.hrs)+' of '+grdHrs(s.need)+' grading hours to ',h('span',{class:'notr'},s.next.name),s.earliest?', not before '+fmtDate(s.earliest):'',s.left?'.':'. Ready to grade.'); }
+function grdAward(c,d,s){ var opts=d.levels.map(function(l,i){ return [String(i),(i+1)+'. '+l.name]; }), warn=[];
+  if(s.next&&s.left) warn.push(grdHrs(s.left)+' grading hours still to do.'); if(s.earliest&&s.earliest>ymd(new Date())) warn.push('The minimum time ends on '+fmtDate(s.earliest)+'.');
+  openForm({title:'Give a grading level',note:c.name+(warn.length?'. '+warn.join(' '):''),values:{level:String(Math.min(s.cur+1,d.levels.length-1)),note:''},saveLabel:'Give level',doneMsg:'Level given.',
+    fields:[{key:'level',label:'Level',type:'select',options:opts},{key:'note',label:'Note (optional)',hint:'For example: graded by the head coach.'}],
+    onSave:function(v){ return sb.rpc('grading_award',{p_customer:c.id,p_level:Number(v.level),p_note:v.note||null}).then(must).then(function(){ delete GRDP[c.id]; schedule(); }); }});
+  document.querySelectorAll('dialog select option, dialog input[type=text]').forEach(function(el){ el.classList.add('notr'); }); }
+function grdDesk(c){ if(!featOn('grading')) return null; var d=grdFor(c.id), s=grdState(d); if(!s) return null;
+  var coach=me&&['manager','admin','coach'].indexOf(me.role)>=0, man=me&&(me.role==='manager'||me.role==='admin'), hist=Array.isArray(d.history)?d.history:[];
+  return section('Grading',coach?btn(s.next?'Give a level':'Change level',function(){ grdAward(c,d,s); },'small'):null,h('div',{class:'panel pad'},
+    h('div',null,h('b',{class:'notr'},s.curName||'No level yet'),d.since?h('span',{class:'sub'},' since '+fmtDate(d.since)):null),
+    s.next?grdBar(s):null,grdLine(s),
+    hist.length?h('div',{class:'sub',style:'margin-top:8px'},hist.map(function(g,i){ var l=d.levels[g.level];
+      return h('div',null,fmtDate(g.on)+': ',h('span',{class:'notr'},l?l.name:'Level '+(g.level+1)),g.note?h('span',{class:'notr'},', '+g.note):null,
+        man&&i===0?[' ',linkBtn('Take back',function(){ openForm({title:'Take back this level?',note:'The hours count again from the level before.',values:{},fields:[],saveLabel:'Take back',doneMsg:'Level taken back.',onSave:function(){ return sb.rpc('grading_undo',{p_id:g.id}).then(must).then(function(){ delete GRDP[c.id]; schedule(); }); }}); })]:null); })):null)); }
+function cuGrading(){ if(!featOn('grading')||!CU) return null; var d=grdFor(PV?PV.cid:null), s=grdState(d); if(!s||(s.cur<0&&!s.hrs)) return null;
+  return section('Your grading',null,h('div',{class:'panel pad'},
+    h('div',null,h('small',null,'Your level'),' ',h('b',{class:'notr'},s.curName||'Working towards your first level')),
+    s.next?grdBar(s):null,grdLine(s))); }
 /* the timetable as a page to print, save as a PDF or send (feature schedule_print): everyone's, one coach's or one kind of class */
 function ttPrint(){
   var coaches={}; S.classes.forEach(function(c){ classCoaches(c,null).forEach(function(id){ coaches[id]=1; }); });
@@ -10328,11 +10385,12 @@ function vTimetable(){
     var rows=sortBy(S.classes.filter(function(c){return Number(c.day)===i;}),'time'); if(!rows.length) return;
     out.push(section(d,null,table([
       {label:'Time',cell:function(c){return ctime(c)||'To set';}},
-      {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c),c.no_checkin?chip('No check in needed'):null,c.blocks_privates?chip('Blocks privates'):null];}},
+      {label:'Class',cell:function(c){return [linkBtn(c.title,function(){ editClass(c); }),exChip(c),c.no_checkin?chip('No check in needed'):null,c.blocks_privates?chip('Blocks privates'):null,c.grading&&featOn('grading')?chip('Grading class','ok'):null];}},
       {label:'Discipline',cell:function(c){return chip(c.discipline||'');}},
       {label:'Coaches',cell:function(c){ var ids=classCoaches(c,null); return ids.length?ids.map(function(id){ return nameOf('staff',id); }).join(', '):h('span',{class:'sub'},'Nobody has to clock in'); }},
       {label:'',cell:function(c){ var on=c.off_from&&(c.off_to||c.off_from)>=ymd(new Date()); return on?h('div',{class:'row'},chip(offText(c),'warn'),btn('Turn back on',function(){ resumeClass(c); },'small')):btn('Pause',function(){ pauseClass(c); },'small'); }}],rows,'')));
   });
+  out.push(grdSection());
   return out;
 }
 function vPrivates(){
@@ -11211,7 +11269,7 @@ var MAP={
   staff:{t:'staff',r:{},w:['name','email','role','commission_pct','phone','active','investor_zones','work_days','work_start','work_end','access','bio','photo_url','also_coach','private_rate_thb','privates_any','video_url','web_show','web_name','web_title','web_about','web_sort','branches']},
   customers:{t:'customers',r:{},w:['name','email','phone','tier','price_group','notes','tags','marketing_ok','lead_source','country','is_fighter','fighter_name','fighter_free','fight_weight','home_branch']},
   purchases:{t:'purchases',r:{class_limit:'visit_limit',classes_left:'visits_left'},w:['customer_id','package_id','package_name','price_thb','price_group','paid','method','source_id','purchased_on','covers','times','class_limit','classes_left','per_week_limit','duration_days','start_by','starts_on','expires_on','cancelled','paid_thb','stay_id','used_before','for_stay','fee_thb','tax_thb','people','coaches']},
-  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates']},
+  classes:{t:'classes',r:{time:'start_time',end:'end_time'},clear:['end'],w:['day','time','end','title','discipline','coach_ids','off_from','off_to','off_note','no_checkin','blocks_privates','grading']},
   sources:{t:'booking_sources',r:{},w:['name','price_thb','price_local_thb']},
   privates:{t:'privates',r:{time:'start_time'},w:['customer_id','guest_name','coach_id','date','time','minutes','source_id','purchase_id','price_thb','coach_pct','coach_share_thb','status','paid','method','notes','reschedule','last_move','arrived_at','arrived_by','fee_thb','tax_thb','also_customers','adds'],clear:['reschedule']},
   holidays:{t:'holidays',r:{from:'from_date',to:'to_date'},w:['staff_id','from','to','status','note']},
@@ -11860,6 +11918,7 @@ function vCHome(){
     cuHk(),
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
     cuUpgrades(),
+    cuGrading(),
     section('My packages',btn('Buy a package',function(){ go('c_buy'); },'small'),cards(live.map(pkgCard),'No active package yet. Order one here and pay at the front desk.')),
     nextP?section('Next private',btn('All privates',function(){ go('c_pt'); },'small'),cards([ptCard(nextP,true)],'')):null,
     CU.fights&&CU.fights.length?section('fighters in action',null,h('div',{class:'panel cards'},CU.fights.map(function(f){
@@ -12046,7 +12105,7 @@ function viewAsCustomer(c){
   }).catch(function(e){ toast(errText(e)); });
 }
 var PVBACK=null;
-function pvReset(){ UPG={}; TEC.list=null; TEC.view=null; TEC.busy=false; CRS.sec=null; COF.list=null; COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
+function pvReset(){ UPG={}; GRDP={}; TEC.list=null; TEC.view=null; TEC.busy=false; CRS.sec=null; COF.list=null; COACHM.data=null; COACHM.busy=false; COACHM.tab='today'; COACHM.open={}; CRS.list=null; CRS.view=null; CRS.lesson=null; }
 function exitCustomerView(){ if(!PV) return; TABS=PV.tabs; ui.tab=PV.tab==='custview'?'custview':'customers'; ui.customerId=PV.cid; CU=null; PV=null; PVBACK=null; pvReset(); document.body.classList.remove('cuview'); schedule(); }
 
 /* ---------- desk mode: a tablet at the front desk where members tap their name and class ---------- */

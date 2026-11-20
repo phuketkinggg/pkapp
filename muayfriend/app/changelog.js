@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-20', title: 'Grading levels', what: 'Set grading levels for your members, for example kids armbands, with the grading hours each level needs. Tick Counts for grading on the classes that count, and every check in adds its hours. A coach or manager gives the next level on the customer, and members see their hours to the next level in their app.', feature: 'grading'},
   {date: '2026-11-20', title: 'Clearer step lists on website pages', what: 'The titles in a Steps section on your website pages now show in white on their dark cards, so each step is easy to read on light and dark backgrounds.'},
   {date: '2026-11-19', title: 'Website pages are safe from old copies', what: 'If a website page is changed in one place while it is still open somewhere else, the older copy can no longer be saved over the newer one. You get a message to close it and open it again.'},
   {date: '2026-11-19', title: 'Prepare room 360 photos before they go live', what: 'In Settings, Website, Room 360 photos, you can now add, check, name and remove your room 360 photos while they are still hidden from guests. Tap Show on the website when you are happy, or Take off the website to hide them again.', feature: 'room_360'},
