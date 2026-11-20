@@ -59,14 +59,14 @@
 </script>
 <script>
 /* a new blog post or page that has no short address yet: send them to it */
-(function(){ var m=location.pathname.match(/^\/([a-z0-9-]{3,121})\/?$/); if(!m) return; var s=m[1], K='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i', R='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/';
+(function(){ var m=location.pathname.match(/^(\/(?:ru|zh|fr|de))?\/([a-z0-9-]{3,121})\/?$/); if(!m) return; var L=m[1]||'', s=m[2], K='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i', R='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/';
   function has(t,f){ return fetch(R+t+'?select=slug&slug=eq.'+s+f,{headers:{apikey:K}}).then(function(r){ return r.ok?r.json():[]; }).then(function(l){ return l.length>0; }).catch(function(){ return false; }); }
-  has('blog_posts','&status=eq.published').then(function(p){ if(p){ location.replace('/post?p='+s); return; }
-    return has('site_pages','&status=eq.published&removed=eq.false').then(function(g){ if(g) location.replace('/page?p='+s); }); });
+  has('blog_posts','&status=eq.published').then(function(p){ if(p){ location.replace(L+'/post?p='+s); return; }
+    return has('site_pages','&status=eq.published&removed=eq.false').then(function(g){ if(g) location.replace(L+'/page?p='+s); }); });
 })();
 </script>
 <script src="photos.js?v=13"></script>
-<script src="site.js?v=24"></script>
+<script src="site.js?v=25"></script>
 <script src="chat.js?v=2" defer></script>
 </body>
 </html>

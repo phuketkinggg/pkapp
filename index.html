@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=225"></script>
+<script src="changelog.js?v=226"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -981,6 +981,7 @@ var FEATURES=[
   {k:'wallet_card',g:'Customers',n:'Member card in Apple Wallet and Google Wallet',d:'Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.',def:false,spa:false},
   {k:'onboard_steps',g:'Team',n:'Start in easy steps',d:'A new business starts with only the basics: check ins for members and staff in the first week. When you are happy, tap Next step and the next part comes in: selling, then accounting, messages, privates and coaches, and growing your business. The menu only shows the steps you have reached, so nothing is overwhelming. You choose when to move on, and See everything opens it all at any time. Settings, General, Getting started in steps.'},
   {k:'owner_lock',g:'Team',n:'Owner',d:'One person owns the business: only they switch features, change money settings and add or change managers and admins. They keep recovery codes in case they are locked out. Set it in Settings, General, Owner.',def:true,spa:true},
+  {k:'web_langs',g:'Website',n:'Website languages',d:'Your website in more languages (Russian, Chinese, French and German), translated for you and kept up to date: a language choice in the website menu, and a bar offering visitors their own language. Off: the translated pages stay up, but the menu choice and the bar are hidden.',def:true,spa:false},
   {k:'package_extras',g:'Website',n:'Extras on packages',d:'Each package can have extras people add when they buy it on your website, for example a class with recovery added for a little more. Tick them on the package, under Extras people can add. Each extra is paid with the package and shows on the customer as its own line.',def:true,spa:false},
   {k:'private_addons',g:'Website',n:'Extras with privates',d:'When someone buys a private on the website, they can add extras you choose: water, hand wraps, lunch, recovery and anything else, as many as they want. Set them in Settings, Privates, Extras with privates.',def:true,spa:true},
   {k:'web_residents',g:'Website',n:'Resident prices on the website',d:'A page in Thai on your website with your Local resident prices (set on each package), the timetable and how to sign up, for Thai people and residents who live nearby. The English prices page gets one line: Live here? Ask about resident memberships. Resident prices are never sold online: the desk checks ID once and sets the customer to resident prices.',def:false,spa:false},
@@ -1107,7 +1108,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=168; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=169; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }

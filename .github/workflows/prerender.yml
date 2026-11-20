@@ -27,13 +27,16 @@ jobs:
         run: |
           python tools/build_site.py
           python tools/prerender.py
+          python tools/site_strings.py
+          python tools/site_lang_pull.py
           python tools/build_site.py
+          python tools/site_langs.py
           rm -rf tools/__pycache__
       - name: Save if changed
         run: |
           git config user.name "Phuket King website"
           git config user.email "hello@phuketking.com"
-          git add prerender site
+          git add prerender site pk/lang
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
           git commit -m "Website: refresh pre-rendered posts, pages and prices"
           # GitHub sometimes answers a push with a server error: try again a few times before giving up

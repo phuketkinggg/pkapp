@@ -47,6 +47,8 @@ Deno.serve(async (req) => {
       texts,
       gallery,
       team,
+      // Website languages (Settings, Features): the language choice and the bar offering a visitor's language
+      langs: on("web_langs"),
       packages: (pk.data ?? []).filter((p) => (p.audience || "all") === "all").map((p) => ({
         id: p.id, name: p.name, price: p.price_thb, covers: p.covers ?? [], visits: p.visit_limit, per_week: p.per_week_limit, days: p.duration_days, fz: p.addon_fz_thb, notes: p.notes ?? "",
         pick_start: p.clock === "purchase", start_within: p.start_within_days ?? null, badge: p.badge || null, was: p.was_thb && p.was_thb > p.price_thb ? p.was_thb : null })),
