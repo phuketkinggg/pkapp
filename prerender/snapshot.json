@@ -1,5 +1,5 @@
 {
- "at": "2026-11-19T20:45:53Z",
+ "at": "2026-11-20T11:51:32Z",
  "classes": [
   {
    "day": 0,
@@ -236,6 +236,14 @@
   {
    "day": 5,
    "discipline": "Muay Thai",
+   "end": "10:30",
+   "off": false,
+   "time": "09:30",
+   "title": "Kids Grading Class (kids only)"
+  },
+  {
+   "day": 5,
+   "discipline": "Muay Thai",
    "end": null,
    "off": false,
    "time": "16:30",
@@ -248,10 +256,18 @@
    "off": false,
    "time": "17:30",
    "title": "Clinching  and fighter technique with Kru Pot"
+  },
+  {
+   "day": 6,
+   "discipline": "Muay Thai",
+   "end": "10:30",
+   "off": false,
+   "time": "09:30",
+   "title": "Kids Grading Class (kids only)"
   }
  ],
  "found": {
-  "pages": 13,
+  "pages": 14,
   "posts": 15
  },
  "packages": [
@@ -269,18 +285,18 @@
   },
   {
    "covers": [
-    "Fitness zone",
-    "Open gym"
-   ],
-   "name": "Fitness Zone 1 time",
-   "price": 200
-  },
-  {
-   "covers": [
     "Muay Thai",
     "Striking"
    ],
    "name": "Fighter Techniques with Kru Pot",
+   "price": 200
+  },
+  {
+   "covers": [
+    "Fitness zone",
+    "Open gym"
+   ],
+   "name": "Fitness Zone 1 time",
    "price": 200
   },
   {
@@ -292,9 +308,9 @@
   },
   {
    "covers": [
-    "Spa"
+    "Muay Thai"
    ],
-   "name": "Spa Access, Full spa 1 time",
+   "name": "Women's Morning, Muay Thai class",
    "price": 300
   },
   {
@@ -307,9 +323,17 @@
   },
   {
    "covers": [
-    "Muay Thai"
+    "Muay Thai",
+    "Kids"
    ],
-   "name": "Women's Morning, Muay Thai class",
+   "name": "Kids Grading Class, 1 class",
+   "price": 300
+  },
+  {
+   "covers": [
+    "Spa"
+   ],
+   "name": "Spa Access, Full spa 1 time",
    "price": 300
   },
   {
@@ -320,15 +344,15 @@
    "price": 400
   },
   {
+   "covers": [],
+   "name": "Hand Wraps",
+   "price": 400
+  },
+  {
    "covers": [
     "Muay Thai"
    ],
    "name": "Training Only, 1 Session",
-   "price": 400
-  },
-  {
-   "covers": [],
-   "name": "Hand Wraps",
    "price": 400
   },
   {
@@ -417,6 +441,14 @@
     "Muay Thai",
     "Kids"
    ],
+   "name": "Kids Grading Membership, monthly",
+   "price": 2000
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Kids"
+   ],
    "name": "Kids monthly, All classes",
    "price": 2500
   },
@@ -433,6 +465,14 @@
    ],
    "name": "Private Training Coach Tom",
    "price": 2500
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Kids"
+   ],
+   "name": "Kids Grading plus Open Training, monthly",
+   "price": 3000
   },
   {
    "covers": [
@@ -543,13 +583,6 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "Training Only, 3 Month",
-   "price": 18000
-  },
-  {
-   "covers": [
-    "Muay Thai"
-   ],
    "name": "DTV 6 Months Lite",
    "price": 18000
   },
@@ -557,14 +590,21 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 9 Months Lite",
-   "price": 24000
+   "name": "Training Only, 3 Month",
+   "price": 18000
   },
   {
    "covers": [
     "Muay Thai"
    ],
    "name": "DTV 30 Group Classes, 6 months",
+   "price": 24000
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "DTV 9 Months Lite",
    "price": 24000
   },
   {
@@ -674,10 +714,17 @@
   },
   {
    "description": "Kids Muay Thai classes in Kathu, Phuket. Fun, no pressure training that builds confidence, fitness and discipline. Monthly from 1,800 THB.",
-   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpob1bgtzu1i.jpg&quot;)\"><div class=\"wrap\"><h1>Kids Muay Thai in Phuket</h1><span class=\"rule\"></span><p class=\"lead\">Fun, no pressure classes that build confidence, fitness and focus. For kids who love to move and kids who need a push to start.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html\">See kids prices</a></p></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div><div class=\"eyebrow\">How it works</div><h2>Learning first, always</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Kids learn proper technique in a structured, friendly class. It is about fun, respect and learning, not fighting.</p><p>No booking needed: sign up any time and your child can start at the next class.</p></div></div><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpoqykpktgnq.jpg\" alt=\"Learning first, always\" loading=\"lazy\"></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Prices</div><h2>Monthly kids classes</h2><span class=\"rule\"></span><div class=\"pg-cards\"><div class=\"card\"><div class=\"in\"><span class=\"num\">01</span><h3>8:00 or 18:30 class</h3><p>1,800 THB a month. On Saturday the evening class moves to 16:30.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">02</span><h3>16:30 class</h3><p>2,500 THB a month.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions from parents</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>What age can kids start?</h3></summary><div style=\"margin:0 20px 18px\"><p>Message us with your child's age and we will tell you which class suits them best.</p></div></details><details><summary><h3>Do kids spar or fight?</h3></summary><div style=\"margin:0 20px 18px\"><p>No pressure, ever. Classes focus on technique, fitness and fun.</p></div></details><details><summary><h3>Do I need to book?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Sign up at the desk or buy the monthly class <a href=\"prices.html\">online</a>, and come to the class.</p></div></details><details><summary><h3>Can parents train too?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Adult group classes run at the same times. See <a href=\"prices.html\">prices</a>.</p></div></details></div></div></section><section class=\"band pg-cta navy-sec\"><div class=\"wrap\"><h2>Bring your kids to try</h2><p class=\"lead\">Message us on WhatsApp or come to the desk to sign up.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"https://wa.me/66615155947?text=Hi%20Phuket%20King%2C%20I%20saw%20your%20page%20%22Kids%20Muay%20Thai%20in%20Phuket%22%20and%20I%20have%20a%20question.\" target=\"_blank\" rel=\"noopener\">WhatsApp us</a></div></div></section>",
+   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpob1bgtzu1i.jpg&quot;)\"><div class=\"wrap\"><h1>Kids Muay Thai in Phuket</h1><span class=\"rule\"></span><p class=\"lead\">Fun, no pressure classes that build confidence, fitness and focus. For kids who love to move and kids who need a push to start.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html\">See kids prices</a></p></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div><div class=\"eyebrow\">How it works</div><h2>Learning first, always</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Kids learn proper technique in a structured, friendly class. It is about fun, respect and learning, not fighting.</p><p>No booking needed: sign up any time and your child can start at the next class.</p></div></div><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpoqykpktgnq.jpg\" alt=\"Learning first, always\" loading=\"lazy\"></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Prices</div><h2>Kids classes and prices</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Kids can train at any of these classes. To earn grading levels, they join the <a href=\"/kids-weekend-muay-thai\">kids only weekend Grading Class</a>.</p></div><div class=\"pg-cards\"><div class=\"card\"><div class=\"in\"><span class=\"num\">01</span><h3>8:00 or 18:30 class</h3><p>1,800 THB a month. On Saturday the evening class moves to 16:30.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">02</span><h3>16:30 class</h3><p>2,500 THB a month.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">03</span><h3>Kids Grading Class, Saturday and Sunday 9:30</h3><p>The official grading training, from White Rookie to Phuket King. Grading Membership 2,000 THB a month, or 3,000 THB with all open training. Try one class for 300 THB.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions from parents</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>What age can kids start?</h3></summary><div style=\"margin:0 20px 18px\"><p>Message us with your child's age and we will tell you which class suits them best.</p></div></details><details><summary><h3>Do kids spar or fight?</h3></summary><div style=\"margin:0 20px 18px\"><p>No pressure, ever. Classes focus on technique, fitness and fun.</p></div></details><details><summary><h3>Do I need to book?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Sign up at the desk or buy the monthly class <a href=\"prices.html\">online</a>, and come to the class.</p></div></details><details><summary><h3>Can parents train too?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Adult group classes run at the same times. See <a href=\"prices.html\">prices</a>.</p></div></details></div></div></section><section class=\"band pg-cta navy-sec\"><div class=\"wrap\"><h2>Bring your kids to try</h2><p class=\"lead\">Message us on WhatsApp or come to the desk to sign up.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"https://wa.me/66615155947?text=Hi%20Phuket%20King%2C%20I%20saw%20your%20page%20%22Kids%20Muay%20Thai%20in%20Phuket%22%20and%20I%20have%20a%20question.\" target=\"_blank\" rel=\"noopener\">WhatsApp us</a></div></div></section>",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpob1bgtzu1i.jpg",
    "slug": "kids-muay-thai-phuket",
    "title": "Kids Muay Thai in Phuket"
+  },
+  {
+   "description": "Kids only Muay Thai grading class, Saturday and Sunday 9:30 to 10:30 at Phuket King, Kathu. Six levels from White Rookie to Phuket King, counted in grading hours. Grading Membership 2,000 THB a month.",
+   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpob1bgtzu1i.jpg&quot;)\"><div class=\"wrap\"><div class=\"eyebrow\">Saturday and Sunday, 9:30 to 10:30</div><h1>Kids Grading Class, Weekend Mornings</h1><span class=\"rule\"></span><p class=\"lead\">The kids only class where your child works through our six grading levels, from White Rookie to Phuket King. Coached in Russian, English and Thai.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html?buy=036325c9-ffd5-408a-82b5-500bb7f8d7ad\">Join the Grading Membership</a></p></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div><div class=\"eyebrow\">Kids only</div><h2>The class where kids earn their levels</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>No adults in the room, just kids learning proper Muay Thai together, with a clear goal: their next level, and a new prajied and mongkol on grading day.</p><p>Coach Nikolay teaches in Russian, and our Thai kru and Coach Tom coach and grade in English and Thai, so every child understands every step.</p><p>While they train, parents can relax at our lakeside cafe.</p></div></div><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpoqykpktgnq.jpg\" alt=\"The class where kids earn their levels\" loading=\"lazy\"></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Times and prices</div><h2>Official grading training and open training</h2><span class=\"rule\"></span><div class=\"pg-cards\"><div class=\"card\"><div class=\"in\"><span class=\"num\">01</span><h3>Kids Grading Membership</h3><p>Every Kids Grading Class, Saturday and Sunday 9:30 to 10:30, for 2,000 THB a month. This is the official training: only these hours count towards grading.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">02</span><h3>Grading plus Open Training</h3><p>Every grading class plus unlimited kids open training at 8:00 and 18:30 (16:30 on Saturday), for 3,000 THB a month.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">03</span><h3>Open training only</h3><p>The 8:00 or 18:30 kids classes for 1,800 THB a month. Practice, fitness and fun, with no grading.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">04</span><h3>Try a grading class</h3><p>One Kids Grading Class for 300 THB.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Grading</div><h2>How kids move up</h2><span class=\"rule\"></span><ol class=\"steplist\"><li><b>Train every week</b><span>Come to the Kids Grading Class every Saturday and Sunday. Every hour is tracked in our app, and only grading class hours count.</span></li><li><b>Reach the hours and the time</b><span>Each level needs a set number of grading hours and a minimum time, so skills are solid before moving on.</span></li><li><b>Pass the grading</b><span>Earn 3 stripes, get invited by your coach, and show your skills on grading day. Every new level earns a new prajied and mongkol, presented by our kru.</span></li></ol></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">The six levels</div><h2>From White Rookie to Phuket King</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Hours are counted in Kids Grading Classes since the last level, and each level includes everything from the levels before it. Typical times are for kids coming every Saturday and Sunday.</p></div><div class=\"pg-cards\"><div class=\"card\"><div class=\"in\"><span class=\"num\">01</span><h3>White: Rookie</h3><p>8 grading hours, at least 1 month (typically month 1). Stance and guard, footwork, jab, cross, teep. 10 push-ups and 30 skips. Bow in and out, count 1 to 10 in Thai, listen to the coach the first time.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">02</span><h3>Yellow: Fighter</h3><p>24 grading hours, at least 3 months (typically month 4). Hook, uppercut, round kick to the body, straight knee, jab cross kick. 15 push-ups, 1 minute skipping. The Thai names of the 5 weapons. Arrives on time and looks after their own gear.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">03</span><h3>Green: Warrior</h3><p>36 grading hours, at least 4 months (typically month 9). Horizontal elbow, switch kick, checking a kick, parrying the jab, leaning back. 20 push-ups, 2 minutes skipping, 3 pad rounds. First part of the Wai Kru. Helps set up and pack away.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">04</span><h3>Blue: Striker</h3><p>48 grading hours, at least 6 months (typically month 15). 4 strike combinations, catch and counter, clinch and knees, light technical sparring for ages 8 and up. 25 push-ups, 4 pad rounds. Basic Muay Thai history and gym rules. Helps new kids.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">05</span><h3>Red: Champion</h3><p>60 grading hours, at least 6 months (typically month 22). Combinations off defence, low kick, teep variations, clinch turns for ages 13 and up, controlled sparring for ages 8 and up. 30 push-ups, 5 pad rounds. Short Wai Kru Ram Muay. Leads the group warm up.</p></div></div><div class=\"card\"><div class=\"in\"><span class=\"num\">06</span><h3>Black and gold: Phuket King</h3><p>72 grading hours, at least 9 months (typically month 31). Full technical exam of all levels and 5 rounds with the head coach. Full Wai Kru Ram Muay performed in front of parents. Assists in the kids class once a week for a month.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Stripes and age groups</div><h2>Graded fairly for every age</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p><strong>Stripes:</strong> from Yellow up, each level earns 3 stripes in class. Stripe 1 at one third of the hours, stripe 2 at two thirds, and stripe 3 means your child is ready to be invited to grading.</p><p><strong>Little Tigers, 5 to 7:</strong> graded on technique shape and effort, fitness targets halved, no sparring.</p><p><strong>Juniors, 8 to 12:</strong> full standard, light technical sparring from Blue.</p><p><strong>Teens, 13 to 17:</strong> full standard, controlled sparring from Blue, clinch from Red.</p><p>Grading days are held every 3 months and are run by Coach Tom and our Thai kru, in English and Thai. Competition is never required.</p></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">По-русски</div><h2>Детский тайский бокс с грейдингом по выходным</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p>Суббота и воскресенье, с 9:30 до 10:30. Занятия только для детей. Тренер Николай ведет их на русском языке, вместе с тайским тренером и тренером Томом.</p><p>Это официальная тренировка: для грейдинга засчитываются только часы на этих занятиях. Шесть уровней, от White Rookie до Phuket King. На каждом уровне ребенок получает новый пражиад и монгкол.</p><p>Стоимость: Grading Membership 2 000 бат в месяц (все занятия по выходным), или 3 000 бат в месяц вместе с безлимитными детскими группами. Пробное занятие: 300 бат.</p><p>Обычные детские группы (1 800 бат в месяц) для практики и фитнеса, без грейдинга.</p><p>Чтобы записать ребенка, напишите нам в WhatsApp.</p></div><div class=\"pg-acts\"><a class=\"btn red\" href=\"https://wa.me/66615155947?text=Hi%20Phuket%20King%2C%20I%20saw%20your%20page%20%22Kids%20Grading%20Class%3A%20Weekend%20Muay%20Thai%20in%20Phuket%22%20and%20I%20have%20a%20question.\" target=\"_blank\" rel=\"noopener\">Написать в WhatsApp</a></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions from parents</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>What age can kids join?</h3></summary><div style=\"margin:0 20px 18px\"><p>From 5 years old. Our grading has three age groups: Little Tigers (5 to 7), Juniors (8 to 12) and Teens (13 to 17). Message us with your child's age and we will tell you which class suits them best.</p></div></details><details><summary><h3>Do kids spar?</h3></summary><div style=\"margin:0 20px 18px\"><p>Not at the start, and never for Little Tigers (5 to 7). Light technical sparring starts at Blue for ages 8 and up, always controlled and with a coach watching closely. Competition is never required.</p></div></details><details><summary><h3>Do I need to book?</h3></summary><div style=\"margin:0 20px 18px\"><p>Join the <a href=\"prices.html?buy=036325c9-ffd5-408a-82b5-500bb7f8d7ad\">Grading Membership</a> online or at the desk, then come every weekend. Want to try first? A single grading class is 300 THB.</p></div></details><details><summary><h3>What should my child bring?</h3></summary><div style=\"margin:0 20px 18px\"><p>Comfortable sports clothes and a bottle of water. Message us if your child needs gloves.</p></div></details><details><summary><h3>Can my child grade in the other kids classes?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Only hours in the weekend Kids Grading Class count, so every child is taught and tested to the same standard. The other kids classes are great for extra practice, fitness and fun alongside it. See all <a href=\"/kids-muay-thai-phuket\">kids classes</a>.</p></div></details></div></div></section><section class=\"band pg-cta navy-sec\"><div class=\"wrap\"><h2>Start your child's grading journey</h2><p class=\"lead\">Kids Grading Class, Saturday and Sunday, 9:30 to 10:30, at Phuket King Muay Thai in Kathu.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html?buy=036325c9-ffd5-408a-82b5-500bb7f8d7ad\">Join the Grading Membership</a></div></div></section>",
+   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqpob1bgtzu1i.jpg",
+   "slug": "kids-weekend-muay-thai",
+   "title": "Kids Grading Class: Weekend Muay Thai in Phuket"
   },
   {
    "description": "Train Muay Thai and stay by the lake in Phuket. Lakeside bungalows one minute from the ring, group classes included, healthy food and recovery on site.",

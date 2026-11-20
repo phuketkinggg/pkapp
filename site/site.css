@@ -167,7 +167,7 @@ footer .small{margin-top:36px;font-size:13px;opacity:.55}
 .steplist{list-style:none;counter-reset:s;padding:0;margin:18px 0 0;display:grid;gap:14px}
 .steplist li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:2px 14px;background:var(--char2);border:1px solid var(--lineD);border-radius:8px;padding:16px 18px}
 .steplist li::before{content:counter(s);grid-row:span 2;width:44px;height:44px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font:600 20px var(--font)}
-.steplist b{font-weight:600;font-size:18px}.steplist span{color:var(--mutedD)}
+.steplist b{font-weight:600;font-size:18px;color:#fff}.steplist span{color:var(--mutedD)}
 .tile .ticks{margin-top:8px}.tile .ticks li{font-size:15.5px;line-height:1.5}
 .faq{display:grid;gap:10px;max-width:860px}
 .faq details{background:#fff;border:1px solid var(--line);border-radius:8px}

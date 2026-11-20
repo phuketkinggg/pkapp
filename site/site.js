@@ -85,6 +85,31 @@ PK.fight=function(c){ return /fight/i.test(String((c&&c.title)||''))||/fight/i.t
   bar.querySelector('button').onclick=function(){ bar.remove(); try{ localStorage.setItem('pk_th_bar','off'); }catch(e){} };
   document.body.insertBefore(bar,document.body.firstChild);
 }catch(e){} })();
+// website languages (pages in /ru/, /zh/, /fr/, /de/, made by tools/site_langs.py): a language choice in the menu, and a bar offering
+// the visitor's own language on English pages (closed with ×, remembered). Switched off with Website languages in Settings, Features.
+(function(){ try{
+  if(!PK.live||/^\/th(\.html)?$/.test(location.pathname)) return;
+  var LS=window.PK_LANGS||[['en','English'],['ru','Русский'],['zh','中文'],['fr','Français'],['de','Deutsch']], cur=document.documentElement.getAttribute('data-lang')||'en';
+  var alt={}; document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(function(l){ var c=l.getAttribute('hreflang').slice(0,2); if(c!=='x-') alt[c]=l.getAttribute('href'); });
+  var href=function(c){ return alt[c]||(c==='en'?'/':'/'+c+'/'); };
+  var BAR={ru:'Этот сайт есть на русском',zh:'本网站有中文版',fr:'Ce site existe en français',de:'Diese Seite gibt es auf Deutsch'};
+  PK.data().then(function(d){ if(d&&d.langs===false) return;
+    var nav=document.querySelector('.nav');
+    if(nav&&!nav.querySelector('.langsel')){ var s=document.createElement('select'); s.className='langsel notr'; s.setAttribute('aria-label','Language'); s.setAttribute('translate','no');
+      s.style.cssText='font:inherit;font-size:13px;background:transparent;color:inherit;border:1px solid currentColor;border-radius:6px;padding:3px 4px;margin-left:6px;opacity:.85';
+      LS.forEach(function(x){ var o=document.createElement('option'); o.value=x[0]; o.textContent=x[1]; o.style.color='#111'; if(x[0]===cur) o.selected=true; s.appendChild(o); });
+      s.onchange=function(){ try{ localStorage.setItem('pk_lang_bar','off'); }catch(e){} location.href=href(s.value); };
+      nav.appendChild(s); try{ window.dispatchEvent(new Event('resize')); }catch(e){} }
+    if(cur!=='en') return;
+    var want=((navigator.languages&&navigator.languages[0])||navigator.language||'').slice(0,2).toLowerCase();
+    if(!BAR[want]||!alt[want]) return;
+    var off=false; try{ off=localStorage.getItem('pk_lang_bar')==='off'; }catch(e){} if(off) return;
+    var bar=document.createElement('div'); bar.className='thbar notr'; bar.setAttribute('lang',want);
+    var a=document.createElement('a'); a.href=alt[want]; a.innerHTML=PK.esc(BAR[want])+' <b>›</b>'; var b=document.createElement('button'); b.type='button'; b.setAttribute('aria-label','×'); b.textContent='×';
+    b.onclick=function(){ bar.remove(); try{ localStorage.setItem('pk_lang_bar','off'); }catch(e){} };
+    bar.appendChild(a); bar.appendChild(b); document.body.insertBefore(bar,document.body.firstChild);
+  }).catch(function(){});
+}catch(e){} })();
 // text and photos the manager has changed in the app (Settings > Website text, Website photos)
 // text format: *stars* highlight, a new line is a line break, in lists each line is one item
 PK.rich=function(t,list){ var e=function(x){ return PK.esc(x).replace(/\*([^*\n]+)\*/g,'<em>$1</em>'); };
