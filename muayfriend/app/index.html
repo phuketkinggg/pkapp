@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=230"></script>
+<script src="changelog.js?v=231"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -947,6 +947,7 @@ var FEATURES=[
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
+  {k:'kids_mode',g:'Training',n:'Kids mode',d:'Parents add their children in their own app, open each child\'s app (packages, check ins, grading, technique videos) and share them with a second parent by a code. Nobody can message a child: every message goes to the parent, and the front desk sees each child\'s parents on the customer page.',def:false,spa:false},
   {k:'grading',g:'Training',n:'Grading levels',d:'Levels customers work up through, for example kids armbands. Set the levels and the grading hours each one needs on Timetable, and tick Counts for grading on the classes that count. Every check in at those classes adds its hours. A coach or manager gives the level on the customer, and customers see their hours to the next level in their app.',def:false,spa:false},
   {k:'schedule_print',g:'Training',n:'Print or share the timetable',d:'A Print or share button on Timetable: the week as a clear page to print, save as a PDF or send as a link. All classes, one coach\'s schedule or one kind of class.'},
   {k:'room_360',g:'Rooms',n:'Room 360 photos',d:'A Look inside in 360 button on each room type on the website booking page. Guests drag around the room before they book. Add the photos in Settings, Website, Room 360 photos.',spa:false},
@@ -1118,7 +1119,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=171; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=172; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -3956,6 +3957,7 @@ function chatItem(c){
       c.unread>0&&c.in_chat?h('span',{class:'chatbadge'},String(c.unread)):null));
 }
 function vChat(){
+  if(kidSelf()) return [pageHead(M('tab'),''),h('div',{class:'panel empty'},'Messages for you go to your parent. Ask them to message the gym for you.')];
   if(!CHAT.list){ chatRefresh(); return [pageHead(M('tab'),''),h('div',{class:'panel empty'},'Loading.')]; }
   var mine=CHAT.list.filter(function(c){ return c.in_chat; }), others=CHAT.list.filter(function(c){ return !c.in_chat; });
   var cust=me.role==='customer', mgr=me.role==='manager', acts=[];
@@ -10154,6 +10156,7 @@ function vCustomers(){
       foodPlansPanel(c),
       upgDesk(c),
       grdDesk(c),
+      kidDesk(c),
       section('Packages',null,table([
         {label:'Package',cell:function(p){return p.package_name;}},
         {label:'Bought',cell:function(p){return fmtDate(p.purchased_on);}},
@@ -10410,6 +10413,48 @@ function cuGrading(){ if(!featOn('grading')||!CU) return null; var d=grdFor(PV?P
   return section('Your grading',null,h('div',{class:'panel pad'},
     h('div',null,h('small',null,'Your level'),' ',h('b',{class:'notr'},s.curName||'Working towards your first level')),
     s.next?grdBar(s):null,grdLine(s))); }
+/* ---------- kids mode (feature kids_mode): parents open their children's apps, nobody messages a child ---------- */
+var KIDS=null, KFAM={}, KIDCODE=null;
+function kidsLoad(){ if(PV) return Promise.resolve(); return sb.rpc('kids_mine').then(function(r){ KIDS=r.error?null:r.data; schedule(); },function(){}); }
+function kidSelf(){ return !!(featOn('kids_mode')&&KIDS&&KIDS.me_kid&&!PV&&me&&me.role==='customer'); }
+function kidActing(){ if(!featOn('kids_mode')||!KIDS||!KIDS.acting||PV) return null; return (KIDS.kids||[]).filter(function(k){ return k.id===KIDS.acting; })[0]||null; }
+function kidOpen(id){ toast(id?'Opening your child’s app.':'Back to your app.');
+  return sb.rpc('kid_open',{p_kid:id||null}).then(must).then(function(){ ui.tab='c_home'; GRDP={}; return Promise.all([loadCustomer(),kidsLoad()]); }).then(function(){ window.scrollTo(0,0); schedule(); }).catch(function(e){ toast(errText(e)); }); }
+function kidBar(){ var k=kidActing(); if(!k||!TABS||TABS!==CTABS) return null;
+  return h('div',{class:'pvbar',role:'status'},h('span',null,h('b',{class:'notr'},k.name),': ','You are in your child’s app. Messages still come to you.'),h('button',{type:'button',class:'btn small primary pvexit',onclick:function(){ kidOpen(null); }},'Back to my app')); }
+function kidAdd(){ openForm({title:'Add a child',note:'Your child gets their own packages, check ins and grading. Nobody can message them: messages come to you.',values:{name:''},
+  fields:[{key:'name',label:'Child’s full name',required:true}],saveLabel:'Add',doneMsg:'Child added.',
+  onSave:function(v){ return sb.rpc('kid_add',{p_name:v.name}).then(must).then(function(){ return kidsLoad(); }); }}); }
+function kidJoin(){ openForm({title:'Join with a code',note:'The other parent gets the code in their app, under My children, Share with another parent.',values:{code:''},
+  fields:[{key:'code',label:'Code',required:true}],saveLabel:'Join',doneMsg:'Child added to your app.',
+  onSave:function(v){ return sb.rpc('kid_join',{p_code:v.code}).then(must).then(function(){ return kidsLoad(); }); }}); }
+function kidShare(k){ sb.rpc('kid_share',{p_kid:k.id}).then(must).then(function(c){ KIDCODE={kid:k.id,code:c}; schedule(); }).catch(function(e){ toast(errText(e)); }); }
+function cuKids(){
+  if(!featOn('kids_mode')||PV||!KIDS||!KIDS.on||KIDS.me_kid||kidActing()) return null;
+  var ks=KIDS.kids||[];
+  if(!ks.length) return h('div',{class:'panel pad row wrap'},h('span',{class:'sub',style:'flex:1;min-width:180px'},'Does your child train here too? Add them to your app to see their classes, packages and grading.'),btn('Add a child',kidAdd,'small'),btn('I have a code',kidJoin,'small'));
+  return section('My children',h('span',{class:'row'},btn('Add a child',kidAdd,'small'),btn('I have a code',kidJoin,'small')),cards(ks.map(function(k){
+    var first=String(k.name||'').split(' ')[0], code=KIDCODE&&KIDCODE.kid===k.id?KIDCODE.code:null;
+    return {when:h('span',{class:'notr'},k.name),title:(k.parents||[]).length>1?h('span',null,'Parents: ',h('span',{class:'notr'},(k.parents||[]).join(', '))):null,
+      note:code?h('span',null,'Code for the other parent: ',h('b',{style:'font-size:18px;letter-spacing:2px'},code),'. They tap I have a code in their app. It works for 7 days.'):null,
+      act:h('span',{class:'row wrap'},btn('Open '+first+'’s app',function(){ kidOpen(k.id); },'small primary'),btn('Share with another parent',function(){ kidShare(k); },'small'))}; }),''));
+}
+function kidPractise(){ if(!kidActing()||!tabOn('c_learn')) return null;
+  return section('Practise at home',btn('Technique videos',function(){ go('c_learn'); },'small'),h('div',{class:'panel pad sub'},'Watch the techniques from class and practise them at home, ready for your next grading.')); }
+function kidDesk(c){ if(!featOn('kids_mode')) return null;
+  var f=KFAM[c.id]; if(f===undefined){ KFAM[c.id]=null; sb.rpc('kid_family',{p_customer:c.id}).then(function(r){ KFAM[c.id]=r.error?{parents:[],kids:[]}:r.data; schedule(); },function(){}); return null; }
+  if(!f) return null;
+  var desk=me&&['manager','front_desk','admin'].indexOf(me.role)>=0, ps=f.parents||[], ks=f.kids||[];
+  function link(on,parent){ return sb.rpc('kid_link',{p_kid:c.id,p_parent:parent,p_on:on}).then(must).then(function(){ KFAM={}; schedule(); }); }
+  function addParent(){ var cs=sortBy(S.customers.filter(function(x){ return !x.is_agency&&x.id!==c.id; }),'name');
+    openForm({title:'Link a parent',note:c.name+' becomes their child. Nobody can message '+c.name+': messages go to the parent.',values:{p:''},
+      fields:[{key:'p',label:'Parent',type:'select',required:true,options:cs.map(function(x){ return [x.id,x.name+(x.phone?', '+x.phone:'')]; })}],saveLabel:'Link',doneMsg:'Parent linked.',
+      onSave:function(v){ return link(true,v.p); }}); }
+  if(!ps.length&&!ks.length) return desk?section('Family',btn('This is a child: link a parent',addParent,'small'),null):null;
+  return section(ps.length?'Child':'Parent',ps.length&&desk?btn('Link another parent',addParent,'small'):null,h('div',{class:'panel pad'},
+    ps.length?h('div',null,h('small',null,'Parents. Nobody can message this child: messages go to the parent.'),ps.map(function(p){ return h('div',{class:'row wrap'},linkBtn(p.name,function(){ openCustomer(p.id); }),p.phone?h('span',{class:'sub notr'},p.phone):null,p.email?h('span',{class:'sub notr'},p.email):null,
+      desk?linkBtn('Unlink',function(){ openForm({title:'Unlink this parent?',note:p.name+' will no longer see '+c.name+' in their app.',values:{},fields:[],saveLabel:'Unlink',doneMsg:'Unlinked.',onSave:function(){ return link(false,p.id); }}); }):null); })):null,
+    ks.length?h('div',null,h('small',null,'Children'),ks.map(function(k){ return h('div',null,linkBtn(k.name,function(){ openCustomer(k.id); })); })):null)); }
 /* the timetable as a page to print, save as a PDF or send (feature schedule_print): everyone's, one coach's or one kind of class */
 function ttPrint(){
   var coaches={}; S.classes.forEach(function(c){ classCoaches(c,null).forEach(function(id){ coaches[id]=1; }); });
@@ -11153,7 +11198,7 @@ function msgFab(){
     $fab.querySelector('.msgfabi').innerHTML='<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.9 2 11.7c0 2.6 1.3 5 3.5 6.6V22l3.6-2c.9.2 1.9.4 2.9.4 5.5 0 10-3.9 10-8.7S17.5 3 12 3z"/></svg>';
     document.body.appendChild($fab);
   }
-  var show=chatOn()&&TABS.length&&ui.tab!=='chat'&&!document.body.classList.contains('chatting')&&!document.body.classList.contains('kiosk');
+  var show=chatOn()&&!kidSelf()&&TABS.length&&ui.tab!=='chat'&&!document.body.classList.contains('chatting')&&!document.body.classList.contains('kiosk');
   $fab.hidden=!show;
   var n=$fab.querySelector('.msgfabn'); n.textContent=CHAT.unread>0?(CHAT.unread>99?'99+':String(CHAT.unread)):''; n.hidden=!(CHAT.unread>0);
   $fab.setAttribute('aria-label',CHAT.unread>0?'Messages, '+CHAT.unread+' unread':'Messages');
@@ -11268,6 +11313,7 @@ function render(){
   var act=document.activeElement, keep=act&&act.id&&$view.contains(act)?{id:act.id,s:act.selectionStart,e:act.selectionEnd}:null;
   var nodes=[]; (function flat(l){ l.forEach(function(n){ if(Array.isArray(n)) flat(n); else if(n) nodes.push(n); }); })(VIEWS[ui.tab]());
   var cln=clNotice(); if(cln) nodes.unshift(cln);
+  var kb=kidBar(); if(kb) nodes.unshift(kb);
   if(PV) nodes.unshift(h('div',{class:'pvbar',role:'status'},h('span',null,h('b',null,PV.name+'\u2019s app'),' as they see it. View only, nothing here can be changed.'),h('button',{type:'button',class:'btn small primary pvexit',onclick:exitCustomerView},'Back to back office'),featOn('custview')&&me&&me.role==='manager'?btn('Another customer',function(){ custPick(); },'small pvexit'):null));
   $view.replaceChildren.apply($view,nodes);
   if(keep){ var el=document.getElementById(keep.id); if(el){ el.focus(); try{ el.setSelectionRange(keep.s,keep.e); }catch(e){} } }
@@ -11685,7 +11731,7 @@ function scanQR(prompt,onText){
       e&&e.message==='load'?'Could not load the scanner. Check your connection and try again.':'Could not open the camera. Use your normal camera app to scan the poster.';
   });
 }
-function loadCustomer(){ lastLoad=Date.now(); UPG={}; return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status'),sb.rpc('prearrival_mine'),sb.rpc('affiliate_mine'),sb.rpc('customer_fighter')]).then(function(r){ READY=r[4]&&!r[4].error?r[4].data:null; AFFME=r[5]&&!r[5].error?r[5].data:null; CU=must(r[0]); if(CU){ CU.fighter=r[6]&&!r[6].error?r[6].data:null; CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
+function loadCustomer(){ lastLoad=Date.now(); UPG={}; if(featOn('kids_mode')) kidsLoad(); return Promise.all([sb.rpc('customer_home'),sb.rpc('customer_stay'),sb.rpc('fights_public'),sb.rpc('guest_hk_status'),sb.rpc('prearrival_mine'),sb.rpc('affiliate_mine'),sb.rpc('customer_fighter')]).then(function(r){ READY=r[4]&&!r[4].error?r[4].data:null; AFFME=r[5]&&!r[5].error?r[5].data:null; CU=must(r[0]); if(CU){ CU.fighter=r[6]&&!r[6].error?r[6].data:null; CU.stay=r[1]&&!r[1].error?r[1].data:null; CU.fights=r[2]&&!r[2].error&&Array.isArray(r[2].data)?r[2].data:[]; CU.hk=r[3]&&!r[3].error?r[3].data:null; } schedule(); }); }
 function cuCall(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return loadCustomer().then(function(){ return d; }); }); }
 function go(tab){ ui.tab=tab; try{ history.replaceState(null,'','#'+tab); }catch(e){} window.scrollTo(0,0); schedule(); }
 function cuWd(){ return (parseYmd(CU.today).getDay()+6)%7; }
@@ -11960,8 +12006,10 @@ function vCHome(){
     CU.stay?cuStay():null,
     cuHk(),
     waiting.length?section('Waiting for payment',null,cards(waiting.map(orderCard),'')):null,
+    cuKids(),
     cuUpgrades(),
     cuGrading(),
+    kidPractise(),
     section('My packages',btn('Buy a package',function(){ go('c_buy'); },'small'),cards(live.map(pkgCard),'No active package yet. Order one here and pay at the front desk.')),
     nextP?section('Next private',btn('All privates',function(){ go('c_pt'); },'small'),cards([ptCard(nextP,true)],'')):null,
     CU.fights&&CU.fights.length?section('fighters in action',null,h('div',{class:'panel cards'},CU.fights.map(function(f){
