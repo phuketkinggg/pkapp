@@ -219,7 +219,7 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
       '<div class="st"><b>'+n(t.price)+'</b><span>looked at prices</span></div><div class="ar">&rarr;</div>'+
       '<div class="st"><b>'+n(t.start)+'</b><span>clicked Start free</span></div><div class="ar">'+pct(made,t.start)+'<br>&rarr;</div>'+
       '<div class="st"><b>'+n(made)+'</b><span>made a gym</span></div><div class="ar">&rarr;</div>'+
-      '<div class="st"><b>'+n((d.signups||[]).filter(function(s){ return s.plan&&s.plan!=='free'; }).length)+'</b><span>now paying</span></div>';
+      '<div class="st"><b>'+n((d.signups||[]).filter(function(s){ return s.plan&&s.plan!=='free'&&['active','past_due'].indexOf(s.status)>=0; }).length)+'</b><span>now paying</span></div>';
     list('sources',d.sources||[]);
     list('countries',d.countries||[],function(k){ return CN[k]||k; });
     list('pages',d.pages||[],function(k){ return PAGE[k]||k; });
@@ -235,9 +235,9 @@ td select{font:14px var(--body);border:1.5px solid var(--line);border-radius:8px
         '<td><select data-id="'+esc(l.id)+'">'+['new','contacted','won','lost'].map(function(s){ return '<option value="'+s+'"'+(l.status===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>'; }).join('')+'</select></td></tr>'; }).join('')
       :'<tr><td colspan="5" class="empty">No enquiries in this period yet.</td></tr>';
     var su=d.signups||[];
-    $('gyms').innerHTML=su.length?su.map(function(s){ var paid=s.plan&&s.plan!=='free';
+    $('gyms').innerHTML=su.length?su.map(function(s){ var paid=s.plan&&s.plan!=='free'&&['active','past_due'].indexOf(s.status)>=0, comp=s.plan&&s.plan!=='free'&&!paid;
       return '<tr><td>'+when(s.at)+'</td><td>'+esc(s.gym)+'<div class="sub"><a href="../app/?g='+encodeURIComponent(s.slug)+'">'+esc(s.slug)+'</a></div></td><td><a href="mailto:'+esc(s.email)+'">'+esc(s.email)+'</a></td>'+
-        '<td><span class="pill'+(paid?' paid':'')+'">'+esc(PLAN[s.plan]||s.plan||'Free')+(s.cycle==='year'?', yearly':'')+'</span></td></tr>'; }).join('')
+        '<td><span class="pill'+(paid?' paid':'')+'">'+esc(PLAN[s.plan]||s.plan||'Free')+(s.cycle==='year'?', yearly':'')+(comp?(s.status==='trialing'?', trial':', free'):'')+'</span></td></tr>'; }).join('')
       :'<tr><td colspan="4" class="empty">No new gyms in this period yet.</td></tr>';
   }
 
