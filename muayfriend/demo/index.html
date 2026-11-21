@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=232"></script>
+<script src="changelog.js?v=233"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -939,6 +939,7 @@ var FEATURES=[
   {k:'stay_two_guests',g:'Rooms',n:'Add-ons for every guest in a room',d:'On the booking page guests say how many are staying. Each add-on (training, meals, spa, privates) can be for one guest or all of them, priced for each, and extras marked second guest only (like group training for the second guest) show when two are staying. The desk can do the same when adding extras to a stay. Set how many a room sleeps in Settings, Room prices.',spa:false},
   {k:'stays_main_stripe',g:'Rooms',n:'Room payments to the main Stripe account',d:'Card payments for stays and room invoices go to your main Stripe account, not the Thai baht one. Off: payments in baht go to the Thai baht account. Paying by Thai QR (PromptPay) always uses the Thai baht account.'},
   {k:'motopress',g:'Rooms',n:'MotoPress website bookings',d:'Room bookings come in from the MotoPress plugin on a WordPress website, and moving or extending one changes it in MotoPress too. Off: rooms are booked in the app and on your own booking page, and changes to old MotoPress bookings are saved in the app only.',def:false},
+  {k:'site_signups',g:'Website',n:'Sign up forms',d:'A Sign up form section for website pages, for pre-registrations and waiting lists: name, email, phone and your own questions. Sign ups show in Web pages, and managers and the front desk get a phone notice.',def:true,spa:false},
   {k:'kids_mode',g:'Training',n:'Kids mode',d:'Parents add their children in their own app, open each child\'s app (packages, check ins, grading, technique videos) and share them with a second parent by a code. Nobody can message a child: every message goes to the parent, and the front desk sees each child\'s parents on the customer page.',def:false,spa:false},
   {k:'grading',g:'Training',n:'Grading levels',d:'Levels customers work up through, for example kids armbands. Set the levels and the grading hours each one needs on Timetable, and tick Counts for grading on the classes that count. Every check in at those classes adds its hours. A coach or manager gives the level on the customer, and customers see their hours to the next level in their app.',def:false,spa:false},
   {k:'schedule_print',g:'Training',n:'Print or share the timetable',d:'A Print or share button on Timetable: the week as a clear page to print, save as a PDF or send as a link. All classes, one coach\'s schedule or one kind of class.'},
@@ -1111,7 +1112,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=172; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=173; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -6101,7 +6102,7 @@ function coProgEditor(){
 /* ---------- Web pages: the AI makes a website page from a description; edit every section by hand or ask the AI to change it ---------- */
 var WPG={list:null,busy:false,edit:null,undo:[],ai:false};
 var WPG_FN='https://yojllgjjekitbktzblcc.supabase.co/functions/v1/pages-ai';
-var WPG_TYPES=[['hero','Big photo at the top'],['text','Text'],['split','Photo and text side by side'],['cards','Cards'],['steps','Numbered steps'],['gallery','Photo gallery'],['quote','Quote from a customer'],['faq','Questions and answers'],['video','YouTube video'],['cta','Call to action']];
+var WPG_TYPES=[['hero','Big photo at the top'],['text','Text'],['split','Photo and text side by side'],['cards','Cards'],['steps','Numbered steps'],['gallery','Photo gallery'],['quote','Quote from a customer'],['faq','Questions and answers'],['video','YouTube video'],['cta','Call to action'],['signup','Sign up form']];
 var WPG_LINKS=[['','No button'],['whatsapp','WhatsApp us'],['prices.html','Prices page'],['book.html','Stay with us'],['index.html#schedule','Schedule'],['about.html','About'],['wellness.html','Wellness'],['dtv.html','DTV visa'],['courses.html','Online courses'],['shop.html','Shop'],['blog.html','Blog'],['package','A package to buy'],['custom','Another link']];
 function wpgType(t){ var x=WPG_TYPES.filter(function(a){ return a[0]===t; })[0]; return x?x[1]:t; }
 function wpgCall(body){ return sb.auth.getSession().then(function(r){ var t=r&&r.data&&r.data.session&&r.data.session.access_token;
@@ -6315,6 +6316,26 @@ function promoDatesSection(){
       {label:'',cell:function(p){ return p.to<t||(p.book_by&&p.book_by<t)?chip('Ended'):chip('On','ok'); }}],l,'')
       :h('div',{class:'panel empty'},'None. Add one to give a discount on certain dates, for example 1 to 15 November 20% off.'));
 }
+/* sign ups from Sign up form sections on website pages (feature site_signups) */
+var SIGNUPS=null;
+function signupsLoad(){ SIGNUPS=SIGNUPS||{busy:true}; return sb.rpc('site_signups_list').then(function(r){ SIGNUPS={list:r.error?[]:(r.data||[]),err:r.error?errText(r.error):null}; schedule(); },function(){ SIGNUPS={list:[]}; schedule(); }); }
+function signupsSection(){
+  if(!featOn('site_signups')) return null;
+  if(!SIGNUPS){ signupsLoad(); return null; }
+  if(!SIGNUPS.list) return null;
+  var all=SIGNUPS.list, lists=[]; all.forEach(function(x){ if(lists.indexOf(x.list)<0) lists.push(x.list); });
+  if(!all.length) return section('Sign ups',null,h('p',{class:'sub narrow'},'Add a Sign up form section to a page (pre-registration, a waiting list) and people who sign up show here.'));
+  var cur=ui.suList&&lists.indexOf(ui.suList)>=0?ui.suList:lists[0], rows=all.filter(function(x){ return x.list===cur&&(ui.suDone||!x.done); }), open=all.filter(function(x){ return x.list===cur&&!x.done; }).length;
+  var sel=h('select',{'aria-label':'Which list',onchange:function(ev){ ui.suList=ev.target.value; schedule(); }},lists.map(function(l){ var n=all.filter(function(x){ return x.list===l&&!x.done; }).length; return h('option',{value:l},l+(n?' ('+n+' new)':'')); })); sel.value=cur;
+  function set(x,o){ sb.rpc('site_signup_set',o).then(must).then(signupsLoad).catch(function(e){ toast(errText(e)); }); }
+  function copy(){ var t=all.filter(function(x){ return x.list===cur; }).map(function(x){ return [x.name,x.email||'',x.phone||''].concat((x.answers||[]).map(function(a){ return a.q+': '+(a.a||''); })).join(', '); }).join('\n');
+    try{ navigator.clipboard.writeText(t).then(function(){ toast('List copied.'); },function(){ toast('Could not copy.'); }); }catch(e){ toast('Could not copy.'); } }
+  return section('Sign ups',h('span',{class:'row wrap'},sel,btn(ui.suDone?'Hide done':'Show done',function(){ ui.suDone=!ui.suDone; schedule(); },'small'),btn('Copy list',copy,'small')),
+    h('div',null,h('p',{class:'sub'},all.filter(function(x){ return x.list===cur; }).length+' signed up, '+open+' not contacted yet.'),
+    cards(rows.map(function(x){ return {when:fmtDate(String(x.at).slice(0,10)),title:h('b',{class:'notr'},x.name),right:x.done?chip('Done','ok'):chip('New','warn'),
+      note:h('div',{class:'notr'},[x.phone,x.email].filter(Boolean).join(', '),(x.answers||[]).filter(function(a){ return a.a; }).map(function(a){ return h('div',null,h('small',null,a.q+': '),a.a); })),
+      act:h('span',{class:'row wrap'},btn(x.done?'Not done':'Done, contacted',function(){ set(x,{p_id:x.id,p_done:!x.done}); },'small'),
+        me&&me.role==='manager'?btn('Remove',function(){ openForm({title:'Remove this sign up?',note:x.name,values:{},fields:[],saveLabel:'Remove',doneMsg:'Removed.',onSave:function(){ return sb.rpc('site_signup_set',{p_id:x.id,p_remove:true}).then(must).then(signupsLoad); }}); },'small'):null)}; }),'Everyone on this list has been contacted.'))); }
 function vWebPages(){
   if(WPG.edit) return wpgEditor();
   if(!WPG.list){ if(!WPG.busy) wpgLoad(); return [pageHead('Web pages',''),h('div',{class:'panel empty'},WPG.err||'Loading.')]; }
@@ -6325,6 +6346,7 @@ function vWebPages(){
       {label:'',cell:function(p){ return h('span',{class:'row'},p.status==='published'?chip('On the website','ok'):chip('Draft'),p.in_footer&&p.status==='published'?chip('In the footer'):null); }},
       {label:'',cell:function(p){ return h('a',{class:'btn small',href:wpgUrl(p,p.status!=='published'),target:'_blank',rel:'noopener'},p.status==='published'?'View':'Preview'); }}],
       WPG.list,'No pages yet. Tap Make a page with AI.'),
+    signupsSection(),
     h('p',{class:'sub narrow'},'Photos: upload your own, or use any photo already on the website. Prices, dates and names: put them in your description, the AI never makes them up.')];
 }
 function wpgMake(){
@@ -6387,11 +6409,15 @@ function wpgEditor(){
   function sec(s,i){ var id='wp'+s.id, bg=s.type==='hero'?null:h('select',{id:id+'-bg','aria-label':'Background',onchange:function(ev){ s.bg=ev.target.value; }},[['dark','Dark'],['light','Light'],['navy','Navy']].map(function(x){ return h('option',{value:x[0]},x[1]); }));
     if(bg) bg.value=s.bg||'dark';
     var body=[];
-    if(['text','split','cards','steps','faq','gallery','video'].indexOf(s.type)>=0) body.push(h('div',{class:'row wp2'},s.type!=='gallery'&&s.type!=='video'?fld('Small label above',id+'-e',inp(s,'eyebrow',id+'-e')):null,fld('Heading',id+'-h',inp(s,'heading',id+'-h'))));
+    if(['text','split','cards','steps','faq','gallery','video','signup'].indexOf(s.type)>=0) body.push(h('div',{class:'row wp2'},s.type!=='gallery'&&s.type!=='video'?fld('Small label above',id+'-e',inp(s,'eyebrow',id+'-e')):null,fld('Heading',id+'-h',inp(s,'heading',id+'-h'))));
     if(s.type==='hero'||s.type==='cta') body.push(fld('Heading',id+'-h',inp(s,'heading',id+'-h')),fld('Text',id+'-t',inp(s,'text',id+'-t',{area:true,rows:3})));
     if(s.type==='text'||s.type==='split') body.push(fld('Text',id+'-b',inp(s,'body',id+'-b',{area:true,rows:6}),'A blank line starts a new paragraph, - makes a list, **word** is bold.'));
     if(s.type==='cards') body.push(fld('Intro',id+'-in',inp(s,'intro',id+'-in',{area:true,rows:2})));
     if(s.type==='quote') body.push(fld('Quote',id+'-q',inp(s,'text',id+'-q',{area:true,rows:3}),'Use real words from a customer.'),fld('Name',id+'-n',inp(s,'name',id+'-n')));
+    if(s.type==='signup') body.push(fld('Text',id+'-sb',inp(s,'text',id+'-sb',{area:true,rows:3})),
+      fld('List name',id+'-sl',inp(s,'list',id+'-sl',{placeholder:'For example: Kids grading pre-registration'}),'Sign ups are kept under this name in Web pages, Sign ups.'),
+      fld('Questions',id+'-sq',inp(s,'ask',id+'-sq',{area:true,rows:4,placeholder:'Child\u2019s name\nChild\u2019s age\nInterests: Grading, Fitness, Fighting'}),'Name, email and phone are always asked. Add one question per line. For tick boxes, write the question, a colon and the choices with commas.'),
+      h('div',{class:'row wp2'},fld('Button words',id+'-sbt',inp(s,'button_text',id+'-sbt',{placeholder:'Sign up'})),fld('Thank you message',id+'-sd',inp(s,'done',id+'-sd',{placeholder:'Thank you! You are on the list.'}))));
     if(s.type==='video') body.push(fld('YouTube link',id+'-v',inp(s,'url',id+'-v',{placeholder:'https://youtu.be/...'})));
     if(s.type==='hero'||s.type==='split') body.push(photo(s,'image',id+'-p'));
     if(s.type==='split'){ var side=h('select',{id:id+'-sd',onchange:function(ev){ s.image_side=ev.target.value; }},[h('option',{value:'right'},'Photo on the right'),h('option',{value:'left'},'Photo on the left')]); side.value=s.image_side||'right'; body.push(fld('Photo side',id+'-sd',side)); }
@@ -6413,7 +6439,7 @@ function wpgEditor(){
       p.title=d.page.title||p.title; p.description=d.page.description||p.description; p.sections=d.page.sections; WPG.ai=false; ask.value=''; askPhotos=[]; schedule(); toast('Changed. Check it, then Save. Undo is at the top if you do not like it.'); })
       .catch(function(e){ WPG.ai=false; askB.disabled=false; askB.textContent='Change it'; toast(errText(e)); }); },'primary');
   askB.disabled=WPG.ai;
-  var addSel=h('select',{id:'wp-add'},WPG_TYPES.map(function(x){ return h('option',{value:x[0]},x[1]); })); addSel.value='text';
+  var addSel=h('select',{id:'wp-add'},WPG_TYPES.filter(function(x){ return x[0]!=='signup'||featOn('site_signups'); }).map(function(x){ return h('option',{value:x[0]},x[1]); })); addSel.value='text';
   var status=h('select',{id:'wp-status',onchange:function(ev){ p.status=ev.target.value; }},[h('option',{value:'draft'},'Draft, only you can preview it'),h('option',{value:'published'},'On the website')]); status.value=p.status||'draft';
   var foot=h('input',{type:'checkbox',id:'wp-foot'}); foot.checked=!!p.in_footer; foot.addEventListener('change',function(){ p.in_footer=foot.checked; schedule(); });
   var save=btn('Save',function(){ save.disabled=true; wpgSave().then(function(){ toast(p.status==='published'?'Saved. It is on the website now.':'Saved as a draft.'); save.disabled=false; schedule(); }).catch(function(e){ save.disabled=false; toast(errText(e)); }); },'primary');

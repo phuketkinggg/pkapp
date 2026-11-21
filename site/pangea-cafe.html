@@ -12,7 +12,7 @@
 <meta property="og:image" content="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_fuel.webp">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&display=swap">
-<link rel="stylesheet" href="site.css?v=29">
+<link rel="stylesheet" href="site.css?v=30">
 <style>
 .pg-hero{min-height:min(78vh,680px)}.pg-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,12,16,.15),rgba(10,12,16,.75))}.pg-hero .wrap{position:relative}
 .pg-cards{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-top:32px}.pg-cards .card img{width:100%;aspect-ratio:4/3;object-fit:cover}.pg-cards .card .in{padding:20px}
@@ -72,6 +72,17 @@ function link(u,txt){ u=String(u||'').trim(); if(!txt) return '';
   if(/^([a-z0-9-]+\.html)?(#[a-z0-9-]+)?$/i.test(u)&&u){ u=u==='book.html'?'../book.html':u; return '<a class="btn red" href="'+esc(u)+'">'+esc(txt)+'</a>'; }
   return ''; }
 function head(s,cls){ return (s.eyebrow?'<div class="eyebrow">'+esc(s.eyebrow)+'</div>':'')+(s.heading?'<h2>'+esc(s.heading)+'</h2><span class="rule"></span>':''); }
+/* a sign up form (pre-registration, waiting list): name, email, phone and the page's own questions, one per line. "Question: a, b, c" gives tick boxes */
+function askList(s){ return String(s.ask||'').split('\n').map(function(l){ l=l.trim(); if(!l) return null; var m=l.match(/^([^:]{2,120}):\s*(.+,.+)$/); return m?{q:m[1].trim(),opts:m[2].split(',').map(function(x){ return x.trim(); }).filter(Boolean).slice(0,12)}:{q:l}; }).filter(Boolean).slice(0,10); }
+function signupForm(s){ var n=0;
+  function f(lab,inner){ n++; return '<div class="sf-f">'+(lab?'<label for="sf'+n+'">'+esc(lab)+'</label>':'')+inner.replace('{id}','sf'+n)+'</div>'; }
+  return '<form class="pg-signup" data-list="'+esc(s.list||s.heading||title||'Sign ups')+'" data-done="'+esc(s.done||'Thank you! You are on the list. We will be in touch soon.')+'" novalidate>'+
+    f('Your name','<input id="{id}" name="name" autocomplete="name" required maxlength="120">')+
+    '<div class="sf-2">'+f('Email','<input id="{id}" name="email" type="email" autocomplete="email" maxlength="160">')+f('Phone or WhatsApp','<input id="{id}" name="phone" type="tel" autocomplete="tel" maxlength="40">')+'</div>'+
+    askList(s).map(function(x){ return x.opts?'<fieldset class="sf-f sf-opts" data-q="'+esc(x.q)+'"><legend>'+esc(x.q)+'</legend>'+x.opts.map(function(o){ return '<label><input type="checkbox" value="'+esc(o)+'"> '+esc(o)+'</label>'; }).join('')+'</fieldset>'
+      :f(x.q,'<input id="{id}" data-q="'+esc(x.q)+'" maxlength="600">'); }).join('')+
+    '<input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="sf-hp">'+
+    '<p class="sf-err" role="alert" hidden></p><button type="submit" class="btn red">'+esc(s.button_text||'Sign up')+'</button></form>'; }
 function bg(s){ return s.bg==='light'?' light-sec':s.bg==='navy'?' navy-sec':''; }
 function yt(u){ var m=String(u||'').match(/^https:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/); return m?m[1]:null; }
 function section(s){ var t=s.type, b=bg(s), a='';
@@ -85,6 +96,7 @@ function section(s){ var t=s.type, b=bg(s), a='';
   if(t==='quote') return '<section class="band'+b+'"><div class="wrap"><blockquote class="pg-quote">\u201C'+esc(s.text)+'\u201D'+(s.name?'<cite>'+esc(s.name)+'</cite>':'')+'</blockquote></div></section>';
   if(t==='faq') return '<section class="band'+b+'"><div class="wrap">'+head(s)+'<div class="faq" style="margin-top:24px">'+(s.items||[]).map(function(i){ return '<details><summary><h3>'+esc(i.q)+'</h3></summary><div style="margin:0 20px 18px">'+PK.md(i.a)+'</div></details>'; }).join('')+'</div></div></section>';
   if(t==='video'){ var id=yt(s.url); return id?'<section class="band'+b+'"><div class="wrap">'+head(s)+'<div class="pg-video"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'?rel=0" title="'+esc(s.heading||'Video')+'" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div></div></section>':''; }
+  if(t==='signup') return '<section class="band'+b+'"><div class="wrap">'+head(s)+(s.text?'<div class="pg-body">'+PK.md(s.text)+'</div>':'')+signupForm(s)+'</div></section>';
   if(t==='cta') return '<section class="band pg-cta'+b+'"><div class="wrap">'+(s.heading?'<h2>'+esc(s.heading)+'</h2>':'')+(s.text?'<p class="lead">'+esc(s.text)+'</p>':'')+((a=link(s.button_link,s.button_text))?'<div class="pg-acts">'+a+'</div>':'')+'</div></section>';
   return ''; }
 function show(p){ if(!p){ box.innerHTML='<section class="band light-sec"><div class="wrap"><h1>Page not found</h1><p>It may have moved. <a href="index.html">Go to the home page</a></p></div></section>'; return; }
@@ -94,6 +106,21 @@ function show(p){ if(!p){ box.innerHTML='<section class="band light-sec"><div cl
   var hero=(p.sections||[]).filter(function(s){ return s.type==='hero'&&img(s.image); })[0], ogi=document.querySelector('meta[property="og:image"]'); if(hero&&ogi) ogi.setAttribute('content',hero.image);
   box.innerHTML=(tok?'<div class="pg-preview">Preview'+(p.status==='published'?'':', not published yet')+'</div>':'')+(p.sections||[]).map(section).join('');
   box.querySelectorAll('.navy-sec .eyebrow').forEach(function(e){ e.style.color='#fff'; e.style.opacity='.8'; }); }
+document.addEventListener('submit',function(ev){ var fm=ev.target; if(!fm.classList||!fm.classList.contains('pg-signup')) return; ev.preventDefault();
+  var err=fm.querySelector('.sf-err'), bt=fm.querySelector('button[type=submit]'), v=function(k){ var e=fm.querySelector('[name='+k+']'); return e?e.value.trim():''; };
+  function bad(m){ err.textContent=m; err.hidden=false; }
+  err.hidden=true; if(v('website')) return;
+  if(!v('name')) return bad('Write your name.');
+  if(!v('email')&&!v('phone')) return bad('Give your email or phone, so we can reach you.');
+  var ans=[]; fm.querySelectorAll('input[data-q]').forEach(function(i){ ans.push({q:i.getAttribute('data-q'),a:i.value.trim()}); });
+  fm.querySelectorAll('fieldset[data-q]').forEach(function(fs){ ans.push({q:fs.getAttribute('data-q'),a:[].map.call(fs.querySelectorAll('input:checked'),function(c){ return c.value; }).join(', ')}); });
+  bt.disabled=true;
+  fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/site_signup',{method:'POST',headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i','Content-Type':'application/json'},
+    body:JSON.stringify({p:{page:slug,list:fm.getAttribute('data-list'),name:v('name'),email:v('email'),phone:v('phone'),answers:ans}})})
+    .then(function(r){ return r.json().then(function(j){ if(!r.ok) throw new Error(j&&j.message||'That did not send. Please try again.'); return j; }); })
+    .then(function(){ var d=document.createElement('div'); d.className='sf-done'; d.setAttribute('role','status'); d.textContent=fm.getAttribute('data-done'); fm.replaceWith(d); })
+    .catch(function(e){ bt.disabled=false; bad(e.message||'That did not send. Please try again.'); });
+});
 if(!/^[a-z0-9-]{1,60}$/.test(slug)) show(null);
 else if(tok) fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/site_page_preview',{method:'POST',headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i','Content-Type':'application/json'},body:JSON.stringify({p_slug:slug,p_token:tok})})
   .then(function(r){ return r.ok?r.json():null; }).then(show).catch(function(){ show(null); });

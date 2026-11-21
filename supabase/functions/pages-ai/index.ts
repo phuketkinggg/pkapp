@@ -26,6 +26,7 @@ Each section has "type" and "bg" ("dark" charcoal, "light" cream or "navy"; alte
 - {"type":"faq","heading","items":[{"q","a"}]}
 - {"type":"video","heading","url"}  only a YouTube link the gym gave you.
 - {"type":"cta","heading","text","button_text","button_link"}  closing call to action. End most pages with one.
+- {"type":"signup","eyebrow","heading","text","list","ask","button_text","done"}  a sign up form (pre-registration, waiting list). Name, email and phone are always asked; "ask" is extra questions, one per line, "Question: a, b, c" for tick boxes. Only add one when the gym asks for sign ups, and keep any that are there.
 "body", "text", "intro" and FAQ answers can use simple formatting: a blank line for a new paragraph, "- " for list items, **bold**.
 "eyebrow" is a short label above a heading, 1 to 3 words.
 Links ("button_link"): use "whatsapp" to open WhatsApp with the gym, or one of these site pages: prices.html, book.html (stay at Pangea Resort), index.html#schedule, about.html, wellness.html, dtv.html, courses.html, shop.html, blog.html, or a full https:// link the gym gave you.
@@ -50,7 +51,7 @@ async function manager(req: Request) {
   return s?.role === "manager";
 }
 
-const TYPES = ["hero", "text", "split", "cards", "steps", "gallery", "quote", "faq", "video", "cta"];
+const TYPES = ["hero", "text", "split", "cards", "steps", "gallery", "quote", "faq", "video", "cta", "signup"];
 function okImg(u: unknown, allowed: Set<string>) { const s = String(u ?? ""); return s && (s.startsWith(IMG) || allowed.has(s)) && s.startsWith("https://") ? s : ""; }
 function okLink(u: unknown) { const s = String(u ?? "").trim(); return /^(whatsapp|https:\/\/\S+|[a-z0-9-]+\.html(#[a-z0-9-]+)?|#[a-z0-9-]+)$/i.test(s) ? s : ""; }
 // keep only what the website can show, and apply the house style to every text
@@ -65,6 +66,7 @@ function clean(p: Record<string, unknown>, allowed: Set<string>) {
     for (const k of ["text", "body", "intro"]) if (s[k] != null) o[k] = t(s[k], 6000);
     if (s.image != null) o.image = okImg(s.image, allowed);
     if (s.button_link != null) o.button_link = okLink(s.button_link);
+    if (type === "signup") { for (const k of ["list", "done"]) if (s[k] != null) o[k] = t(s[k], 200); if (s.ask != null) o.ask = t(s.ask, 1200); }
     if (type === "split") o.image_side = s.image_side === "left" ? "left" : "right";
     if (type === "video") o.url = /^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(String(s.url ?? "")) ? String(s.url) : "";
     if (type === "gallery") o.images = (Array.isArray(s.images) ? s.images : []).map((u) => okImg(u, allowed)).filter(Boolean).slice(0, 12);
