@@ -627,6 +627,21 @@ window.PK_TEXTS=[{
 "label": "Text: Wellness starts in the mind. Pangea is a...",
 "text": "Wellness starts in the mind. Pangea is a place to reset, and it feels like a little village: a small community of people who came here to train, eat well and feel better.",
 "multi": true},{
+"id": "stay_t18",
+"page": "Stay",
+"label": "Heading: Getting around",
+"text": "Getting around",
+"multi": false},{
+"id": "stay_t19",
+"page": "Stay",
+"label": "Text: Pangea is in Kathu, right in the middle of...",
+"text": "Pangea is in Kathu, right in the middle of Phuket, on the same lake as Phuket King Muay Thai. The beaches, the old town and the big shops are all a short ride away. Times are by car or scooter, without heavy traffic.",
+"multi": true},{
+"id": "stay_t20",
+"page": "Stay",
+"label": "List: travel times from the resort (one place per line)",
+"text": "Phuket King Muay Thai: 2 minute walk\nCentral Phuket and Big C: 10 minutes\nBangkok Hospital Phuket: 10 minutes\nNaka Weekend Market: 15 minutes\nPatong Beach and Bangla Road: 20 minutes\nPhuket Old Town: 20 minutes\nBig Buddha: 30 minutes\nKata Beach: 35 minutes\nPhuket Airport: 40 minutes",
+"multi": true},{
 "id": "dtv_t01",
 "page": "DTV",
 "label": "Small label: No extra charge for paperwork",
