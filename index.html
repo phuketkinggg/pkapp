@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=227"></script>
+<script src="changelog.js?v=228"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1034,6 +1034,7 @@ var FEATURES=[
   {k:'tiktok',g:'Marketing',n:'TikTok',d:'Reels can also go to your TikTok account as a draft. Open TikTok, add a sound and the caption, and post.'},
   {k:'youtube_shorts',g:'Marketing',n:'YouTube Shorts',d:'Reels and trial reels can also go to your YouTube channel as Shorts, with the same caption and cover, and their own YouTube title.'},
   {k:'hours',g:'Team',n:'Staff hours',d:'Clock in and out, late and missed shifts, hours for pay.',tabs:['hours']},
+  {k:'hours_clear',g:'Team',n:'Clear staff hours alerts',d:'On Staff hours, a manager can tick items in Needs a look (not checked in, never checked out), or select all, and clear them, so the list only shows what still needs doing. Cleared items can be brought back.'},
   {k:'actions',g:'Team',n:'Maintenance jobs',d:'Report a problem, give it to someone, tick it off.',tabs:['actions']},
   {k:'work',g:'Team',n:'Work log',d:'Work done in each room and area, with its receipts.',tabs:['work']},
   {k:'receipts_all',g:'Team',n:'Everyone adds receipts',d:'All staff can photograph receipts, and the app keeps who added each one. Off: only managers and admins add them.'},
@@ -1108,7 +1109,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=170; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=171; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -7561,7 +7562,34 @@ function vHours(){
   function shared(e){ var n=[]; [e.in_device,e.out_device].forEach(function(x){ if(x&&devs[x]&&Object.keys(devs[x]).length>1) Object.keys(devs[x]).forEach(function(k){ if(k!==e.staff&&n.indexOf(k)<0) n.push(k); }); }); return n; }
   var tot={}; E.forEach(function(e){ var t=tot[e.staff_id]||(tot[e.staff_id]={name:e.staff,role:e.role,m:0,priv:0,cls:0,open:0}); if(e.out_at) t.m+=mins(e.in_at,e.out_at); else t.open++; if(e.kind==='private') t.priv++; if(e.kind==='class') t.cls++; });
   miss.forEach(function(m){ var t=tot[m.staff_id]||(tot[m.staff_id]={name:m.staff,m:0,priv:0,cls:0,open:0}); t.missed=(t.missed||0)+1; });
-  var forgot=E.filter(function(e){ return !e.out_at&&e.day<today; });
+  var cleared={}; (d.cleared_entries||[]).forEach(function(id){ cleared[id]=1; });
+  var forgot=E.filter(function(e){ return !e.out_at&&e.day<today&&!cleared[e.id]; });
+  /* Needs a look: tick items, or select all, and clear them (feature hours_clear) */
+  var canClear=featOn('hours_clear'), sel=ui.hSel||(ui.hSel={});
+  function lookKey(m){ return m.entry_id?'entry|'+m.entry_id:[m.kind||'',m.staff_id||'',m.day||'',m.ref_id||'',m.time||''].join('|'); }
+  var looks=miss.concat(forgot.map(function(e){ return {entry_id:e.id,day:e.day}; }));
+  Object.keys(sel).forEach(function(k){ if(!looks.some(function(m){ return lookKey(m)===k; })) delete sel[k]; });
+  var nSel=Object.keys(sel).length;
+  function lookTick(m,label){
+    if(!canClear) return label;
+    var k=lookKey(m), cb=h('input',{type:'checkbox','aria-label':'Select'});
+    cb.checked=!!sel[k]; cb.onchange=function(){ if(cb.checked) sel[k]=m; else delete sel[k]; ui.hArm=null; schedule(); };
+    return h('label',{class:'row'},cb,h('span',null,label)); }
+  function clearList(list,arm){
+    if(ui.hArm!==arm){ ui.hArm=arm; schedule(); return; }
+    ui.hArm=null;
+    sb.rpc('staff_hours_clear',{p_items:list}).then(must).then(function(n){ ui.hSel={}; ui.hCleared=true; toast(n===1?'1 cleared.':n+' cleared.'); return loadHours(); }).catch(function(e){ toast(errText(e)); }); }
+  function unclear(){
+    var f=ui.hFrom||weekStart(today), t=ui.hTo||today;
+    sb.rpc('staff_hours_unclear',{p_from:f,p_to:t}).then(must).then(function(n){ ui.hCleared=false; toast(n?(n===1?'1 brought back.':n+' brought back.'):'Nothing was cleared in these dates.'); return loadHours(); }).catch(function(e){ toast(errText(e)); }); }
+  function lookTools(){
+    if(!canClear) return null;
+    var all=nSel===looks.length;
+    return h('div',{class:'row wrap'},
+      btn(all?'Select none':'Select all',function(){ ui.hArm=null; if(all) ui.hSel={}; else looks.forEach(function(m){ sel[lookKey(m)]=m; }); schedule(); },'small'),
+      nSel?btn(ui.hArm==='sel'?'Tap again to clear '+nSel:'Clear selected ('+nSel+')',function(){ clearList(Object.keys(sel).map(function(k){ return sel[k]; }),'sel'); },'small'):null,
+      btn(ui.hArm==='all'?'Tap again to clear all '+looks.length:'Clear all',function(){ clearList(looks,'all'); },'small'),
+      btn('Bring back cleared',unclear,'small')); }
   var staffSel=h('select',{onchange:function(ev){ ui.hWho=ev.target.value; schedule(); }},[h('option',{value:''},'Everyone')].concat(sortBy(S.staff.filter(function(s){ return s.active!==false; }),'name').map(function(s){ var o=h('option',{value:s.id},s.name); if(s.id===who) o.selected=true; return o; })));
   var from=h('input',{type:'date',value:ui.hFrom||weekStart(today),onchange:function(ev){ ui.hFrom=ev.target.value; HOURS=null; schedule(); }});
   var to=h('input',{type:'date',value:ui.hTo||today,onchange:function(ev){ ui.hTo=ev.target.value; HOURS=null; schedule(); }});
@@ -7577,8 +7605,9 @@ function vHours(){
       {label:'Privates',num:true,cell:function(t){ return String(t.priv); }},{label:'Classes',num:true,cell:function(t){ return String(t.cls); }},
       {label:'',cell:function(t){ return h('span',{class:'row'},t.missed?chip(t.missed+' not checked in','bad'):null,t.open?chip(t.open+' still in','warn'):null); }}],
       Object.keys(tot).map(function(k){ return tot[k]; }).sort(function(a,b){ return b.m-a.m; }),'No hours in these dates.')),
-    miss.length||forgot.length?section('Needs a look',null,cards(miss.map(function(m){ return {when:fmtDate(m.day)+' '+m.time,title:m.staff+': '+m.what,right:chip('Not checked in','bad'),act:btn('Add times',function(){ editHours(null,m); },'small')}; })
-      .concat(forgot.map(function(e){ return {when:fmtDate(e.day)+' '+bkkTime(e.in_at),title:e.staff+': '+(e.what||'Shift'),right:chip('Never checked out','warn'),act:btn('Fix',function(){ editHours(e); },'small')}; })),'')):null,
+    miss.length||forgot.length?section('Needs a look',lookTools(),cards(miss.map(function(m){ return {when:lookTick(m,fmtDate(m.day)+' '+m.time),title:m.staff+': '+m.what,right:chip('Not checked in','bad'),act:btn('Add times',function(){ editHours(null,m); },'small')}; })
+      .concat(forgot.map(function(e){ return {when:lookTick({entry_id:e.id,day:e.day},fmtDate(e.day)+' '+bkkTime(e.in_at)),title:e.staff+': '+(e.what||'Shift'),right:chip('Never checked out','warn'),act:btn('Fix',function(){ editHours(e); },'small')}; })),'')):
+      (canClear&&HOURS&&ui.hCleared?h('div',{class:'row'},btn('Bring back cleared',unclear,'small')):null),
     section('All check ins',null,table([{label:'Day',cell:function(e){ return fmtDate(e.day); }},{label:'Who',cell:function(e){ return e.staff; }},{label:'What',cell:function(e){ return e.what||'Shift'; }},
       {label:'In',cell:function(e){ return e.in_at?bkkTime(e.in_at):''; }},{label:'Out',cell:function(e){ return e.out_at?bkkTime(e.out_at):chip('still in','warn'); }},
       {label:'Time',num:true,cell:function(e){ return e.out_at?hm(mins(e.in_at,e.out_at)):''; }},
