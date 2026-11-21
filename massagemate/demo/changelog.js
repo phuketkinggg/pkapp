@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-21', title: 'A notification for a new grading level', what: 'When a coach or manager gives a customer a new grading level, their phone gets a notification. With Kids mode on, the child\'s parents get it too.', feature: 'grading'},
   {date: '2026-11-21', title: 'Kids mode', what: 'Parents add their children in their own app under My children, and open each child\'s app to see their packages, check ins, grading and technique videos. A second parent joins with a code. Nobody can message a child: every message, coach chat and group chat goes to the parent, and children are left out of contact lists. On the customer page the front desk sees each child\'s parents and can link a parent.', feature: 'kids_mode'},
   {date: '2026-11-21', title: 'Videos in blog posts and website pages', what: 'Put a YouTube link on its own line in a blog post like a photo, ![caption](link), and the video plays right in the post. A video file from your website or your photo storage (.mp4) works the same way.'},
   {date: '2026-11-21', title: 'Room 360 photos in the stay page tour', what: 'Your room 360 photos now also show in Take the tour at the bottom of the website stay page, as photos for each room type. Guests tap one and drag to look around, and can switch between the views. Rooms with the same photos show once.', feature: 'room_360'},
