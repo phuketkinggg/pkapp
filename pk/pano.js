@@ -1,5 +1,5 @@
 /* 360 photos in a full screen viewer (Pannellum, kept with the site in vendor/).
-   PKPano.open({title:'Lake View', scenes:[{url, caption, vaov, yaw}]})
+   PKPano.open({title:'Lake View', scenes:[{url, caption, vaov, yaw}], start:0})  start: the scene it opens on
    vaov: how much of the photo is kept top to bottom (degrees, 180 = all of it, less when the bottom was cut off). yaw: where it starts, 0 = the middle. */
 (function(){
 'use strict';
@@ -34,7 +34,7 @@ function open(o){
   function close(){ if(pv){ try{ pv.destroy(); }catch(e){} } document.removeEventListener('keydown',key); ov.remove(); document.body.style.overflow=''; if(back&&back.focus) back.focus(); }
   function key(e){ if(e.key==='Escape') close(); }
   ov.addEventListener('click',function(e){ var t=e.target; if(t.closest('.pp-x')) return close(); var b=t.closest('[data-j]'); if(b) show(+b.getAttribute('data-j')); });
-  document.addEventListener('keydown',key); document.body.style.overflow='hidden'; document.body.appendChild(ov); show(0); ov.querySelector('.pp-x').focus();
+  document.addEventListener('keydown',key); document.body.style.overflow='hidden'; document.body.appendChild(ov); show(Math.max(0,Math.min(sc.length-1,Number(o.start)||0))); ov.querySelector('.pp-x').focus();
 }
 window.PKPano={open:open};
 })();

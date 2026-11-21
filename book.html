@@ -95,6 +95,13 @@ h2 em{font-style:normal;color:var(--gold)}
 .pw:has(input:checked){border-color:var(--btn);box-shadow:0 0 0 1px var(--btn)}
 @media (max-width:640px){.paywith{grid-template-columns:1fr}}
 .look360{margin:8px 0 4px;font-size:14px;padding:8px 14px}
+.t360{margin-top:20px}.t360 h3{margin:0 0 4px;font-size:18px}.t360 .sub{margin:0 0 10px}
+.t360g{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.t360g button{position:relative;padding:0;border:0;border-radius:12px;overflow:hidden;cursor:pointer;background:var(--sunken);aspect-ratio:16/10;color:#fff;font:inherit}
+.t360g img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}.t360g button:hover img{transform:scale(1.04)}
+.t360g b{position:absolute;left:0;right:0;bottom:0;padding:22px 10px 8px;text-align:left;font-size:14px;background:linear-gradient(transparent,rgba(0,0,0,.72))}
+.t360g i{position:absolute;top:8px;right:8px;font-style:normal;font-size:12px;font-weight:700;background:rgba(0,0,0,.6);border-radius:99px;padding:3px 8px}
+.t360g button:focus-visible{outline:2px solid var(--btn);outline-offset:2px}
 .planagree{flex-direction:row;align-items:flex-start;gap:10px;font-weight:400;font-size:14px;line-height:1.45}.planagree input{width:auto;min-height:0;margin-top:3px;flex:none}.pw[hidden],.planagree[hidden]{display:none}
 .ppqr{max-width:280px;margin:12px auto;background:#fff;padding:10px;border-radius:12px}.ppqr svg{width:100%;height:auto;display:block}
 .ppsteps{padding-left:20px;margin:12px 0;text-align:left}.ppsteps li{margin:0 0 6px}
@@ -214,6 +221,7 @@ footer{max-width:980px;margin:0 auto;padding:20px 16px 40px;color:var(--muted);f
     <h2>Take the tour</h2>
     <p class="sub">Walk through Mango Grove 5 before you arrive: the bungalow, the bathroom and the view.</p>
     <div class="video" id="video"><video controls playsinline preload="none" poster="img/mango-grove-5.jpg?v=2" aria-label="Video tour of Mango Grove 5"><source src="img/mango-grove-5.mp4?v=2" type="video/mp4"></video></div>
+    <div id="tour360" hidden></div>
   </section>
   <section class="card" id="reviews" data-reviews-section hidden>
     <h2>What our guests say</h2>
@@ -311,7 +319,26 @@ function show(id,on){ $(id).hidden=!on; }
 function room(id){ return (INFO.rooms||[]).filter(function(r){ return r.id===id; })[0]; }
 /* 360 photos of each room type (Settings, Website, Room 360 photos) */
 var R360={}; /* loaded below, once site.js is there */
-window.PKR360=function(d){ R360=d&&typeof d==='object'?d:{}; if(Q&&Q.rooms) try{ render(); }catch(e){} };
+window.PKR360=function(d){ R360=d&&typeof d==='object'?d:{}; tour360(); if(Q&&Q.rooms) try{ render(); }catch(e){} };
+/* the 360 photos also sit in Take the tour at the bottom of the page: one set for each room type, rooms with the same photos shown once */
+function thumb360(s){ return s.thumb||(/^img\/rooms\/[\w-]+-360\.jpg$/.test(s.url)?s.url.replace(/\.jpg$/,'-thumb.jpg'):s.url); }
+function tour360(){
+  var box=$('tour360'); if(!box) return; box.innerHTML='';
+  if(!window.PKPano){ box.hidden=true; return; }
+  var seen={}, sets=[];
+  Object.keys(R360).forEach(function(id){ var l=R360[id]; if(!Array.isArray(l)) return; l=l.filter(function(s){ return s&&s.url; }); if(!l.length) return;
+    var k=l.map(function(s){ return s.url; }).join('|'); if(seen[k]) return; seen[k]=1;
+    var g=INFO&&group(id); sets.push({title:g?g.name.replace(/^[A-Z]\d+,\s*/,''):'',scenes:l}); });
+  box.hidden=!sets.length; if(!sets.length) return;
+  sets.forEach(function(set,n){
+    var w=el('div',{cls:'t360'});
+    w.appendChild(el('h3',{text:(set.title?set.title+': ':'')+'look inside in 360'}));
+    if(!n) w.appendChild(el('p',{cls:'sub',text:'Tap a photo, then drag to look around the room.'}));
+    var gr=el('div',{cls:'t360g'});
+    set.scenes.forEach(function(s,j){ var cap=s.caption||('View '+(j+1));
+      var b=el('button',{type:'button','aria-label':'Open 360 view: '+cap,onclick:function(){ PKPano.open({title:set.title||'Look inside',scenes:set.scenes,start:j}); }});
+      b.appendChild(el('img',{src:thumb360(s),alt:cap,loading:'lazy'})); b.appendChild(el('b',{text:cap})); b.appendChild(el('i',{text:'360'})); gr.appendChild(b); });
+    w.appendChild(gr); box.appendChild(w); }); }
 function look360(g){ var l=R360[g.id]; if(!window.PKPano||!Array.isArray(l)||!l.length) return null;
   return el('button',{type:'button',cls:'btn look360',onclick:function(){ PKPano.open({title:g.name.replace(/^[A-Z]\d+,\s*/,''),scenes:l}); }},'Look inside in 360'); }
 function group(id){ return (INFO.groups||[]).filter(function(g){ return g.id===id; })[0]; }
@@ -563,7 +590,7 @@ function offerText(o){ var a=[]; (o.promos||[]).filter(function(p){ return p.pct
     a.push('<b>'+esc((p.name||'Special offer').toUpperCase())+': '+(p.pct>0?p.pct+'% OFF':'')+(fe?(p.pct>0?' + ':'')+'FREE '+esc(fe.name.split(':')[0].toUpperCase()):'')+'</b><span>stays from '+dShort(p.from)+' to '+dShort(p.to)+(p.to.slice(0,4)!==p.from.slice(0,4)||p.from.slice(0,4)!==String(new Date().getFullYear())?' '+p.to.slice(0,4):'')+(p.book_by?', book by '+dShort(p.book_by):'')+(p.left!=null?', only '+p.left+' left':'')+'</span>'+(p.text?'<span>'+esc(p.text)+'</span>':'')); });
   if(o.pct>0) a.push('<b>BOOK DIRECT: '+o.pct+'% OFF</b><span>every room booked on this page</span>'); if(o.gift&&o.gift_nights) a.push('<span>Stay '+o.gift_nights+' nights or more and get '+esc(o.gift)+'</span>'); return a.join(''); }
 function esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-call({mode:'info'}).then(function(d){ INFO=d;
+call({mode:'info'}).then(function(d){ INFO=d; tour360();
   if(d.offer&&(d.offer.pct>0||d.offer.gift||(d.offer.promos||[]).length)){ $('offer').innerHTML=offerText(d.offer); $('offer').hidden=false; }
   (function(){ var sel=$('g-cur'); ['usd','gbp','eur'].forEach(function(c){ if(d.fx&&d.fx[c]) sel.appendChild(el('option',{value:c},CURN[c])); }); sel.onchange=function(){ summary(); }; if(sel.options.length<2) sel.parentNode.hidden=true; })();
   (function(){ var o=d.offer||{}, ms=(d.groups||[]).map(function(g){ return g.month; }).filter(Boolean), a=[];
@@ -577,7 +604,7 @@ call({mode:'info'}).then(function(d){ INFO=d;
 </script>
 <script src="pk/qrcode.js?v=1"></script>
 <script src="pk/site.js?v=25"></script>
-<script src="pk/pano.js?v=1"></script>
+<script src="pk/pano.js?v=2"></script>
 <script>if(window.PK&&PK.rest&&window.PKR360) PK.rest('rpc/room_360').then(window.PKR360).catch(function(){});</script>
 <script src="pk/chat.js?v=2" defer></script>
 <script src="pk/reviews.js?v=1" defer></script>
