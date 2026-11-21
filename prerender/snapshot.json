@@ -1,5 +1,5 @@
 {
- "at": "2026-11-20T11:51:32Z",
+ "at": "2026-11-21T10:07:05Z",
  "classes": [
   {
    "day": 0,
@@ -244,6 +244,22 @@
   {
    "day": 5,
    "discipline": "Muay Thai",
+   "end": "10:30",
+   "off": false,
+   "time": "09:30",
+   "title": "Kids Muay Thai Grading Class"
+  },
+  {
+   "day": 5,
+   "discipline": "Muay Thai",
+   "end": "16:00",
+   "off": false,
+   "time": "15:00",
+   "title": "Boxing Striking"
+  },
+  {
+   "day": 5,
+   "discipline": "Muay Thai",
    "end": null,
    "off": false,
    "time": "16:30",
@@ -264,11 +280,19 @@
    "off": false,
    "time": "09:30",
    "title": "Kids Grading Class (kids only)"
+  },
+  {
+   "day": 6,
+   "discipline": "Muay Thai",
+   "end": "10:30",
+   "off": false,
+   "time": "09:30",
+   "title": "Kids Muay Thai Grading Class"
   }
  ],
  "found": {
   "pages": 14,
-  "posts": 15
+  "posts": 16
  },
  "packages": [
   {
@@ -282,14 +306,6 @@
    ],
    "name": "Recovery add-on, Women's Morning",
    "price": 100
-  },
-  {
-   "covers": [
-    "Muay Thai",
-    "Striking"
-   ],
-   "name": "Fighter Techniques with Kru Pot",
-   "price": 200
   },
   {
    "covers": [
@@ -315,10 +331,31 @@
   },
   {
    "covers": [
+    "Spa"
+   ],
+   "name": "Spa Access, Full spa 1 time",
+   "price": 300
+  },
+  {
+   "covers": [
     "Muay Thai",
     "Kids"
    ],
    "name": "Kids, 1 class",
+   "price": 300
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "Fighter and Clinch Techniques Kru Pot",
+   "price": 300
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "Boxing Striking",
    "price": 300
   },
   {
@@ -331,10 +368,10 @@
   },
   {
    "covers": [
-    "Spa"
+    "Muay Thai"
    ],
-   "name": "Spa Access, Full spa 1 time",
-   "price": 300
+   "name": "Training Only, 1 Session",
+   "price": 400
   },
   {
    "covers": [
@@ -346,13 +383,6 @@
   {
    "covers": [],
    "name": "Hand Wraps",
-   "price": 400
-  },
-  {
-   "covers": [
-    "Muay Thai"
-   ],
-   "name": "Training Only, 1 Session",
    "price": 400
   },
   {
@@ -415,14 +445,6 @@
   },
   {
    "covers": [
-    "Muay Thai",
-    "Kids"
-   ],
-   "name": "Kids monthly, 8am or 6:30pm class  (Under 15s)",
-   "price": 1800
-  },
-  {
-   "covers": [
     "Fitness zone",
     "Open gym"
    ],
@@ -441,16 +463,16 @@
     "Muay Thai",
     "Kids"
    ],
-   "name": "Kids Grading Membership, monthly",
-   "price": 2000
+   "name": "Kids monthly, 8am or 6:30pm class  (Under 15s)",
+   "price": 1800
   },
   {
    "covers": [
     "Muay Thai",
     "Kids"
    ],
-   "name": "Kids monthly, All classes",
-   "price": 2500
+   "name": "Kids Grading Membership, monthly",
+   "price": 2000
   },
   {
    "covers": [
@@ -471,14 +493,27 @@
     "Muay Thai",
     "Kids"
    ],
-   "name": "Kids Grading plus Open Training, monthly",
-   "price": 3000
+   "name": "Kids monthly, All classes",
+   "price": 2500
   },
   {
    "covers": [
     "Muay Thai"
    ],
    "name": "Ed visa letter fee",
+   "price": 3000
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Kids"
+   ],
+   "name": "Kids Grading plus Open Training, monthly",
+   "price": 3000
+  },
+  {
+   "covers": [],
+   "name": "ED visa letter, Sports Authority of Thailand",
    "price": 3000
   },
   {
@@ -583,14 +618,14 @@
    "covers": [
     "Muay Thai"
    ],
-   "name": "DTV 6 Months Lite",
+   "name": "Training Only, 3 Month",
    "price": 18000
   },
   {
    "covers": [
     "Muay Thai"
    ],
-   "name": "Training Only, 3 Month",
+   "name": "DTV 6 Months Lite",
    "price": 18000
   },
   {
@@ -692,8 +727,8 @@
  ],
  "pages": [
   {
-   "description": "Train Muay Thai in Phuket for 3 months on an ED visa: 90 days on arrival, extend up to 1 year. Documents, steps, fees and 3 month training prices.",
-   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp&quot;)\"><div class=\"wrap\"><h1>3 month Muay Thai ED visa in Phuket</h1><span class=\"rule\"></span><p class=\"lead\">Train Muay Thai for 90 days on an education visa, then extend while you keep training. Work hard, Fight easy.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html\">Buy your 3 month course</a></p></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">The visa in short</div><h2>What the ED visa gives you</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p>The 3 montNon-Immigrant ED visa is Muay Thai specific visa. Learning Muay Thai at a registered gym counts as study, so you can stay and train for months instead of weeks.</p><ul><li><strong>First stay:</strong> 90 days from the day you arrive.</li><li><strong>Extending:</strong> Possible, but not guaranbteed</li><li><strong>Longest stay:</strong> this visa is only 3 months</li><li><strong>Visa fee:</strong> about 2,000 THB (around 80 USD or EUR) when you apply. It changes slightly by embassy.</li><li><strong>Letter fee:</strong> The SAT letter fee is 3,000 baht, paid when you purchase the course from the gym.</li><li><strong>Work:</strong> not allowed on an ED visa, and that includes remote work. If you need to work online, the DTV is the better fit.</li></ul><p>You do not have to be a fighter. We coach complete beginners, fitness students and fighters.</p></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Benefits</div><h2>Why train here for 3 months</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Time is what makes the difference. Here is what you get.</p></div><div class=\"pg-cards\"><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/home_beginners-1792391874012.jpg\" alt=\"Real progress\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">01</span><h3>Real progress</h3><p>Weeks of steady training with technical coaching. Your basics get sharp and your fitness builds.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/about_train-1792303506432.jpg\" alt=\"A set routine\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">02</span><h3>A set routine</h3><p>Group classes Monday to Saturday. You always know where to be and what you are working on.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/wellness_steam-1792242842768.jpg\" alt=\"Recovery on site\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">03</span><h3>Recovery on site</h3><p>Herbal steam room, dry sauna, ice bath and yoga. Your body keeps up with your training.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_stay.jpg\" alt=\"Stay and eat here\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">04</span><h3>Stay and eat here</h3><p>Pangea Resort lakeside bungalows are on site. Pangea Cafe serves healthy, seed oil free food.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Documents</div><h2>What you need to apply</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><ul><li>Passport valid for at least 6 more months</li><li>A recent passport photo</li><li>Proof of money for your stay, usually a bank statement (around 20,000 THB is often asked)</li><li>Your enrolment letter from the gym</li><li>The letter from the education or sports authority that goes with it</li></ul><p>Apply online at thaievisa.go.th if your country is on it, or at a Thai embassy or consulate. Processing usually takes 1 to 3 weeks, so start at least a month before you fly. We tell you exactly which documents to send and help with the gym side.</p></div></div></section><section class=\"band navy-sec\"><div class=\"wrap\"><div class=\"eyebrow\" style=\"color: rgb(255, 255, 255); opacity: 0.8;\">How it works</div><h2>How to get your ED visa</h2><span class=\"rule\"></span><ol class=\"steplist\"><li><b>Buy your course</b><span>Choose 3 months or more of training on our prices page and pay online. Want to live on site? Add a bungalow at Pangea Resort.</span></li><li><b>Send us your details</b><span>Message us on WhatsApp with your arrival date and passport name. We start your visa documents straight away.</span></li><li><b>Get your documents and apply</b><span>We prepare the gym paperwork. You apply online at thaievisa.go.th or at a Thai embassy with it.</span></li><li><b>Arrive and train</b><span>Group classes Monday to Saturday. Train regularly: immigration can ask for your attendance when you extend.</span></li><li><b>Extend in Phuket</b><span>Before your 90 days end, extend at Phuket Immigration with your school letter, attendance record and 1,900 THB in cash.</span></li></ol></div></section><section class=\"band pg-split\"><div class=\"wrap grid2\"><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/prices_hero-1792392269981.jpg\" alt=\"What 3 months costs\" loading=\"lazy\"></div><div><div class=\"eyebrow\">Prices</div><h2>What 3 months costs</h2><span class=\"rule\"></span><div class=\"pg-body\"><ul><li><strong>Training Only, 3 months:</strong> 18,000 THB. Unlimited group Muay Thai.</li><li><strong>Training + Recovery, 3 months:</strong> 28,000 THB. Adds the sauna, steam room and ice bath.</li><li><strong>Fitness Zone add on:</strong> 7,000 THB for 3 months.</li><li><strong>ED visa paperwork:</strong> message us for the current fee.</li></ul><p>Government fees are paid by you to the embassy and immigration: about 2,000 THB for the visa and 1,900 THB for each extension.</p></div><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html\">See all prices</a></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Compare</div><h2>ED visa or DTV?</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p><strong>ED visa</strong> suits you if you want to train for 3 months to a year and not work while you are here. The visa fee is low and you extend every 90 days.</p><p><strong>DTV</strong> suits you if you want longer, or you work online. It is a 5 year visa with stays of up to 180 days per entry, and it allows remote work. You need to be 20 or older and show about 500,000 THB in savings, and the visa fee is higher.</p><p>Not sure? Read our <a href=\"dtv.html\">DTV page</a> or message us and we will tell you which one fits.</p></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions about the ED visa</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>Do I need Muay Thai experience?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. We coach beginners, people who want fitness, and fighters.</p></div></details><details><summary><h3>How long can I stay?</h3></summary><div style=\"margin:0 20px 18px\"><p>90 days on arrival. You can extend inside Thailand while you keep training, up to 1 year in total from your first entry.</p></div></details><details><summary><h3>Can I extend in Phuket?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes, at Phuket Immigration. Bring your passport, a photo, your school letter, your attendance record, proof of where you stay and 1,900 THB in cash.</p></div></details><details><summary><h3>Can I work on an ED visa?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Work of any kind is not allowed, including remote work for clients abroad. Look at the <a href=\"dtv.html\">DTV</a> if you need to work.</p></div></details><details><summary><h3>Do I need to report my address?</h3></summary><div style=\"margin:0 20px 18px\"><p>If you stay more than 90 days in a row, you report your address to immigration every 90 days. It can usually be done online.</p></div></details><details><summary><h3>Can I stay at the gym?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Pangea Resort lakeside bungalows are on site. See book your stay.</p></div></details><details><summary><h3>Are the visa rules fixed?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Thai immigration rules and fees can change. This page was checked in October 2026. Message us before you book flights and we will give you the current picture.</p></div></details></div></div></section><section class=\"band pg-cta\"><div class=\"wrap\"><h2>Ready for 3 months of real training?</h2><p class=\"lead\">Buy your course today, add a stay if you want one, and we will start your visa documents.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html\">Buy your course</a></div></div></section>",
+   "description": "Train Muay Thai in Phuket for 3 months on an ED visa. Buy a 3 month course, we arrange your Sports Authority of Thailand letter, and you apply from outside Thailand. Steps, timing and fees.",
+   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp&quot;)\"><div class=\"wrap\"><h1>3 month Muay Thai ED visa in Phuket</h1><span class=\"rule\"></span><p class=\"lead\">Buy a course of 3 months or more, we arrange your invitation from the Sports Authority of Thailand, and you come in on a 90 day Muay Thai education visa. Work hard, Fight easy.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html?buy=168e45a5-596c-421b-97b5-121031c59805\">Buy your 3 month course</a></p></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">The visa in short</div><h2>What the ED visa gives you</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p>The Non-Immigrant ED visa for Muay Thai lets you stay in Thailand and train for 3 months (90 days). Learning Muay Thai at a registered gym counts as study.</p><ul><li><strong>What you need:</strong> a Muay Thai course of 3 months or more with us.</li><li><strong>Your invitation:</strong> we send your details to the Sports Authority of Thailand (SAT). They check you are eligible and send you an invitation letter to come and train. This takes about 3 to 4 weeks.</li><li><strong>Letter fee:</strong> 3,000 THB for the Sports Authority letter, paid to us with your course.</li><li><strong>Where you apply:</strong> from outside Thailand, online at thaievisa.go.th. You need to be in another country when you apply.</li><li><strong>Visa fee:</strong> about 1,800 THB, paid to the Thai e-visa website.</li><li><strong>How long the embassy takes:</strong> between 3 and 10 days, depending on the embassy.</li><li><strong>Approval:</strong> with the Sports Authority letter the visa is usually approved, because your eligibility is already confirmed.</li><li><strong>Work:</strong> not allowed on an ED visa, and that includes remote work. If you need to work online, the DTV is the better fit.</li></ul><p>You do not have to be a fighter. We coach complete beginners, fitness students and fighters.</p></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Benefits</div><h2>Why train here for 3 months</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Time is what makes the difference. Here is what you get.</p></div><div class=\"pg-cards\"><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/home_beginners-1792391874012.jpg\" alt=\"Real progress\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">01</span><h3>Real progress</h3><p>Weeks of steady training with technical coaching. Your basics get sharp and your fitness builds.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/about_train-1792303506432.jpg\" alt=\"A set routine\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">02</span><h3>A set routine</h3><p>Group classes Monday to Saturday. You always know where to be and what you are working on.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/wellness_steam-1792242842768.jpg\" alt=\"Recovery on site\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">03</span><h3>Recovery on site</h3><p>Herbal steam room, dry sauna, ice bath and yoga. Your body keeps up with your training.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_stay.jpg\" alt=\"Stay and eat here\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">04</span><h3>Stay and eat here</h3><p>Pangea Resort lakeside bungalows are on site. Pangea Cafe serves healthy, seed oil free food.</p></div></div></div></div></section><section class=\"band navy-sec\"><div class=\"wrap\"><div class=\"eyebrow\" style=\"color: rgb(255, 255, 255); opacity: 0.8;\">How it works</div><h2>How to get your ED visa</h2><span class=\"rule\"></span><ol class=\"steplist\"><li><b>Buy your course</b><span>Choose 3 months or more of training on our prices page, plus the 3,000 THB Sports Authority letter fee. Want to live on site? Add a bungalow at Pangea Resort.</span></li><li><b>Send us your details</b><span>Message us on WhatsApp with your passport details and when you want to start. We send everything to the Sports Authority of Thailand.</span></li><li><b>Get your invitation</b><span>The Sports Authority replies in about 3 to 4 weeks and sends you an invitation letter to come and train with us.</span></li><li><b>Apply from outside Thailand</b><span>From another country, apply online at thaievisa.go.th for the 3 month ED visa for Muay Thai and pay the visa fee of about 1,800 THB. The embassy takes 3 to 10 days.</span></li><li><b>Fly in and train</b><span>Once your visa is approved, fly into Thailand and start training. Your 90 days start when you arrive.</span></li></ol></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Timing</div><h2>Start early</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p>The whole process takes about 4 to 6 weeks: 3 to 4 weeks for the Sports Authority letter, then 3 to 10 days for the embassy. Some embassies are really quick and some are slow, so start at least 6 weeks before you want to begin training.</p><p><strong>Want to stay longer?</strong> An ED visa cannot be extended inside Thailand. You apply for a new ED visa: we ask the Sports Authority for a new letter, and you apply again from outside Thailand. Start about a month before your current visa runs out.</p></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Documents</div><h2>What you need to apply</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><ul><li>Passport valid for at least 6 more months</li><li>A recent passport photo</li><li>Your invitation letter from the Sports Authority of Thailand</li><li>Your course confirmation from us</li><li>Proof of money for your stay, if the e-visa site asks for it (usually a bank statement)</li></ul><p>We tell you exactly what to send us and help with everything on the gym side.</p></div></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/prices_hero-1792392269981.jpg\" alt=\"What 3 months costs\" loading=\"lazy\"></div><div><div class=\"eyebrow\">Prices</div><h2>What 3 months costs</h2><span class=\"rule\"></span><div class=\"pg-body\"><ul><li><strong>Training Only, 3 months:</strong> 18,000 THB. Unlimited group Muay Thai.</li><li><strong>Training + Recovery, 3 months:</strong> 28,000 THB. Adds the sauna, steam room and ice bath.</li><li><strong>Fitness Zone, 3 months:</strong> 5,000 THB.</li><li><strong>Sports Authority letter:</strong> 3,000 THB, paid to us.</li></ul><p>The visa fee of about 1,800 THB is paid by you on the Thai e-visa website.</p></div><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html\">See all prices</a></div></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Compare</div><h2>ED visa or DTV?</h2><span class=\"rule\"></span><div class=\"pg-body prose-lite\"><p><strong>ED visa</strong> suits you if you want to train for 3 months and not work while you are here. The fees are low. For longer, you apply for a new ED visa from outside Thailand.</p><p><strong>DTV</strong> suits you if you want longer, or you work online. It is a 5 year visa with stays of up to 180 days per entry, and it allows remote work. You need to be 20 or older and show about 500,000 THB in savings, and the visa fee is higher.</p><p>Not sure? Read our <a href=\"dtv.html\">DTV page</a> or message us and we will tell you which one fits.</p></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions about the ED visa</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>Do I need Muay Thai experience?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. We coach beginners, people who want fitness, and fighters.</p></div></details><details><summary><h3>How long does the whole process take?</h3></summary><div style=\"margin:0 20px 18px\"><p>About 4 to 6 weeks. The Sports Authority of Thailand usually takes 3 to 4 weeks to send your invitation, then the embassy takes 3 to 10 days. Start early.</p></div></details><details><summary><h3>Do I have to leave Thailand to apply?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. The ED visa is applied for from outside Thailand, online at thaievisa.go.th.</p></div></details><details><summary><h3>Will my visa be approved?</h3></summary><div style=\"margin:0 20px 18px\"><p>It is usually approved once you have the Sports Authority letter, because they have already confirmed you are eligible. The embassy makes the final decision.</p></div></details><details><summary><h3>How long can I stay?</h3></summary><div style=\"margin:0 20px 18px\"><p>90 days from the day you arrive.</p></div></details><details><summary><h3>Can I extend it?</h3></summary><div style=\"margin:0 20px 18px\"><p>Not inside Thailand. You apply for a new ED visa: we ask the Sports Authority for a new letter, and you apply again from outside Thailand. Start about a month before your current visa runs out.</p></div></details><details><summary><h3>What does it cost?</h3></summary><div style=\"margin:0 20px 18px\"><p>Your 3 month course, the 3,000 THB Sports Authority letter fee, and about 1,800 THB visa fee on the Thai e-visa website.</p></div></details><details><summary><h3>Can I work on an ED visa?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Work of any kind is not allowed, including remote work for clients abroad. Look at the <a href=\"dtv.html\">DTV</a> if you need to work.</p></div></details><details><summary><h3>Can I stay at the gym?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Pangea Resort lakeside bungalows are on site. See <a href=\"book.html\">book your stay</a>.</p></div></details><details><summary><h3>Are the visa rules fixed?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Thai immigration rules and fees can change. This page was checked in November 2026. Message us before you book flights and we will give you the current picture.</p></div></details></div></div></section><section class=\"band pg-cta\"><div class=\"wrap\"><h2>Ready for 3 months of real training?</h2><p class=\"lead\">Buy your course today, send us your details, and we will start your Sports Authority invitation.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html?buy=168e45a5-596c-421b-97b5-121031c59805\">Buy your course</a></div></div></section>",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp",
    "slug": "ed-visa-muay-thai",
    "title": "3 Month ED Muay Thai Visa in Phuket"
@@ -792,6 +827,14 @@
  ],
  "posts": [
   {
+   "description": "A Friday afternoon at our Muay Thai gym in Kathu, Phuket, from Fight Fitness at 3:30 to the end of the group class at 6:00, in an 80 second video, with what happens at each stage.",
+   "html": "<span class=\"num\">21 November 2026</span><h1>One Afternoon at Phuket King Muay Thai, Hour by Hour</h1><span class=\"rule\"></span><img class=\"cover\" src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/blog/friday-afternoon.jpg\" alt=\"One Afternoon at Phuket King Muay Thai, Hour by Hour\"><div class=\"prose\"><p>What does a training afternoon at a Muay Thai gym in Phuket actually look like? We set a camera up on a Friday and let it run from 3:30 to 6:00. Here is the whole afternoon in 80 seconds, and what happens at each stage.</p><figure class=\"pvid\"><div class=\"pvbox\"><iframe src=\"https://www.youtube-nocookie.com/embed/2SdxJ2H6HJs?rel=0\" title=\"One afternoon at Phuket King Muay Thai, 3:30 to 6:00\" loading=\"lazy\" allow=\"encrypted-media; picture-in-picture; fullscreen\" allowfullscreen=\"\"></iframe></div><figcaption>One afternoon at Phuket King Muay Thai, 3:30 to 6:00</figcaption></figure><h2>3:30 to 4:30: Fight Fitness</h2><p>The afternoon starts with the fighters. Fight Fitness is an hour of conditioning: runs, circuits, footwork drills and the kind of work that keeps you strong in round five. It is part of our fight programme, and it is hard work.</p><h2>4:30 to 5:00: fighters on the pads</h2><p>While the mats are reset, the fighters move to the ring for pad work with the krus. Short, sharp rounds, with the coach calling the combinations and fixing the details.</p><h2>4:35 to 4:40: tyres and skipping</h2><p>Between rounds you will see tyres and skipping ropes come out. It is old school Thai conditioning and it still works.</p><h2>4:50: hand wraps and shadow boxing</h2><p>The group class arrives. People wrap their hands, loosen up and shadow box to get moving. Never wrapped your hands before? Just ask, one of the coaches will show you.</p><h2>5:00 to 5:15: group technique</h2><p>The whole group comes together for technique. This is where we are different: technique first, always. The coach shows one idea, breaks it down, and everyone drills it slowly before adding speed and power. Beginners and experienced people train side by side, each at their own level.</p><h2>5:00 to 5:30: fighters on the bags</h2><p>At the same time the fighters work the heavy bags along the lake side of the gym, building volume and power.</p><h2>5:15 to 5:50: pad work and bag work</h2><p>The group class splits up. Some people do rounds on the pads with the krus while others work the bags, then they swap. This is where the technique from earlier gets put to work.</p><h2>5:30 to 6:00: sparring</h2><p>The fighters finish with controlled sparring in the ring. Sparring is never forced on anyone in the group class. You spar when you are ready, and only if you want to.</p><h2>5:50 to 6:00: warm down and clean up</h2><p>Everyone finishes together with a warm down and stretch on the mats, and then the gym gets cleaned for the evening class. After that, plenty of people walk over to the ice bath and sauna, or grab food at the cafe.</p><h2>Want to train an afternoon like this?</h2><ul><li>Group classes need no booking. Come ten minutes early and check in at the desk.</li><li>Never trained before? You are welcome in every group class. Read <a href=\"beginners-muay-thai.html\">Muay Thai for beginners</a> first if you like.</li><li>See today's classes and the full week on the <a href=\"index.html#schedule\">timetable</a>, and all packages on the <a href=\"prices.html\">prices page</a>.</li></ul><p>Work hard, fight easy.</p></div>",
+   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/blog/friday-afternoon.jpg",
+   "published": "2026-11-21",
+   "slug": "friday-afternoon-at-phuket-king-muay-thai",
+   "title": "One Afternoon at Phuket King Muay Thai, Hour by Hour"
+  },
+  {
    "description": "Kathu or Fitness Street? Why Kathu suits the more discerning Muay Thai student: real local gyms, less tourist trap, cheaper living and 10 minutes to Patong and Phuket Town.",
    "html": "<span class=\"num\">7 November 2026</span><h1>Is Kathu a Good Place to Train Muay Thai?</h1><span class=\"rule\"></span><img class=\"cover\" src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp\" alt=\"Is Kathu a Good Place to Train Muay Thai?\"><div class=\"prose\"><p>Short answer: yes. Kathu is a great place to train Muay Thai, but it serves a different purpose from the famous fight streets. It is more local, away from the party areas, and the gyms feel more real. Here is who Kathu suits, who it does not, and what it is like to live and train here.</p><h2>What makes Kathu different</h2><p>Kathu sits in the middle of Phuket, in the hills between Patong and Phuket Town. It is a Thai neighbourhood first and a tourist spot second. That changes everything about training here:</p><ul><li><strong>Less touristy.</strong> You are not surrounded by bars, touts and millions of holidaymakers.</li><li><strong>Less of a tourist trap.</strong> Gyms here are not desperate to take your money and push you into the next package.</li><li><strong>More nuance.</strong> The gyms in Kathu put more care into technique, finesse and how you actually move.</li><li><strong>You pick your crowd.</strong> You train with people who chose to be here, not people who wandered in after a big night out.</li></ul><h2>Kathu or Fitness Street in Chalong?</h2><p>Both are good. They are different products for different people.</p><p>If you are a pure fighter and you only want to immerse yourself in fighting, surrounded by fighters and hard sparring every day, Soi Ta-iad in Chalong (known as Fitness Street) might be the right place for you.</p><p>Kathu is for the more discerning person. You want great Muay Thai, but you also care about where you live, who you train with and how you recover. You want a little more finesse in your training, and a little more calm around it.</p><h2>The gyms in Kathu</h2><p>Kathu has quite a few really good gyms, and each one offers something unique:</p><ul><li><strong>Phuket King Muay Thai:</strong> the biggest gym in Kathu, with a lakeside camp, recovery spa and bungalows on site.</li><li><strong>Kangaroo Muay Thai</strong></li><li><strong>Kaosibsam Muay Thai</strong></li><li><strong>Big Gecko</strong></li><li><strong>Oleydong Boxing and Muay Thai</strong></li><li><strong>Sor Dejdamrong Muay Thai</strong></li></ul><p>Visit a few, try a class and see which one feels right for you.</p><h2>Living in Kathu</h2><p>At Phuket King, for example, you are right next to a Lotus supermarket and a 7-Eleven. There are lots of local restaurants nearby and a big local market just around the corner. Food, rooms and day to day life cost a lot less than in the beach towns, and everything is more relaxed.</p><h2>Getting around from Kathu</h2><p>Kathu is central, so the rest of the island is close:</p><ul><li>Patong beach: about 10 minutes over the hill</li><li>Phuket Town: about 10 minutes</li><li>Chalong: about 15 minutes</li><li>Bang Tao: about 15 to 20 minutes</li></ul><p>You get the quiet of a local area during the week, and the beaches and nightlife whenever you want them.</p><h2>So, is Kathu a good place to train Muay Thai?</h2><p>Yes, if you want real Muay Thai with more finesse, a calmer and more local way of life, and a crowd you choose. If you only want to fight and spar hard every day, look at Fitness Street. If you want to train well and live well, come to Kathu.</p><p>New to Muay Thai? Read our <a href=\"beginners-muay-thai.html\">guide for beginners</a>. Want to fight? See <a href=\"fighters.html\">how our fight team works</a>. Ready to come? <a href=\"prices.html\">See our prices</a> or message us on WhatsApp.</p><p>Planning a trip? Read our full guide to <a href=\"muay-thai-phuket.html\">Muay Thai in Phuket</a>: where to train, what it costs and when to come.</p></div>",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp",
@@ -800,12 +843,12 @@
    "title": "Is Kathu a Good Place to Train Muay Thai?"
   },
   {
-   "description": "From 20,000 THB a month for a basic fighter setup to 80,000 THB for a private lakeside room with meals and privates. What changes the price, and how to get an instant quote.",
-   "html": "<span class=\"num\">19 October 2026</span><h1>How Much Does It Cost to Train Muay Thai in Phuket? 2026 Guide</h1><span class=\"rule\"></span><img class=\"cover\" src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/prices_hero.webp\" alt=\"How Much Does It Cost to Train Muay Thai in Phuket? 2026 Guide\"><div class=\"prose\"><p>Phuket is blessed with a lot of Muay Thai gyms. It probably has more per person than almost anywhere else in Thailand. That is great for choice, but it makes the question \"how much does it cost?\" hard to answer, because no two gyms offer the same thing.</p><p>Some gyms train fighters only. Some train everyone. Some offer accommodation, some do not. And the accommodation itself varies massively. Many smaller gyms that say they have accommodation are really renting out a basic room somewhere nearby.</p><p>So the honest answer is: it depends on what you want. Here is how to work it out.</p><figure><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/blog/app/1792401111438.jpg\" alt=\"\" loading=\"lazy\"></figure><figure><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/blog/app/1792401070228.jpg\" alt=\"\" loading=\"lazy\"></figure><figure><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/blog/app/1792401054258.jpg\" alt=\"\" loading=\"lazy\"></figure><h2>The short answer</h2><ul><li><strong>Basic fighter setup:</strong> if you are a fighter and you do not mind a single bed and a shared bathroom, there are plenty of options. Expect to pay around <strong>20,000 to 30,000 THB a month</strong> for training and a room.</li><li><strong>Well known gym, comfortable stay:</strong> at one of the better known gyms, such as Phuket King or AKA Thailand, you will spend a little more.</li><li><strong>Your own room with comfort and extras:</strong> a private room with its own bathroom and air conditioning, in a nice environment, plus meals, privates and extras, usually comes to around <strong>30,000 to 80,000 THB a month</strong>.</li></ul><h2>What changes the price</h2><p>Before you compare gyms, be clear about what you are actually looking for.</p><p><strong>Your room</strong><br>- Do you mind basic, or do you want comfort?<br>- Do you want air conditioning?<br>- Do you want your own bathroom?<br>- Do you want meals included?</p><p><strong>The gym</strong><br>- Do you want a classic, old school Thai gym?<br>- Or something cleaner and more modern?</p><p><strong>The extras</strong><br>- Yoga?<br>- Grappling?<br>- A weights gym?<br>- A spa, sauna or ice bath?</p><p>Every one of these affects the final price.</p><h2>Time of year</h2><p>Season is another big variable. Phuket's high season runs from November to early April, with December and January the peak months. Prices are usually at their highest then.</p><p>After that comes what we call the green season, or rainy season. Prices are often cheaper, gyms are quieter, and it can be a great time to train. If you are on a budget, it is a great time to come.</p><h2>Our training prices at Phuket King</h2><p>All prices are in Thai baht.</p><p><strong>Group classes</strong> (three a day Monday to Friday, two on Saturday, no booking needed)<br>- 1 session: 400<br>- Day pass: 500<br>- 1 week: 2,500<br>- 10 sessions: 3,500<br>- 1 month: 7,000<br>- 3 months: 18,000<br>- 6 months: 28,000</p><p><strong>Training plus recovery</strong> (adds the ice bath, herbal steam room and dry sauna)<br>- 1 week: 3,900<br>- 1 month: 11,000</p><p><strong>Private lessons</strong><br>- 1 private: 900<br>- 5 privates: 4,000<br>- 10 privates: 7,500</p><p>See every price on the <a href=\"prices.html\">prices page</a>. Prices can change, so always check there for the latest.</p><h2>Staying with us</h2><p>At Phuket King you can stay at Pangea Resort, our air conditioned lakeside bungalows with their own bathroom, one minute from the ring. When you book your room directly with us, group Muay Thai is included for one person for your whole stay.</p><h2>Build your package and get an instant quote</h2><p>To make this simple, we built a package builder. Pick your dates and your bungalow, choose how long you want to stay, then add the extras you want: privates, a meal plan, recovery, yoga, massage or an airport transfer. You see the full price instantly, before you pay anything.</p><p><a href=\"book.html\">Build your package and get a quote</a></p><h2>The bottom line</h2><p>There are so many variables that no single price fits everyone. Be clear about what you want, have a look around, and choose the gym and the stay that fits you best.</p><p>Any questions? Message us on WhatsApp and we will help you plan it.</p><p>Planning a trip? Read our full guide to <a href=\"muay-thai-phuket.html\">Muay Thai in Phuket</a>: where to train, what it costs and when to come.</p></div>",
-   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/prices_hero.webp",
+   "description": "A simple, tested packing list for a Muay Thai trip to Phuket: training gear, clothes for the heat, recovery basics and the documents you need.",
+   "html": "<span class=\"num\">19 October 2026</span><h1>What to Pack for a Muay Thai Camp in Phuket</h1><span class=\"rule\"></span><img class=\"cover\" src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_train.webp\" alt=\"What to Pack for a Muay Thai Camp in Phuket\"><div class=\"prose\"><p>Packing for a Muay Thai trip is easier than most people think. Phuket is hot all year, you will sweat through everything, and you can buy most things here. Here is what is worth bringing, and what is not.</p><h2>Training gear</h2><ul><li><strong>Gloves:</strong> if you have a pair you like, bring them. If not, you can buy good Thai gloves here.</li><li><strong>Hand wraps:</strong> bring two or three pairs. They need to dry between sessions.</li><li><strong>Shin guards:</strong> only if you plan to spar.</li><li><strong>Mouthguard:</strong> essential if you spar. Bring your own.</li><li><strong>Shorts:</strong> two or three pairs of training shorts. Thai shorts are cheap and easy to find.</li><li><strong>Tops:</strong> light, quick dry t shirts or vests. You will change after every session.</li></ul><h2>Clothes for the heat</h2><ul><li>Light, breathable clothes for the day.</li><li>Flip flops or sandals. You take your shoes off before stepping into the gym in Thailand.</li><li>Something to cover your shoulders and knees if you plan to visit temples.</li><li>A light rain jacket in the rainy season.</li></ul><h2>Recovery and health basics</h2><ul><li>A refillable water bottle. You will drink a lot.</li><li>Electrolytes. Easy to find here, but useful to have from day one.</li><li>Plasters and tape for blisters on your feet.</li><li>Sun cream and insect repellent.</li><li>Any medication you normally take, with the packaging.</li></ul><p>At Phuket King you will also have an ice bath, herbal steam room and dry sauna on site, so you do not need to bring any recovery gear.</p><h2>Documents and money</h2><ul><li>Your passport, with at least six months left on it.</li><li>Travel insurance that covers sport. Check the small print for combat sports.</li><li>A bank card that works abroad. Many places also take card and PromptPay QR payments.</li><li>If you plan a long stay, read our guide to the <a href=\"dtv.html\">DTV visa</a>.</li></ul><h2>What not to bring</h2><ul><li>Too many clothes. Laundry is cheap and quick in Phuket.</li><li>Heavy jeans and jackets. You will not wear them.</li><li>Brand new gloves you have never tested. Break them in first, or buy here.</li></ul><h2>Before you fly</h2><p>Book your first week of training or your room, and message us with your arrival day. If you stay at Pangea Resort, your bungalow is one minute from the ring and group Muay Thai is included when you book with us. <a href=\"book.html\">See free rooms</a>.</p><p>Questions about what to bring? Message us on WhatsApp.</p><p>Planning a trip? Read our full guide to <a href=\"muay-thai-phuket.html\">Muay Thai in Phuket</a>: where to train, what it costs and when to come.</p></div>",
+   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_train.webp",
    "published": "2026-10-19",
-   "slug": "how-much-does-muay-thai-cost-in-phuket",
-   "title": "How Much Does It Cost to Train Muay Thai in Phuket? 2026 Guide"
+   "slug": "what-to-pack-for-a-muay-thai-camp-in-phuket",
+   "title": "What to Pack for a Muay Thai Camp in Phuket"
   },
   {
    "description": "Never trained and a little nervous? Muay Thai is one of the most welcoming sports you can start. Here is what it is really like, and how to choose a gym that is safe for beginners.",
@@ -824,12 +867,12 @@
    "title": "Where to Stay in Phuket for Muay Thai Training"
   },
   {
-   "description": "A simple, tested packing list for a Muay Thai trip to Phuket: training gear, clothes for the heat, recovery basics and the documents you need.",
-   "html": "<span class=\"num\">19 October 2026</span><h1>What to Pack for a Muay Thai Camp in Phuket</h1><span class=\"rule\"></span><img class=\"cover\" src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_train.webp\" alt=\"What to Pack for a Muay Thai Camp in Phuket\"><div class=\"prose\"><p>Packing for a Muay Thai trip is easier than most people think. Phuket is hot all year, you will sweat through everything, and you can buy most things here. Here is what is worth bringing, and what is not.</p><h2>Training gear</h2><ul><li><strong>Gloves:</strong> if you have a pair you like, bring them. If not, you can buy good Thai gloves here.</li><li><strong>Hand wraps:</strong> bring two or three pairs. They need to dry between sessions.</li><li><strong>Shin guards:</strong> only if you plan to spar.</li><li><strong>Mouthguard:</strong> essential if you spar. Bring your own.</li><li><strong>Shorts:</strong> two or three pairs of training shorts. Thai shorts are cheap and easy to find.</li><li><strong>Tops:</strong> light, quick dry t shirts or vests. You will change after every session.</li></ul><h2>Clothes for the heat</h2><ul><li>Light, breathable clothes for the day.</li><li>Flip flops or sandals. You take your shoes off before stepping into the gym in Thailand.</li><li>Something to cover your shoulders and knees if you plan to visit temples.</li><li>A light rain jacket in the rainy season.</li></ul><h2>Recovery and health basics</h2><ul><li>A refillable water bottle. You will drink a lot.</li><li>Electrolytes. Easy to find here, but useful to have from day one.</li><li>Plasters and tape for blisters on your feet.</li><li>Sun cream and insect repellent.</li><li>Any medication you normally take, with the packaging.</li></ul><p>At Phuket King you will also have an ice bath, herbal steam room and dry sauna on site, so you do not need to bring any recovery gear.</p><h2>Documents and money</h2><ul><li>Your passport, with at least six months left on it.</li><li>Travel insurance that covers sport. Check the small print for combat sports.</li><li>A bank card that works abroad. Many places also take card and PromptPay QR payments.</li><li>If you plan a long stay, read our guide to the <a href=\"dtv.html\">DTV visa</a>.</li></ul><h2>What not to bring</h2><ul><li>Too many clothes. Laundry is cheap and quick in Phuket.</li><li>Heavy jeans and jackets. You will not wear them.</li><li>Brand new gloves you have never tested. Break them in first, or buy here.</li></ul><h2>Before you fly</h2><p>Book your first week of training or your room, and message us with your arrival day. If you stay at Pangea Resort, your bungalow is one minute from the ring and group Muay Thai is included when you book with us. <a href=\"book.html\">See free rooms</a>.</p><p>Questions about what to bring? Message us on WhatsApp.</p><p>Planning a trip? Read our full guide to <a href=\"muay-thai-phuket.html\">Muay Thai in Phuket</a>: where to train, what it costs and when to come.</p></div>",
-   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_train.webp",
+   "description": "From 20,000 THB a month for a basic fighter setup to 80,000 THB for a private lakeside room with meals and privates. What changes the price, and how to get an instant quote.",
+   "html": "<span class=\"num\">19 October 2026</span><h1>How Much Does It Cost to Train Muay Thai in Phuket? 2026 Guide</h1><span class=\"rule\"></span><img class=\"cover\" src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/prices_hero.webp\" alt=\"How Much Does It Cost to Train Muay Thai in Phuket? 2026 Guide\"><div class=\"prose\"><p>Phuket is blessed with a lot of Muay Thai gyms. It probably has more per person than almost anywhere else in Thailand. That is great for choice, but it makes the question \"how much does it cost?\" hard to answer, because no two gyms offer the same thing.</p><p>Some gyms train fighters only. Some train everyone. Some offer accommodation, some do not. And the accommodation itself varies massively. Many smaller gyms that say they have accommodation are really renting out a basic room somewhere nearby.</p><p>So the honest answer is: it depends on what you want. Here is how to work it out.</p><figure><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/blog/app/1792401111438.jpg\" alt=\"\" loading=\"lazy\"></figure><figure><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/blog/app/1792401070228.jpg\" alt=\"\" loading=\"lazy\"></figure><figure><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/blog/app/1792401054258.jpg\" alt=\"\" loading=\"lazy\"></figure><h2>The short answer</h2><ul><li><strong>Basic fighter setup:</strong> if you are a fighter and you do not mind a single bed and a shared bathroom, there are plenty of options. Expect to pay around <strong>20,000 to 30,000 THB a month</strong> for training and a room.</li><li><strong>Well known gym, comfortable stay:</strong> at one of the better known gyms, such as Phuket King or AKA Thailand, you will spend a little more.</li><li><strong>Your own room with comfort and extras:</strong> a private room with its own bathroom and air conditioning, in a nice environment, plus meals, privates and extras, usually comes to around <strong>30,000 to 80,000 THB a month</strong>.</li></ul><h2>What changes the price</h2><p>Before you compare gyms, be clear about what you are actually looking for.</p><p><strong>Your room</strong><br>- Do you mind basic, or do you want comfort?<br>- Do you want air conditioning?<br>- Do you want your own bathroom?<br>- Do you want meals included?</p><p><strong>The gym</strong><br>- Do you want a classic, old school Thai gym?<br>- Or something cleaner and more modern?</p><p><strong>The extras</strong><br>- Yoga?<br>- Grappling?<br>- A weights gym?<br>- A spa, sauna or ice bath?</p><p>Every one of these affects the final price.</p><h2>Time of year</h2><p>Season is another big variable. Phuket's high season runs from November to early April, with December and January the peak months. Prices are usually at their highest then.</p><p>After that comes what we call the green season, or rainy season. Prices are often cheaper, gyms are quieter, and it can be a great time to train. If you are on a budget, it is a great time to come.</p><h2>Our training prices at Phuket King</h2><p>All prices are in Thai baht.</p><p><strong>Group classes</strong> (three a day Monday to Friday, two on Saturday, no booking needed)<br>- 1 session: 400<br>- Day pass: 500<br>- 1 week: 2,500<br>- 10 sessions: 3,500<br>- 1 month: 7,000<br>- 3 months: 18,000<br>- 6 months: 28,000</p><p><strong>Training plus recovery</strong> (adds the ice bath, herbal steam room and dry sauna)<br>- 1 week: 3,900<br>- 1 month: 11,000</p><p><strong>Private lessons</strong><br>- 1 private: 900<br>- 5 privates: 4,000<br>- 10 privates: 7,500</p><p>See every price on the <a href=\"prices.html\">prices page</a>. Prices can change, so always check there for the latest.</p><h2>Staying with us</h2><p>At Phuket King you can stay at Pangea Resort, our air conditioned lakeside bungalows with their own bathroom, one minute from the ring. When you book your room directly with us, group Muay Thai is included for one person for your whole stay.</p><h2>Build your package and get an instant quote</h2><p>To make this simple, we built a package builder. Pick your dates and your bungalow, choose how long you want to stay, then add the extras you want: privates, a meal plan, recovery, yoga, massage or an airport transfer. You see the full price instantly, before you pay anything.</p><p><a href=\"book.html\">Build your package and get a quote</a></p><h2>The bottom line</h2><p>There are so many variables that no single price fits everyone. Be clear about what you want, have a look around, and choose the gym and the stay that fits you best.</p><p>Any questions? Message us on WhatsApp and we will help you plan it.</p><p>Planning a trip? Read our full guide to <a href=\"muay-thai-phuket.html\">Muay Thai in Phuket</a>: where to train, what it costs and when to come.</p></div>",
+   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/prices_hero.webp",
    "published": "2026-10-19",
-   "slug": "what-to-pack-for-a-muay-thai-camp-in-phuket",
-   "title": "What to Pack for a Muay Thai Camp in Phuket"
+   "slug": "how-much-does-muay-thai-cost-in-phuket",
+   "title": "How Much Does It Cost to Train Muay Thai in Phuket? 2026 Guide"
   },
   {
    "description": "A lot of DTV guides online are written by people who have never trained in Thailand or sent a student through the process. This one is different. We've been issuing DTV Soft Power documents since the visa launched, and Phuket King was one of the first accredited gyms in Phuket to do it. This is...",
