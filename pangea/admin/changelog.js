@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-21', title: 'Videos in blog posts and website pages', what: 'Put a YouTube link on its own line in a blog post like a photo, ![caption](link), and the video plays right in the post. A video file from your website or your photo storage (.mp4) works the same way.'},
   {date: '2026-11-21', title: 'Room 360 photos in the stay page tour', what: 'Your room 360 photos now also show in Take the tour at the bottom of the website stay page, as photos for each room type. Guests tap one and drag to look around, and can switch between the views. Rooms with the same photos show once.', feature: 'room_360'},
   {date: '2026-11-21', title: 'Clear staff hours alerts', what: 'On Staff hours, Needs a look now has a tick box on every item, with Select all, Clear selected and Clear all. Cleared items leave the list, so it only shows what still needs doing. Bring back cleared shows them again for the dates you are looking at.', feature: 'hours_clear'},
   {date: '2026-11-20', title: 'See check ins from earlier days', what: 'On Today, Checked in has Earlier day and Later day buttons, so you can look back at who came on any of the last 60 days, with how many came to each class. Tap a name to open the customer.'},

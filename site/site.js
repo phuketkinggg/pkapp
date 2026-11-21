@@ -28,13 +28,14 @@ window.PK={
   rest:function(path){ return fetch('https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/'+path,{headers:{apikey:'sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i'}}).then(function(r){ if(!r.ok) throw new Error('load'); return r.json(); }); },
   date:function(d){ return d?new Date(d+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}):''; },
   // blog text to HTML. Everything is escaped first, so only these simple marks become formatting:
-  // ## heading, ### small heading, - list, 1. numbered list, > quote, ![caption](photo link), **bold**, *italic*, [text](link)
+  // ## heading, ### small heading, - list, 1. numbered list, > quote, ![caption](photo link), ![caption](video link: YouTube or .mp4), **bold**, *italic*, [text](link)
   md:function(text){
     var esc=window.PK.esc, okUrl=function(u){ return /^(https:\/\/|mailto:|\/|#|[a-z0-9-]+\.html)/i.test(u)?u:null; };
     function inl(t){ return esc(t).replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,a,u){ u=okUrl(u.replace(/&amp;/g,'&')); if(!u) return a; var ext=/^https:/.test(u)&&u.indexOf('phuketking')<0; return '<a href="'+esc(u)+'"'+(ext?' target="_blank" rel="noopener"':'')+'>'+a+'</a>'; })
       .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*\n]+)\*/g,'<em>$1</em>').replace(/\n/g,'<br>'); }
     return String(text||'').replace(/\r/g,'').split(/\n\s*\n/).map(function(b){ b=b.trim(); if(!b) return '';
-      var m;
+      var m, vid;
+      if((m=b.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))&&(vid=PK.vid(m[2],m[1]))) return vid;
       if((m=b.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))){ var u=okUrl(m[2]); return u?'<figure><img src="'+esc(u)+'" alt="'+esc(m[1])+'" loading="lazy">'+(m[1]?'<figcaption>'+esc(m[1])+'</figcaption>':'')+'</figure>':''; }
       if(/^### /.test(b)) return '<h3>'+inl(b.slice(4))+'</h3>';
       if(/^## /.test(b)) return '<h2>'+inl(b.slice(3))+'</h2>';
@@ -46,6 +47,12 @@ window.PK={
       return '<p>'+inl(b)+'</p>'; }).join('');
   }
 };
+// a video in a blog post or page: a YouTube link plays in place, a .mp4 on our site or our storage plays with its own controls
+PK.vid=function(u,cap){ var esc=PK.esc, y=String(u).match(/^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/), c=cap?'<figcaption>'+esc(cap)+'</figcaption>':'';
+  if(y) return '<figure class="pvid"><div class="pvbox"><iframe src="https://www.youtube-nocookie.com/embed/'+y[1]+'?rel=0" title="'+esc(cap||'Video')+'" loading="lazy" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>'+c+'</figure>';
+  if(/^(\/[\w\/.-]+|https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\/storage\/v1\/object\/public\/[\w\/.%-]+)\.(mp4|webm)$/i.test(u)){ var po=/^\/[\w\/.-]+\.mp4$/i.test(u)?' poster="'+esc(u.replace(/\.mp4$/i,'.jpg'))+'"':'';
+    return '<figure class="pvid"><div class="pvbox"><video src="'+esc(u)+'"'+po+' controls playsinline preload="none" title="'+esc(cap||'Video')+'"></video></div>'+c+'</figure>'; }
+  return null; };
 // for pages filled after loading (blog posts, made pages, courses): the right address, description and share preview for Google
 PK.seo=function(o){ var head=document.head, url='https://www.phuketking.com/'+o.path;
   function meta(attr,key,val){ if(!val) return; var m=head.querySelector('meta['+attr+'="'+key+'"]'); if(!m){ m=document.createElement('meta'); m.setAttribute(attr,key); head.appendChild(m); } m.setAttribute('content',val); }
