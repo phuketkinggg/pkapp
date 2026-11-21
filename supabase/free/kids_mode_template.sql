@@ -157,6 +157,20 @@ begin
   end if;
   raise notice 'kids_mode: % chat functions changed', done;
 end $$;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (1002703, 10, 'patch', 'kids_mode:1002703', $TPL$do $$
+declare d text; n text;
+begin
+  if to_regprocedure('__P__.customer_home()') is not null then
+    d := pg_get_functiondef('__P__.customer_home()'::regprocedure);
+    n := replace(d, 'select * into c from __P__.customers where user_id = v_uid order by created_at limit 1;', 'select * into c from __P__.customers where id = __Q__.customer_id();');
+    if n <> d then execute n; elsif position('__Q__.customer_id()' in d) = 0 then raise notice 'kids_mode: customer_home is different, skipped'; end if;
+  end if;
+  if to_regprocedure('__P__.my_card()') is not null then
+    d := pg_get_functiondef('__P__.my_card()'::regprocedure);
+    n := replace(d, 'from __P__.customers where user_id = auth.uid() order by created_at limit 1;', 'from __P__.customers where id = __Q__.customer_id();');
+    if n <> d then execute n; end if;
+  end if;
+end $$;$TPL$);
 do $$ declare g record; r record; begin
   for g in select * from mf.gyms where status = 'ready' loop
     for r in select sql from mf.template where name like 'kids_mode:%' order by ord loop

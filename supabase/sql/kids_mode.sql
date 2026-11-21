@@ -192,3 +192,19 @@ begin
   end if;
   raise notice 'kids_mode: % chat functions changed', done;
 end $$;
+
+-- the home screen and the member card show the child the parent has open
+do $$
+declare d text; n text;
+begin
+  if to_regprocedure('public.customer_home()') is not null then
+    d := pg_get_functiondef('public.customer_home()'::regprocedure);
+    n := replace(d, 'select * into c from public.customers where user_id = v_uid order by created_at limit 1;', 'select * into c from public.customers where id = private.customer_id();');
+    if n <> d then execute n; elsif position('private.customer_id()' in d) = 0 then raise notice 'kids_mode: customer_home is different, skipped'; end if;
+  end if;
+  if to_regprocedure('public.my_card()') is not null then
+    d := pg_get_functiondef('public.my_card()'::regprocedure);
+    n := replace(d, 'from public.customers where user_id = auth.uid() order by created_at limit 1;', 'from public.customers where id = private.customer_id();');
+    if n <> d then execute n; end if;
+  end if;
+end $$;
