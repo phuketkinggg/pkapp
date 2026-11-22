@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=235"></script>
+<script src="changelog.js?v=236"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1000,6 +1000,7 @@ var FEATURES=[
   {k:'course_stay_price',g:'Training',n:'Resort guest price for courses',d:'A course can have a lower price for guests with a stay booked or staying now. When they buy it with the same email, the guest price is used. Set it on the course.'},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
+  {k:'brief_push',g:'Training',n:'Arrivals notice for coaches',d:'At 6pm, coaches and managers get a phone notice in the app with tomorrow\'s new guests, as well as the arrivals email. Tapping it opens Coaching, Arriving soon.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'meal_bills',g:'Selling',n:'Meal plans held until served, cafe meal bills',d:'Money paid for a meal plan comes in as Meal plans held for the business that sold it, not as cafe sales, so it can always be refunded. The kitchen or the cafe till ticks each meal as it is served, and sends a bill for the meals served, for example once a week. A manager marks the bill paid: only then does Accounts show it as cafe sales. Meal plans bought before this was switched on stay as they were.',def:false,spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
@@ -1111,7 +1112,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=173; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=174; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -4561,6 +4562,7 @@ function pushOff(){
 }
 /* tapping a notification opens that chat */
 if('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message',function(e){ var d=e.data||{}; if(d.type==='open-chat'&&/^[0-9a-f-]{36}$/.test(d.chat||'')){ ui.tab='chat'; ui.openChatId=d.chat; CHAT.list=null; chatRefresh(); schedule(); }
+  if(d.type==='open-tab'&&d.tab==='arriving'&&tabOn('coaching')){ ui.tab='coaching'; COACH.view='arriving'; schedule(); return; }
   if(d.type==='open-tab'&&VIEWS[d.tab]&&tabOn(d.tab)){ ui.tab=d.tab; if(d.tab==='kitchen') loadKitchen(); schedule(); } });
 setInterval(function(){ if(isDeskRole()&&allReady&&ui.tab==='chat'&&document.visibilityState!=='hidden') loadWebChat(); },60000);
 
@@ -13340,6 +13342,8 @@ function enter(user){
 }
 
 var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
+/* the 6pm arrivals notice opens Coaching, Arriving soon */
+if(start==='arriving'){ ui.tab='coaching'; COACH.view='arriving'; }
 (function(){ var m=start.match(/^buy=([0-9a-f-]{36})$/); if(!m) return; try{ sessionStorage.setItem('buy_pkg',m[1]); history.replaceState(null,'',location.pathname+location.search); }catch(e){} })();
 /* back from connecting YouTube: open Social media and say how it went */
 (function(){ var m=start.match(/^(yt|tt)=(ok|err)&m=(.*)$/); if(!m) return; var msg='', nm=m[1]==='tt'?'TikTok':'YouTube'; try{ msg=decodeURIComponent(m[3]); }catch(e){} ui.tab='social'; try{ history.replaceState(null,'',location.pathname+'#social'); }catch(e){}

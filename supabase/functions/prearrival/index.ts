@@ -4,7 +4,7 @@
 // POST {mode:'test'}                      a manager sends a sample to their own email
 // POST {mode:'claim', token}              the link in the email: returns a one time sign in for the app
 // POST {mode:'form_get', t} / {mode:'form_save', t, answers, done, photo?}   the guest form page (form.html), no sign in, the link is the key
-// POST {mode:'brief'}                     the timer (x-sync-token), 18:00: emails coaches and managers who arrives tomorrow, with photo and level
+// POST {mode:'brief'}                     the timer (x-sync-token), 18:00: emails coaches and managers who arrives tomorrow, with photo and level, and sends it as a phone notice in the app
 // POST {mode:'brief', day?}               a manager: sends that brief (tomorrow, or the day given) to their own email only
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -224,8 +224,16 @@ Deno.serve(async (req) => {
     if (b.mode === "brief" && req.headers.get("x-sync-token")) {
       const { data: tok } = await admin.rpc("sync_token_ok", { p_token: req.headers.get("x-sync-token") ?? "" });
       if (tok !== true) return json({ error: "Not allowed." }, 401);
-      if (!RESEND) return json({ ok: true, skipped: "no email key" });
       const tomorrow = new Date(Date.now() + 7 * 3600e3 + 864e5).toISOString().slice(0, 10);
+      // the same arrivals as a phone notice in the app (feature brief_push), once a day: the chat function sends it to coaches and managers
+      const { data: lastPush } = await admin.from("app_settings").select("value").eq("key", "coach_brief_push_last").maybeSingle();
+      if (lastPush?.value !== tomorrow) {
+        await fetch(URL_ + "/functions/v1/chat", { method: "POST", headers: { "Content-Type": "application/json", "x-sync-token": req.headers.get("x-sync-token") ?? "" },
+          body: JSON.stringify({ mode: "push", kind: "brief", id: "00000000-0000-0000-0000-000000000000" }) }).catch(() => null);
+        const { data: upP } = await admin.from("app_settings").update({ value: tomorrow }).eq("key", "coach_brief_push_last").select("key");
+        if (!upP?.length) await admin.from("app_settings").insert({ key: "coach_brief_push_last", value: tomorrow });
+      }
+      if (!RESEND) return json({ ok: true, skipped: "no email key" });
       const { data: last } = await admin.from("app_settings").select("value").eq("key", "coach_brief_last").maybeSingle();
       if (last?.value === tomorrow) return json({ ok: true, skipped: "already sent" });
       const { data } = await admin.rpc("coach_brief", { p_day: tomorrow });
