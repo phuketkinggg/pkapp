@@ -62,7 +62,7 @@
     P.forEach(function(q,j){
       var b=document.createElement('button'); b.type='button'; b.setAttribute('aria-label','Open 360 view: '+(q.caption||'View '+(j+1)));
       var im=document.createElement('img'); im.alt=q.caption||''; im.loading='lazy';
-      var th=/^img\/tour\/[\w-]+\.jpg$/.test(q.url)?q.url.replace(/\.jpg$/,'-thumb.jpg'):q.url; im.src=th; im.onerror=function(){ if(im.src.indexOf(q.url)<0) im.src=q.url; };
+      var th=/^img\/tour\/[\w-]+\.jpg(\?[\w=.-]*)?$/.test(q.url)?q.url.replace(/\.jpg(\?|$)/,'-thumb.jpg$1'):q.url; im.src=th; im.onerror=function(){ if(im.src.indexOf(q.url)<0) im.src=q.url; };
       b.appendChild(im); var c=document.createElement('b'); c.textContent=q.caption||'View '+(j+1); b.appendChild(c); var t=document.createElement('i'); t.textContent='360'; b.appendChild(t);
       b.onclick=function(){ PKPano.open({title:z.name||'Recovery zone',scenes:sc,start:j}); };
       g.appendChild(b); });
