@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-22', title: '360 photos open on more phones', what: 'The 360 views on your website (gym tour, room photos and the recovery page) now load the photo like a normal picture, so they open on phones that refused them before. Each 360 view in the gym tour also now opens facing the way you set, and photos with the bottom cut off stop at the edge.', feature: 'site_tour'},
   {date: '2026-11-21', title: 'Getting around on the stay page', what: 'The website stay page now has a Getting around section: travel times to the places guests ask about, a map and a Directions button that opens Google Maps. Change the places and times in Settings, Website text, Stay.'},
   {date: '2026-11-21', title: 'Sign up forms on website pages', what: 'Add a Sign up form section to any website page for pre-registrations or a waiting list. People leave their name, email, phone and answers to your own questions (tick boxes too). Sign ups show in Web pages, Sign ups, where you mark who you have contacted or copy the list, and managers and the front desk get a phone notice for each one.', feature: 'site_signups'},
   {date: '2026-11-21', title: 'A notification for a new grading level', what: 'When a coach or manager gives a customer a new grading level, their phone gets a notification. With Kids mode on, the child\'s parents get it too.', feature: 'grading'},

@@ -17,6 +17,7 @@ var css='.pp-ov{position:fixed;inset:0;z-index:2147483000;background:#0d0d0d;dis
   '.pp-err{display:flex;align-items:center;justify-content:center;height:100%;opacity:.8}';
 var st=document.createElement('style'); st.textContent=css; document.head.appendChild(st);
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function pic(u){ return new Promise(function(res,rej){ var im=new Image(); im.crossOrigin='anonymous'; im.onload=function(){ res(im); }; im.onerror=function(){ rej(new Error('photo')); }; im.src=u; }); }
 function open(o){
   var sc=(o.scenes||[]).filter(function(s){ return s&&s.url; }); if(!sc.length) return;
   var i=0, pv=null, back=document.activeElement, ov=document.createElement('div');
@@ -26,11 +27,13 @@ function open(o){
   function show(j){ i=j; [].forEach.call(ov.querySelectorAll('[data-j]'),function(b){ b.setAttribute('aria-pressed',+b.getAttribute('data-j')===i?'true':'false'); });
     if(pv){ try{ pv.destroy(); }catch(e){} pv=null; }
     var box=ov.querySelector('#pp-v'); box.innerHTML='';
-    load().then(function(P){ if(!box.isConnected) return; var s=sc[i], va=Number(s.vaov)||180,
-      c={type:'equirectangular',panorama:s.url,autoLoad:true,autoRotate:-2,autoRotateInactivityDelay:4000,showZoomCtrl:false,compass:false,hfov:100,crossOrigin:'anonymous'};
+    box.innerHTML='<div class="pp-err">Loading the 360 view.</div>';
+    /* the photo is loaded as a normal picture and handed to the viewer: some phones refuse the viewer's own background download */
+    load().then(function(P){ return pic(sc[i].url).then(function(img){ return [P,img]; }); }).then(function(r){ var P=r[0]; if(!box.isConnected) return; box.innerHTML=''; var s=sc[i], va=Number(s.vaov)||180,
+      c={type:'equirectangular',panorama:r[1],dynamic:true,dynamicUpdate:true,autoLoad:true,autoRotate:-2,autoRotateInactivityDelay:4000,showZoomCtrl:false,compass:false,hfov:100,crossOrigin:'anonymous'};
       if(s.yaw!=null) c.yaw=Number(s.yaw)||0;
       if(va<180) Object.assign(c,{haov:360,vaov:va,vOffset:90-va/2,minPitch:90-va,maxPitch:90});
-      pv=P.viewer(box,c); }).catch(function(){ box.innerHTML='<div class="pp-err">The 360 view could not open here.</div>'; }); }
+      pv=P.viewer(box,c); var v0=pv; setTimeout(function(){ try{ v0.setUpdate(false); }catch(e){} var lb=box.querySelector('.pnlm-load-box'); if(lb) lb.style.display='none'; },1200); }).catch(function(){ box.innerHTML='<div class="pp-err">The 360 view could not open here.</div>'; }); }
   function close(){ if(pv){ try{ pv.destroy(); }catch(e){} } document.removeEventListener('keydown',key); ov.remove(); document.body.style.overflow=''; if(back&&back.focus) back.focus(); }
   function key(e){ if(e.key==='Escape') close(); }
   ov.addEventListener('click',function(e){ var t=e.target; if(t.closest('.pp-x')) return close(); var b=t.closest('[data-j]'); if(b) show(+b.getAttribute('data-j')); });
