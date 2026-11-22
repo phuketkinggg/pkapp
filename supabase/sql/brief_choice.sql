@@ -35,7 +35,7 @@ begin
   select string_agg(
       split_part(x->>'name', ' ', 1)
       || case when coalesce(x->>'room', '') <> '' then ', staying in the resort (' || (x->>'room') || ')' else '' end
-      || coalesce(', wants ' || lower(nullif(coalesce(
+      || coalesce(', wants ' || (nullif(coalesce(
            case x->'answers'->>'main' when 'fight' then 'serious fight training' when 'weight' then 'to lose weight' when 'fitness' then 'to get fit'
              when 'technique' then 'to learn Muay Thai' when 'reset' then 'to reset and recharge' when 'other' then x->'answers'->>'main_other' end,
            x->'answers'->>'win'), '')), ''),
