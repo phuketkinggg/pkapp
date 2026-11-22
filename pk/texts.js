@@ -1208,7 +1208,22 @@ window.PK_TEXTS=[{
 "page": "Wellness",
 "label": "Heading: Before you start",
 "text": "Before you start",
-"multi": false},
+"multi": false},{
+"id": "well_t42",
+"page": "Wellness",
+"label": "Small label: Take a look",
+"text": "Take a look",
+"multi": false},{
+"id": "well_t43",
+"page": "Wellness",
+"label": "Heading: Look around the recovery zone in 360",
+"text": "Look around the recovery zone in 360",
+"multi": false},{
+"id": "well_t44",
+"page": "Wellness",
+"label": "Text: Tap a photo, then drag to look around...",
+"text": "Tap a photo, then drag to look around: the saunas, the ice bath, the showers and the chill deck by the lake, by day and at night.",
+"multi": true},
 {
 "id": "courses_t01",
 "page": "Courses",
