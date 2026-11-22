@@ -3,7 +3,7 @@
 
 -- who said no: app_settings booking_push.brief_off = [staff ids]
 create or replace function private.brief_wants(p_staff uuid, p_role text) returns boolean language sql stable security definer set search_path = '' as $f$
-  select p_role in ('coach','manager') and not coalesce((private.booking_push_cfg()->'brief_off') ? p_staff::text, false)
+  select p_role in ('coach','manager') and not coalesce(((select case when value ~ '^\s*\{' then value::jsonb end from public.app_settings where key = 'booking_push')->'brief_off') ? p_staff::text, false)
 $f$;
 
 create or replace function public.brief_notify_mine() returns boolean language sql stable security definer set search_path = '' as $f$

@@ -1,6 +1,6 @@
 delete from mf.template where name like 'brief_choice:%';
 insert into mf.template (ord, phase, kind, name, sql) values (404501, 4, 'patch', 'brief_choice:404501', $TPL$create or replace function __Q__.brief_wants(p_staff uuid, p_role text) returns boolean language sql stable security definer set search_path = '' as $f$
-  select p_role in ('coach','manager') and not coalesce((__Q__.booking_push_cfg()->'brief_off') ? p_staff::text, false)
+  select p_role in ('coach','manager') and not coalesce(((select case when value ~ '^\s*\{' then value::jsonb end from __P__.app_settings where key = 'booking_push')->'brief_off') ? p_staff::text, false)
 $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (404502, 4, 'patch', 'brief_choice:404502', $TPL$create or replace function __P__.brief_notify_mine() returns boolean language sql stable security definer set search_path = '' as $f$
   select __Q__.brief_wants(__Q__.my_staff_id(), __Q__.staff_role())
