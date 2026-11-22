@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=236"></script>
+<script src="changelog.js?v=237"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1000,7 +1000,7 @@ var FEATURES=[
   {k:'course_stay_price',g:'Training',n:'Resort guest price for courses',d:'A course can have a lower price for guests with a stay booked or staying now. When they buy it with the same email, the guest price is used. Set it on the course.'},
   {k:'health_intake',g:'Training',n:'Health questions after sign up',d:'In the member app, a new member is asked once, after agreeing to you keeping their health details: photo, date of birth, sex, height, weight, blood type, illnesses, medication, allergies, injuries, how active they are, sleep, smoking, alcohol, how they eat, family health history, their doctor, goals and an emergency contact. Every question is optional. The answers go into their member file.'},
   {k:'member_file',g:'Training',n:'Member files',d:'One file per member for life, in Coaching (Member file) and on the customer page: photo, alerts every coach sees, illnesses, medication, allergies, injuries, goals and emergency contact, a coaching diary with a dated entry after every session (with files, shared with the member or team only) and documents such as blood tests and letters from doctors. Only the member, their coaches and the managers see it, health details need the member to agree, and managers see who opened each file. Members see and update their own file in the app.',spa:false},
-  {k:'brief_push',g:'Training',n:'Arrivals notice for coaches',d:'At 6pm, coaches and managers get a phone notice in the app with tomorrow\'s new guests, as well as the arrivals email. Tapping it opens Coaching, Arriving soon.'},
+  {k:'brief_push',g:'Training',n:'Know your students',d:'At 6pm, coaches and managers get one phone notice in the app about tomorrow\'s new students: who they are, if they stay at the resort and what they want. Each coach and manager can turn it off for themselves. Tapping it opens Coaching, Arriving soon.'},
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'meal_bills',g:'Selling',n:'Meal plans held until served, cafe meal bills',d:'Money paid for a meal plan comes in as Meal plans held for the business that sold it, not as cafe sales, so it can always be refunded. The kitchen or the cafe till ticks each meal as it is served, and sends a bill for the meals served, for example once a week. A manager marks the bill paid: only then does Accounts show it as cafe sales. Meal plans bought before this was switched on stay as they were.',def:false,spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
@@ -1112,7 +1112,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=174; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=175; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -4405,7 +4405,10 @@ function fbDisconnect(){ if(!confirm('Disconnect the Facebook page? Messages and
 // new bookings not made by the team (feature booking_push): who gets the phone notification, and for what
 var NKINDS=[['private','Privates booked by customers'],['stay','Rooms booked online'],['package','Packages bought and paid online'],['order','Packages ordered in the app, to pay at the desk'],['class','Group class guests from agencies'],
   ['sale_package','Packages sold by the team'],['sale_stay','Rooms booked by the team'],['sale_till','Every till sale (shop, cafe and drinks)']];
-function nkindsFor(){ return featOn('notify_choice')?NKINDS:NKINDS.filter(function(k){ return !/^(sale_|order)/.test(k[0]); }); }
+function nkindsFor(){ var l=featOn('notify_choice')?NKINDS:NKINDS.filter(function(k){ return !/^(sale_|order)/.test(k[0]); });
+  /* Know your students: coaches and managers, the evening before new students arrive (feature brief_push) */
+  if(featOn('brief_push')&&me&&(me.role==='coach'||me.role==='manager')) l=[['brief','Know your students: new students arriving tomorrow (6pm)']].concat(l);
+  return l; }
 function bookPushForm(){
   sb.rpc('booking_push_settings').then(must).then(function(c){ c=c||{}; var ppl=c.people||{}, roles0=c.roles||['manager','front_desk'], kinds0=c.kinds||['private','stay','package','class'];
     var per=featOn('notify_choice')?(c.staff||[]).filter(function(st){ return st.role!=='coach'||ppl[st.id]; }):[];
@@ -4459,6 +4462,14 @@ function gygEdit(p){ p=p||{kind:'class',capacity:10,minutes:60,cutoff_minutes:60
       {key:'active',label:'On sale',type:'checkbox'}],
     onSave:function(v){ return sb.rpc('gyg_product_save',{p:Object.assign({id:p.id||null},v)}).then(must).then(function(){ return gygLoad(); }); }});
 }
+/* Know your students (feature brief_push): each coach and manager turns the 6pm notice on or off for themselves */
+var BRIEFME=null;
+function briefToggle(){ if(!featOn('brief_push')||!me||(me.role!=='coach'&&me.role!=='manager')) return null;
+  if(BRIEFME===null){ BRIEFME=false; sb.rpc('brief_notify_mine').then(function(r){ BRIEFME={on:!r.error&&r.data===true}; schedule(); },function(){}); return null; }
+  if(!BRIEFME) return null;
+  var on=BRIEFME.on;
+  return h('div',{class:'panel pad row wrap',style:'gap:10px;align-items:center'},h('span',{style:'flex:1;min-width:200px'},h('b',null,'Know your students'),h('span',{class:'sub'},on?' A notice on your phone at 6pm when new students arrive the next day.':' Off. Turn it on to get a notice at 6pm when new students arrive the next day.')),
+    btn(on?'Turn off':'Turn on',function(){ sb.rpc('brief_notify_set',{p_on:!on}).then(must).then(function(v){ BRIEFME={on:v===true}; toast(v?'You get a notice at 6pm when new students arrive.':'Notice turned off.'); schedule(); }).catch(function(e){ toast(errText(e)); }); },on?'small':'primary small')); }
 /* each person: which notifications come to their phone (feature notify_choice) */
 function myPushForm(){
   sb.rpc('my_push_kinds').then(must).then(function(c){ c=c||{}; var coach=c.role==='coach';
@@ -5677,7 +5688,7 @@ function vCoaching(){
   if(COACH.view==='client'&&COACH.cid) return coClient();
   var top=h('div',{class:'ctabs'},[['clients','Clients'],['arriving','Arriving soon'],['groups','Action groups'],['templates','Program templates'],['exercises','Exercises']].concat(featOn('coach_docs')?[['docs','Documents']]:[]).concat(featOn('coach_choose')&&me&&me.role==='manager'?[['offers','Offers']]:[]).map(function(t){ return h('button',{type:'button',class:'ctab'+(COACH.view===t[0]?' on':''),onclick:function(){ COACH.view=t[0]; schedule(); }},t[1]); }));
   if(COACH.view==='offers') return [pageHead('Coaching','Offers: what customers without coaching see when they open the Coaching tab in their app. For example a weight loss course, a fight camp or a promotion.',btn('Add an offer',function(){ cofEdit(); },'primary')),top,cofAdmin()];
-  if(COACH.view==='arriving') return [pageHead('Coaching','Guests arriving soon. They get an email up to 14 days before, open the app in one tap and tell you their level, goals, weight and injuries.'),top,paSettings(),paList()];
+  if(COACH.view==='arriving') return [pageHead('Coaching','Guests arriving soon. They get an email up to 14 days before, open the app in one tap and tell you their level, goals, weight and injuries.'),top,briefToggle(),paSettings(),paList()];
   if(COACH.view==='groups') return COACH.gopen?coGroups():[pageHead('Coaching','Action groups: a series of steps that unlock week by week from each person\u2019s start date. For example Fight camp or Weight loss.',btn('New action group',function(){ coEditGroup({name:'',notes:'',items:[coNewStep()]}); },'primary')),top,coGroups()];
   if(COACH.view==='templates') return [pageHead('Coaching','Program templates: build once, add to any client. Each client gets their own copy to adjust.',btn('New template',function(){ coEditProg({name:'',notes:'',routines:[coNewRoutine()]},'templates'); },'primary')),top,coTemplates()];
   if(COACH.view==='docs') return [pageHead('Coaching','Documents: upload PDFs, Word, Excel and PowerPoint files once, then use them in action groups (a Document step) and in Education lessons.',btn('Upload documents',function(){ coDocUpload(); },'primary')),top,coDocsView()];
