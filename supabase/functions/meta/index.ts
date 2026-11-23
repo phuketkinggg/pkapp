@@ -137,7 +137,7 @@ async function notify(title: string, body: string, chat: string) {
       if (!data?.public || !data?.private) return;
       keys = data; webpush.setVapidDetails("mailto:hello@phuketking.com", keys!.public, keys!.private);
     }
-    const { data } = await admin.rpc("web_push_targets");
+    const { data } = await admin.rpc("web_push_targets", { p_chat: /^[0-9a-f-]{36}$/.test(chat || "") ? chat : null });
     const msg = JSON.stringify({ title, body: body.slice(0, 140), tag: "chat-" + chat, url: "https://app.phuketking.com/#chat=" + chat });
     await Promise.all(((data ?? []) as { endpoint: string; p256dh: string; auth: string }[]).map(async (s) => {
       if (/^(apns|fcm):/.test(s.endpoint)) {
