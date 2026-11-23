@@ -11,10 +11,13 @@ insert into mf.template (ord, phase, kind, name, sql) values (404703, 4, 'patch'
   select exists (select 1 from __P__.chats c where c.id = p_chat and coalesce(__Q__.social_who(c.kind) ? __Q__.my_staff_id()::text, false))
 $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1198801, 11, 'patch', 'social_inbox_who:1198801', $TPL$revoke all on function __Q__.social_who(text), __Q__.social_chat_ok(uuid), __Q__.social_member(uuid) from public, anon, authenticated;$TPL$);
-insert into mf.template (ord, phase, kind, name, sql) values (404704, 4, 'patch', 'social_inbox_who:404704', $TPL$create or replace function __Q__.social_who_boss() returns boolean language sql stable security definer set search_path = '' as $f$
-  select case when to_regprocedure('__Q__.biz_owner_id()') is not null and __Q__.biz_owner_id() is not null
-    then __Q__.my_staff_id() = __Q__.biz_owner_id() else coalesce(__Q__.staff_role() = 'manager', false) end
-$f$;$TPL$);
+insert into mf.template (ord, phase, kind, name, sql) values (404704, 4, 'patch', 'social_inbox_who:404704', $TPL$create or replace function __Q__.social_who_boss() returns boolean language plpgsql stable security definer set search_path = '' as $f$
+declare o uuid;
+begin
+  if to_regprocedure('__Q__.biz_owner_id()') is not null then o := __Q__.biz_owner_id(); end if;
+  if o is not null then return __Q__.my_staff_id() = o; end if;
+  return coalesce(__Q__.staff_role() = 'manager', false);
+end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (404705, 4, 'patch', 'social_inbox_who:404705', $TPL$create or replace function __P__.social_inbox_get() returns jsonb language plpgsql stable security definer set search_path = '' as $f$
 begin
   if not coalesce(__Q__.staff_role() = 'manager', false) then raise exception 'Only a manager can see this.'; end if;

@@ -20,10 +20,14 @@ create or replace function private.social_member(p_chat uuid) returns boolean la
 $f$;
 revoke all on function private.social_who(text), private.social_chat_ok(uuid), private.social_member(uuid) from public, anon, authenticated;
 
-create or replace function private.social_who_boss() returns boolean language sql stable security definer set search_path = '' as $f$
-  select case when to_regprocedure('private.biz_owner_id()') is not null and private.biz_owner_id() is not null
-    then private.my_staff_id() = private.biz_owner_id() else coalesce(private.staff_role() = 'manager', false) end
-$f$;
+-- plpgsql, so it also works on a database without an owner function
+create or replace function private.social_who_boss() returns boolean language plpgsql stable security definer set search_path = '' as $f$
+declare o uuid;
+begin
+  if to_regprocedure('private.biz_owner_id()') is not null then o := private.biz_owner_id(); end if;
+  if o is not null then return private.my_staff_id() = o; end if;
+  return coalesce(private.staff_role() = 'manager', false);
+end $f$;
 
 create or replace function public.social_inbox_get() returns jsonb language plpgsql stable security definer set search_path = '' as $f$
 begin
