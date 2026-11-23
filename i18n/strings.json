@@ -26506,5 +26506,29 @@
 "You get a notice at 6pm when new students arrive.": [
 "คุณจะได้รับการแจ้งเตือนเวลา 18:00 เมื่อมีนักเรียนใหม่มาถึง",
 "ကျောင်းသားသစ်ရောက်မည်ဆိုလျှင် ညနေ ၆ နာရီ သတိပေးချက် ရမည်။"
+],
+"Choose who sees social messages": [
+"เลือกว่าใครเห็นข้อความโซเชียล",
+"ဆိုရှယ်မက်ဆေ့ချ်များကို မည်သူမြင်ရမည်ကို ရွေးပါ"
+],
+"Only the owner can change this.": [
+"เฉพาะเจ้าของเท่านั้นที่เปลี่ยนได้",
+"ပိုင်ရှင်သာ ပြောင်းလဲနိုင်သည်။"
+],
+"The front desk and managers": [
+"แผนกต้อนรับและผู้จัดการ",
+"ရှေ့ကောင်တာနှင့် မန်နေဂျာများ"
+],
+"The owner chooses who sees Instagram, Facebook and WhatsApp messages, for example Instagram only for the owner. Only those people see those chats in Messages, can reply and get the phone notice. Choose nobody and the front desk and managers see them as usual. Messages, Who sees these messages.": [
+"เจ้าของเลือกว่าใครเห็นข้อความ Instagram, Facebook และ WhatsApp เช่น Instagram ให้เจ้าของเห็นคนเดียว เฉพาะคนที่เลือกเท่านั้นที่เห็นแชทเหล่านั้นในข้อความ ตอบได้ และได้รับการแจ้งเตือนในโทรศัพท์ ถ้าไม่เลือกใคร แผนกต้อนรับและผู้จัดการจะเห็นเหมือนเดิม ข้อความ, ใครเห็นข้อความเหล่านี้",
+"ပိုင်ရှင်သည် Instagram၊ Facebook နှင့် WhatsApp မက်ဆေ့ချ်များကို မည်သူမြင်ရမည်ကို ရွေးချယ်သည်၊ ဥပမာ Instagram ကို ပိုင်ရှင်တစ်ဦးတည်းသာ။ ရွေးထားသူများသာ ထိုချက်များကို Messages တွင် မြင်ရ၊ ပြန်ဖြေနိုင်ပြီး ဖုန်းအသိပေးချက် ရရှိသည်။ မည်သူ့ကိုမျှ မရွေးပါက ရှေ့ကောင်တာနှင့် မန်နေဂျာများ ယခင်အတိုင်း မြင်ရမည်။ Messages၊ ဤမက်ဆေ့ချ်များကို မည်သူမြင်သနည်း။"
+],
+"Tick the people who see each kind of message. Only they see those chats in Messages, can reply and get the phone notice. Tick nobody and the front desk and managers see them as usual.": [
+"ติ๊กคนที่จะเห็นข้อความแต่ละแบบ เฉพาะพวกเขาเท่านั้นที่เห็นแชทเหล่านั้นในข้อความ ตอบได้ และได้รับการแจ้งเตือนในโทรศัพท์ ถ้าไม่ติ๊กใคร แผนกต้อนรับและผู้จัดการจะเห็นเหมือนเดิม",
+"မက်ဆေ့ချ်အမျိုးအစားတစ်ခုစီကို မြင်ရမည့်သူများကို အမှန်ခြစ်ပါ။ ၎င်းတို့သာ ထိုချက်များကို Messages တွင် မြင်ရ၊ ပြန်ဖြေနိုင်ပြီး ဖုန်းအသိပေးချက် ရရှိသည်။ မည်သူ့ကိုမျှ အမှန်မခြစ်ပါက ရှေ့ကောင်တာနှင့် မန်နေဂျာများ ယခင်အတိုင်း မြင်ရမည်။"
+],
+"Who sees these messages": [
+"ใครเห็นข้อความเหล่านี้",
+"ဤမက်ဆေ့ချ်များကို မည်သူမြင်သနည်း"
 ]
 }
