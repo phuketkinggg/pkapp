@@ -10,15 +10,25 @@ $f$;
 create or replace function private.stay_reopen(p_stay uuid) returns void language plpgsql security definer set search_path = '' as $f$
 begin
   if not exists (select 1 from public.stays where id = p_stay and settled) then return; end if;
-  perform set_config('pk.extend', '1', true);   -- keep the payments already made
+  perform set_config('pk.extend', '1', true);       -- keep the payments already made
+  perform set_config('pk.reopen_paid', '1', true);  -- nothing is owed, so any staff can add to it
   update public.stays set settled = false, settled_method = null, settled_on = null where id = p_stay;
   perform set_config('pk.extend', '', true);
+  perform set_config('pk.reopen_paid', '', true);
 end $f$;
 revoke all on function private.stay_chargeable(uuid), private.stay_reopen(uuid) from public, anon, authenticated;
 
 do $p$
 declare d text; n text;
 begin
+  -- reopening a settled bill is for managers, except this case (paid in full, a new charge)
+  if to_regprocedure('private.guard_stay()') is not null then
+    d := pg_get_functiondef('private.guard_stay()'::regprocedure);
+    if position('pk.reopen_paid' in d) = 0 then
+      n := replace(d, 'and coalesce(private.staff_role(), '''') <> ''manager'' then', 'and coalesce(private.staff_role(), '''') <> ''manager'' and coalesce(current_setting(''pk.reopen_paid'', true), '''') <> ''1'' then');
+      if n = d then raise notice 'room_charge_prepaid: guard_stay is different, skipped'; else execute n; end if;
+    end if;
+  end if;
   -- the till: list and sell
   if to_regprocedure('public.shop_catalog()') is not null then
     d := pg_get_functiondef('public.shop_catalog()'::regprocedure);
