@@ -4,7 +4,7 @@
 -- without touching the payments already made.
 
 create or replace function private.stay_chargeable(p_stay uuid) returns boolean language sql stable security definer set search_path = '' as $f$
-  select exists (select 1 from public.stays s where s.id = p_stay and s.status = 'in' and (not s.settled or private.stay_due(s.id) <= 0))
+  select exists (select 1 from public.stays s where s.id = p_stay and s.status = 'in' and (not s.settled or (s.check_out >= private.bkk_today() and private.stay_due(s.id) <= 0)))
 $f$;
 
 create or replace function private.stay_reopen(p_stay uuid) returns void language plpgsql security definer set search_path = '' as $f$
