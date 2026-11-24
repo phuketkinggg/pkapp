@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=239"></script>
+<script src="changelog.js?v=240"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1113,7 +1113,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=176; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=177; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -5691,11 +5691,11 @@ var CVQ='';
 function custPick(){ ui.tab='custview'; if(PV) exitCustomerView(); ui.tab='custview'; schedule(); window.scrollTo(0,0); setTimeout(function(){ var e=document.getElementById('cv-q'); if(e) e.focus(); },60); }
 function vCustView(){
   var q=CVQ.trim().toLowerCase(), all=(S.customers||[]).filter(function(c){ return !c.is_agency; });
-  var list=(q?all.filter(function(c){ return [c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }):all.filter(function(c){ return c.seen_at; }).sort(function(a,b){ return String(b.seen_at).localeCompare(String(a.seen_at)); })).slice(0,40);
+  var list=(q?all.filter(function(c){ return [c.name,c.email,c.phone].join(' ').toLowerCase().indexOf(q)>=0; }):all.filter(function(c){ return c.user_id; }).sort(function(a,b){ return String(b.seen_at||b.created_at||'').localeCompare(String(a.seen_at||a.created_at||'')); })).slice(0,40);
   var box=h('input',{id:'cv-q',type:'search',placeholder:'Search name, email or phone','aria-label':'Search customers',value:CVQ,oninput:function(e){ CVQ=e.target.value; schedule(); }});
   return [pageHead('Customer view','Pick a customer to see their app exactly as they see it. View only: nothing can be changed or sent.'),
     h('div',{class:'panel pad'},box),
-    section(q?'Customers':'Used the app lately',null,list.length?h('div',{class:'panel'},list.map(function(c){
+    section(q?'Customers':'Customers with the app, newest first',null,list.length?h('div',{class:'panel'},list.map(function(c){
       return h('button',{type:'button',class:'lrow',onclick:function(){ viewAsCustomer(c); }},h('span',{class:'lt'},h('b',null,c.name),h('small',{class:'sub'},[c.email,c.user_id?'has the app':'no app login yet',featOn('coach_choose')?'coaching: '+(Array.isArray(c.coaching)?coachPartsText(c.coaching):'usual'):null].filter(Boolean).join(' · '))),h('span',{class:'sub'},'View ›')); })):h('div',{class:'panel empty'},q?'No customer found.':'Search for a customer above.'))];
 }
 function openCoaching(cid){ ui.tab='coaching'; COACH.prog=null; coOpen(cid); schedule(); }
