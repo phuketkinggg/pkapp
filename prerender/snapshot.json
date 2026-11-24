@@ -1,5 +1,5 @@
 {
- "at": "2026-11-21T10:35:00Z",
+ "at": "2026-11-24T07:33:03Z",
  "classes": [
   {
    "day": 0,
@@ -291,7 +291,7 @@
   }
  ],
  "found": {
-  "pages": 14,
+  "pages": 15,
   "posts": 16
  },
  "packages": [
@@ -324,9 +324,10 @@
   },
   {
    "covers": [
-    "Muay Thai"
+    "Muay Thai",
+    "Kids"
    ],
-   "name": "Women's Morning, Muay Thai class",
+   "name": "Kids Grading Class, 1 class",
    "price": 300
   },
   {
@@ -348,6 +349,13 @@
    "covers": [
     "Muay Thai"
    ],
+   "name": "Women's Morning, Muay Thai class",
+   "price": 300
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
    "name": "Fighter and Clinch Techniques Kru Pot",
    "price": 300
   },
@@ -356,14 +364,6 @@
     "Muay Thai"
    ],
    "name": "Boxing Striking",
-   "price": 300
-  },
-  {
-   "covers": [
-    "Muay Thai",
-    "Kids"
-   ],
-   "name": "Kids Grading Class, 1 class",
    "price": 300
   },
   {
@@ -425,14 +425,14 @@
    "covers": [
     "Privates"
    ],
-   "name": "Private Muay Thai  (1 coach, 1 student)",
+   "name": "1 private",
    "price": 900
   },
   {
    "covers": [
     "Privates"
    ],
-   "name": "1 private",
+   "name": "Private Muay Thai  (1 coach, 1 student)",
    "price": 900
   },
   {
@@ -442,6 +442,14 @@
    ],
    "name": "Fitness Zone, 10 times",
    "price": 1000
+  },
+  {
+   "covers": [
+    "Muay Thai",
+    "Kids"
+   ],
+   "name": "Kids monthly, 8am or 6:30pm class  (Under 15s)",
+   "price": 1800
   },
   {
    "covers": [
@@ -456,14 +464,6 @@
     "Spa"
    ],
    "name": "Spa Access, 1 Week",
-   "price": 1800
-  },
-  {
-   "covers": [
-    "Muay Thai",
-    "Kids"
-   ],
-   "name": "Kids monthly, 8am or 6:30pm class  (Under 15s)",
    "price": 1800
   },
   {
@@ -498,17 +498,17 @@
   },
   {
    "covers": [
-    "Muay Thai"
-   ],
-   "name": "Ed visa letter fee",
-   "price": 3000
-  },
-  {
-   "covers": [
     "Muay Thai",
     "Kids"
    ],
    "name": "Kids Grading plus Open Training, monthly",
+   "price": 3000
+  },
+  {
+   "covers": [
+    "Muay Thai"
+   ],
+   "name": "Ed visa letter fee",
    "price": 3000
   },
   {
@@ -525,17 +525,17 @@
   },
   {
    "covers": [
-    "Yoga"
-   ],
-   "name": "Yoga, 10 Sessions",
-   "price": 3600
-  },
-  {
-   "covers": [
     "Muay Thai",
     "Kids"
    ],
    "name": "2+1 Free for kids",
+   "price": 3600
+  },
+  {
+   "covers": [
+    "Yoga"
+   ],
+   "name": "Yoga, 10 Sessions",
    "price": 3600
   },
   {
@@ -645,18 +645,18 @@
   {
    "covers": [
     "Muay Thai",
-    "Spa"
+    "Fitness zone",
+    "Open gym"
    ],
-   "name": "Training + Recovery, 3 Month",
+   "name": "DTV 6 Months Unlimited",
    "price": 28000
   },
   {
    "covers": [
     "Muay Thai",
-    "Fitness zone",
-    "Open gym"
+    "Spa"
    ],
-   "name": "DTV 6 Months Unlimited",
+   "name": "Training + Recovery, 3 Month",
    "price": 28000
   },
   {
@@ -777,7 +777,7 @@
   },
   {
    "description": "Muay Thai for women in Phuket: friendly group classes for every level, privates, recovery and a safe lakeside place to stay, one minute from the gym.",
-   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqaxxbz5ofytz.jpg&quot;)\"><div class=\"wrap\"><h1>Muay Thai for women in Phuket</h1><span class=\"rule\"></span><p class=\"lead\">Strong, skilled and confident. Train in friendly classes for every level, recover properly and stay one minute from the gym.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html\">See prices</a></p></div></section><section class=\"band pg-split\"><div class=\"wrap grid2\"><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_recover.webp\" alt=\"Women's Morning\" loading=\"lazy\"></div><div><div class=\"eyebrow\">New: Monday, Wednesday and Friday, 9:30 to 12:00</div><h2>Women's Morning</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>A morning that is just for women. One hour of beginner friendly Muay Thai and self-defence, then sauna, steam room, ice bath and a coffee by the lake. The whole place is women only.</p><ul><li><strong>Muay Thai class: 300 THB</strong></li><li><strong>Add the recovery: +100 THB</strong> (400 THB in total)</li><li><strong>Recovery morning only: 250 THB</strong></li></ul></div><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html?buy=1c55ba78-cc25-4d88-b902-98a22b860149\">Book a Women's Morning, 300 THB</a></div></div></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div><div class=\"eyebrow\">The atmosphere</div><h2>A respectful gym where everyone belongs</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Classes are mixed and open to every level, from complete beginners to fighters. Coaches choose partners and intensity to suit you.</p><p>The culture here is built on respect, humility and consistency. Nobody is judged for being new.</p></div></div><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbfl20e1sozy.jpg\" alt=\"A respectful gym where everyone belongs\" loading=\"lazy\"></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Why women choose us</div><h2>Train, recover and stay well</h2><span class=\"rule\"></span><div class=\"pg-cards\"><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqb0ngypqy7lb.jpg\" alt=\"Technique first\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">01</span><h3>Technique first</h3><p>You learn to move well, not just work hard. Our coaches really are professional, and we know that as a female it can feel intimidating to join a gym, especially when you are a beginner. We have worked hard to make the environment comfortable, and safe for everyone.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbdb4qlhiafq.jpg\" alt=\"Privates\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">02</span><h3>Privates</h3><p>One to one sessions to build confidence and skill faster.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbf6hdnpnn9k.jpg\" alt=\"Recovery\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">03</span><h3>Recovery</h3><p>Ice bath, sauna, steam room and yoga on site.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_stay.webp\" alt=\"A safe place to stay\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">04</span><h3>A safe place to stay</h3><p>Lakeside bungalows one minute from the gym, with healthy food next door.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions from women training with us</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>Can I train if I have never done Muay Thai?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Many guests start as beginners. Read our <a href=\"page.html?p=muay-thai-for-beginners-phuket\">beginners guide</a>.</p></div></details><details><summary><h3>Do I have to spar?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Sparring is always optional.</p></div></details><details><summary><h3>Can I stay close to the gym?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Pangea Resort has lakeside bungalows one minute from the gym, with the cafe and recovery area on site. <a href=\"book.html\">See free rooms</a>.</p></div></details><details><summary><h3>Can I book privates?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Privates are 900 THB, or less per session in a pack. See <a href=\"prices.html\">prices</a>.</p></div></details></div></div></section><section class=\"band pg-cta navy-sec\"><div class=\"wrap\"><h2>Ask us anything</h2><p class=\"lead\">Message us on WhatsApp with your dates and questions. We reply quickly.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"https://wa.me/66615155947?text=Hi%20Phuket%20King%2C%20I%20saw%20your%20page%20%22Muay%20Thai%20for%20Women%20in%20Phuket%22%20and%20I%20have%20a%20question.\" target=\"_blank\" rel=\"noopener\">WhatsApp us</a></div></div></section>",
+   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqaxxbz5ofytz.jpg&quot;)\"><div class=\"wrap\"><h1>Muay Thai for women in Phuket</h1><span class=\"rule\"></span><p class=\"lead\">Strong, skilled and confident. Train in friendly classes for every level, recover properly and stay one minute from the gym.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html\">See prices</a></p></div></section><section class=\"band pg-split\"><div class=\"wrap grid2\"><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_recover.webp\" alt=\"Women's Morning\" loading=\"lazy\"></div><div><div class=\"eyebrow\">Monday, Wednesday and Friday: class 9:30, recovery women only 9:00 to 12:00</div><h2>Women's Morning</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Three mornings a week just for women. One hour of beginner friendly Muay Thai and self-defence at 9:30, and the recovery zone (sauna, steam room, ice bath and a coffee by the lake) is women only from 9:00 to 12:00.</p><ul><li><strong>Muay Thai class: 300 THB</strong></li><li><strong>Add the recovery: +100 THB</strong> (400 THB in total)</li><li><strong>Recovery only: 250 THB</strong></li></ul><p><a href=\"page.html?p=women-only-muay-thai-phuket\">Everything about the women only mornings</a></p></div><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html?buy=1c55ba78-cc25-4d88-b902-98a22b860149\">Book a Women's Morning, 300 THB</a></div></div></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div><div class=\"eyebrow\">The atmosphere</div><h2>A respectful gym where everyone belongs</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Classes are mixed and open to every level, from complete beginners to fighters. Coaches choose partners and intensity to suit you.</p><p>The culture here is built on respect, humility and consistency. Nobody is judged for being new.</p></div></div><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbfl20e1sozy.jpg\" alt=\"A respectful gym where everyone belongs\" loading=\"lazy\"></div></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Why women choose us</div><h2>Train, recover and stay well</h2><span class=\"rule\"></span><div class=\"pg-cards\"><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqb0ngypqy7lb.jpg\" alt=\"Technique first\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">01</span><h3>Technique first</h3><p>You learn to move well, not just work hard. Our coaches really are professional, and we know that as a female it can feel intimidating to join a gym, especially when you are a beginner. We have worked hard to make the environment comfortable, and safe for everyone.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbdb4qlhiafq.jpg\" alt=\"Privates\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">02</span><h3>Privates</h3><p>One to one sessions to build confidence and skill faster.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbf6hdnpnn9k.jpg\" alt=\"Recovery\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">03</span><h3>Recovery</h3><p>Ice bath, sauna, steam room and yoga on site.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_stay.webp\" alt=\"A safe place to stay\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">04</span><h3>A safe place to stay</h3><p>Lakeside bungalows one minute from the gym, with healthy food next door.</p></div></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><h2>Questions from women training with us</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>Can I train if I have never done Muay Thai?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Many guests start as beginners. Read our <a href=\"page.html?p=muay-thai-for-beginners-phuket\">beginners guide</a>.</p></div></details><details><summary><h3>Do I have to spar?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Sparring is always optional.</p></div></details><details><summary><h3>Can I stay close to the gym?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Pangea Resort has lakeside bungalows one minute from the gym, with the cafe and recovery area on site. <a href=\"book.html\">See free rooms</a>.</p></div></details><details><summary><h3>Can I book privates?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Privates are 900 THB, or less per session in a pack. See <a href=\"prices.html\">prices</a>.</p></div></details></div></div></section><section class=\"band pg-cta navy-sec\"><div class=\"wrap\"><h2>Ask us anything</h2><p class=\"lead\">Message us on WhatsApp with your dates and questions. We reply quickly.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"https://wa.me/66615155947?text=Hi%20Phuket%20King%2C%20I%20saw%20your%20page%20%22Muay%20Thai%20for%20Women%20in%20Phuket%22%20and%20I%20have%20a%20question.\" target=\"_blank\" rel=\"noopener\">WhatsApp us</a></div></div></section>",
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqaxxbz5ofytz.jpg",
    "slug": "muay-thai-for-women-phuket",
    "title": "Muay Thai for Women in Phuket"
@@ -823,6 +823,13 @@
    "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp",
    "slug": "stay-cancellation-policy",
    "title": "Room bookings: payment and cancellation policy"
+  },
+  {
+   "description": "Women only Muay Thai in Phuket: Monday, Wednesday and Friday at 9:30, 300 THB. The recovery zone is women only from 9:00 to 12:00: sauna, steam room, ice bath by the lake.",
+   "html": "<section class=\"hero pg-hero\" style=\"background-image:url(&quot;https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqaxxbz5ofytz.jpg&quot;)\"><div class=\"wrap\"><h1>Women only Muay Thai</h1><span class=\"rule\"></span><p class=\"lead\">Monday, Wednesday and Friday mornings are just for women. Muay Thai at 9:30, and the recovery zone is women only from 9:00 to 12:00.</p><p class=\"heroacts\"><a class=\"btn red\" href=\"prices.html?buy=1c55ba78-cc25-4d88-b902-98a22b860149\">Book a class, 300 THB</a></p></div></section><section class=\"band pg-split\"><div class=\"wrap grid2\"><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_recover.webp\" alt=\"Three mornings a week, just for women\" loading=\"lazy\"></div><div><div class=\"eyebrow\">Monday, Wednesday and Friday</div><h2>Three mornings a week, just for women</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>No men in the class, and no men in the recovery zone.</p><ul><li><strong>9:30 to 10:30:</strong> women only Muay Thai class</li><li><strong>9:00 to 12:00:</strong> the recovery zone is women only: herbal sauna, steam room, dry sauna, ice bath and the chill deck by the lake</li></ul><p>Come early, warm up in the sauna, train, then cool down in the ice bath with a coffee by the lake.</p></div></div></div></section><section class=\"band light-sec\"><div class=\"wrap\"><div class=\"eyebrow\">Your morning</div><h2>How a Women's Morning works</h2><span class=\"rule\"></span><ol class=\"steplist\"><li><b>9:00</b><span>The recovery zone opens for women only. Arrive early and use the sauna or steam room to warm up.</span></li><li><b>9:30</b><span>One hour of Muay Thai with our coaches: technique, pads and bag work, with self-defence skills. Beginner friendly, every level welcome.</span></li><li><b>10:30</b><span>Recover: herbal sauna, steam room, dry sauna and the ice bath.</span></li><li><b>Until 12:00</b><span>Relax on the chill deck with a coffee by the lake, still women only.</span></li></ol></div></section><section class=\"band\"><div class=\"wrap\"><div class=\"eyebrow\">Prices</div><h2>Simple prices, pay per visit</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>No membership needed. Book online or pay at the front desk.</p></div><div class=\"pg-cards\"><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqb0ngypqy7lb.jpg\" alt=\"Muay Thai class: 300 THB\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">01</span><h3>Muay Thai class: 300 THB</h3><p>One hour of women only Muay Thai, Monday, Wednesday or Friday at 9:30.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbf6hdnpnn9k.jpg\" alt=\"Class and recovery: 400 THB\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">02</span><h3>Class and recovery: 400 THB</h3><p>The class plus the women only recovery zone until 12:00. Add recovery for 100 THB when you book.</p></div></div><div class=\"card\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/about_recover.webp\" alt=\"Recovery only: 250 THB\" loading=\"lazy\"><div class=\"in\"><span class=\"num\">03</span><h3>Recovery only: 250 THB</h3><p>Just the recovery zone, women only from 9:00 to 12:00: sauna, steam room, ice bath and a coffee.</p></div></div></div></div></section><section class=\"band pg-split light-sec\"><div class=\"wrap grid2\"><div><div class=\"eyebrow\">Who it is for</div><h2>Made for women who want to start, or train without the crowd</h2><span class=\"rule\"></span><div class=\"pg-body\"><p>Many women tell us a busy mixed gym can feel intimidating, especially as a beginner. These mornings are calm, friendly and coached properly, so you learn to move well and feel safe doing it.</p><p>Complete beginners are welcome, and so are women who already train and want a focused session.</p></div></div><div class=\"photo\"><img src=\"https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqbfl20e1sozy.jpg\" alt=\"Made for women who want to start, or train without the crowd\" loading=\"lazy\"></div></div></section><section class=\"band\"><div class=\"wrap\"><h2>Questions</h2><span class=\"rule\"></span><div class=\"faq\" style=\"margin-top:24px\"><details><summary><h3>Is it really women only?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. On Monday, Wednesday and Friday the 9:30 class is women only, and the recovery zone is women only from 9:00 to 12:00.</p></div></details><details><summary><h3>Do I need experience?</h3></summary><div style=\"margin:0 20px 18px\"><p>No. Most women start as beginners. The coaches adjust everything to your level, and sparring is never part of this class.</p></div></details><details><summary><h3>Can I come just for the recovery?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Recovery only is 250 THB, women only from 9:00 to 12:00. <a href=\"wellness.html#look360\">See the recovery zone in 360</a>.</p></div></details><details><summary><h3>What should I bring?</h3></summary><div style=\"margin:0 20px 18px\"><p>Sports clothes and water for the class, and swimwear for the sauna and ice bath.</p></div></details><details><summary><h3>Can I train on other days too?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. All our other classes are mixed and open to every level. See the <a href=\"index.html#schedule\">timetable</a> and <a href=\"prices.html\">prices</a>.</p></div></details><details><summary><h3>Can I stay close to the gym?</h3></summary><div style=\"margin:0 20px 18px\"><p>Yes. Pangea Resort has lakeside bungalows one minute from the gym. <a href=\"book.html\">See free rooms</a>.</p></div></details></div></div></section><section class=\"band pg-cta navy-sec\"><div class=\"wrap\"><h2>Book your Women's Morning</h2><p class=\"lead\">Monday, Wednesday and Friday at 9:30. 300 THB, or 400 THB with recovery.</p><div class=\"pg-acts\"><a class=\"btn red\" href=\"prices.html?buy=1c55ba78-cc25-4d88-b902-98a22b860149\">Book now</a></div></div></section>",
+   "image": "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/pages/mvqaxxbz5ofytz.jpg",
+   "slug": "women-only-muay-thai-phuket",
+   "title": "Women Only Muay Thai in Phuket"
   }
  ],
  "posts": [
