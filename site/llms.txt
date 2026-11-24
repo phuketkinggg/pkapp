@@ -12,11 +12,11 @@
 
 ## Class timetable (Thailand time)
 
-- Monday: 08:00 Morning class, Technical focus Kicking, 09:30-10:30 Women's Morning, Muay Thai (women only), 09:45-10:45 Yoga, Gentle Yoga, in the recovery zone, 15:30 Fitness + Run for fighters, 16:30 Afternoon class, Technical focus Kicking, 18:30 Evening class, Technical focus Kicking
+- Monday: 08:00 Morning class, Technical focus Kicking, 09:30-10:30 Women's Morning, Muay Thai (women only), 09:30-10:30 Yoga, Gentle Yoga, in the recovery zone (women only), 15:30 Fitness + Run for fighters, 16:30 Afternoon class, Technical focus Kicking, 18:30 Evening class, Technical focus Kicking
 - Tuesday: 08:00 Morning class, Technical focus Punching, 09:30-10:30 Women only Muay Thai class, 16:30 Afternoon class, Technical focus Punching, 17:45-18:30 Clinching and fighter techniques, 18:30 Evening class, Technical focus Punching
-- Wednesday: 08:00 Morning class, Elbow technique, 09:30-10:30 Women's Morning, Muay Thai (women only), 09:45-10:45 Yoga, Mindful Flow, in the recovery zone, 15:30 Fighters fitness + Run, 16:30 Afternoon class, Elbow technique, 18:30 Evening class, Elbow technique
+- Wednesday: 08:00 Morning class, Elbow technique, 09:30-10:30 Women's Morning, Muay Thai (women only), 09:30-10:30 Yoga, Mindful Flow, in the recovery zone (women only), 15:30 Fighters fitness + Run, 16:30 Afternoon class, Elbow technique, 18:30 Evening class, Elbow technique
 - Thursday: 08:00 Morning class, Knee and teeps technique, 09:30-10:30 Womens only Muay Thai, 16:30 Afternoon class, Knee and teeps technique, 17:45-18:30 Clinching and Fight techniques, 18:30 Evening class, Knee and teeps technique
-- Friday: 08:00 Morning class, Defence technique, 09:30-10:30 Women's Morning, Muay Thai (women only), 09:45-10:45 Yoga, Stretching and mobility, in the recovery zone, 15:30 Fighters fitness + Run, 16:30 Afternoon class, Defence technique, 18:30 Evening class, Defence technique
+- Friday: 08:00 Morning class, Defence technique, 09:30-10:30 Women's Morning, Muay Thai (women only), 09:30-10:30 Yoga, Stretching and mobility, in the recovery zone (women only), 15:30 Fighters fitness + Run, 16:30 Afternoon class, Defence technique, 18:30 Evening class, Defence technique
 - Saturday: 08:00 Morning class, Sparring technique, 09:30-10:30 Kids Grading Class (kids only), 09:30-10:30 Kids Muay Thai Grading Class, 15:00-16:00 Boxing Striking, 16:30 Afternoon class, Sparring technique, 17:30-18:30 Clinching  and fighter technique with Kru Pot
 - Sunday: 09:30-10:30 Kids Grading Class (kids only), 09:30-10:30 Kids Muay Thai Grading Class
 
