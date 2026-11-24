@@ -170,7 +170,8 @@ footer .small{margin-top:36px;font-size:13px;opacity:.55}
 .steplist b{font-weight:600;font-size:18px;color:#fff}.steplist span{color:var(--mutedD)}
 .tile .ticks{margin-top:8px}.tile .ticks li{font-size:15.5px;line-height:1.5}
 .faq{display:grid;gap:10px;max-width:860px}
-.faq details{background:#fff;border:1px solid var(--line);border-radius:8px}
+.faq details{background:#fff;border:1px solid var(--line);border-radius:8px;color:var(--ink)}
+.faq summary h3{color:var(--ink)}
 .faq summary{list-style:none;cursor:pointer;padding:18px 52px 18px 20px;position:relative}
 .faq summary::-webkit-details-marker{display:none}
 .faq summary::after{content:"+";position:absolute;right:20px;top:50%;transform:translateY(-50%);font:400 28px var(--font);color:var(--red)}
