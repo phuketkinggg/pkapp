@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=240"></script>
+<script src="changelog.js?v=241"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -966,7 +966,7 @@ var FEATURES=[
   {k:'coach_push',g:'Training',n:'Coach notifications for privates',d:'A coach gets a notification on their phone when a private is booked with them, moved or cancelled. The coach turns notifications on once, on their own screen in the app.'},
   {k:'commission',g:'Training',n:'Coach commission',d:'Coach shares of privates and paying them out.',tabs:['commission']},
   {k:'fights',g:'Training',n:'Fights',d:'Fighters, fight dates and results.',tabs:['fights'],spa:false},
-  {k:'ios_digital',g:'Training',n:'Courses and videos in the iPhone app',d:'Off: the App Store app on iPhone and iPad hides online courses, the technique videos and the course offer, because Apple only allows digital content sold with its own In-App Purchase. People still get them on your website, the web app and Android. Turn on only if Apple has approved them.',def:false,spa:false},
+  {k:'ios_digital',g:'Training',n:'Courses and videos in the iPhone app',d:'Off: the App Store app on iPhone and iPad hides online courses, the course offer and technique videos that need a package, because Apple only allows paid digital content sold with its own In-App Purchase. Free technique videos still show. People get everything on your website, the web app and Android. Turn on only if Apple has approved them.',def:false,spa:false},
   {k:'ios_iap',g:'Training',n:'Buy courses with Apple in the iPhone app',d:'The iPhone and iPad app shows your courses and sells them with Apple In-App Purchase. Give each course its Apple product id (Courses, edit the course) after making it in App Store Connect. A course bought with Apple opens on every device, and one bought on your website also opens in the iPhone app. Apple keeps 15 to 30 percent.',def:false,spa:false},
   {k:'courses',g:'Training',n:'Courses',d:'Courses people buy and learn from in the app.',tabs:['courses','c_learn'],spa:false},
   {k:'techniques',g:'Training',n:'Technique library',d:'Single technique videos with notes, in categories, next to the courses (Education). Each video is public (website and app), app only, for members with a package, or only inside courses.',spa:false},
@@ -1083,8 +1083,9 @@ function sbFetch(url,opts){ return fetch(url,opts).then(function(r){
     var o=Object.assign({},opts||{}), hd=new Headers(o.headers||{}); hd.set('Authorization','Bearer '+t); o.headers=hd; o.__again=1; return fetch(url,o); }).catch(function(){ return r; }); }); }
 document.addEventListener('visibilitychange',function(){ try{ if(typeof sb==='undefined'||!sb||!sb.auth) return; if(document.visibilityState==='visible'){ sb.auth.startAutoRefresh(); sb.auth.getSession(); } else sb.auth.stopAutoRefresh(); }catch(e){} });
 /* the App Store app on iPhone and iPad: online courses and the technique videos are digital content, which Apple only allows with In-App Purchase,
-   so they are hidden there unless the business turns on ios_digital. The website, the web app and Android keep them. */
-var IOS_DIGITAL=['courses','techniques','course_offer'];
+   so they are hidden there unless the business turns on ios_digital. Free technique videos stay; ones that need a package are left out (tecMember).
+   The website, the web app and Android keep them. */
+var IOS_DIGITAL=['courses','course_offer'];
 function iosStore(){ try{ return inStoreApp()&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform()==='ios'; }catch(e){ return false; } }
 function featOn(k){ if(IOS_DIGITAL.indexOf(k)>=0&&FEAT.ios_digital!==true&&iosStore()&&!(k==='courses'&&FEAT.ios_iap===true)) return false; var f=FEATURES.filter(function(x){ return x.k===k; })[0]; if(platLocked(k)) return platCfg().lock[k]; if(typeof FEAT[k]==='boolean') return FEAT[k]; return f?featDef(f):true; }
 /* Settings, Languages: see how any text reads in Thai and Myanmar and fix it. Fixes are kept in app_settings i18n_fix and win over the built-in words */
@@ -1113,7 +1114,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=177; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=178; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -4687,8 +4688,8 @@ function tecAdmin(){
 function tecMember(){
   if(!TEC.list){ if(!TEC.busy) tecLoad(); return h('div',{class:'panel empty'},TEC.err||'Loading.'); }
   if(!TEC.list.length) return h('div',{class:'panel empty'},'Technique videos are coming soon.');
-  var q=TEC.q.trim().toLowerCase(), cats=[]; TEC.list.forEach(function(t){ var c=t.category||'Other'; if(cats.indexOf(c)<0) cats.push(c); });
-  var list=TEC.list.filter(function(t){ return (!TEC.cat||(t.category||'Other')===TEC.cat)&&(!q||(t.title+' '+(t.category||'')).toLowerCase().indexOf(q)>=0); });
+  var q=TEC.q.trim().toLowerCase(), cats=[]; TEC.list.forEach(function(t){ var c=t.category||'Other'; if(cats.indexOf(c)<0&&!(t.locked&&iosStore()&&FEAT.ios_digital!==true)) cats.push(c); });
+  var list=TEC.list.filter(function(t){ return !(t.locked&&iosStore()&&FEAT.ios_digital!==true)&&(!TEC.cat||(t.category||'Other')===TEC.cat)&&(!q||(t.title+' '+(t.category||'')).toLowerCase().indexOf(q)>=0); });
   var groups={}; list.forEach(function(t){ var c=t.category||'Other'; (groups[c]=groups[c]||[]).push(t); });
   return [h('div',{class:'panel pad'},h('input',{id:'tec-q',type:'search',class:'pvok',placeholder:'Search techniques','aria-label':'Search techniques',value:TEC.q,oninput:function(e){ TEC.q=e.target.value; schedule(); }})),
     cats.length>1?h('div',{class:'ctabs small'},[''].concat(cats).map(function(c){ return h('button',{type:'button',class:'ctab pvok'+(TEC.cat===c?' on':''),onclick:function(){ TEC.cat=c; schedule(); }},c||'All'); })):null,

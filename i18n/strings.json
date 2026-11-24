@@ -26534,5 +26534,9 @@
 "Customers with the app, newest first": [
 "ลูกค้าที่มีแอป ใหม่สุดก่อน",
 "အက်ပ်ရှိသော ဖောက်သည်များ၊ အသစ်ဆုံး အရင်"
+],
+"Off: the App Store app on iPhone and iPad hides online courses, the course offer and technique videos that need a package, because Apple only allows paid digital content sold with its own In-App Purchase. Free technique videos still show. People get everything on your website, the web app and Android. Turn on only if Apple has approved them.": [
+"ปิด: แอปจาก App Store บน iPhone และ iPad จะซ่อนคอร์สออนไลน์ ข้อเสนอคอร์ส และวิดีโอเทคนิคที่ต้องมีแพ็กเกจ เพราะ Apple อนุญาตเนื้อหาดิจิทัลแบบเสียเงินเฉพาะที่ขายผ่าน In-App Purchase ของ Apple เท่านั้น วิดีโอเทคนิคฟรียังแสดงอยู่ ลูกค้ายังได้ทุกอย่างบนเว็บไซต์ เว็บแอป และ Android เปิดเฉพาะเมื่อ Apple อนุมัติแล้ว",
+"ပိတ်: iPhone နှင့် iPad ရှိ App Store အက်ပ်သည် အွန်လိုင်းသင်တန်းများ၊ သင်တန်းကမ်းလှမ်းချက်နှင့် ပက်ကေ့ချ်လိုအပ်သော နည်းပညာဗီဒီယိုများကို ဖျောက်ထားသည်၊ Apple သည် ငွေပေးရသော ဒစ်ဂျစ်တယ်အကြောင်းအရာကို ၎င်း၏ In-App Purchase ဖြင့်သာ ရောင်းခွင့်ပြုသောကြောင့်ဖြစ်သည်။ အခမဲ့ နည်းပညာဗီဒီယိုများ ဆက်ပြသည်။ ဝဘ်ဆိုက်၊ ဝဘ်အက်ပ်နှင့် Android တွင် အားလုံးရရှိနိုင်သည်။ Apple အတည်ပြုမှသာ ဖွင့်ပါ။"
 ]
 }
