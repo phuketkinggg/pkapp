@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=241"></script>
+<script src="changelog.js?v=242"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -5294,7 +5294,7 @@ function coExPick(multi,cb){ (COACH.ex?Promise.resolve(COACH.ex):coEx()).then(fu
 function gKey(it){ var n=Number(it.at_n)||1; return (it.at_mode==='date'?'2'+(it.at_date||''):'1'+String(it.at_mode==='day'?n-1:(n-1)*7).padStart(5,'0'))+(it.at_time||''); }
 function gWeekOf(g,t){ return Math.floor((parseYmd(t)-parseYmd(g.start_on))/(7*864e5))+1; }
 /* a step that opens a course lesson: the group sets the day, the course keeps the video */
-function gLessonBtn(it){ return it.kind==='lesson'&&it.course_id&&it.lesson_id?h('div',{class:'row',style:'margin-top:8px'},btn('Open the lesson',function(){ ui.tab=me&&me.role==='customer'?'c_learn':'courses'; CRS.view=null; crsOpen(it.course_id,it.lesson_id); schedule(); window.scrollTo(0,0); },'primary small')):null; }
+function gLessonBtn(it){ return it.kind==='lesson'&&it.course_id&&it.lesson_id&&featOn('courses')?h('div',{class:'row',style:'margin-top:8px'},btn('Open the lesson',function(){ ui.tab=me&&me.role==='customer'?'c_learn':'courses'; CRS.view=null; crsOpen(it.course_id,it.lesson_id); schedule(); window.scrollTo(0,0); },'primary small')):null; }
 var CRSL={};
 function crsLessonsFor(id){ if(!id) return []; if(CRSL[id]) return CRSL[id]; CRSL[id]=[]; sb.rpc('course_view',{p_course:id}).then(must).then(function(d){ CRSL[id]=d.lessons||[]; schedule(); },function(){}); return CRSL[id]; }
 function gStepBody(it){ if(it.kind==='lesson') return [it.text?lessonText(it.text):null,gLessonBtn(it)]; return [it.text?lessonText(it.text):null, it.url?(ytId(it.url)||/\.(mp4|mov|webm)(\?|$)/i.test(it.url)?cVideo(it.url):h('a',{class:'lfile',href:it.url,target:'_blank',rel:'noopener'},h('span',{class:'lficon'},/\.pdf(\?|$)/i.test(it.url)?'PDF':'LINK'),it.kind==='doc'?'Open the document':'Open the link')):null]; }
@@ -5302,6 +5302,7 @@ function gStepBody(it){ if(it.kind==='lesson') return [it.text?lessonText(it.tex
 /* member: steps on the Today screen */
 function cmGroups(d){ var t=d.today;
   return (d.groups||[]).map(function(g){
+    if(g.course_id&&!featOn('courses')) return null; /* the iPhone app without Apple selling: no course card (its tab is hidden there) */
     if(g.course_id){ var todo=(g.items||[]).filter(function(it){ return it.kind!=='email'&&(g.done||[]).indexOf(it.id)<0; }).length;
       return h('button',{type:'button',class:'panel pad crslink pvok',onclick:function(){ ui.tab='c_learn'; CRS.view=null; CRS.lesson=null; crsOpen(g.course_id); schedule(); }},
         h('span',{class:'crseye'},'Course'),h('b',null,g.course_title||g.name),h('small',{class:'sub'},todo?todo+' step'+(todo>1?'s':'')+' to do':'All caught up'),h('span',{class:'crsgo'},'Open ›')); }

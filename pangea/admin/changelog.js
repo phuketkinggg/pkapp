@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-24', title: 'No dead course button in the iPhone app', what: 'In the iPhone app, where courses are hidden until Apple selling is set up, the Coaching screen no longer shows a course card whose Open button went nowhere.', feature: 'ios_digital'},
   {date: '2026-11-24', title: 'Free technique videos in the iPhone app', what: 'The App Store app on iPhone and iPad now shows your free technique videos (public and app only) in Education. Videos that need a package, online courses and the course offer stay hidden there until Apple In-App Purchase is set up, as Apple requires.', feature: 'ios_digital'},
   {date: '2026-11-24', title: 'Customer view lists people who have the app', what: 'Customer view now opens on customers who have signed in to the app, newest first, instead of everyone the team looked at lately. Search still finds every customer.', feature: 'custview'},
   {date: '2026-11-23', title: 'Choose who sees Instagram, Facebook and WhatsApp messages', what: 'In Messages, Who sees these messages, the owner ticks the people for each kind: for example Instagram only for the owner. Only those people see those chats, can reply and get the phone notice. Nobody ticked: the front desk and managers see them as before. Also: AI reply drafts now only show to people who can open that chat.', feature: 'social_who'},
