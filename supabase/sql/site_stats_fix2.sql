@@ -19,6 +19,12 @@ begin
         'least(sum(case when ev = ''time'' and item ~ ''^[0-9]{1,5}$'' then least(item::int, 1800) end), 3600) secs,');
       if n = d then raise notice 'site_stats_fix2: site_more is different, skipped'; else execute n; end if;
     end if;
+    -- a visit with no time reading must count 0, not the 1 hour cap (LEAST ignores NULL)
+    d := pg_get_functiondef('private.site_more(timestamp with time zone,timestamp with time zone)'::regprocedure);
+    if position('least(sum(case when ev = ''time''' in d) > 0 then
+      n := replace(replace(d, 'least(sum(case when ev = ''time''', 'least(coalesce(sum(case when ev = ''time'''), 'then least(item::int, 1800) end), 3600) secs', 'then least(item::int, 1800) end), 0), 3600) secs');
+      if n = d then raise notice 'site_stats_fix2: site_more cap is different, skipped'; else execute n; end if;
+    end if;
   end if;
   d := pg_get_functiondef('public.site_stats(date,date)'::regprocedure);
   if position('stay_form' in d) = 0 then
