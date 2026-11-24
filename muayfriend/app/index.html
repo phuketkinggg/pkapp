@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=242"></script>
+<script src="changelog.js?v=243"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1030,6 +1030,7 @@ var FEATURES=[
   {k:'chat_customers',g:'Messages',n:'Customers in group chats',d:'Groups can have customers as well as staff: fighters, people training or staying now, or anyone you pick. Can be announcements only.'},
   {k:'job_team',g:'Team',n:'Jobs for more than one person',d:'Give a job (Pending actions) to several people at once. It shows on each of their apps and any of them can tick it off.'},
   {k:'email_log',g:'Messages',n:'Emails page',d:'One page with every email the app sends: emails written in the app, invoices and receipts, welcome emails, action group emails and outreach, with what was sent, what is waiting and what failed. Write a new email from here too.',tabs:['emails']},
+  {k:'acc_remove',g:'Money',n:'Remove a payment in Accounts',d:'In Accounts, Money in, tap a line to see each payment in it: who paid, when, how and who took it. A manager can remove a payment taken by mistake, with a reason. It stays in the records, marked removed.',def:true,spa:true},
   {k:'custview',g:'Customers',n:'Customer view',d:'Managers pick any customer and see their app exactly as they see it: home, packages, courses and coaching. View only.',tabs:['custview']},
   {k:'coach_choose',g:'Training',n:'Coaching chosen per customer',d:'Coaching is only for the customers you turn it on for, and you choose which parts each gets: steps and habits, workouts, food diary, weight. Set it on the customer, Coaching options. Off: everyone has all of it.',spa:false},
   {k:'partners',g:'Marketing',n:'Partner programme',d:'A Partners page on your website where people apply to send you customers, at levels you set (for example Affiliate, Creator and Ambassador, each with its own share and perks). Applications come into Affiliates, where you approve them at a level.'},
@@ -1123,7 +1124,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=178; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=179; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -6826,8 +6827,27 @@ function accSheetDlg(){
 function accIn(lines){ var L=lines.filter(function(l){ return l.t==='in'; });
   if(!L.length) return h('div',{class:'panel empty'},'No money in for this period.');
   return accGroup(L,function(l){ return l.b+'|'+l.dep; }).map(function(g){ var p=g.k.split('|');
-    return section(p[1]+(ACC.biz==='all'?', '+p[0]:'')+': '+accThb(g.sum),null,table([{label:'What sold',cell:function(x){ return x.k; }},{label:'Times',num:true,cell:function(x){ var seen={}, n=0, pay=0; x.list.forEach(function(l){ var k=(l.pk||l.id)+'|'+l.src; if(l.src==='payment') pay++; if(seen[k]) return; seen[k]=1; n+=l.src==='shop'&&Number(l.q)>0?Number(l.q):1; }); return h('span',null,String(n),pay>n?h('div',{class:'sub'},'paid in '+pay+' parts'):null); }},{label:'Total',num:true,cell:function(x){ return accThb(x.sum); }}],
+    return section(p[1]+(ACC.biz==='all'?', '+p[0]:'')+': '+accThb(g.sum),null,table([{label:'What sold',cell:function(x){ return featOn('acc_remove')?linkBtn(x.k,function(){ accInList(x); }):x.k; }},{label:'Times',num:true,cell:function(x){ var seen={}, n=0, pay=0; x.list.forEach(function(l){ var k=(l.pk||l.id)+'|'+l.src; if(l.src==='payment') pay++; if(seen[k]) return; seen[k]=1; n+=l.src==='shop'&&Number(l.q)>0?Number(l.q):1; }); return h('span',null,String(n),pay>n?h('div',{class:'sub'},'paid in '+pay+' parts'):null); }},{label:'Total',num:true,cell:function(x){ return accThb(x.sum); }}],
       accGroup(g.list,function(l){ return l.src==='entry'?(l.cat||'Other income'):l.what; }),'')); }); }
+/* Money in: the single lines behind one row, and removing a payment taken by mistake (feature acc_remove) */
+function accInList(x){
+  var L=x.list.slice().sort(function(a,b){ return a.d<b.d?1:a.d>b.d?-1:0; });
+  $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,x.k),h('p',{class:'sub'},L.length+' line'+(L.length>1?'s':'')+', '+accThb(accSum(L))+'. Tap Details to see who paid, or remove a payment taken by mistake.'),
+    table([{label:'Date',cell:function(l){ return fmtDate(l.d); }},{label:'Paid by',cell:function(l){ return accM(l.m); }},{label:'Amount',num:true,cell:function(l){ return accThb(l.a); }},
+      {label:'',cell:function(l){ return l.src==='payment'?btn('Details',function(){ accPayDlg(l.id); },'small'):l.src==='entry'&&!l.move?btn('Edit',function(){ $dlg.close(); accEntryOpen(l); },'small'):l.src==='shop'?h('small',{class:'sub'},'Till sale: change it in Shop, Sales'):h('small',{class:'sub'},l.move?'Between businesses':''); }}],L,''),
+    h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); }))));
+  if($dlg.showModal&&!$dlg.open) $dlg.showModal();
+}
+function accPayDlg(id){
+  sb.rpc('acc_payment_get',{p_id:id}).then(must).then(function(p){
+    openForm({title:'Payment '+accThb(p.amount),saveLabel:'Remove this payment',doneMsg:'Removed from the accounts.',
+      note:'Removing takes it out of Money in. It stays in the records, marked removed, with your name and the reason.'+(p.linked==='package'?' The package will show as not paid.':p.linked==='stay'?' The room bill will show this amount as owed again.':''),
+      fields:[{key:'i1',label:'Who',type:'info',def:(p.customer||'No customer')+', '+p.what},{key:'i2',label:'Taken',type:'info',def:fmtDate(p.day)+', '+accM(p.method)+(p.by?', by '+p.by:'')},
+        {key:'reason',label:'Why remove it',type:'textarea',required:true,hint:'For example: added by mistake, they paid by invoice.'}],
+      onSave:function(v){ if(!String(v.reason||'').trim()) return 'Write why it is removed.';
+        return sb.rpc('acc_payment_remove',{p_id:id,p_reason:v.reason}).then(must).then(function(){ accReload(); }); }});
+  }).catch(function(e){ toast(errText(e)); });
+}
 function accOut(lines,d){ var L=lines.filter(function(l){ return l.t==='out'; });
   return [d.unsorted?h('div',{class:'panel pad accnotes'},h('p',null,d.unsorted+' receipt'+(d.unsorted>1?'s are':' is')+' not sorted into a category yet.'),btn('Sort receipts',function(){ ACC.tab='receipts'; schedule(); },'small')):null,
     L.length?accGroup(L,'cat').map(function(g){ return section(g.k+': '+accThb(g.sum),null,table([{label:'Date',cell:function(x){ return fmtDate(x.d); }},{label:'Business',cell:function(x){ return h('span',null,x.b,h('div',{class:'sub'},x.dep||'')); }},

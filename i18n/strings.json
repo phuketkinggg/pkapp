@@ -26538,5 +26538,41 @@
 "Off: the App Store app on iPhone and iPad hides online courses, the course offer and technique videos that need a package, because Apple only allows paid digital content sold with its own In-App Purchase. Free technique videos still show. People get everything on your website, the web app and Android. Turn on only if Apple has approved them.": [
 "ปิด: แอปจาก App Store บน iPhone และ iPad จะซ่อนคอร์สออนไลน์ ข้อเสนอคอร์ส และวิดีโอเทคนิคที่ต้องมีแพ็กเกจ เพราะ Apple อนุญาตเนื้อหาดิจิทัลแบบเสียเงินเฉพาะที่ขายผ่าน In-App Purchase ของ Apple เท่านั้น วิดีโอเทคนิคฟรียังแสดงอยู่ ลูกค้ายังได้ทุกอย่างบนเว็บไซต์ เว็บแอป และ Android เปิดเฉพาะเมื่อ Apple อนุมัติแล้ว",
 "ပိတ်: iPhone နှင့် iPad ရှိ App Store အက်ပ်သည် အွန်လိုင်းသင်တန်းများ၊ သင်တန်းကမ်းလှမ်းချက်နှင့် ပက်ကေ့ချ်လိုအပ်သော နည်းပညာဗီဒီယိုများကို ဖျောက်ထားသည်၊ Apple သည် ငွေပေးရသော ဒစ်ဂျစ်တယ်အကြောင်းအရာကို ၎င်း၏ In-App Purchase ဖြင့်သာ ရောင်းခွင့်ပြုသောကြောင့်ဖြစ်သည်။ အခမဲ့ နည်းပညာဗီဒီယိုများ ဆက်ပြသည်။ ဝဘ်ဆိုက်၊ ဝဘ်အက်ပ်နှင့် Android တွင် အားလုံးရရှိနိုင်သည်။ Apple အတည်ပြုမှသာ ဖွင့်ပါ။"
+],
+" The package will show as not paid.": [
+" แพ็กเกจจะแสดงว่ายังไม่ได้จ่าย",
+" ပက်ကေ့ချ်ကို မပေးချေရသေးဟု ပြမည်။"
+],
+" The room bill will show this amount as owed again.": [
+" บิลห้องพักจะแสดงยอดนี้ว่าค้างชำระอีกครั้ง",
+" အခန်းဘေလ်တွင် ဤပမာဏကို ထပ်မံ ပေးရန်ကျန်ဟု ပြမည်။"
+],
+"For example: added by mistake, they paid by invoice.": [
+"เช่น ใส่ผิด ลูกค้าจ่ายผ่านใบแจ้งหนี้แล้ว",
+"ဥပမာ - မှားထည့်မိသည်၊ ငွေတောင်းခံလွှာဖြင့် ပေးပြီးသည်။"
+],
+"In Accounts, Money in, tap a line to see each payment in it: who paid, when, how and who took it. A manager can remove a payment taken by mistake, with a reason. It stays in the records, marked removed.": [
+"ในบัญชี เงินเข้า แตะรายการเพื่อดูการชำระแต่ละครั้ง: ใครจ่าย เมื่อไร อย่างไร และใครรับเงิน ผู้จัดการลบการชำระที่ใส่ผิดได้ พร้อมเหตุผล รายการยังอยู่ในบันทึกโดยระบุว่าถูกลบ",
+"Accounts၊ Money in တွင် စာကြောင်းတစ်ခုကို နှိပ်ပြီး ငွေပေးချေမှုတစ်ခုစီကို ကြည့်ပါ - မည်သူပေး၊ မည်သည့်အချိန်၊ မည်သို့၊ မည်သူလက်ခံ။ မန်နေဂျာသည် မှားယူမိသော ငွေပေးချေမှုကို အကြောင်းပြချက်ဖြင့် ဖယ်ရှားနိုင်သည်။ မှတ်တမ်းတွင် ဖယ်ရှားပြီးဟု ကျန်ရှိမည်။"
+],
+"Remove a payment in Accounts": [
+"ลบการชำระเงินในบัญชี",
+"Accounts တွင် ငွေပေးချေမှု ဖယ်ရှားရန်"
+],
+"Remove this payment": [
+"ลบการชำระเงินนี้",
+"ဤငွေပေးချေမှုကို ဖယ်ရှားပါ"
+],
+"Removed from the accounts.": [
+"ลบออกจากบัญชีแล้ว",
+"စာရင်းမှ ဖယ်ရှားပြီး။"
+],
+"Removing takes it out of Money in. It stays in the records, marked removed, with your name and the reason.": [
+"การลบจะเอาออกจากเงินเข้า รายการยังอยู่ในบันทึก ระบุว่าถูกลบ พร้อมชื่อของคุณและเหตุผล",
+"ဖယ်ရှားခြင်းသည် Money in မှ ထုတ်ပစ်သည်။ မှတ်တမ်းတွင် ဖယ်ရှားပြီးဟု သင့်အမည်နှင့် အကြောင်းပြချက်ဖြင့် ကျန်ရှိမည်။"
+],
+"Why remove it": [
+"ทำไมถึงลบ",
+"ဘာကြောင့် ဖယ်ရှားသနည်း"
 ]
 }

@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-24', title: 'Remove a payment in Accounts', what: 'In Accounts, Money in, tap any line to see the single payments in it: who paid, when, how and who took it. A manager can remove a payment taken by mistake, for example one that was already paid by invoice. Write why; it leaves Money in but stays in the records, marked removed, with your name and the reason.', feature: 'acc_remove'},
   {date: '2026-11-24', title: 'No dead course button in the iPhone app', what: 'In the iPhone app, where courses are hidden until Apple selling is set up, the Coaching screen no longer shows a course card whose Open button went nowhere.', feature: 'ios_digital'},
   {date: '2026-11-24', title: 'Free technique videos in the iPhone app', what: 'The App Store app on iPhone and iPad now shows your free technique videos (public and app only) in Education. Videos that need a package, online courses and the course offer stay hidden there until Apple In-App Purchase is set up, as Apple requires.', feature: 'ios_digital'},
   {date: '2026-11-24', title: 'Customer view lists people who have the app', what: 'Customer view now opens on customers who have signed in to the app, newest first, instead of everyone the team looked at lately. Search still finds every customer.', feature: 'custview'},
