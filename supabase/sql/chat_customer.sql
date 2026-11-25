@@ -104,7 +104,7 @@ create trigger chats_auto_customer before insert or update of visitor_contact, s
 
 -- removing a customer keeps their social and website chats (unlinked); only their own app chats go
 do $p$
-declare d text; n text;
+declare d text; n text; o oid;
 begin
   if to_regprocedure('public.customer_remove(uuid)') is not null then
     d := pg_get_functiondef('public.customer_remove(uuid)'::regprocedure);
@@ -114,15 +114,15 @@ begin
       if n = d then raise notice 'chat_customer: customer_remove is different, skipped'; else execute n; end if;
     end if;
   end if;
-  if to_regprocedure('public.customer_delete_me()') is not null then
-    d := pg_get_functiondef('public.customer_delete_me()'::regprocedure);
+  for o in select p.oid from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname = 'customer_delete_me' loop
+    d := pg_get_functiondef(o);
     if position('kind in (''web'',''fb'',''ig'',''wa'')' in d) = 0 then
       n := replace(d, '    delete from public.chats where customer_id = cid;',
         '    update public.chats set customer_id = null where customer_id = cid and kind in (''web'',''fb'',''ig'',''wa'');
     delete from public.chats where customer_id = cid;');
       if n = d then raise notice 'chat_customer: customer_delete_me is different, skipped'; else execute n; end if;
     end if;
-  end if;
+  end loop;
 end $p$;
 
 -- link the chats that already match exactly one customer
