@@ -6,7 +6,7 @@ insert into mf.template (ord, phase, kind, name, sql) values (405002, 4, 'patch'
 declare m int;
 begin
   if new.starts_on is null or new.expires_on is null or new.duration_days is null then return new; end if;
-  if new.stay_id is not null or coalesce(new.for_stay, false) then return new; end if;
+  if new.stay_id is not null or new.for_stay is not null then return new; end if;
   if new.expires_on <> new.starts_on + new.duration_days - 1 then return new; end if;
   if tg_op = 'UPDATE' and old.starts_on is not distinct from new.starts_on and old.expires_on is not distinct from new.expires_on
      and old.duration_days is not distinct from new.duration_days then return new; end if;
@@ -21,7 +21,7 @@ insert into mf.template (ord, phase, kind, name, sql) values (903202, 9, 'patch'
   for each row execute function __Q__.month_dates();$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1003601, 10, 'patch', 'month_dates:1003601', $TPL$update __P__.purchases p set expires_on = (p.starts_on + make_interval(months => __Q__.month_count(p.duration_days)))::date
 where __Q__.feature('month_dates', true) and not coalesce(p.cancelled, false) and p.refunded_at is null
-  and p.stay_id is null and not coalesce(p.for_stay, false)
+  and p.stay_id is null and p.for_stay is null
   and p.starts_on is not null and p.duration_days is not null and __Q__.month_count(p.duration_days) is not null
   and p.expires_on = p.starts_on + p.duration_days - 1 and p.expires_on >= (now() at time zone 'Asia/Bangkok')::date
   and (p.starts_on + make_interval(months => __Q__.month_count(p.duration_days)))::date > p.expires_on;$TPL$);
