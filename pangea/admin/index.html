@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=247"></script>
+<script src="changelog.js?v=248"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -184,6 +184,7 @@ body.chatting{overflow:hidden}
 .chatbox{width:100%;max-width:720px;display:flex;flex-direction:column;height:100%;height:100dvh}
 .chathead{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--surface)}
 .chattitle{flex:1;min-width:0;display:flex;flex-direction:column}
+.chatcust{margin-top:4px}.chatcust .btn{margin-left:2px}
 .chattitle b,.chattitle .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chatmsgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
 .msg{max-width:80%;align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:8px 11px}
@@ -930,6 +931,7 @@ var FEATURES=[
   {k:'upgrades',g:'Selling',n:'Package upgrades',d:'Customers on one package can move up to a better one, for example a weekly class pass to unlimited, for the difference in price (less for time already used). They see the offer in the app and pay it like any order; the front desk sees it on the customer. Set the upgrades in Packages.'},
   {k:'setup_guide',g:'Customers',n:'Setup guide',d:'A short checklist on Today for the manager of a new business: your look, classes, packages, first member, first sale, first check-in and your team. Each step opens the right place and ticks itself when it is done. It goes away when everything is done, or when you hide it.',spa:false},
   {k:'month_dates',g:'Selling',n:'Month packages end on the same date',d:'A package that lasts whole months ends on the same date it started: started 26 Oct, ends 26 Nov (3 months: 26 Jan). Off: it ends after the number of days set on the package, so 30 days ends 24 Nov. End dates set by hand, moved by a pause or tied to a stay are never changed.'},
+  {k:'chat_link',g:'Customers',n:'Link chats to customers',d:'At the top of every Instagram, Facebook, WhatsApp and website chat: who the customer is, or Add as customer and Link to a customer. Their messages then show on the customer with their stays, packages and payments, and where they came from is filled in. Website and WhatsApp chats link by themselves when the email or phone matches one customer.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1116,7 +1118,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=183; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=184; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -1500,7 +1502,7 @@ function staffFace(s,cls){ cls=cls||'staffface';
   if(s.video_url&&featOn('profile_video')){ var v=document.createElement('video'); v.muted=true; v.defaultMuted=true; v.loop=true; v.playsInline=true; v.setAttribute('playsinline',''); v.setAttribute('muted',''); v.className=cls; v.setAttribute('aria-hidden','true');
     if(s.photo_url) v.poster=s.photo_url; v.src=s.video_url; if(!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){ v.autoplay=true; v.setAttribute('autoplay',''); } return v; }
   return s.photo_url?h('img',{class:cls,src:s.photo_url,alt:'',loading:'lazy'}):null; }
-var LEADSRC=['Website','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
+var LEADSRC=['Website','WhatsApp','Booking.com','Airbnb','Agoda','Instagram','Facebook','TikTok','Google','Walk-in','Friend or word of mouth','Agent','Returning','Other'];
 /* branches (feature branches): each staff member can have branches (Staff), each customer a home branch. Staff see only their
    branches; staff with none set see all, and pick one branch or all in the Customers and Staff pages. */
 var BR=null, MYBR=undefined, BR_BUSY=false;
@@ -4066,7 +4068,7 @@ function openChat(c){
     h('div',{class:'chattitle'},h('b',null,c.title||'Chat'),
       c.kind==='group'?h('span',{class:'sub'},(c.members||[]).map(function(m){ return m.name; }).join(', ')):
       c.kind==='web'?webVisitorLine(c):c.kind==='fb'||c.kind==='ig'||c.kind==='wa'?metaLine(c):
-      !c.in_chat&&mgr?h('span',{class:'sub'},'You are reading this as a manager.'):null),
+      !c.in_chat&&mgr?h('span',{class:'sub'},'You are reading this as a manager.'):null,chatCustBar(c)),
     mgr&&c.kind==='group'?btn('Edit',function(){ chatGroup(c); },'small'):h('span'));
   var wrap=h('div',{class:'chatwrap'},h('div',{class:'chatbox'},head,msgs,
     me.role==='customer'?h('p',{class:'sub chatnote'},'The Pangea team can see this chat.'):null,
@@ -4247,6 +4249,38 @@ function closeChat(){
 /* ---------- website live chat: visitors on the website chat with the desk. Hours and phone notifications. ---------- */
 var WEBCHAT=null;
 function isDeskRole(){ return !!me&&['manager','front_desk','resort'].indexOf(me.role)>=0; }
+/* the customer's Instagram, Facebook, WhatsApp and website chats (feature chat_link) */
+function custChats(c){
+  if(!featOn('chat_link')||!me||me.role==='customer'||!chatOn()) return null;
+  if(CHAT.list==null){ if(!ui.ccAsked){ ui.ccAsked=true; chatRefresh(); } return null; }
+  var KN={ig:'Instagram',fb:'Facebook',wa:'WhatsApp',web:'Website chat'};
+  var l=CHAT.list.filter(function(x){ return x.customer_id===c.id&&KN[x.kind]; });
+  if(!l.length) return null;
+  return section('Messages',null,h('div',{class:'row wrap'},l.map(function(x){ return btn(KN[x.kind]+(x.last_at?', '+fmtDate(String(x.last_at).slice(0,10)):''),function(){ openChat(x); },'small'); }))); }
+/* one customer for everything (feature chat_link): an Instagram, Facebook, WhatsApp or website chat is linked to a customer, or made into a new one, from the top of the chat */
+function chatCustBar(c){
+  if(!me||me.role==='customer'||!featOn('chat_link')||['web','fb','ig','wa'].indexOf(c.kind)<0) return null;
+  var bar=h('div',{class:'chatcust'});
+  function draw(){ var cu=c.customer_id;
+    bar.replaceChildren(cu?h('span',{class:'sub'},'Customer: ',h('a',{href:'#',onclick:function(e){ e.preventDefault(); closeChat(); openCustomer(cu); }},nameOf('customers',cu,'open their page')),' ',btn('Change',pick,'small'))
+      :h('span',{class:'sub'},'Not a customer yet. ',btn('Add as customer',add,'small'),' ',btn('Link to a customer',pick,'small'))); }
+  function done(id,msg){ c.customer_id=id; try{ $dlg.close(); }catch(e){} reload('customers'); draw(); toast(msg); }
+  function set(id){ return sb.rpc('chat_customer_set',{p_chat:c.id,p_customer:id}).then(must).then(function(){ done(id,id?'Linked. Their messages now show on the customer.':'Unlinked.'); }).catch(function(e){ toast(errText(e)); }); }
+  function pick(){
+    var q=h('input',{type:'search',placeholder:'Search name, email or phone','aria-label':'Search customers'}), list=h('div',{class:'cartlines'}), t=null;
+    function find(){ sb.rpc('chat_customer_find',{p_chat:c.id,p_q:q.value.trim()||null}).then(must).then(function(r){ var m=r.matches||[];
+      list.replaceChildren.apply(list,m.length?m.map(function(x){ return h('div',{class:'cartline'},h('span',null,h('b',{class:'notr'},x.name||'(no name)'),h('div',{class:'sub notr'},[x.email,x.phone].filter(Boolean).join(', '))),btn('Link',function(){ set(x.id); },'small primary')); })
+        :[h('p',{class:'sub'},q.value.trim()?'No customer found.':'Nobody looks like this person yet. Search by name, email or phone, or add them as a new customer.')]); }).catch(function(e){ toast(errText(e)); }); }
+    q.oninput=function(){ clearTimeout(t); t=setTimeout(find,250); };
+    shopDlg(h('div',{class:'billbox'},h('h2',null,'Link to a customer'),h('p',{class:'sub'},'Their messages then show on that customer, with everything else about them.'),q,list,
+      h('div',{class:'factions'},c.customer_id?btn('Unlink',function(){ set(null); }):h('span'),btn('Close',function(){ $dlg.close(); }))));
+    find(); setTimeout(function(){ q.focus(); },50); }
+  function add(){ sb.rpc('chat_customer_find',{p_chat:c.id}).then(must).then(function(r){ var ct=r.contact||'', em=/@/.test(ct);
+    openForm({title:'Add as customer',saveLabel:'Add',note:'Where they came from is filled in as '+(r.source||'this chat')+'. If the email or phone is already a customer, the chat is linked to them instead.',
+      values:{name:r.name||'',email:em?ct:'',phone:em?'':ct},
+      fields:[{key:'name',label:'Name',required:true},{key:'email',label:'Email',type:'email'},{key:'phone',label:'Phone, with the country code'}],
+      onSave:function(v){ return sb.rpc('chat_customer_add',{p_chat:c.id,p_name:v.name,p_email:v.email||null,p_phone:v.phone||null}).then(must).then(function(x){ done(x.customer_id,x.existing?'Already a customer, so the chat is linked to them.':'Customer added and linked.'); }); }}); }).catch(function(e){ toast(errText(e)); }); }
+  draw(); return bar; }
 function metaLine(c){ var v=c.visitor||{}, ig=c.kind==='ig', wa=c.kind==='wa', hrs=v.last_in?Math.max(0,24-Math.floor((Date.now()-new Date(v.last_in).getTime())/36e5)):0;
   if(wa) return h('span',{class:'sub'},'WhatsApp message'+(v.contact?' from '+v.contact:'')+'. Your reply goes to their WhatsApp. ',
     v.open?h('span',null,'You can reply for about '+hrs+' more hour'+(hrs===1?'':'s')+'.'):h('b',null,'More than 24 hours since their last message, so WhatsApp will not deliver a reply. Ask them to message again, or call them.'));
@@ -10225,6 +10259,7 @@ function vCustomers(){
           {label:'Extras on bill',num:true,cell:function(st){ var x=extrasTotal(st); return x?thb(x):''; }},
           {label:'To pay',num:true,cell:function(st){ var o=(st.settled?0:Math.max(0,billTotal(st)))+stayExtras(st).reduce(function(t,x){ return t+x.owe; },0); return o?chip(thb(o),'warn'):chip(st.settled?'Settled':'Nothing','ok'); }},
           {label:'',cell:function(st){ return h('div',{class:'row'},btn('Bill',function(){ openBill(st); },'small'),st.status==='booked'||st.status==='in'?btn('Extend',function(){ extendStay(st); },'small'):null,btn('Edit',function(){ editStay(st); },'small')); }}],sts,'')):null; })(),
+      custChats(c),
       staySharePanel(c),
       foodPlansPanel(c),
       upgDesk(c),
