@@ -4,6 +4,9 @@
 -- Website and WhatsApp chats link by themselves when their email or phone matches exactly one customer.
 -- Removing a customer no longer deletes their Instagram, Facebook, WhatsApp or website chats: they are kept, unlinked.
 
+-- older databases without the social inbox: the column the WhatsApp link reads
+alter table public.chats add column if not exists social_id text;
+
 create or replace function private.chat_src(p_kind text) returns text language sql immutable set search_path = '' as $f$
   select case p_kind when 'ig' then 'Instagram' when 'fb' then 'Facebook' when 'wa' then 'WhatsApp' when 'web' then 'Website' end
 $f$;
