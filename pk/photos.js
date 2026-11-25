@@ -38,7 +38,16 @@ var L=[
   ['wellness_steam','Wellness','Herbal steam room','wellness_steam.webp'],
   ['wellness_sauna','Wellness','Dry sauna','wellness_sauna.webp'],
   ['wellness_ice','Wellness','Ice bath','wellness_ice.webp'],
-  ['wellness_redlight','Wellness','Red light therapy','wellness_redlight.webp']
+  ['wellness_redlight','Wellness','Red light therapy','wellness_redlight.webp'],
+  ['fight_hero','Fighters','Top of the page (coaches training fighters)','home_fighters.jpg'],
+  ['fight_coach_tom','Fighters','Fight coach: Coach Tom coaching','coach_tom.jpg'],
+  ['fight_coach_sak','Fighters','Fight coach: Kru Sak coaching','home_fighters.jpg'],
+  ['fight_coach_pot','Fighters','Fight coach: Kru Pot coaching','home_fighters.jpg'],
+  ['fight_coach_max','Fighters','Fight coach: Kru Max coaching','coach_max.jpg'],
+  ['fight_gal1','Fighters','Coaches and fighters photo 1','home_fighters.jpg'],
+  ['fight_gal2','Fighters','Coaches and fighters photo 2','about_train.webp'],
+  ['fight_gal3','Fighters','Coaches and fighters photo 3','home_beginners.webp'],
+  ['fight_gal4','Fighters','Coaches and fighters photo 4','home_hero.webp']
 ];
 window.PK_PHOTOS=L.map(function(x){ return {id:x[0],page:x[1],label:x[2],src:B+x[3]}; });
 })();
