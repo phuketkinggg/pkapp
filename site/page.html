@@ -57,6 +57,7 @@
 (function(){
 'use strict';
 var q=new URLSearchParams(location.search), box=document.getElementById('page'), slug=(q.get('p')||box.getAttribute('data-slug')||'').toLowerCase(), tok=q.get('preview')||'';
+var MERGED={'muay-thai-for-beginners-phuket':'/beginners-muay-thai'}; if(MERGED[slug]&&!tok){ location.replace(MERGED[slug]); }
 var IMG=/^https:\/\/jijnshwduhgegacfvpkh\.supabase\.co\/storage\/v1\/object\/public\/promos\//, esc=PK.esc, title='';
 function img(u){ return IMG.test(String(u||''))?esc(u):''; }
 function link(u,txt){ u=String(u||'').trim(); if(!txt) return '';

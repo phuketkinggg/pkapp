@@ -59,7 +59,7 @@
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to train.">WhatsApp</a><a class="btn red" href="prices.html">Book training</a></div>
 <script>
 /* old or mistyped addresses people still use: send them to the right page (and anything under an old /contact/ folder to the page itself) */
-(function(){ var p=location.pathname.replace(/\/+$/,'').toLowerCase(), q=location.search, M={'/price':'/prices','/pricing':'/prices','/stay':'/book.html','/rooms':'/book.html','/contact':'/about','/muay-thai-for-beginners':'/muay-thai-for-beginners-phuket','/beginners':'/beginners-muay-thai','/sitemap':'/sitemap.xml','/sitemap.html':'/sitemap.xml','/sitemap.aspx':'/sitemap.xml','/sitemap-index.xml':'/sitemap.xml','/sitemap.txt':'/sitemap.xml'};
+(function(){ var p=location.pathname.replace(/\/+$/,'').toLowerCase(), q=location.search, M={'/price':'/prices','/pricing':'/prices','/stay':'/book.html','/rooms':'/book.html','/contact':'/about','/muay-thai-for-beginners':'/beginners-muay-thai','/muay-thai-for-beginners-phuket':'/beginners-muay-thai','/beginners':'/beginners-muay-thai','/sitemap':'/sitemap.xml','/sitemap.html':'/sitemap.xml','/sitemap.aspx':'/sitemap.xml','/sitemap-index.xml':'/sitemap.xml','/sitemap.txt':'/sitemap.xml'};
   var to=M[p.replace(/\.html$/,'')]||M[p];
   if(!to&&/^\/contact\/./.test(p)) to='/'+p.replace(/^\/contact\//,'').replace(/\/book(\.html)?$/,'book.html');
   if(to&&to!==location.pathname) location.replace(to+q); })();
