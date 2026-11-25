@@ -33,7 +33,7 @@ def fix_book(html):
     return html
 
 NAMES = {"about.html": "About", "prices.html": "Prices", "dtv.html": "DTV Visa", "shop.html": "Shop", "blog.html": "Blog", "wellness.html": "Wellness and recovery",
-         "education.html": "Education", "muay-thai-basics.html": "Muay Thai Basics, online course", "beginners-muay-thai.html": "Beginners guide", "muay-thai-phuket.html": "Muay Thai in Phuket", "partners.html": "Partners", "fighters.html": "Fight for Phuket King", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service", "th.html": "ภาษาไทย"}
+         "education.html": "Education", "muay-thai-basics.html": "Muay Thai Basics, online course", "beginners-muay-thai.html": "Beginners guide", "muay-thai-phuket.html": "Muay Thai in Phuket", "partners.html": "Partners", "fighters.html": "Phuket King Fighters", "book.html": "Stay at Pangea Resort", "privacy.html": "Privacy policy", "terms.html": "Terms of service", "th.html": "ภาษาไทย"}
 DYNAMIC = ("post.html", "page.html", "course.html", "technique.html", "404.html")
 DEFAULT_IMG = "https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp"
 

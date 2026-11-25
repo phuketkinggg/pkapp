@@ -82,6 +82,18 @@
 .pkb .ferr{color:#b3261e;font-weight:600;margin:0}
 .pkb .fok{background:#eaf6ee;border:1px solid #1f8a4c;border-radius:14px;padding:20px 22px;color:#14532d}
 @media (max-width:620px){.pkb form{grid-template-columns:1fr}}
+.pkb .fhero{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:16px;margin:8px 0 20px;background:#111}
+.pkb .fcoach{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:18px 0}
+.pkb .fcoach>div{border:1px solid var(--pline);border-radius:16px;overflow:hidden;background:#fff}
+.pkb .fcoach img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:top;display:block;background:#111}
+.pkb .fcoach .in{padding:14px 16px 6px}.pkb .fcoach h3{margin:2px 0 6px;font-size:20px}.pkb .fcoach p{font-size:15px;line-height:1.5}
+.pkb .fcoach .tag{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:var(--pgold);font-weight:700}
+.pkb .ftw{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:16px 0 10px}
+.pkb .ftw>div{background:#141414;color:#fff;border:2px solid var(--pgold);border-radius:16px;padding:18px 20px 8px}
+.pkb .ftw b{display:block;color:var(--pgold);font-size:15px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.pkb .ftw p{display:flex;gap:12px;font-size:16px;margin:0 0 10px}.pkb .ftw time{flex:none;width:68px;font-weight:700;color:#e8b04a}
+.pkb .fgal{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:16px 0}
+.pkb .fgal img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;display:block;background:#111}
 @media print{.top,footer,.dock,.cta,.video{display:none!important}}
 </style>
 <meta property="og:title" content="Fight for Phuket King: Join Our Muay Thai Fight Team in Phuket">
@@ -92,7 +104,7 @@
 <meta property="og:url" content="https://www.phuketking.com/fighters">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.phuketking.com/"}, {"@type": "ListItem", "position": 2, "name": "Fight for Phuket King", "item": "https://www.phuketking.com/fighters"}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.phuketking.com/"}, {"@type": "ListItem", "position": 2, "name": "Phuket King Fighters", "item": "https://www.phuketking.com/fighters"}]}</script>
 </head>
 <body>
 <header class="top"><div class="wrap">
@@ -105,9 +117,19 @@
 </div></header>
 
 <main class="pkbwrap"><div class="pkb">
-<h1>Fight for <span>Phuket King</span></h1>
-<p class="lead">Want to step into the ring wearing Phuket King on your shorts? This is how our fight team works, what we offer, and how fighters earn sponsorship with us.</p>
-<div class="callout"><strong>The short version</strong>We give fighters real fight opportunities, our fight programme and coaches who want you to win. We do not hand out full sponsorships on day one. Fighters earn their place: you pay your first month like everyone else, you prove yourself in training and in the ring, and the more you put in, the more we put in.</div>
+<h1>Phuket King <span>Fighters</span></h1>
+<p class="lead">Want to step into the ring wearing Phuket King on your shorts? This is our fighter programme: who leads it, the weekly timetable, what we expect, and how fighters earn sponsorship with us.</p>
+<img class="fhero" data-photo="fight_hero" src="img/fight_clinch.jpg" alt="A Phuket King coach working clinch with a fighter in the ring" loading="lazy">
+<div class="callout"><strong>The short version</strong>Anyone can join our fight training, as long as they pay for it and are ready to work hard. Sponsorship is different. To be considered, you train with us for one month at the full price, then we see how you go. Our fight coaches decide together who fits our programme, and it is not only about how many fights you have had or how good you are right now. Your attitude and mindset matter just as much. If you think you have what it takes, reach out to us.</div>
+
+<h2>Your fight coaches</h2>
+<p>The fighter programme is led by four coaches who train, corner and guide our fighters every week.</p>
+<div class="fcoach">
+<div><img data-photo="fight_coach_tom" src="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/coach_tom.jpg" alt="Coach Tom coaching a fighter" loading="lazy"><div class="in"><span class="tag">Head coach</span><h3>Coach Tom</h3><p>Specialist in injury prevention and a coach of coaches. Runs Fight Fitness and builds fighters who last.</p></div></div>
+<div><img data-photo="fight_coach_sak" src="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_fighters.jpg" alt="Kru Sak coaching a fighter" loading="lazy"><div class="in"><span class="tag">Classic technique</span><h3>Kru Sak</h3><p>Golden-era fighter with hundreds of fights and over 30 years of coaching. World Muay Thai Council champion at Lumpinee and tournament champion at Rajadamnern.</p></div></div>
+<div><img data-photo="fight_coach_pot" src="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_fighters.jpg" alt="Kru Pot coaching a fighter" loading="lazy"><div class="in"><span class="tag">Fight coach</span><h3>Kru Pot</h3><p>Pads, sparring and clinch with our fight team, and in the corner on fight night.</p></div></div>
+<div><img data-photo="fight_coach_max" src="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/coach_max.jpg" alt="Kru Max coaching a fighter" loading="lazy"><div class="in"><span class="tag">Fight coach</span><h3>Kru Max</h3><p>Pads, sparring and clinch with our fight team, and in the corner on fight night.</p></div></div>
+</div>
 
 <h2>What we offer fighters</h2>
 <ul>
@@ -120,13 +142,33 @@
 
 <h2 id="timetable" data-text="fight_tt1">Fight programme timetable</h2>
 <div class="callout"><strong data-text="fight_tt2">Extra to normal training</strong><span data-text="fight_tt3">The fight programme is for fighters and anyone training like one. Anyone can join, but it is hard work: it is not for real beginners or anyone who is not already fit. It is paid on top of your training package. Ask us before your first session.</span></div>
-<div id="fightTT"><p>Loading the timetable.</p></div>
+<div class="ftw">
+<div><b>Monday, Wednesday, Friday</b>
+<p><time>8:00am</time>Group class: Pads, Bags, Technique</p>
+<p><time>3:30pm</time>Fight Fitness</p>
+<p><time>4:30pm</time>Afternoon group class: Pads, Bag, Technique, Sparring, Clinching</p></div>
+<div><b>Tuesday, Thursday, Saturday</b>
+<p><time>8:00am</time>Group class: Run 4 - 6k, Pads, Bags, Technique</p>
+<p><time>4:00pm</time>Run</p>
+<p><time>4:30pm</time>Group class: Pads, Bag, Technique</p>
+<p><time>5:30pm</time>Specialist fighter class: Sparring, Fight and Clinching, Technique +</p></div>
+</div>
+<div class="callout"><strong>The 5:30pm specialist class</strong>Tuesday, Thursday and Saturday at 5:30pm is a special class for fighters, taken by one of our specialist coaches: Kru Pot, Kru Sak or Kru Max. It works on specific techniques with fighters, like clinching and more advanced techniques. It is not open to everyone: our coaches decide who joins.</div>
+<p class="chknote">Sunday is rest and recovery. Fight Fitness focus: Monday strength and power, Wednesday injury prevention and mobility, Friday agility and speed.</p>
+
+<h2>Coaches and fighters at work</h2>
+<div class="fgal">
+<img data-photo="fight_gal1" src="img/fight_teach.jpg" alt="A Phuket King coach teaching technique to a young fighter in the ring" loading="lazy">
+<img data-photo="fight_gal2" src="img/fight_fitness.jpg" alt="Fight Fitness: agility and pad work with Coach Tom" loading="lazy">
+<img data-photo="fight_gal3" src="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_beginners.webp" alt="Clinch work with a coach" loading="lazy">
+<img data-photo="fight_gal4" src="https://jijnshwduhgegacfvpkh.supabase.co/storage/v1/object/public/promos/site/default/home_hero.webp" alt="Fight team training in the ring" loading="lazy">
+</div>
 
 <h2>From first month to sponsored fighter</h2>
-<p>We pick who is on our fight team. This is the path every fighter follows. How far you go is down to you.</p>
+<p>Anyone can pay to join the fight training. Sponsorship is something you earn, and it takes time. Between them, our fight coaches pick who fits our programme. This is the path every sponsored fighter follows. How far you go is down to you.</p>
 <div class="path">
-<div class="lvc"><span class="tag">Step 1</span><h3>Join the fight team</h3><p class="pct">Your first month</p><dl><dt>What it is</dt><dd>You apply, we talk, and you start training with us. Your first month is paid at our full training price. Think of it as your deposit on a place in the team.</dd></dl></div>
-<div class="lvc"><span class="tag">Step 2</span><h3>Prove yourself</h3><p class="pct">In training and in the ring</p><dl><dt>What we look for</dt><dd>You follow the Phuket King fight programme, you train hard and you turn up every session. You respect your coaches and your teammates, and you fight when we put you on a card.</dd></dl></div>
+<div class="lvc"><span class="tag">Step 1</span><h3>Your first month</h3><p class="pct">Paid at the full price</p><dl><dt>What it is</dt><dd>You reach out, we talk, and you start training with us. Your first month is paid at our full training price, then we see how you go.</dd></dl></div>
+<div class="lvc"><span class="tag">Step 2</span><h3>Prove yourself</h3><p class="pct">Attitude, mindset and hard work</p><dl><dt>What we look for</dt><dd>It is not just about how much you have fought or how good you are right now. We look at your attitude and mindset: you follow the programme, train hard, turn up every session, respect your coaches and teammates, and fight when we put you on a card.</dd></dl></div>
 <div class="lvc"><span class="tag">Step 3</span><h3>Sponsored training</h3><p class="pct">Free training</p><dl><dt>What you get</dt><dd>Show us you are committed and fight for us, and there is every chance we sponsor you, starting with your training for free.</dd></dl></div>
 <div class="lvc top"><span class="tag">Step 4</span><h3>Full sponsorship</h3><p class="pct">For proven fighters, case by case</p><dl><dt>What decides it</dt><dd>Your results, your commitment, how you represent the gym, and your social media following and how active it is. More can be on the table for successful fighters, and it is different for every fighter.</dd></dl></div>
 </div>
@@ -183,23 +225,16 @@
   <div class="cols">
     <div><img class="flogo" src="icons/icon-192.png" alt="Phuket King Muay Thai" loading="lazy"><p style="margin:0;opacity:.75">Work hard. Fight easy. Recover properly. Live fully.</p></div>
     <div><h4>Phuket King</h4><a href="about.html">About us</a><a href="index.html#training">Training</a><a href="prices.html">Prices</a><a href="index.html#schedule">Schedule</a><a href="index.html#coaches">Coaches</a><a href="wellness.html">Wellness and recovery</a><a href="book.html">Stay at Pangea</a><a href="dtv.html">DTV Visa</a></div>
-    <div><h4>More</h4><a href="muay-thai-phuket.html">Muay Thai in Phuket</a><a href="beginners-muay-thai.html">Beginners guide</a><a href="education.html">Education</a><a href="shop.html">Shop</a><a href="blog.html">Blog</a><a href="fighters.html">Fight for us</a><a href="partners.html">Partners</a><a href="https://app.phuketking.com/">The Phuket King app</a><a href="privacy.html">Privacy policy</a></div>
+    <div><h4>More</h4><a href="muay-thai-phuket.html">Muay Thai in Phuket</a><a href="beginners-muay-thai.html">Beginners guide</a><a href="education.html">Education</a><a href="shop.html">Shop</a><a href="blog.html">Blog</a><a href="fighters.html">Fighters</a><a href="partners.html">Partners</a><a href="https://app.phuketking.com/">The Phuket King app</a><a href="privacy.html">Privacy policy</a></div>
     <div><h4>Contact</h4><span style="display:block;opacity:.8;margin-bottom:6px">40/2 Kathu, Phuket 83120, Thailand</span><a href="mailto:hello@phuketking.com">hello@phuketking.com</a><a href="tel:+66615155947">+66 61 515 5947</a><a data-wa="Hi Phuket King, I have a question.">WhatsApp</a><a href="https://www.instagram.com/phuketking" target="_blank" rel="noopener">Instagram</a><a href="https://www.facebook.com/phuketkingmuaythai/" target="_blank" rel="noopener">Facebook</a><a href="https://www.youtube.com/@PhuketKing" target="_blank" rel="noopener">YouTube</a></div>
   </div>
   <p class="small">© <span id="year">2026</span> Phuket King Muay Thai, Kathu, Phuket.</p>
 </div></footer>
 <div class="dock"><a class="btn light" data-wa="Hi Phuket King, I would like to fight for Phuket King. Can you tell me more?">WhatsApp</a><a class="btn red" href="#apply">Apply</a></div>
-<script src="photos.js?v=13"></script>
+<script src="photos.js?v=14"></script>
 <script src="site.js?v=26"></script>
 <script src="chat.js?v=2" defer></script>
 <script>
-/* the fight programme timetable, from the app's timetable (classes with fight in the name or type) */
-(function(){ var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], box=document.getElementById('fightTT'); if(!box||!window.PK) return;
-  PK.data().then(function(d){ var l=(d.classes||[]).filter(function(c){ return PK.fight(c); });
-    if(!l.length){ box.innerHTML='<p>Message us for the fight programme times.</p>'; return; }
-    var by={}; l.forEach(function(c){ (by[c.day]=by[c.day]||[]).push(c); });
-    box.innerHTML='<ul class="ftt">'+Object.keys(by).sort().map(function(k){ return '<li><b>'+DAYS[k]+'</b>'+by[k].map(function(c){ return '<span>'+c.time+(c.end?' to '+c.end:'')+', '+PK.esc(c.title.replace(/\s+/g,' '))+(c.off?' (not on this week)':'')+'</span>'; }).join('')+'</li>'; }).join('')+'</ul>';
-  }).catch(function(){ box.innerHTML='<p>Message us for the fight programme times.</p>'; }); })();
 (function(){
 'use strict';
 var RPC='https://jijnshwduhgegacfvpkh.supabase.co/rest/v1/rpc/', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
