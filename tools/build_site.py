@@ -16,6 +16,8 @@ OUT = os.path.join(ROOT, "site")
 LIVE = "--test" not in sys.argv
 APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
+# app pages merged into a full page: not drawn any more, their address forwards to the full page
+MERGED = {"muay-thai-for-beginners-phuket": "beginners-muay-thai"}
 PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "train.html", "partners.html", "fighters.html", "education.html", "muay-thai-basics.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "tour.js", "pano.js", "vendor", "img"]
 
@@ -144,7 +146,7 @@ def build_static(out):
     if not os.path.exists(SNAP):
         return [], None
     snap = json.load(open(SNAP, encoding="utf-8"))
-    taken = {p[:-5] for p in os.listdir(out) if p.endswith(".html")} | {"blog", "post", "page", "prices", "book", "pk", "img", "icons", "technique", "education", "courses"}
+    taken = set(MERGED) | {p[:-5] for p in os.listdir(out) if p.endswith(".html")} | {"blog", "post", "page", "prices", "book", "pk", "img", "icons", "technique", "education", "courses"}
     made = []
     post_tpl = open(os.path.join(out, "post.html"), encoding="utf-8").read()
     page_tpl = open(os.path.join(out, "page.html"), encoding="utf-8").read()
@@ -335,6 +337,8 @@ def main():
         "/mphb_room_type_category-sitemap.xml /sitemap.xml 301", "/mphb_room_type_facility-sitemap.xml /sitemap.xml 301", "/mphb_room_type_tag-sitemap.xml /sitemap.xml 301",
         "/th/ /th 301", "/th/* /th 301", "/stay /book 301", "/stay/ /book 301", "/rooms /book 301", "/rooms/ /book 301",
     ]
+    for old, new in MERGED.items():
+        r += ["/%s /%s 301" % (old, new), "/%s/ /%s 301" % (old, new)]
     slugs = json.load(open(os.path.join(ROOT, "tools", "blog_slugs.json"))) if os.path.exists(os.path.join(ROOT, "tools", "blog_slugs.json")) else []
     for s in slugs:
         r += ["/%s/ /%s 301" % (s, s)] if s in short else ["/%s /post?p=%s 301" % (s, s), "/%s/ /post?p=%s 301" % (s, s)]
