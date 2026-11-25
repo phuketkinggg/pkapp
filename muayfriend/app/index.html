@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=245"></script>
+<script src="changelog.js?v=246"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1124,7 +1124,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=181; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=182; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -1210,7 +1210,7 @@ function stepsBanner(){ if(!stepsOn()||!me||me.role!=='manager') return null;
       btn('See everything',function(){ stepGo(i+1,true); },'small')):
       h('div',{class:'row wrap',style:'margin-top:12px'},h('span',{class:'sub'},'This is the last step. '),btn('See everything',function(){ stepGo(i+1,true); },'primary small')));
 }
-function stepsSection(){ if(!isOwner()||!featOn('onboard_steps')) return null; /* owner only: it changes the menu for the whole team */
+function stepsSection(){ if(!featOn('onboard_steps')||!theOwner()) return null; /* the owner only: it changes the menu for the whole team */
   var L=stepList(), on=stepsOn(), cur=on?ONB.step:0;
   return section('Getting started in steps',null,h('div',{class:'panel pad'},
     h('p',{class:'sub',style:'margin:0 0 10px'},on?'The menu shows the steps you have reached. Pick a step to go forward or back, or see everything.':ONB?'Everything is on. Go back to steps if the app feels like too much for your team.':'Everything is on. Steps are for a new business: start with check ins, then add one part at a time.'),
@@ -1460,7 +1460,7 @@ function editStaff(s){ s=s||{}; var own=isOwner();
   openForm({title:s.id?'Edit staff member':'New staff member',values:sv,fields:[
     {key:'name',label:'Name',required:true},
     {key:'email',label:'Login email',type:'email',hint:'They sign in with this address. Coaches see only their own work and their share. Leave empty if they do not need a login.'},
-    {key:'role',onChange:function(v,set,get,o,show){ show('x_areas',own&&(v==='admin'||v==='front_desk')); show('x_perms',own&&v==='admin'); },label:'Role',type:'select',def:'coach',options:(own?[['manager','Owner: everything'],['admin','Admin: only the departments and rights you tick below']]:[]).concat([['coach','Coach'],['front_desk','Front desk: only the departments you tick below'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['maintenance','Maintenance: jobs to fix, check in and out'],['investor','Investor: sees the numbers only, for the parts you tick below']])},
+    {key:'role',onChange:function(v,set,get,o,show){ show('x_areas',own&&(v==='admin'||v==='front_desk')); show('x_perms',own&&v==='admin'); },label:'Role',type:'select',def:'coach',options:(own?[['manager','Manager: everything'],['admin','Admin: only the departments and rights you tick below']]:[]).concat([['coach','Coach'],['front_desk','Front desk: only the departments you tick below'],['resort','Resort: stays, room bills and meals'],['housekeeping','Housekeeping: cleaning, problems and mini bar'],['kitchen','Kitchen: the kitchen order screen only'],['maintenance','Maintenance: jobs to fix, check in and out'],['investor','Investor: sees the numbers only, for the parts you tick below']])},
     {key:'x_areas',label:'Departments',type:'checks',hide:!(own&&(s.role==='admin'||s.role==='front_desk')),options:[['gym','Gym: training, classes, privates, gym shop'],['spa','Spa'],['resort',BIZ_STAY+': rooms, stays, housekeeping'],['cafe',DEPT_CAFE]],hint:'What they look after. Tick none for all departments.'},
     {key:'x_perms',label:'What they can do',type:'checks',hide:!(own&&s.role==='admin'),options:[['edit','Change things (without this they can only look)'],['refunds','Refunds, discounts and fixing mistakes'],['money','Accounts, receipts, invoices and money reports'],['staff','Staff, hours, pay and commission'],['settings','Settings, packages, prices and website'],['marketing','Newsletters, social media and contacts']]},
     {key:'branches',label:'Branches',type:'checks',hide:!brOn()||!own,options:(BR||[]).map(function(b){ return [b.id,b.name]; }),hint:'They see only the customers and staff of these branches. Tick none and they see every branch (for the owner and the big bosses).'},
@@ -7713,6 +7713,8 @@ function isBoss(){ return me&&((me.role==='manager'&&can('refunds'))||me.role===
 /* access: the owner has everything; an admin has the rights ticked; departments limit admins and front desk */
 function can(p){ return !!me&&(!me.admin||((me.access&&me.access.perms)||[]).indexOf(p)>=0); }
 function isOwner(){ return !!me&&me.role==='manager'&&!me.admin; }
+/* the one owner of the business (Settings, Owner, feature owner_lock); without an owner set, any manager who is not an admin */
+function theOwner(){ if(featOn('owner_lock')){ if(OWN===undefined) ownLoad(); if(OWN&&OWN.owner) return !!OWN.me; } return isOwner(); }
 function inArea(a){ var A=me&&me.access&&me.access.areas||[]; return !A.length||A.indexOf(a)>=0; }
 function locAllowed(l){ return /cafe/i.test(l.name||'')?(inArea('cafe')||inArea('resort')):(inArea('gym')||inArea('spa')); }
 function loadShop(){ ui.shopBusy=true; if(!PP) loadPP(); return Promise.all([sb.rpc('shop_catalog'),sb.rpc('shop_sales',{p_from:null,p_to:null}),sb.rpc('shop_approvals_list')]).then(function(r){
