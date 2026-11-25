@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=244"></script>
+<script src="changelog.js?v=245"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1115,7 +1115,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=180; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=181; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -1201,13 +1201,13 @@ function stepsBanner(){ if(!stepsOn()||!me||me.role!=='manager') return null;
       btn('See everything',function(){ stepGo(i+1,true); },'small')):
       h('div',{class:'row wrap',style:'margin-top:12px'},h('span',{class:'sub'},'This is the last step. '),btn('See everything',function(){ stepGo(i+1,true); },'primary small')));
 }
-function stepsSection(){ if(!me||me.role!=='manager'||!featOn('onboard_steps')) return null;
+function stepsSection(){ if(!isOwner()||!featOn('onboard_steps')) return null; /* owner only: it changes the menu for the whole team */
   var L=stepList(), on=stepsOn(), cur=on?ONB.step:0;
   return section('Getting started in steps',null,h('div',{class:'panel pad'},
     h('p',{class:'sub',style:'margin:0 0 10px'},on?'The menu shows the steps you have reached. Pick a step to go forward or back, or see everything.':ONB?'Everything is on. Go back to steps if the app feels like too much for your team.':'Everything is on. Steps are for a new business: start with check ins, then add one part at a time.'),
     h('div',null,L.map(function(x,j){ return h('div',{class:'row',style:'justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line,#eee)'},
       h('div',null,h('b',null,(j+1)+'. '+x.n),h('div',{class:'sub'},x.win)),
-      on&&j+1===cur?chip('You are here','ok'):on&&j+1<cur?chip('On','ok'):btn(on?(j+1>cur?'Go to this step':'Back to this step'):'Start here',function(){ stepGo(j+1); },'small')); })),
+      on&&j+1===cur?chip('You are here','ok'):on&&j+1<cur?chip('On','ok'):btn(on?(j+1>cur?'Go to this step':'Back to this step'):'Start here',function(){ if(on&&j+1>cur) return stepGo(j+1); openForm({title:(on?'Back to step ':'Start at step ')+(j+1)+': '+x.n,note:'The menu of everyone in your team (managers, admins, front desk, coaches) then shows only the steps up to here. Everything else is hidden until you move on or tap See everything. Your data stays as it is.',saveLabel:'Yes, change the menu',fields:[],onSave:function(){ stepGo(j+1); return Promise.resolve(); }}); },'small')); })),
     on?h('p',{style:'margin:10px 0 0'},btn('See everything',function(){ stepGo(cur,true); },'small')):null));
 }
 /* the online course offered with packages (Courses, Offer with packages) */
