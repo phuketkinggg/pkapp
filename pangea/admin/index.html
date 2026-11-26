@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=252"></script>
+<script src="changelog.js?v=253"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -938,6 +938,7 @@ var FEATURES=[
   {k:'meal_checkout',g:'Rooms',n:'Meal plans run to the check-out day',d:'Check-in is in the afternoon, so a guest with a meal plan gets dinner the day they arrive, and breakfast and lunch the day they leave: 3 meals a night in all. Their meal plan runs to the check-out day, and the kitchen list says Arrived today: dinner, or Leaving today: breakfast and lunch. Off: the plan ends the day before check-out.'},
   {k:'stay_move_extras',g:'Rooms',n:'Packages move with the stay',d:'When you change the dates of a stay, its meal plans, deal items and booking extras move with it, not only the included training. A package that ran to the end of the stay keeps running to the new end.'},
   {k:'area_map',g:'Rooms',n:'Map of the area for guests',d:'Guests with a stay get a Map of the area button in their app, opening a map of your place and what is nearby (shops, cash machines, a run route). Add the link in Settings, Rooms and stays.',def:false},
+  {k:'one_customer',g:'Customers',n:'One customer, one file',d:'Merging two customers moves everything to the one you keep: payments, invoices, food plans, notes, health, courses and every other record, not only stays and packages. When a package, private or stay moves to another customer, its payments, check-ins and food plans move too. Removing a customer who has payments or invoices keeps them as Deleted customer, so the money stays on one record.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1124,7 +1125,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=188; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=189; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
