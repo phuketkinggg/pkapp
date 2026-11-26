@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=248"></script>
+<script src="changelog.js?v=249"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -861,6 +861,9 @@ function pxOf(v){ return {fee:v.x_fee?Math.max(0,Math.round(Number(v.fee_thb)||0
 function pxHide(show,on){ ['x_fee','x_tax'].forEach(function(k){ show(k,on); }); if(!on) ['fee_thb','tax_thb','x_total'].forEach(function(k){ show(k,false); }); }
 var FACILITIES=['Fitness zone','Open gym','Spa'];
 var MEAL='Cafe meal';
+/* what a meal plan counts: breakfasts, lunches, dinners, or meals when it is a mix (from its name) */
+function mealWord(name,n){ var t=String(name||'').toLowerCase(), b=/breakfast/.test(t), l=/lunch/.test(t), d=/dinner/.test(t), w=b&&!l&&!d?'breakfast':l&&!b&&!d?'lunch':d&&!b&&!l?'dinner':'meal';
+  return n===1?w:{breakfast:'breakfasts',lunch:'lunches',dinner:'dinners',meal:'meals'}[w]; }
 function isMealOnly(p){ return !!(p&&p.covers&&p.covers.length&&p.covers.every(function(c){ return c===MEAL; })); }
 function coverReason(p,target){
   if(p.covers==null) return null;
@@ -1127,7 +1130,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=184; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=185; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -2809,10 +2812,11 @@ function editStay(st){
     fields.splice(fields.length-1,0,{key:'guests',label:'How many people in the room',type:'select',options:[['','Not set']].concat(gN),def:''},
       {key:'guest_names',label:'Who is staying',type:'textarea',hint:'Everyone in the room, one name a line, the person who booked first. Their names show on the stay, and you can add a package for each of them.'}); }
   if(!st.id) fields.splice(fields.length-1,0,
-    {key:'deal',label:'Special deal: one price for the room and everything included',type:'checkbox',onChange:function(v,set,get,o,show){ ['deal_inc','deal_meals','deal_privates','deal_priv_value','deal_other'].forEach(function(k){ show(k,!!v); }); show('training_included',!v); }},
-    {key:'deal_inc',label:'Included in the deal price',type:'checks',hide:true,options:[['training','Unlimited group Muay Thai'],['recovery','Recovery (sauna and ice bath)'],['fz','Fitness zone'],['meals','Meal plan'],['privates','Private sessions']],def:['training'],
+    {key:'deal',label:'Special deal: one price for the room and everything included',type:'checkbox',onChange:function(v,set,get,o,show){ ['deal_inc','deal_meals','deal_meal_kind','deal_privates','deal_priv_value','deal_other'].forEach(function(k){ show(k,!!v); }); show('training_included',!v); }},
+    {key:'deal_inc',label:'Included in the deal price',type:'checks',hide:true,options:[['training','Unlimited group Muay Thai'],['recovery','Recovery (sauna and ice bath)'],['fz','Fitness zone'],['meals','Meals (breakfast, lunch or dinner)'],['privates','Private sessions']],def:['training'],
       hint:'Type the whole deal price in Room price above. Everything ticked here is included for the stay.'},
-    {key:'deal_meals',label:'Meals included (number of meals)',type:'number',hide:true},
+    {key:'deal_meal_kind',label:'Which meal',type:'select',hide:true,def:'breakfast',options:[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner'],['meal','Any meal']]},
+    {key:'deal_meals',label:'How many (for example 6 for 6 breakfasts)',type:'number',hide:true},
     {key:'deal_privates',label:'Private sessions included',type:'number',hide:true},
     {key:'deal_priv_value',label:'Value of each private inside the deal (THB)',type:'number',hide:true,def:700,hint:'Used to pay the coach. This part of the deal shows as the private pack, the rest as the room.'},
     {key:'deal_other',label:'Anything else included',hide:true,hint:'For example: airport pick up. Shows on the bill and the welcome email.'});
@@ -2826,13 +2830,14 @@ function editStay(st){
       if(!v.customer_id&&!v.new_name) return 'Choose a guest or type a new guest name.';
       var deal=!st.id&&v.deal, inc=deal?(v.deal_inc||[]):[], dN=Math.round((parseYmd(v.check_out)-parseYmd(v.check_in))/864e5), privN=inc.indexOf('privates')>=0?Math.round(v.deal_privates||0):0, privV=Math.round(Number(v.deal_priv_value)||0);
       if(deal){ if(v.room_price_thb===''||v.room_price_thb==null) return 'Type the whole deal price in Room price.';
-        if(inc.indexOf('meals')>=0&&!(v.deal_meals>0)) return 'Type how many meals are included.';
+        var mlN=Math.round(v.deal_meals||0), mlW={breakfast:'breakfast',lunch:'lunch',dinner:'dinner'}[v.deal_meal_kind]||'meal', mlTxt=mlN+' '+mealWord(mlW,mlN);
+        if(inc.indexOf('meals')>=0&&!(mlN>0)) return 'Type how many '+mealWord(mlW)+' are included.';
         if(inc.indexOf('privates')>=0&&!(privN>0)) return 'Type how many private sessions are included.';
         if(privN*privV>Number(v.room_price_thb)) return 'The privates are worth more than the whole deal. Lower the value of each private.';
         v.training_included=inc.indexOf('training')>=0;
         v.room_price_thb=Number(v.room_price_thb)-privN*privV;
         var incTxt=inc.filter(function(k){ return k!=='privates'&&k!=='meals'; }).map(function(k){ return {training:'unlimited group Muay Thai',recovery:'recovery',fz:'fitness zone'}[k]; });
-        if(inc.indexOf('meals')>=0) incTxt.push(v.deal_meals+' meals'); if(privN) incTxt.push(privN+' privates'); if(v.deal_other) incTxt.push(v.deal_other);
+        if(inc.indexOf('meals')>=0) incTxt.push(mlTxt); if(privN) incTxt.push(privN+' privates'); if(v.deal_other) incTxt.push(v.deal_other);
         v.notes=('Special deal '+thb(Number(v.room_price_thb)+privN*privV)+(incTxt.length?', includes '+incTxt.join(', '):'')+'. '+(v.notes||'')).trim(); }
       var price=v.room_price_thb===''||v.room_price_thb==null?null:Math.round(Number(v.room_price_thb)), paid=Math.round(Number(v.room_paid_thb)||0);
       if(price!=null&&(isNaN(price)||price<0)) return 'The room price must be a number.';
@@ -2870,7 +2875,7 @@ function editStay(st){
           var sid=ns0?ns0.id:null;
           if(inc.indexOf('recovery')>=0) inc0('Recovery for the stay',['Spa'],null,sid);
           if(inc.indexOf('fz')>=0) inc0('Fitness zone for the stay',['Fitness zone','Open gym'],null,sid);
-          if(inc.indexOf('meals')>=0) inc0(Math.round(v.deal_meals)+' meals',[MEAL],Math.round(v.deal_meals),sid);
+          if(inc.indexOf('meals')>=0) inc0(mlTxt,[MEAL],mlN,sid);
           if(v.deal_other) inc0(v.deal_other,[],null,sid);
           if(privN){ var pp={customer_id:cid0,package_name:'Privates in the deal, '+privN+' sessions',price_thb:privN*privV,price_group:'standard',paid:false,paid_thb:0,purchased_on:today,covers:['Privates'],class_limit:privN,classes_left:privN,starts_on:v.check_in,expires_on:addDays(v.check_out,30),duration_days:dN+30};
             dealJobs.push(sb.from('purchases').insert(toRow('purchases',pp,true)).then(must)); } }
@@ -3180,7 +3185,7 @@ function stayCard(st,day){
   if(st.status==='booked'||st.status==='in') acts.push(btn(st.welcome_sent_at?'Email again':'Welcome email',function(){ welcomeEmail(st); },'small'));
   var bits=[fmtDate(st.check_in)+' to '+fmtDate(st.check_out)+', '+nights(st)+' night'+(nights(st)===1?'':'s'),(st.room_price_thb!=null?'Room '+thb(st.room_price_thb)+(Number(st.room_paid_thb)>0?', '+thb(st.room_paid_thb)+' paid':'')+'. ':'No room price. ')+(st.settled?'Settled':'To pay '+(thb(Math.max(0,total))||'0 THB'))];
   if(FPSTAY[st.id]) bits.unshift('Food plan: '+FPSTAY[st.id]);
-  if(meal) bits.push('Meals left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:''));
+  if(meal){ var mw=mealWord(meal.package_name); bits.push(mw.charAt(0).toUpperCase()+mw.slice(1)+' left: '+left(meal)+(meal.class_limit?' of '+meal.class_limit:'')); }
   var adds=stayAddOns(st).filter(function(p){ return !meal||p.id!==meal.id; });
   if(adds.length) bits.push('Extras: '+adds.map(addOnLine).join('; '));
   if(st.guests) bits.push(st.guests);
@@ -8666,7 +8671,7 @@ function mealsUnserve(m){ var t=(m.today||[]).filter(function(x){ return !x.bill
 function mealPlansBox(){ if(!mealsNeed()||!MEALS) return null;
   return section('Meal plans today ('+MEALS.length+')',btn('Refresh',mealsLoad,'small'),cards(MEALS.map(function(m){ var n=(m.today||[]).length;
     return {when:m.room||'Not staying',right:chip(n?n+' served today':'None yet today',n?'ok':null),title:h('span',{class:'notr'},m.who),
-      note:[m.plan,m.left!=null?m.left+(m.limit?' of '+m.limit:'')+' meals left':null,m.until?'Until '+fmtDate(m.until):null,m.not_paid?'Not paid yet':null].filter(Boolean).join('. ')+(m.note?'. ':''),
+      note:[m.plan,m.left!=null?m.left+(m.limit?' of '+m.limit:'')+' '+mealWord(m.plan)+' left':null,m.until?'Until '+fmtDate(m.until):null,m.not_paid?'Not paid yet':null].filter(Boolean).join('. ')+(m.note?'. ':''),
       act:[m.note?h('span',{class:'sub notr'},m.note):null,btn('Meal served',function(){ mealsServe(m,this); },'primary small'),(m.today||[]).some(function(x){ return !x.billed; })?btn('Undo',function(){ mealsUnserve(m); },'small'):null]}; }),'Nobody has a meal plan running today.')); }
 function mealBillLines(b){ return (b.lines||[]).map(function(l){ return l.n+' x '+l.plan+(l.b&&BIZ.length>1?' ('+l.b+')':'')+', '+thb(l.amount); }).join('. '); }
 function mealBillsBox(){ if(!mealsNeed()||!MBILLS||MBILLS.off) return null;
@@ -11941,7 +11946,7 @@ function cuCheckInMain(){
 }
 function pkgCard(p){
   var st=cuState(p), pack=isPrivatePack(p), bits=[];
-  if(p.class_limit) bits.push(classesLeft(p)+' of '+p.class_limit+(pack?' sessions':isMealOnly(p)?' meals':' visits')+' left');
+  if(p.class_limit) bits.push(classesLeft(p)+' of '+p.class_limit+(pack?' sessions':isMealOnly(p)?' '+mealWord(p.package_name):' visits')+' left');
   if(p.per_week_limit) bits.push((p.used_week||0)+' of '+p.per_week_limit+' used this week');
   if(p.expires_on) bits.push((st.status==='expired'?'Ended ':'Valid until ')+fmtDate(p.expires_on));
   else if(!p.starts_on) bits.push('Starts on your first visit'+(p.start_by?', start by '+fmtDate(p.start_by):''));
