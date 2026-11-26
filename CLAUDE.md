@@ -25,6 +25,9 @@ The apps are built for durability and utility: wherever a business could want it
    `bnglnfdgptvnmugntiom`, made from a template of the live database (`tools/mf_template.sql`, re-run it after database changes).
 7. The demo builds check their own JavaScript (`tools/check_js.py`) and stop if a word swap broke the code. Check `index.html` the same way
    (`python3 tools/check_js.py index.html`) and test the database functions before telling Tom it is done.
+8. After an update is live, check the app error log (`select * from private.app_errors order by at desc limit 50` on live) for new errors.
+   Phones that fail to start a new version fall back to their last good copy (sw.js GOOD cache, boot guard at the top of index.html): keep both working,
+   and keep `window.__pkReady=true` as the last line of the main script.
 
 ## Never hardcode one business
 
