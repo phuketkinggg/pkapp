@@ -1697,7 +1697,7 @@ function editPurchase(p){
       if(pp){ var want=Math.round(Number(v.classes_left)); if(isNaN(want)||want<0) return 'Type how many sessions are left.'; var ub=p.class_limit-booked-want;
         if(ub<0) return 'That is more than the pack holds. '+p.class_limit+' sessions, '+booked+' booked in the app, so at most '+(p.class_limit-booked)+' left.';
         body.used_before=ub; body.classes_left=null; }
-      return (redate?sb.rpc('purchase_redate',{p_id:p.id,p_day:nb,p_move_payments:true}).then(must).then(function(){ reload('payments'); }):Promise.resolve()).then(function(){ return save('purchases',p.id,body); }); },
+      return (redate?sb.rpc('purchase_redate',{p_id:p.id,p_day:nb,p_move_payments:true}).then(must):Promise.resolve()).then(function(){ return save('purchases',p.id,body); }); },
     extraBtn:me&&me.role==='manager'&&!(p.stay_id&&p.package_name==='Stay: group Muay Thai included')?['Delete (mistake)',function(){ $dlg.close(); deletePurchase(p); }]:null});
 }
 function onHol(sid,day){ return (S.holidays||[]).some(function(x){ return x.staff_id===sid&&x.status==='approved'&&day>=x.from&&day<=(x.to||x.from); }); }
