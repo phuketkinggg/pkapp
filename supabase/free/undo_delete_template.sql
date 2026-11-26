@@ -56,13 +56,13 @@ begin
 end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (405903, 4, 'patch', 'undo_delete:405903', $TPL$create or replace function __P__.trash_restore(p_txid bigint) returns jsonb language plpgsql security definer set search_path = '' as $f$
 declare sch text := (select n.nspname from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.oid = '__P__.stays'::regclass);
-  r record; cols text; n int := 0; u int := 0; who text; ord text[] := array['stays','purchases','privates','shop_orders','shop_order_items','payments','checkins','room_charges','food_plans'];
+  r record; cols text; n int := 0; u int := 0; v_who text; ord text[] := array['stays','purchases','privates','shop_orders','shop_order_items','payments','checkins','room_charges','food_plans'];
 begin
   if coalesce(__Q__.staff_role(), '') <> 'manager' then raise exception 'Only a manager can undo a delete.'; end if;
   if not __Q__.feature('undo_delete', true) then raise exception 'Switched off in Settings, Features.'; end if;
   if not exists (select 1 from __Q__.trash where txid = p_txid and op = 'delete') then raise exception 'Nothing to undo.'; end if;
   if exists (select 1 from __Q__.trash where txid = p_txid and restored_at is not null) then raise exception 'This was already put back.'; end if;
-  who := (select s.name from __P__.staff s where s.id = __Q__.my_staff_id());
+  v_who := (select s.name from __P__.staff s where s.id = __Q__.my_staff_id());
   set local session_replication_role = replica;  -- put rows back as they were, without the side effects of a new sale or check-in
   for r in select t.* from __Q__.trash t where t.txid = p_txid and t.op = 'delete' order by array_position(ord, t.tbl), t.id loop
     select string_agg(quote_ident(a.attname), ', ' order by a.attnum) into cols from pg_attribute a
@@ -76,7 +76,7 @@ begin
     execute format('update %I.%I t set (%s) = (select %s from jsonb_populate_record(null::%I.%I, $1)) where t.id = ($1->>''id'')::uuid', sch, r.tbl, cols, cols, sch, r.tbl) using r.row;
     u := u + 1;
   end loop;
-  update __Q__.trash set restored_at = now(), restored_by = who where txid = p_txid;
+  update __Q__.trash set restored_at = now(), restored_by = v_who where txid = p_txid;
   return jsonb_build_object('ok', true, 'restored', n, 'changes_undone', u);
 end $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1199953, 11, 'patch', 'undo_delete:1199953', $TPL$revoke all on function __P__.trash_list(int), __P__.trash_restore(bigint) from public, anon;$TPL$);

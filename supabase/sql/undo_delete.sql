@@ -70,13 +70,13 @@ end $f$;
 -- put back everything from one delete, as it was
 create or replace function public.trash_restore(p_txid bigint) returns jsonb language plpgsql security definer set search_path = '' as $f$
 declare sch text := (select n.nspname from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.oid = 'public.stays'::regclass);
-  r record; cols text; n int := 0; u int := 0; who text; ord text[] := array['stays','purchases','privates','shop_orders','shop_order_items','payments','checkins','room_charges','food_plans'];
+  r record; cols text; n int := 0; u int := 0; v_who text; ord text[] := array['stays','purchases','privates','shop_orders','shop_order_items','payments','checkins','room_charges','food_plans'];
 begin
   if coalesce(private.staff_role(), '') <> 'manager' then raise exception 'Only a manager can undo a delete.'; end if;
   if not private.feature('undo_delete', true) then raise exception 'Switched off in Settings, Features.'; end if;
   if not exists (select 1 from private.trash where txid = p_txid and op = 'delete') then raise exception 'Nothing to undo.'; end if;
   if exists (select 1 from private.trash where txid = p_txid and restored_at is not null) then raise exception 'This was already put back.'; end if;
-  who := (select s.name from public.staff s where s.id = private.my_staff_id());
+  v_who := (select s.name from public.staff s where s.id = private.my_staff_id());
   set local session_replication_role = replica;  -- put rows back as they were, without the side effects of a new sale or check-in
   for r in select t.* from private.trash t where t.txid = p_txid and t.op = 'delete' order by array_position(ord, t.tbl), t.id loop
     select string_agg(quote_ident(a.attname), ', ' order by a.attnum) into cols from pg_attribute a
@@ -90,7 +90,7 @@ begin
     execute format('update %I.%I t set (%s) = (select %s from jsonb_populate_record(null::%I.%I, $1)) where t.id = ($1->>''id'')::uuid', sch, r.tbl, cols, cols, sch, r.tbl) using r.row;
     u := u + 1;
   end loop;
-  update private.trash set restored_at = now(), restored_by = who where txid = p_txid;
+  update private.trash set restored_at = now(), restored_by = v_who where txid = p_txid;
   return jsonb_build_object('ok', true, 'restored', n, 'changes_undone', u);
 end $f$;
 revoke all on function public.trash_list(int), public.trash_restore(bigint) from public, anon;
