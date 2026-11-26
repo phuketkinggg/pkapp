@@ -6,6 +6,16 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://phjekupadmjwzrocahiv.supabase.co https://i.ytimg.com; connect-src 'self' https://phjekupadmjwzrocahiv.supabase.co wss://phjekupadmjwzrocahiv.supabase.co https://*.facebook.com https://connect.facebook.net; media-src 'self' blob: https://phjekupadmjwzrocahiv.supabase.co; worker-src 'self'; manifest-src 'self'; frame-src 'self' https://www.youtube-nocookie.com https://*.facebook.com; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Massage Mate Demo Spa | Massage Mate demo</title><meta name="robots" content="noindex">
+<script>
+/* safety net: if a new version of the app fails to start on this phone, go back to the last version that worked (the service worker keeps it) */
+(function(){ var B=window.__pkBoot={err:null};
+  window.addEventListener('error',function(e){ if(!B.err) B.err=String((e&&e.message)||'error').slice(0,300); });
+  window.addEventListener('load',function(){ setTimeout(function(){ var sw=navigator.serviceWorker&&navigator.serviceWorker.controller;
+    if(window.__pkReady){ if(sw) sw.postMessage({type:'pk-good'}); return; }
+    if(sw&&!/[?&]safe=1/.test(location.search)){ sw.postMessage({type:'pk-bad'}); try{ localStorage.setItem('pk_fell_back',B.err||'did not start'); }catch(x){}
+      setTimeout(function(){ location.replace(location.pathname+'?safe=1'+location.hash); },400); } },8000); });
+})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -20,7 +30,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=256"></script>
+<script src="changelog.js?v=257"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -950,6 +960,7 @@ var FEATURES=[
   {k:'hk_calendar',g:'Rooms',n:'Housekeeping calendar',d:'Housekeeping see Check in today (red) and Check out today (purple) at the top of their app, then the room calendar for the next days (who arrives, who leaves, full or empty), which they cannot change. Guests show by first name only. In English and Burmese.'},
   {k:'undo_delete',g:'Customers',n:'Undo a delete',d:'Everything deleted (packages, privates, stays, check ins, payments, shop sales, room charges) is kept for 60 days. Managers see it in Settings, Activity, Recently deleted, and Undo puts it back as it was, with the check ins and payments that went with it.'},
   {k:'redate_purchase',g:'Selling',n:'Change the date a package was bought',d:'Managers can change Bought on in Edit on a package. Payments taken on the old date move to the new date in Accounts too.'},
+  {k:'error_log',g:'Team',n:'App errors and safety net',d:'Errors anyone hits in the app are logged in Settings, Activity, App errors, so they can be fixed before anyone reports them. If a new version of the app fails to start on a phone, that phone goes back to the last version that worked until a fixed one arrives.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1136,7 +1147,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=193; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=194; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -11222,6 +11233,15 @@ function histDlg(tbl,id,title){ sb.rpc('audit_list',{p_tbl:tbl,p_row:id}).then(m
       :h('p',{class:'sub'},'Nothing recorded yet. Changes are recorded from now on.'),
     h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); },'primary')))); }).catch(function(e){ toast(errText(e)); }); }
 /* Recently deleted (feature undo_delete): every delete in the last 30 days, and Undo puts it back as it was, with its check-ins and payments */
+/* App errors (feature error_log): what went wrong on phones in the last 7 days, most common first */
+var ERRS=null;
+function errSection(){
+  if(ERRS===null){ ERRS=false; sb.rpc('app_error_list',{p_days:7}).then(function(r){ ERRS=r.error?[]:(r.data||[]); schedule(); },function(){ ERRS=[]; }); }
+  return section('App errors',btn('Refresh',function(){ ERRS=null; schedule(); },'small'),
+    !ERRS?h('div',{class:'panel empty'},'Loading.'):!ERRS.length?h('div',{class:'panel empty'},'No errors in the last 7 days.'):
+    cards(ERRS.map(function(x){ return {when:x.n+' time'+(x.n===1?'':'s')+', last '+new Date(x.last).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}),
+      title:h('span',{class:'notr'},x.msg),note:h('span',{class:'notr'},[x.where,x.roles?'Who: '+x.roles:null].filter(Boolean).join('. '))}; }),''),
+    h('p',{class:'sub'},'Errors people hit in the app are kept here for 30 days, so they can be fixed before anyone reports them. If a new version ever fails to start on a phone, that phone goes back to the last version that worked, and it shows here.')); }
 var TRASH=null;
 function trashSection(){
   if(TRASH===null){ TRASH=false; sb.rpc('trash_list',{p_days:30}).then(function(r){ TRASH=r.error?[]:(r.data||[]); schedule(); },function(){ TRASH=[]; }); }
@@ -11353,7 +11373,7 @@ function vSettings(){
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
-  else if(t==='activity') body=[featOn('undo_delete')&&me&&me.role==='manager'?trashSection():null,histOk()?auditSection():null];
+  else if(t==='activity') body=[featOn('undo_delete')&&me&&me.role==='manager'?trashSection():null,featOn('error_log')&&me&&me.role==='manager'?errSection():null,histOk()?auditSection():null];
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
@@ -13584,6 +13604,16 @@ if(!window.supabase||!window.supabase.createClient){
     (me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); },30000);
   window.addEventListener('focus',function(){ if(me&&Date.now()-lastLoad>20000) (me.role==='customer'?loadCustomer():me.role==='coach'?loadCoach():me.role==='housekeeping'?loadHK():loadAll().then(function(){ if(HKD) return reloadHKDesk(); })).catch(function(){}); });
 }
+/* error log (feature error_log): errors on any phone go to Settings, Activity, App errors, so problems are found before anyone has to report them */
+(function(){ var sent=0, seen={};
+  function report(msg,where){ try{ msg=String(msg||'').slice(0,500); if(!msg||sent>=5||seen[msg]||!featOn('error_log')) return; seen[msg]=1; sent++;
+    sb.rpc('app_error_log',{p:{msg:msg,where:String(where||'').slice(0,500),page:location.pathname+location.hash,ver:(document.querySelector('script[src*="changelog.js"]')||{}).src||'',role:me&&me.role||'',agent:navigator.userAgent.slice(0,200)}}).then(function(){},function(){}); }catch(x){} }
+  window.addEventListener('error',function(e){ report(e&&e.message,e&&e.filename?e.filename+':'+e.lineno:''); });
+  window.addEventListener('unhandledrejection',function(e){ var r=e&&e.reason; if(r&&(r.code||r.status)) return; report(r&&r.message||r,'promise'); });
+  var fb=null; try{ fb=localStorage.getItem('pk_fell_back'); if(fb) localStorage.removeItem('pk_fell_back'); }catch(x){}
+  if(fb) setTimeout(function(){ report('A new version did not start, this phone went back to the last good version: '+fb,'safety net'); },3000);
+})();
+window.__pkReady=true;
 })();
 </script>
 <script>

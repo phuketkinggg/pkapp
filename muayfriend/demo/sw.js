@@ -1,12 +1,14 @@
 // Keeps the app installable and opens the last copy when there is no signal.
 // Always tries the network first, so updates show up straight away. Data calls are never cached.
-const CACHE = 'mf-demo-v385';
+const CACHE = 'mf-demo-v386';
+// the last version that started properly on this phone, and a mark when a newer one failed to start
+const GOOD = CACHE.replace(/v\d+$/, 'good');
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './vendor/supabase-js-2.117.2.js', './vendor/qrcode-generator-1.4.4.js'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   // only this app's older copies are removed: the other apps on the same address keep their own
   const mine = CACHE.replace(/v\d+$/, '');
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k.startsWith(mine)).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k !== GOOD && k.startsWith(mine)).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request, url = new URL(req.url);
@@ -14,7 +16,14 @@ self.addEventListener('fetch', (e) => {
   const root0 = new URL('./', self.location).pathname;
   const isApp = req.mode === 'navigate' && (url.pathname === root0 || url.pathname === root0 + 'index.html');
   // the app page always asks the server for the newest copy (skips the browser's 10 minute cache), so an update shows on the next open
-  e.respondWith((isApp ? fetch(url.href, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req)).then((res) => {
+  // safety net: this version failed to start on this phone, so open the last good one until a newer version arrives
+  if (isApp) {
+    e.respondWith(caches.open(GOOD).then((g) => Promise.all([g.match('__bad'), g.match('./')]).then(([bad, good]) => Promise.resolve(bad ? bad.text() : '').then((b) =>
+      good && (b === CACHE || url.searchParams.get('safe') === '1') ? good : fresh()))).catch(fresh));
+    return;
+  }
+  e.respondWith(fresh());
+  function fresh() { return (isApp ? fetch(url.href, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req)).then((res) => {
     // only the app itself is kept as the offline copy, never other pages (invoice, booking)
     const root = root0;
     const appPage = isApp;
@@ -22,7 +31,16 @@ self.addEventListener('fetch', (e) => {
       const copy = res.clone(); caches.open(CACHE).then((c) => c.put(appPage ? './' : req, copy));
     }
     return res;
-  }).catch(() => { const root = new URL('./', self.location).pathname; return caches.match(req.mode === 'navigate' ? ((url.pathname === root || url.pathname === root + 'index.html') ? './' : req) : req).then((r) => r || (req.mode !== 'navigate' || url.pathname.startsWith(root + 'pangea/') ? r : caches.match('./'))); }));
+  }).catch(() => { const root = new URL('./', self.location).pathname; return caches.match(req.mode === 'navigate' ? ((url.pathname === root || url.pathname === root + 'index.html') ? './' : req) : req).then((r) => r || (req.mode !== 'navigate' || url.pathname.startsWith(root + 'pangea/') ? r : caches.match('./'))); }); }
+});
+// the app page says when it started properly (keep it as the last good copy) or failed to start (open the last good copy)
+self.addEventListener('message', (e) => {
+  const t = e.data && e.data.type;
+  if (t === 'pk-good') e.waitUntil(caches.open(GOOD).then((g) => g.match('__bad').then((bad) => Promise.resolve(bad ? bad.text() : '').then((b) => {
+    if (b === CACHE) return;  // never keep a version that failed on this phone
+    return caches.open(CACHE).then((c) => c.match('./')).then((r) => r && g.put('./', r));
+  }))));
+  if (t === 'pk-bad') e.waitUntil(caches.open(GOOD).then((g) => g.match('./').then((good) => good && g.put('__bad', new Response(CACHE)))));
 });
 
 // Phone notifications: chat messages, and new food and drink orders for staff (turned on in the app: Messages, or the kitchen screen).
