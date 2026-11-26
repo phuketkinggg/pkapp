@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=254"></script>
+<script src="changelog.js?v=255"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -193,6 +193,13 @@ body.chatting{overflow:hidden}
 .chatbox{width:100%;max-width:720px;display:flex;flex-direction:column;height:100%;height:100dvh}
 .chathead{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--surface)}
 .chattitle{flex:1;min-width:0;display:flex;flex-direction:column}
+.card.hkin{border:3px solid #d32f2f;background:rgba(211,47,47,.08)}.card.hkout{border:3px solid #7e3fbf;background:rgba(126,63,191,.09)}
+.hktag{display:inline-block;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;color:#fff;margin-right:8px}
+.hkin .hktag{background:#d32f2f}.hkout .hktag{background:#7e3fbf}.hkroom{font-size:20px}
+.hkcalw{overflow-x:auto}.hkcal{border-collapse:collapse;font-size:13px;min-width:100%}.hkcal th,.hkcal td{border:1px solid var(--line);padding:6px 4px;text-align:center;min-width:44px}
+.hkcal th.rn{text-align:left;white-space:nowrap;position:sticky;left:0;background:var(--card,var(--bg));z-index:1}.hkcal th.today{background:var(--ink);color:var(--bg)}
+.hkc.full{background:rgba(46,125,50,.18)}.hkc.in{background:#d32f2f;color:#fff;font-weight:700}.hkc.out{background:#7e3fbf;color:#fff;font-weight:700}.hkcal td.today{outline:2px solid var(--ink);outline-offset:-2px}
+.hkleg{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.hkleg .hkc{padding:3px 10px;border-radius:6px;border:1px solid var(--line);font-size:13px}
 .chatcust{margin-top:4px}.chatcust .btn{margin-left:2px}
 .chattitle b,.chattitle .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chatmsgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
@@ -948,6 +955,7 @@ var FEATURES=[
   {k:'stay_move_extras',g:'Rooms',n:'Packages move with the stay',d:'When you change the dates of a stay, its meal plans, deal items and booking extras move with it, not only the included training. A package that ran to the end of the stay keeps running to the new end.'},
   {k:'area_map',g:'Rooms',n:'Map of the area for guests',d:'Guests with a stay get a Map of the area button in their app, opening a map of your place and what is nearby (shops, cash machines, a run route). Add the link in Settings, Rooms and stays.',def:false},
   {k:'one_customer',g:'Customers',n:'One customer, one file',d:'Merging two customers moves everything to the one you keep: payments, invoices, food plans, notes, health, courses and every other record, not only stays and packages. When a package, private or stay moves to another customer, its payments, check-ins and food plans move too. Removing a customer who has payments or invoices keeps them as Deleted customer, so the money stays on one record.'},
+  {k:'hk_calendar',g:'Rooms',n:'Housekeeping calendar',d:'Housekeeping see Check in today (red) and Check out today (purple) at the top of their app, then the room calendar for the next days (who arrives, who leaves, full or empty), which they cannot change. Guests show by first name only. In English and Burmese.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1134,7 +1142,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=191; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=192; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -3734,7 +3742,9 @@ function vStays(){
 /* ---------- housekeeping: clean rooms, report problems, record mini bar use ---------- */
 var HK=null;
 var HKT={
-  en:{rooms:'Rooms',loading:'Loading rooms.',toClean:function(n){ return n+' to clean'; },allClean:'All clean',
+  en:{ciToday:'Check in today',coToday:'Check out today',readyBy:'Room ready by 2pm',leavesBy:'Leaves by 11am, then full clean',guestsN:function(n){ return n+' guest'+(n===1?'':'s'); },nightsN:function(n){ return n+' night'+(n===1?'':'s'); },
+    calTitle:'Room calendar',calNote:'Who arrives and who leaves. You cannot change it here.',inL:'In',outL:'Out',stayL:'Full',emptyL:'Empty',todayL:'Today',toDo:'To do today',
+    rooms:'Rooms',loading:'Loading rooms.',toClean:function(n){ return n+' to clean'; },allClean:'All clean',
     nowArriving:'Clean now, guest arriving',full:'Needs full clean',leavingChip:'Guest leaving today',daily:'Daily clean',cleanedToday:'Cleaned today',clean:'Clean',
     arriving:'Guest arriving today',leaving:'Guest leaving today',staying:'Guest staying',empty:'Empty',
     lastCleaned:'Last cleaned',never:'Not cleaned in the app yet',problemIs:'Problem: ',
@@ -3752,7 +3762,9 @@ var HKT={
     reqBtn:'Guest request',reqTitle:function(r){ return 'Guest request, '+r; },reqKind:'What does the guest want?',reqExtra:'An extra clean today',reqSkip:'No clean today',reqTowels:'More towels',reqOther:'Something else',reqQty:'How many towels',reqNote:'What do they need?',reqSave:'Add',reqDone:'Added.',reqNeedNote:'Write what the guest asked for.',
     rqExtra:'Guest asked for a clean today',rqSkip:'Guest said no clean today',rqTowels:function(q){ return 'Guest wants '+q+' more towel'+(q>1?'s':''); },rqOther:'Guest asked: ',fromApp:' (guest app)',
     rqDoneBtn:'Done',rqDoneMsg:'Done.',skipChip:'No clean today',reqChip:'Guest request'},
-  my:{rooms:'အခန်းများ',loading:'အခန်းများ ဖွင့်နေသည်။',toClean:function(n){ return 'သန့်ရှင်းရန် '+n+' ခန်း'; },allClean:'အခန်းအားလုံး သန့်ရှင်းပြီး',
+  my:{ciToday:'ယနေ့ ဧည့်သည် ရောက်မည်',coToday:'ယနေ့ ဧည့်သည် ထွက်မည်',readyBy:'နေ့လည် 2 နာရီမတိုင်မီ အခန်း အဆင်သင့်ဖြစ်ရမည်',leavesBy:'နံနက် 11 နာရီမတိုင်မီ ထွက်မည်၊ ထို့နောက် အပြည့်အဝ သန့်ရှင်းပါ',guestsN:function(n){ return 'ဧည့်သည် '+n+' ဦး'; },nightsN:function(n){ return n+' ည'; },
+    calTitle:'အခန်း ပြက္ခဒိန်',calNote:'မည်သူ ရောက်မည်၊ မည်သူ ထွက်မည်ကို ကြည့်ရန်သာ။ ဤနေရာတွင် ပြောင်း၍ မရပါ။',inL:'ရောက်',outL:'ထွက်',stayL:'လူရှိ',emptyL:'လွတ်',todayL:'ယနေ့',toDo:'ယနေ့ လုပ်ရန်',
+    rooms:'အခန်းများ',loading:'အခန်းများ ဖွင့်နေသည်။',toClean:function(n){ return 'သန့်ရှင်းရန် '+n+' ခန်း'; },allClean:'အခန်းအားလုံး သန့်ရှင်းပြီး',
     nowArriving:'ဧည့်သည်ရောက်မည်၊ ယခု သန့်ရှင်းပါ',full:'အပြည့်အစုံ သန့်ရှင်းရန်',leavingChip:'ဧည့်သည် ယနေ့ ထွက်မည်',daily:'နေ့စဉ် သန့်ရှင်းရေး',cleanedToday:'ယနေ့ သန့်ရှင်းပြီး',clean:'သန့်ရှင်းသည်',
     arriving:'ဧည့်သည် ယနေ့ ရောက်မည်',leaving:'ဧည့်သည် ယနေ့ ထွက်မည်',staying:'ဧည့်သည် တည်းခိုနေသည်',empty:'အခန်းလွတ်',
     lastCleaned:'နောက်ဆုံး သန့်ရှင်းချိန်',never:'သန့်ရှင်းကြောင်း မမှတ်ရသေးပါ',problemIs:'ပြဿနာ - ',
@@ -3776,7 +3788,27 @@ function T(k){ return HKT[hkLang()][k]; }
 function hkDate(d){ return parseYmd(d).toLocaleDateString(hkLang()==='my'?'my-MM':'en-GB',{day:'numeric',month:'short'}); }
 function hkErr(e){ var m=(e&&e.message)||''; if(hkLang()==='my'&&/Nobody is staying/.test(m)) m=T('noGuest'); return m; }
 function setHkLang(l){ pref('pk_lang',l==='my'?'my':null); document.body.classList.toggle('lang-my',l==='my'); document.documentElement.lang=l==='my'?'my':'en'; TABS=[['hk',T('rooms')],['clock',K('tab')]]; schedule(); }
-function loadHK(){ lastLoad=Date.now(); return sb.rpc('housekeeping_home').then(function(res){ HK=must(res); schedule(); }); }
+function loadHK(){ lastLoad=Date.now(); if(featOn('hk_calendar')) sb.rpc('housekeeping_calendar',{p_from:null,p_days:window.innerWidth<760?8:14}).then(function(r){ if(!r.error){ HKCAL=r.data; schedule(); } },function(){}); return sb.rpc('housekeeping_home').then(function(res){ HK=must(res); schedule(); }); }
+/* housekeeping calendar (feature hk_calendar): today's arrivals (red) and departures (purple) first, then the room calendar, read only */
+var HKCAL=null;
+function hkToday(){ if(!featOn('hk_calendar')||!HKCAL) return null; var t=HKCAL.today, rn={}; (HKCAL.rooms||[]).forEach(function(r){ rn[r.id]=r.name; });
+  var ins=(HKCAL.stays||[]).filter(function(x){ return x.check_in===t&&x.status!=='out'; }), outs=(HKCAL.stays||[]).filter(function(x){ return x.check_out===t; });
+  var items=ins.map(function(x){ return {cls:'hkin',when:h('span',null,h('span',{class:'hktag'},T('ciToday')),h('b',{class:'hkroom'},rn[x.room_id]||'')),
+      note:h('span',null,h('b',{class:'notr'},x.who||''),(x.who?'. ':'')+T('nightsN')(x.nights)+(x.guests?'. '+T('guestsN')(x.guests):'')+'. '+T('readyBy'))}; })
+    .concat(outs.map(function(x){ return {cls:'hkout',when:h('span',null,h('span',{class:'hktag'},T('coToday')),h('b',{class:'hkroom'},rn[x.room_id]||'')),
+      note:h('span',null,h('b',{class:'notr'},x.who||''),(x.who?'. ':'')+T('leavesBy'))}; }));
+  return items.length?cards(items,''):null; }
+function hkCalendar(){ if(!featOn('hk_calendar')||!HKCAL) return null; var t=HKCAL.today, days=[]; for(var i=0;i<HKCAL.days;i++) days.push(addDays(HKCAL.from,i));
+  var my=hkLang()==='my', st=HKCAL.stays||[];
+  function cell(r,d){ var inn=st.some(function(x){ return x.room_id===r.id&&x.check_in===d; }), out=st.some(function(x){ return x.room_id===r.id&&x.check_out===d; }),
+      full=st.some(function(x){ return x.room_id===r.id&&x.check_in<d&&d<x.check_out; });
+    var lab=inn&&out?T('outL')+' / '+T('inL'):inn?T('inL'):out?T('outL'):full?T('stayL'):'';
+    return h('td',{class:'hkc'+(inn?' in':'')+(out&&!inn?' out':'')+(full||inn?' full':'')+(d===t?' today':'')},lab); }
+  var head=h('tr',null,[h('th',null,'')].concat(days.map(function(d){ var dt=parseYmd(d); return h('th',{class:d===t?'today':null},d===t?T('todayL'):dt.toLocaleDateString(my?'my-MM':'en-GB',{weekday:'short'}),h('br'),dt.getDate()); })));
+  var rows=(HKCAL.rooms||[]).map(function(r){ return h('tr',null,[h('th',{class:'rn'},r.name)].concat(days.map(function(d){ return cell(r,d); }))); });
+  return h('div',{class:'panel pad'},h('h3',{style:'margin:0 0 4px'},T('calTitle')),h('p',{class:'sub',style:'margin:0 0 8px'},T('calNote')),
+    h('div',{class:'hkleg'},h('span',{class:'hkc in'},T('inL')),h('span',{class:'hkc out'},T('outL')),h('span',{class:'hkc full'},T('stayL')),h('span',{class:'hkc'},T('emptyL'))),
+    h('div',{class:'hkcalw'},h('table',{class:'hkcal'},h('thead',null,head),h('tbody',null,rows)))); }
 function hkDo(fn,args){ return sb.rpc(fn,args).then(must).then(function(d){ return (me&&me.role==='housekeeping'?loadHK():reloadHKDesk()).then(function(){ return d; }); }); }
 var HK_RANK={light:1,full:2,deep:3}, HK_NAME={light:'light',full:'fullc',deep:'deep'};
 /* what clean the room needs today, from the cleaning rules (set in the database) and the guest's requests */
@@ -3859,14 +3891,15 @@ function hkCard(r,staffView){
   var reqEls=(r.requests||[]).map(function(q){ var closeIt=q.kind==='towels'||q.kind==='other';
     return h('div',{class:'row',style:'align-items:center;gap:8px;margin-top:6px'},chip(hkReqText(q),q.kind==='no_clean'?null:'bad'),
       closeIt?btn(T('rqDoneBtn'),function(){ run(hkDo('hk_request_close',{p_id:q.id,p_status:'done'}),T('rqDoneMsg')); },'small'):null); });
-  return {when:r.name,right:st.chip,note:h('span',null,bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),reqEls),act:acts};
+  return {cls:featOn('hk_calendar')?(r.arriving?'hkin':r.leaving?'hkout':null):null,when:r.name,right:st.chip,note:h('span',null,bits.join(sep)+(r.issues.length?sep+T('problemIs')+r.issues.map(function(i){ return i.text; }).join('; '):''),reqEls),act:acts};
 }
 function vHK(){
   if(!HK) return [h('div',{class:'panel empty'},T('loading'))];
   var rooms=HK.rooms.slice().sort(function(a,b){ return hkState(a).rank-hkState(b).rank; });
   var todo=rooms.filter(function(r){ return hkState(r).rank<4; }).length, my=hkLang()==='my';
   var day=parseYmd(HK.today).toLocaleDateString(my?'my-MM':'en-GB',{weekday:'long',day:'numeric',month:'long'});
-  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setUiLang(my?'en':'my'); })),h('div',{class:'row'},btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),myJobs(),
+  return [pageHead(T('rooms'),day+'. '+(todo?T('toClean')(todo):T('allClean')),btn(T('other'),function(){ setUiLang(my?'en':'my'); })),h('div',{class:'row'},btn(SU('addStock'),stockAddDlg,'small'),btn(RX('btn'),expReceipt,'small')),hkToday(),hkCalendar(),myJobs(),
+    featOn('hk_calendar')?h('h3',{style:'margin:14px 0 6px'},T('toDo')):null,
     cards(rooms.map(function(r){ return hkCard(r,false); }),'No rooms in the app yet.')];
 }
 /* ---------- room supplies and the resort store: staff note what they used, managers keep the counts ---------- */
@@ -11798,7 +11831,7 @@ function vMine(){
 }
 function cards(items,emptyMsg){
   if(!items.length) return h('div',{class:'panel empty'},emptyMsg);
-  return h('div',{class:'panel cards'},items.map(function(it){ return h('div',{class:'card'},
+  return h('div',{class:'panel cards'},items.map(function(it){ return h('div',{class:'card'+(it.cls?' '+it.cls:'')},
     h('div',{class:'ctop'},h('span',{class:'cwhen'},it.when),it.right?h('span',{class:'cright'},it.right):null),
     it.title?h('div',null,it.title):null, it.note?h('div',{class:'cnote'},it.note):null, it.act?h('div',{class:'row'},it.act):null); }));
 }
