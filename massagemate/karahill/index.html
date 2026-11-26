@@ -20,7 +20,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=250"></script>
+<script src="changelog.js?v=251"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -937,6 +937,7 @@ var FEATURES=[
   {k:'month_dates',g:'Selling',n:'Month packages end on the same date',d:'A package that lasts whole months ends on the same date it started: started 26 Oct, ends 26 Nov (3 months: 26 Jan). Off: it ends after the number of days set on the package, so 30 days ends 24 Nov. End dates set by hand, moved by a pause or tied to a stay are never changed.'},
   {k:'chat_link',g:'Customers',n:'Link chats to customers',d:'At the top of every Instagram, Facebook, WhatsApp and website chat: who the customer is, or Add as customer and Link to a customer. Their messages then show on the customer with their stays, packages and payments, and where they came from is filled in. Website and WhatsApp chats link by themselves when the email or phone matches one customer.'},
   {k:'meal_checkout',g:'Rooms',n:'Meal plans run to the check-out day',d:'Check-in is in the afternoon, so a guest with a meal plan gets dinner the day they arrive, and breakfast and lunch the day they leave: 3 meals a night in all. Their meal plan runs to the check-out day, and the kitchen list says Arrived today: dinner, or Leaving today: breakfast and lunch. Off: the plan ends the day before check-out.'},
+  {k:'stay_move_extras',g:'Rooms',n:'Packages move with the stay',d:'When you change the dates of a stay, its meal plans, deal items and booking extras move with it, not only the included training. A package that ran to the end of the stay keeps running to the new end.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1123,7 +1124,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=186; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=187; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
