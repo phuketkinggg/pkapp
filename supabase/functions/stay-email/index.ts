@@ -1,5 +1,6 @@
 // Welcome email for a stay: welcome, room, dates, receipt, useful info and extras to add.
 // preview: returns the email so the desk can look at it first. send: sends it. auto: the database job sends it to new bookings.
+// kind arrival: the morning they arrive, a second email with today's classes, the map of the area and the useful info (setting arrival).
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const RESEND = (Deno.env.get("RESEND_API_KEY") ?? "").trim();
@@ -19,8 +20,12 @@ type Item = { title?: string; text?: string; price?: string; link?: string; off?
 type Data = {
   stay_id: string; guest: string | null; email: string | null; room: string | null; source: string | null;
   check_in: string; check_out: string; nights: number; training: boolean; lines: Line[]; total: number; paid: number; owed: number;
-  settings: { from?: string; reply_to?: string; subject?: string; intro?: string; info?: Item[]; upsells?: Item[]; whatsapp?: string; footer?: string; auto?: boolean; auto_sources?: string; auto_since?: string | null };
+  settings: { from?: string; reply_to?: string; subject?: string; intro?: string; info?: Item[]; upsells?: Item[]; whatsapp?: string; footer?: string; auto?: boolean; auto_sources?: string; auto_since?: string | null;
+    arrival?: boolean; arrival_hour?: number; arrival_subject?: string; arrival_intro?: string; arrival_sources?: string };
+  map?: string | null; today?: Cls[]; tomorrow?: Cls[];
 };
+type Cls = { t: string; title: string };
+type Kind = "welcome" | "arrival";
 
 const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 const thb = (n: number) => Math.round(n).toLocaleString("en-US") + " THB";
@@ -31,10 +36,23 @@ const nl = (s: string) => esc(s).replace(/\n/g, "<br>");
 
 function waLink(num: string, text: string) { return `https://wa.me/${num.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`; }
 
-function render(d: Data) {
+const hm = (t: string) => { const [h, m] = t.split(":").map(Number); return `${h % 12 || 12}${m ? ":" + String(m).padStart(2, "0") : ""}${h < 12 ? "am" : "pm"}`; };
+// the map of the area link, and the classes this afternoon and evening, and tomorrow morning
+async function extras(d: Data): Promise<Data> {
+  const { data: map } = await admin.rpc("area_map_url");
+  const dow = (x: string) => (new Date(x + "T00:00:00Z").getUTCDay() + 6) % 7;
+  const next = new Date(new Date(d.check_in + "T00:00:00Z").getTime() + 864e5).toISOString().slice(0, 10);
+  const { data: cls } = await admin.from("classes").select("day,start_time,title,off_from,off_to").in("day", [dow(d.check_in), dow(next)]).order("start_time");
+  const on = (c: { off_from: string | null; off_to: string | null }, x: string) => !(c.off_from && c.off_from <= x && (!c.off_to || c.off_to >= x));
+  const pick = (x: string, f: (t: string) => boolean) => (cls ?? []).filter((c) => c.day === dow(x) && on(c, x) && f(c.start_time)).map((c) => ({ t: hm(c.start_time), title: c.title }));
+  return { ...d, map: typeof map === "string" && map ? map : null, today: pick(d.check_in, (t) => t >= "14:00"), tomorrow: pick(next, (t) => t < "12:00") };
+}
+
+function render(d: Data, kind: Kind = "welcome") {
+  const arr = kind === "arrival";
   const s = d.settings || {};
   const wa = s.whatsapp || "66969076150";
-  const subject = s.subject || "Welcome to Phuket King";
+  const subject = arr ? (s.arrival_subject || "Today is the day, see you soon") : (s.subject || "Welcome to Phuket King");
   const G = "#1a3325", C = "#f5f0e8", GOLD = "#c9a84c", INK = "#22201c", MUT = "#6b665c";
   const when = `${day(d.check_in)} to ${day(d.check_out)}, ${d.nights} night${d.nights === 1 ? "" : "s"}`;
   const rows = d.lines.map((l) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e6dfd2;color:${INK}">${esc(l.what)}</td><td align="right" style="padding:8px 0;border-bottom:1px solid #e6dfd2;color:${INK};white-space:nowrap">${l.amount == null ? esc(l.note || "") : thb(l.amount)}</td></tr>`).join("");
@@ -61,25 +79,41 @@ function render(d: Data) {
         </table>
       </td></tr>`;
   }).join("");
+  const clsList = (l?: Cls[]) => (l || []).map((c) => `<tr><td style="padding:6px 12px 6px 0;color:${G};font-weight:bold;white-space:nowrap;vertical-align:top">${esc(c.t)}</td><td style="padding:6px 0;color:${INK}">${esc(c.title)}</td></tr>`).join("");
+  const classes = arr && ((d.today || []).length || (d.tomorrow || []).length) ? `
+    <div style="color:${G};font-size:18px;font-weight:bold;margin:0 0 6px">Training</div>
+    ${(d.today || []).length ? `<div style="color:${MUT};font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:6px 0 2px">This afternoon and evening</div><table role="presentation" cellpadding="0" cellspacing="0" style="font-size:15px">${clsList(d.today)}</table>` : ""}
+    ${(d.tomorrow || []).length ? `<div style="color:${MUT};font-size:13px;text-transform:uppercase;letter-spacing:1px;margin:12px 0 2px">Tomorrow morning</div><table role="presentation" cellpadding="0" cellspacing="0" style="font-size:15px">${clsList(d.tomorrow)}</table>` : ""}
+    <div style="height:24px"></div>` : "";
+  const mapBox = arr && d.map ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${G};border-radius:10px;margin:0 0 24px"><tr><td style="padding:16px">
+      <div style="color:#ffffff;font-size:16px;font-weight:bold;margin:0 0 4px">Find your way around</div>
+      <div style="color:#d9e2dc;font-size:14px;line-height:1.5;margin:0 0 12px">Your room, the gym, the spa, the cafe and the shops, cash machine and run route nearby, with walking directions.</div>
+      <a href="${esc(d.map)}" style="display:inline-block;background:${GOLD};color:${G};text-decoration:none;font-weight:bold;font-size:14px;padding:10px 16px;border-radius:8px">Open the map</a>
+    </td></tr></table>` : "";
+  const receipt = arr ? (d.owed > 0 ? `<p style="margin:0 0 24px;color:#9a3b1b;font-size:15px;font-weight:bold">Still to pay: ${thb(d.owed)}. You can pay at the desk by cash, card or PromptPay, or in the app.</p>` : "") : `
+    <div style="color:${G};font-size:18px;font-weight:bold;margin:0 0 6px">Your receipt</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;margin:0 0 4px">${rows}${money}</table>
+    ${payNote}
+    <div style="height:24px"></div>`;
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
 <body style="margin:0;padding:0;background:${C};font-family:Helvetica,Arial,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C}"><tr><td align="center" style="padding:20px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px">
   <tr><td style="background:${G};border-radius:12px 12px 0 0;padding:28px 24px;color:#ffffff">
     <div style="color:${GOLD};font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:bold">Phuket King &middot; Pangea Resort</div>
-    <div style="font-size:26px;font-weight:bold;margin:8px 0 0">Welcome, ${esc(first(d.guest))}!</div>
+    <div style="font-size:26px;font-weight:bold;margin:8px 0 0">${arr ? "Welcome today" : "Welcome"}, ${esc(first(d.guest))}!</div>
   </td></tr>
   <tr><td style="background:#fbf8f2;padding:24px;border-radius:0 0 12px 12px">
-    <p style="margin:0 0 20px;color:${INK};font-size:16px;line-height:1.5">${nl(s.intro || "")}</p>
+    <p style="margin:0 0 20px;color:${INK};font-size:16px;line-height:1.5">${nl(arr ? (s.arrival_intro || "Today is the day. Your room is ready from 2pm. Come to the front desk when you arrive and we will show you around. Here is everything you need for your first day.") : (s.intro || ""))}</p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e6dfd2;border-radius:10px;margin:0 0 24px"><tr><td style="padding:16px">
       <div style="color:${MUT};font-size:13px;text-transform:uppercase;letter-spacing:1px">Your room</div>
       <div style="color:${G};font-size:22px;font-weight:bold;margin:2px 0 6px">${esc(d.room || "We will confirm your room on arrival")}</div>
       <div style="color:${INK};font-size:15px">${esc(when)}</div>
     </td></tr></table>
-    <div style="color:${G};font-size:18px;font-weight:bold;margin:0 0 6px">Your receipt</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;margin:0 0 4px">${rows}${money}</table>
-    ${payNote}
-    <div style="height:24px"></div>
+    ${receipt}
+    ${mapBox}
+    ${classes}
     <div style="color:${G};font-size:18px;font-weight:bold;margin:0 0 12px">Good to know</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${info}</table>
     ${ups ? `<div style="color:${G};font-size:18px;font-weight:bold;margin:8px 0 12px">Make the most of your stay</div>
@@ -92,10 +126,13 @@ function render(d: Data) {
   </td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
-    `Welcome, ${first(d.guest)}!`, "", s.intro || "", "",
+    `${arr ? "Welcome today" : "Welcome"}, ${first(d.guest)}!`, "", (arr ? s.arrival_intro : s.intro) || "", "",
     `Your room: ${d.room || "we will confirm on arrival"}`, when, "",
+    ...(arr ? [d.owed > 0 ? `Still to pay: ${thb(d.owed)}` : "", d.map ? `Map of the area: ${d.map}` : "",
+      ...((d.today || []).length ? ["This afternoon and evening:", ...(d.today || []).map((c) => `- ${c.t} ${c.title}`)] : []),
+      ...((d.tomorrow || []).length ? ["Tomorrow morning:", ...(d.tomorrow || []).map((c) => `- ${c.t} ${c.title}`)] : []), ""] : [
     "Your receipt:", ...d.lines.map((l) => `- ${l.what}: ${l.amount == null ? l.note || "" : thb(l.amount)}`),
-    d.total > 0 ? `Total ${thb(d.total)}${d.paid > 0 ? `, paid ${thb(d.paid)}` : ""}${d.owed > 0 ? `, still to pay ${thb(d.owed)}` : ", paid in full"}` : "", "",
+    d.total > 0 ? `Total ${thb(d.total)}${d.paid > 0 ? `, paid ${thb(d.paid)}` : ""}${d.owed > 0 ? `, still to pay ${thb(d.owed)}` : ", paid in full"}` : "", ""]),
     ...(s.info || []).filter((i) => !i.off && (i.title || i.text)).flatMap((i) => [i.title || "", i.text || "", ""]),
     ...(s.upsells || []).filter((u) => !u.off && u.title).map((u) => `Add ${u.title}${u.price ? ` (${u.price})` : ""}: WhatsApp +${wa.replace(/\D/g, "")}`),
     "", `App: ${APP}`, s.footer || "",
@@ -103,9 +140,9 @@ function render(d: Data) {
   return { subject, html, text };
 }
 
-async function send(d: Data, to: string, by: string | null, auto: boolean) {
+async function send(d: Data, to: string, by: string | null, auto: boolean, kind: Kind = "welcome") {
   const s = d.settings || {};
-  const m = render(d);
+  const m = render(d, kind);
   let ok = false, err: string | null = null, pid: string | null = null;
   try {
     const r = await fetch("https://api.resend.com/emails", {
@@ -116,8 +153,8 @@ async function send(d: Data, to: string, by: string | null, auto: boolean) {
     const j = await r.json().catch(() => ({}));
     if (r.ok) { ok = true; pid = j?.id ?? null; } else err = j?.message || `Email service said ${r.status}`;
   } catch (e) { err = (e as Error).message; }
-  await admin.from("stay_emails").insert({ stay_id: d.stay_id, to_email: to, sent_by: by, auto, ok, error: err, provider_id: pid });
-  if (ok) await admin.from("stays").update({ welcome_sent_at: new Date().toISOString() }).eq("id", d.stay_id);
+  await admin.from("stay_emails").insert({ stay_id: d.stay_id, to_email: to, sent_by: by, auto, ok, error: err, provider_id: pid, kind });
+  if (ok) await admin.from("stays").update(kind === "arrival" ? { arrival_sent_at: new Date().toISOString() } : { welcome_sent_at: new Date().toISOString() }).eq("id", d.stay_id);
   return { ok, error: err };
 }
 
@@ -134,8 +171,24 @@ Deno.serve(async (req) => {
       const { data: row } = await admin.from("app_settings").select("value").eq("key", "welcome_email").maybeSingle();
       let cfg: Data["settings"] = {};
       try { cfg = JSON.parse(row?.value ?? "{}"); } catch { /* keep empty */ }
-      if (!cfg.auto || !cfg.auto_since) return json({ ok: true, skipped: "automatic emails are off" });
-      const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+      if ((!cfg.auto || !cfg.auto_since) && !cfg.arrival) return json({ ok: true, skipped: "automatic emails are off" });
+      const bkk = new Date(Date.now() + 7 * 3600e3), today = bkk.toISOString().slice(0, 10);
+      // the morning they arrive: from the hour set (9am unless changed), once per stay
+      let arrived = 0;
+      if (cfg.arrival && bkk.getUTCHours() >= Number(cfg.arrival_hour ?? 9)) {
+        const { data: arr } = await admin.from("stays").select("id").eq("check_in", today).is("arrival_sent_at", null).is("hold_until", null)
+          .in("status", ["booked", "in"]).order("created_at").limit(15);
+        for (const st of arr ?? []) {
+          const { count } = await admin.from("stay_emails").select("id", { count: "exact", head: true }).eq("stay_id", st.id).eq("kind", "arrival").eq("ok", false);
+          if ((count ?? 0) >= 3) continue;
+          const { data: d, error } = await admin.rpc("stay_email_data", { p_stay: st.id });
+          if (error || !d || !okEmail(d.email)) continue;
+          if (cfg.arrival_sources === "direct" && d.source && OTA.test(d.source)) continue;
+          const r = await send(await extras(d as Data), String(d.email).toLowerCase(), null, true, "arrival");
+          if (r.ok) arrived++;
+        }
+      }
+      if (!cfg.auto || !cfg.auto_since) return json({ ok: true, arrival: arrived });
       const { data: list } = await admin.from("stays").select("id").is("welcome_sent_at", null).is("hold_until", null).in("status", ["booked", "in"])
         .gte("check_out", today).gte("created_at", cfg.auto_since).order("created_at").limit(15);
       let sent = 0; const skipped: string[] = [];
@@ -149,16 +202,17 @@ Deno.serve(async (req) => {
         const r = await send(d as Data, String(d.email).toLowerCase(), null, true);
         if (r.ok) sent++;
       }
-      return json({ ok: true, sent, no_email: skipped.length });
+      return json({ ok: true, sent, arrival: arrived, no_email: skipped.length });
     }
 
     const auth = req.headers.get("authorization") ?? "";
     const user = createClient(URL_, ANON, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
     const { data: d, error } = await user.rpc("stay_email_data", { p_stay: String(body.stay_id ?? "") });
     if (error) return json({ error: error.message === "Not allowed" ? "Only the desk and managers can send this." : error.message });
-    const data = d as Data;
+    const kind: Kind = body.kind === "arrival" ? "arrival" : "welcome";
+    const data = kind === "arrival" ? await extras(d as Data) : d as Data;
     if (body.mode === "preview") {
-      const m = render(data);
+      const m = render(data, kind);
       return json({ ...m, to: data.email, sent_at: (d as { sent_at?: string }).sent_at ?? null, can_send: !!RESEND });
     }
     if (body.mode === "send") {
@@ -166,7 +220,7 @@ Deno.serve(async (req) => {
       const to = String(body.to ?? data.email ?? "").trim().toLowerCase();
       if (!okEmail(to)) return json({ error: "Type a valid email address." });
       const { data: u } = await user.auth.getUser();
-      const r = await send(data, to, u?.user?.id ?? null, false);
+      const r = await send(data, to, u?.user?.id ?? null, false, kind);
       return r.ok ? json({ ok: true, to }) : json({ error: `The email did not go: ${r.error}` });
     }
     return json({ error: "Unknown mode." });

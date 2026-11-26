@@ -19,7 +19,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=253"></script>
+<script src="changelog.js?v=254"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1125,7 +1125,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=190; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=191; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -3279,7 +3279,7 @@ function loadWelcome(){ return sb.from('app_settings').select('value').eq('key',
 function saveWelcome(cfg){ return sb.from('app_settings').upsert({key:'welcome_email',value:JSON.stringify(cfg),updated_at:new Date().toISOString()}).select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; WELCOME=cfg; schedule(); }); }
 var WE_INFO=6, WE_UPS=6;
 function editWelcome(){
-  var c=WELCOME||{}, info=c.info||[], ups=c.upsells||[], vals={from:c.from,reply_to:c.reply_to,subject:c.subject,intro:c.intro,whatsapp:c.whatsapp,footer:c.footer,auto:!!c.auto,auto_sources:c.auto_sources||'direct'}, fields=[
+  var c=WELCOME||{}, info=c.info||[], ups=c.upsells||[], vals={from:c.from,reply_to:c.reply_to,subject:c.subject,intro:c.intro,whatsapp:c.whatsapp,footer:c.footer,auto:!!c.auto,auto_sources:c.auto_sources||'direct',arrival:!!c.arrival,arrival_hour:String(c.arrival_hour!=null?c.arrival_hour:9),arrival_subject:c.arrival_subject||'Today is the day, see you soon',arrival_intro:c.arrival_intro||'Today is the day. Your room is ready from 2pm. Come to the front desk when you arrive and we will show you around. Here is everything you need for your first day.',arrival_sources:c.arrival_sources||'all'}, fields=[
     {key:'subject',label:'Subject',required:true},
     {key:'intro',label:'Welcome text at the top',type:'textarea'}];
   for(var i=0;i<WE_INFO;i++){ var a=info[i]||{}; vals['it'+i]=a.title; vals['ix'+i]=a.text;
@@ -3292,12 +3292,18 @@ function editWelcome(){
     {key:'from',label:'Sent from',hint:'Name and address, for example Pangea <hello@phuketking.com>. The address must be on a domain set up in the email service.'},
     {key:'reply_to',label:'Replies go to',type:'email'},
     {key:'auto',label:'Send it by itself to new bookings that come in from MotoPress (checked every 15 minutes)',type:'checkbox'},
-    {key:'auto_sources',label:'Which bookings get it by itself',type:'select',options:[['direct','Website and direct only (not Booking.com, Airbnb, Agoda)'],['all','All bookings that have an email']]});
+    {key:'auto_sources',label:'Which bookings get it by itself',type:'select',options:[['direct','Website and direct only (not Booking.com, Airbnb, Agoda)'],['all','All bookings that have an email']]},
+    {key:'arrival',label:'Arrival day email: send a second email the morning they arrive',type:'checkbox',hint:'With their room, this afternoon\'s and tomorrow morning\'s classes, the map of the area (Settings, Rooms and stays), the useful info above and a WhatsApp button. Sent once per stay.'},
+    {key:'arrival_hour',label:'Arrival day email, sent from',type:'select',options:[['7','7am'],['8','8am'],['9','9am'],['10','10am'],['11','11am'],['12','12 noon']]},
+    {key:'arrival_subject',label:'Arrival day email, subject'},
+    {key:'arrival_intro',label:'Arrival day email, text at the top',type:'textarea'},
+    {key:'arrival_sources',label:'Which bookings get the arrival day email',type:'select',options:[['all','All bookings that have an email'],['direct','Website and direct only (not Booking.com, Airbnb, Agoda)']]});
   openForm({title:'Welcome email',note:'Sent when you book a stay in the app (you see it first), from the Welcome email button on a stay, and by itself if you switch that on.',values:vals,fields:fields,doneMsg:'Welcome email saved.',
     onSave:function(v){
       if(v.reply_to&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.reply_to)) return 'Replies go to needs a valid email address.';
       var n={from:v.from||'Pangea <hello@phuketking.com>',reply_to:v.reply_to||'',subject:v.subject,intro:v.intro,whatsapp:String(v.whatsapp||'').replace(/\D/g,''),footer:v.footer,
-        auto:!!v.auto,auto_sources:v.auto_sources,auto_since:v.auto?(c.auto&&c.auto_since?c.auto_since:new Date().toISOString()):null,info:[],upsells:[]};
+        auto:!!v.auto,auto_sources:v.auto_sources,auto_since:v.auto?(c.auto&&c.auto_since?c.auto_since:new Date().toISOString()):null,
+        arrival:!!v.arrival,arrival_hour:Number(v.arrival_hour)||9,arrival_subject:v.arrival_subject||'',arrival_intro:v.arrival_intro||'',arrival_sources:v.arrival_sources||'all',info:[],upsells:[]};
       for(var i=0;i<WE_INFO;i++) if(v['it'+i]||v['ix'+i]) n.info.push({title:v['it'+i],text:v['ix'+i]});
       for(var j=0;j<WE_UPS;j++){ if(v['ul'+j]&&!/^https:\/\//.test(v['ul'+j])) return 'Extra '+(j+1)+': the link must start with https://';
         if(v['ut'+j]) n.upsells.push({title:v['ut'+j],price:v['up'+j],text:v['ux'+j],link:v['ul'+j]}); }
