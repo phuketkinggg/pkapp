@@ -15,7 +15,7 @@ begin
     'stays', coalesce((select jsonb_agg(jsonb_build_object(
         'room_id', s.room_id, 'check_in', s.check_in, 'check_out', s.check_out, 'status', s.status,
         'who', nullif(split_part(btrim(coalesce(c.name, '')), ' ', 1), ''),
-        'guests', nullif(to_jsonb(s) ->> 'guests', '')::int,
+        'guests', nullif(substring(coalesce(to_jsonb(s) ->> 'guests', '') from '^[0-9]+'), '')::int,
         'nights', s.check_out - s.check_in) order by s.check_in)
       from public.stays s left join public.customers c on c.id = s.customer_id
       where s.status in ('booked','in','out') and s.room_id is not null and s.check_in < f + n and s.check_out >= f), '[]'::jsonb));
