@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=255"></script>
+<script src="changelog.js?v=256"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -956,6 +956,8 @@ var FEATURES=[
   {k:'area_map',g:'Rooms',n:'Map of the area for guests',d:'Guests with a stay get a Map of the area button in their app, opening a map of your place and what is nearby (shops, cash machines, a run route). Add the link in Settings, Rooms and stays.',def:false},
   {k:'one_customer',g:'Customers',n:'One customer, one file',d:'Merging two customers moves everything to the one you keep: payments, invoices, food plans, notes, health, courses and every other record, not only stays and packages. When a package, private or stay moves to another customer, its payments, check-ins and food plans move too. Removing a customer who has payments or invoices keeps them as Deleted customer, so the money stays on one record.'},
   {k:'hk_calendar',g:'Rooms',n:'Housekeeping calendar',d:'Housekeeping see Check in today (red) and Check out today (purple) at the top of their app, then the room calendar for the next days (who arrives, who leaves, full or empty), which they cannot change. Guests show by first name only. In English and Burmese.'},
+  {k:'undo_delete',g:'Customers',n:'Undo a delete',d:'Everything deleted (packages, privates, stays, check ins, payments, shop sales, room charges) is kept for 60 days. Managers see it in Settings, Activity, Recently deleted, and Undo puts it back as it was, with the check ins and payments that went with it.'},
+  {k:'redate_purchase',g:'Selling',n:'Change the date a package was bought',d:'Managers can change Bought on in Edit on a package. Payments taken on the old date move to the new date in Accounts too.'},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1142,7 +1144,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=192; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=193; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -1695,14 +1697,16 @@ function editPurchase(p){
   openForm({title:'Edit '+(p.package_name||'package'),values:pp?Object.assign({},p,{classes_left:left(p)}):p,note:p.stay_id&&p.package_name==='Stay: group Muay Thai included'?'Free group training that comes with the room. The room price is on the stay, not here.':pp?booked+' booked in the app so far'+(Number(p.used_before)?', '+p.used_before+' used before the app':'')+'.':null,fields:[
     {key:'price_thb',label:'Price charged (THB)',type:'number',hide:!!p.stay_id&&p.package_name==='Stay: group Muay Thai included',hint:'Paid so far: '+(thb(p.paid_thb)||'0 THB')+'. To add money they paid, use Take payment on the customer.'},
     {key:'classes_left',label:pp?'Sessions left':'Classes left',type:'number',hint:pp?'For a pack bought on the old system, type how many sessions they really have left. The app counts the rest as used before the app.':'Only for packages with a set number of classes.'},
+    {key:'bought',label:'Bought on',type:'date',def:p.purchased_on,hide:!(featOn('redate_purchase')&&me&&me.role==='manager'),hint:'The day they bought and paid. Payments taken on the old date move to this date in Accounts too.'},
     {key:'starts_on',label:'Started on',type:'date'},
     {key:'expires_on',label:'Expires on',type:'date'},
     {key:'cancelled',label:'Cancelled',type:'checkbox'}],
-    onSave:function(v){ var body=Object.assign({},p,v); delete body.paid; delete body.paid_thb; body.starts_on=v.starts_on||null; body.expires_on=v.expires_on||null;
+    onSave:function(v){ var redate=featOn('redate_purchase')&&me&&me.role==='manager'&&v.bought&&v.bought!==p.purchased_on, nb=v.bought; delete v.bought;
+      var body=Object.assign({},p,v); delete body.paid; delete body.paid_thb; body.starts_on=v.starts_on||null; body.expires_on=v.expires_on||null; if(redate) body.purchased_on=nb;
       if(pp){ var want=Math.round(Number(v.classes_left)); if(isNaN(want)||want<0) return 'Type how many sessions are left.'; var ub=p.class_limit-booked-want;
         if(ub<0) return 'That is more than the pack holds. '+p.class_limit+' sessions, '+booked+' booked in the app, so at most '+(p.class_limit-booked)+' left.';
         body.used_before=ub; body.classes_left=null; }
-      return save('purchases',p.id,body); },
+      return (redate?sb.rpc('purchase_redate',{p_id:p.id,p_day:nb,p_move_payments:true}).then(must).then(function(){ reload('payments'); }):Promise.resolve()).then(function(){ return save('purchases',p.id,body); }); },
     extraBtn:me&&me.role==='manager'&&!(p.stay_id&&p.package_name==='Stay: group Muay Thai included')?['Delete (mistake)',function(){ $dlg.close(); deletePurchase(p); }]:null});
 }
 function onHol(sid,day){ return (S.holidays||[]).some(function(x){ return x.staff_id===sid&&x.status==='approved'&&day>=x.from&&day<=(x.to||x.from); }); }
@@ -11225,6 +11229,24 @@ function histDlg(tbl,id,title){ sb.rpc('audit_list',{p_tbl:tbl,p_row:id}).then(m
     list.length?h('div',{class:'cartlines'},list.map(function(e){ return h('div',{class:'cartline',style:'display:block'},h('div',{class:'sub'},new Date(e.at).toLocaleString(LOC(),{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})+', '+e.who),h('div',null,histLines(e))); }))
       :h('p',{class:'sub'},'Nothing recorded yet. Changes are recorded from now on.'),
     h('div',{class:'factions'},h('span'),btn('Close',function(){ $dlg.close(); },'primary')))); }).catch(function(e){ toast(errText(e)); }); }
+/* Recently deleted (feature undo_delete): every delete in the last 30 days, and Undo puts it back as it was, with its check-ins and payments */
+var TRASH=null;
+function trashSection(){
+  if(TRASH===null){ TRASH=false; sb.rpc('trash_list',{p_days:30}).then(function(r){ TRASH=r.error?[]:(r.data||[]); schedule(); },function(){ TRASH=[]; }); }
+  var TN={purchases:'Package',privates:'Private',stays:'Stay',checkins:'Check in',payments:'Payment',shop_orders:'Shop sale',shop_order_items:'Item',room_charges:'Room charge',food_plans:'Food plan'};
+  var list=TRASH||[];
+  return section('Recently deleted',btn('Refresh',function(){ TRASH=null; schedule(); },'small'),
+    !TRASH?h('div',{class:'panel empty'},'Loading.'):!list.length?h('div',{class:'panel empty'},'Nothing deleted in the last 30 days.'):
+    cards(list.map(function(x){ var it=x.items||[], main=it[0]||{}, more=it.length-1;
+      return {when:new Date(x.at).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+(x.who?', '+x.who:''),
+        title:h('b',{class:'notr'},(TN[main.tbl]||main.tbl)+': '+(main.what||'')+(main.customer?', '+main.customer:'')),
+        note:more?'Also deleted with it: '+it.slice(1).map(function(i){ return (TN[i.tbl]||i.tbl)+(i.what&&i.tbl!=='checkins'?' '+i.what:i.tbl==='checkins'?' '+String(i.what||'').replace('Check in ',''):''); }).join(', '):null,
+        right:x.restored?chip('Put back','ok'):null,
+        act:x.restored?null:[btn('Undo',function(){ trashUndo(x); },'primary small')]}; }),''),
+    h('p',{class:'sub'},'Kept for 60 days. Undo puts back everything from that delete as it was, with its check ins, payments and room charges.')); }
+function trashUndo(x){ var it=x.items||[];
+  shopDlg(h('div',{class:'billbox'},h('h2',null,'Undo this delete?'),h('p',{class:'sub'},it.length+' record'+(it.length===1?'':'s')+' go back as they were before the delete, with the check ins, payments and visits that changed because of it.'),
+    h('div',{class:'factions'},btn('Cancel',function(){ $dlg.close(); }),btn('Undo',function(){ $dlg.close(); sb.rpc('trash_restore',{p_txid:x.txid}).then(must).then(function(r){ toast('Put back: '+r.restored+' record'+(r.restored===1?'':'s')+'.'); TRASH=null; return loadAll(); }).catch(function(e){ toast(errText(e)); }); },'primary')))); }
 var AUD=null;
 function auditSection(){ var f=ui.audf||{days:7,tbl:'',who:''};
   if(!AUD||AUD.key!==JSON.stringify(f)){ if(!ui.audBusy){ ui.audBusy=true; sb.rpc('audit_recent',{p_days:f.days,p_tbl:f.tbl||null,p_who:f.who||null}).then(function(r){ ui.audBusy=false; AUD={key:JSON.stringify(f),list:r.data||[],err:r.error?errText(r.error):null}; schedule(); },function(){ ui.audBusy=false; }); } }
@@ -11339,7 +11361,7 @@ function vSettings(){
   else if(t==='features') body=[featuresSection(),mgr&&(featOn('lang_th')||featOn('lang_my'))?langSection():null];
   else if(t==='look') body=[themeSection(),storeSection(),promoSection()];
   else if(t==='plan') body=[planSection()];
-  else if(t==='activity') body=[histOk()?auditSection():null];
+  else if(t==='activity') body=[featOn('undo_delete')&&me&&me.role==='manager'?trashSection():null,histOk()?auditSection():null];
   else if(t==='money') body=[payWaysSection(),ppSettings(),pxSettings(),mgr&&featOn('delivery_apps')?deliveryAppsSection():null,mgr&&featOn('desk_code')?deskCodeSection():null];
   else if(t==='messages') body=[notifySection(),featOn('ai_learn')&&mgr?section('AI learning',btn('Open',aiLearnDlg,'small'),h('div',{class:'panel pad'},h('p',{class:'sub',style:'margin:0'},'The AI learns how your team answers from the last 6 months of chats. You check what it learned and choose which answers it may send by itself.'))):null,savedSection(),welcomeSection(),pkgWelcomeSection(),reviewSection(),renewSection()];
   else if(t==='master') body=[PLAT.owner?masterSection():null];
