@@ -18,7 +18,7 @@ APP = "https://app.phuketking.com/"
 DOMAIN = "https://www.phuketking.com" if LIVE else "https://new.phuketking.com"
 # app pages merged into a full page: not drawn any more, their address forwards to the full page
 MERGED = {"muay-thai-for-beginners-phuket": "beginners-muay-thai"}
-PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "train.html", "partners.html", "fighters.html", "education.html", "muay-thai-basics.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html"]
+PAGES = ["index.html", "about.html", "prices.html", "dtv.html", "shop.html", "blog.html", "post.html", "wellness.html", "beginners-muay-thai.html", "muay-thai-phuket.html", "train.html", "partners.html", "fighters.html", "education.html", "muay-thai-basics.html", "course.html", "technique.html", "page.html", "privacy.html", "terms.html", "th.html", "404.html", "around-pangea.html"]
 ASSETS = ["site.css", "site.js", "chat.js", "reviews.js", "qrcode.js", "checkout.js", "privpick.js", "photos.js", "texts.js", "tour.js", "pano.js", "vendor", "img"]
 
 def fix_pk(html):
@@ -361,7 +361,7 @@ def main():
     # main pages here; blog posts, courses and pages made in the app are in the live sitemap (listed in robots.txt)
     import datetime
     today = datetime.date.today().isoformat()
-    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/education", "0.7"), ("/beginners-muay-thai", "0.8"), ("/muay-thai-phuket", "0.9"), ("/partners", "0.5"), ("/fighters", "0.6"), ("/th", "0.7"), ("/shop", "0.6"), ("/blog", "0.6")]
+    urls = [("/", "1.0"), ("/prices", "0.9"), ("/book", "0.9"), ("/dtv", "0.8"), ("/about", "0.7"), ("/wellness", "0.7"), ("/education", "0.7"), ("/beginners-muay-thai", "0.8"), ("/around-pangea", "0.5"), ("/muay-thai-phuket", "0.9"), ("/partners", "0.5"), ("/fighters", "0.6"), ("/th", "0.7"), ("/shop", "0.6"), ("/blog", "0.6")]
     # blog posts and app pages too (copied from the live sitemap into tools/sitemap_extra.txt), so Google sees them on the main sitemap
     urls += [m for m in made if m[0] not in {u for u, _ in urls}]
     ex = os.path.join(ROOT, "tools", "sitemap_extra.txt")

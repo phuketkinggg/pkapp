@@ -28,7 +28,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=251"></script>
+<script src="changelog.js?v=252"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -946,6 +946,7 @@ var FEATURES=[
   {k:'chat_link',g:'Customers',n:'Link chats to customers',d:'At the top of every Instagram, Facebook, WhatsApp and website chat: who the customer is, or Add as customer and Link to a customer. Their messages then show on the customer with their stays, packages and payments, and where they came from is filled in. Website and WhatsApp chats link by themselves when the email or phone matches one customer.'},
   {k:'meal_checkout',g:'Rooms',n:'Meal plans run to the check-out day',d:'Check-in is in the afternoon, so a guest with a meal plan gets dinner the day they arrive, and breakfast and lunch the day they leave: 3 meals a night in all. Their meal plan runs to the check-out day, and the kitchen list says Arrived today: dinner, or Leaving today: breakfast and lunch. Off: the plan ends the day before check-out.'},
   {k:'stay_move_extras',g:'Rooms',n:'Packages move with the stay',d:'When you change the dates of a stay, its meal plans, deal items and booking extras move with it, not only the included training. A package that ran to the end of the stay keeps running to the new end.'},
+  {k:'area_map',g:'Rooms',n:'Map of the area for guests',d:'Guests with a stay get a Map of the area button in their app, opening a map of your place and what is nearby (shops, cash machines, a run route). Add the link in Settings, Rooms and stays.',def:false},
   {k:'shop',g:'Selling',n:'Shop and till',d:'Sell at the till, stock and the shop.',tabs:['shop']},
   {k:'kitchen',g:'Selling',n:'Kitchen and food orders',d:'Menu, food orders from the app and to rooms, the kitchen screen, open and closed times.',tabs:['kitchen','c_food'],spa:false},
   {k:'new_cust_details',g:'Customers',n:'Details from every new customer',d:'When you sell to someone new, at the till or as a walk-in on Today, the form asks for their email and their phone with the country code (for WhatsApp), with a tick if they do not want messages or emails from you. Only the name is needed. A known email or phone finds the customer they already are, so nobody is in twice. Off: one Email or phone box.'},
@@ -1132,7 +1133,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=187; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=188; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -2713,6 +2714,17 @@ function extrasSettings(){
       return [h('h3',{class:'excat c-'+k[0]},k[1]),table([{label:'Extra',cell:function(e){ return mgr?linkBtn(e.name,function(){ editExtra(e); }):e.name; }},{label:'Price',cell:priceText},{label:'',cell:function(e){ return [e.second?chip('Second guest'):null,e.off?chip('Hidden','warn'):chip('Showing','ok')]; }}],list,'')]; }),
     ex.length?null:h('div',{class:'panel empty'},'No extras yet. Tap Add an extra.')));
 }
+/* Map of the area for guests (feature area_map): a link guests open from their stay in the app */
+function areaMapSettings(){
+  if(!featOn('area_map')||!me||me.role!=='manager') return null;
+  if(ui.areaMapSet===undefined){ ui.areaMapSet=null; sb.from('app_settings').select('value').eq('key','area_map_url').maybeSingle().then(function(r){ ui.areaMapSet=(r.data&&r.data.value)||''; schedule(); },function(){ ui.areaMapSet=''; }); }
+  var cur=ui.areaMapSet||'';
+  return section('Map of the area',btn(cur?'Change':'Add the link',function(){
+    openForm({title:'Map of the area',note:'A link to a map of your place and what is nearby, for example a page on your website. Guests with a stay see a Map of the area button in their app.',values:{url:cur},
+      fields:[{key:'url',label:'Link (starts with https://)'}],
+      onSave:function(v){ var u=String(v.url||'').trim(); if(u&&!/^https:\/\/[^\s<>"]+$/.test(u)) return 'The link must start with https://';
+        return sb.from('app_settings').upsert({key:'area_map_url',value:u},{onConflict:'key'}).then(must).then(function(){ ui.areaMapSet=u; ui.areaMap=undefined; }); },doneMsg:'Saved.'}); },'small'),
+    h('p',{class:'sub'},cur?h('a',{href:cur,target:'_blank',rel:'noopener'},cur):'No link yet. Guests see a Map of the area button in their app once you add one.')); }
 function mapSettings(){
   var r=needRates(), mgr=me&&me.role==='manager'; if(!r) return null;
   var m=r.map||{}, rooms=S.rooms.filter(function(x){ return x.active!==false; }).sort(function(a,b){ return (a.sort||0)-(b.sort||0); });
@@ -11301,7 +11313,8 @@ function vSettings(){
     stayOfferSection(),promoDatesSection(),
     ratesSettings(),
     extrasSettings(),
-    mapSettings()];
+    mapSettings(),
+    areaMapSettings()];
   else if(t==='privates') body=[
     section('Booking sources',btn('Add source',function(){ editSource(); },'small'),table([
       {label:'Source',cell:function(s){return linkBtn(s.name,function(){ editSource(s); });}},
@@ -11967,6 +11980,8 @@ function editMe(){
 function cuStay(){
   var st=CU.stay, lines=st.charges||[];
   var head={when:st.room,right:chip(st.status==='in'?'Staying now':'Booked',st.status==='in'?'ok':null),note:fmtDate(st.check_in)+' to '+fmtDate(st.check_out)};
+  if(featOn('area_map')){ if(ui.areaMap===undefined){ ui.areaMap=null; sb.rpc('area_map_url').then(function(r){ ui.areaMap=r.data||''; if(ui.areaMap) schedule(); },function(){ ui.areaMap=''; }); }
+    if(ui.areaMap) head.act=[h('a',{class:'btn small',href:ui.areaMap,target:'_blank',rel:'noopener'},'Map of the area')]; }
   var items=[head].concat(lines.map(function(c){ return {when:c.what,right:thb(c.amount),note:fmtDate(c.day)}; }));
   if(lines.length||st.due) items.push({when:'Room bill so far',right:thb(st.due!=null?Math.max(0,st.due):st.total),note:st.settled?'Settled. Thank you.':'Pay at check out, or by card now.',act:!st.settled&&st.id&&st.due>0?[btn('PromptPay',function(){ payPromptPay('stay',st.id,'cafe'); },'primary small'),st.due>=20?btn(payCardLabel(st.due,true),function(){ stripePay('stay',st.id); },'small'):null]:null});
   return section('Your stay',null,cards(items,''));
