@@ -30,7 +30,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=260"></script>
+<script src="changelog.js?v=261"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -423,8 +423,15 @@ body.till #view{max-width:none}
 .poster .gacols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .poster .ganote{margin-top:8px;text-align:center;color:var(--muted)}
 .qr{width:220px;background:#fff;padding:8px;border-radius:8px}
+.storeqrs{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin:10px 0}.storeqr{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.storeqr .qr{width:170px}.kapp{margin-top:14px;text-align:center}
+#printcard{display:none}
 .qr svg{display:block;width:100%;height:auto}
 @media print{
+  body.print-card>*:not(#printcard){display:none!important}
+  body.print-card{background:#fff}
+  body.print-card #printcard{display:block;color:#000;font-size:5mm;max-width:150mm;margin:0 auto;padding-top:8mm}
+  #printcard h1{font-size:10mm;margin:0 0 2mm}#printcard h2{font-size:6.5mm;margin:7mm 0 2mm}#printcard .qr{width:45mm;padding:0}#printcard .storeqrs{justify-content:flex-start;gap:10mm}
+  #printcard .pcrow{display:flex;justify-content:space-between;gap:6mm;border-bottom:0.3mm solid #999;padding:2.5mm 0}#printcard .pwbig{font-size:7mm;letter-spacing:0.5mm}#printcard .sub{color:#333}
   body.print-poster{background:#fff}
   body.print-poster .side,body.print-poster #banner,body.print-poster #toast,body.print-poster .noprint,body.print-poster #view>*:not(.posterwrap){display:none!important}
   body.print-poster main{padding:0}
@@ -1149,7 +1156,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=196; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=197; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -10870,6 +10877,25 @@ function newCode(){
     var d=must(res); if(!d||!d.length) throw {message:'Only a manager can change the code.'}; CODE=v; schedule(); }),'New code made. Print the new poster and take the old one down.');
 }
 function printPoster(){ document.body.classList.add('print-poster'); window.print(); }
+/* QR codes to the business's own app in the App Store and Google Play (Settings, Look, App in the stores) */
+function storeQrs(){ var s=window.PK_STORE||{}, l=[];
+  if(s.ios) l.push(['iPhone','App Store',s.ios]); if(s.android) l.push(['Android','Google Play',s.android]);
+  if(!l.length) return null;
+  return h('div',{class:'storeqrs'},l.map(function(x){ return h('div',{class:'storeqr'},qrNode(x[2]),h('b',null,x[0]),h('span',{class:'sub'},x[1])); })); }
+/* a printed card for a new app login: how to get the app and the starting password */
+function printLoginCard(d,link){
+  var old=document.getElementById('printcard'); if(old) old.remove();
+  var qs=storeQrs(), card=h('div',{id:'printcard',class:'notr'},
+    h('h1',null,BIZ_MAIN),h('p',{class:'pc1'},'Your app login · การเข้าสู่ระบบแอปของคุณ'),
+    h('h2',null,'1. Get the app · ดาวน์โหลดแอป'),
+    qs||h('div',{class:'storeqrs'},h('div',{class:'storeqr'},qrNode(link),h('b',null,'Open the app'),h('span',{class:'sub'},link))),
+    h('p',{class:'sub'},'Scan with your phone camera · สแกนด้วยกล้องโทรศัพท์'),
+    h('h2',null,'2. Sign in · เข้าสู่ระบบ'),
+    h('div',{class:'pcrow'},h('span',null,'Email · อีเมล'),h('b',null,d.email)),
+    h('div',{class:'pcrow'},h('span',null,'Starting password · รหัสผ่านเริ่มต้น'),h('b',{class:'pwbig'},d.password)),
+    h('p',null,'You choose your own password when you first sign in. · เมื่อเข้าสู่ระบบครั้งแรก ให้ตั้งรหัสผ่านของคุณเอง'));
+  document.body.appendChild(card); document.body.classList.add('print-card'); window.print(); }
+window.addEventListener('afterprint',function(){ document.body.classList.remove('print-card'); var c=document.getElementById('printcard'); if(c) c.remove(); });
 window.addEventListener('afterprint',function(){ document.body.classList.remove('print-poster'); });
 function posterSection(){
   var qr=CODE?qrNode(checkinUrl()):null;
@@ -13260,6 +13286,7 @@ function vKiosk(){
       h('button',{type:'button',class:'kbig kalt'+(ui.kintent==='private'?' kon':''),onclick:function(){ ui.kintent=ui.kintent==='private'?null:'private'; kIdle(60000); schedule(); setTimeout(function(){ var e=document.getElementById('kq'); if(e) e.focus(); },30); }},h('span',null,'Book a private'),h('span',{class:'chip'},'Now or later')),
       h('button',{type:'button',class:'kbig kalt'+(ui.kintent==='buy'?' kon':''),onclick:function(){ ui.kintent=ui.kintent==='buy'?null:'buy'; kIdle(60000); schedule(); setTimeout(function(){ var e=document.getElementById('kq'); if(e) e.focus(); },30); }},h('span',null,'Buy a package'),h('span',{class:'chip'},'Card, QR or desk'))):null,
     ui.kintent&&!q?h('p',{class:'sub'},'Now type your name above and tap it.'):null,
+    !q&&storeQrs()?h('div',{class:'panel pad kapp'},h('h2',null,'Get our app'),h('p',{class:'sub'},'Book, check in and see your classes on your phone. Scan with your phone camera.'),storeQrs()):null,
     !q?promoBoard():null,foot];
 }
 /* not found: someone who just bought on the website may be newer than the list, so fetch the latest names once */
@@ -13467,7 +13494,8 @@ function giveAccess(kind,row){
       return d;
     }).then(function(d){
       var link=appQ('openExternalBrowser=1');
-      var msg='Karahill Nail and Beauty app\n'+link+'\nEmail: '+d.email+'\nStarting password: '+d.password+'\nYou choose your own password when you first sign in.\n\nแอป Karahill Nail and Beauty\n'+link+'\nอีเมล: '+d.email+'\nรหัสผ่านเริ่มต้น: '+d.password+'\nเมื่อเข้าสู่ระบบครั้งแรก ให้ตั้งรหัสผ่านของคุณเอง';
+      var st=window.PK_STORE||{}, apps=(st.ios?'iPhone: '+st.ios+'\n':'')+(st.android?'Android: '+st.android+'\n':'');
+      var msg='Karahill Nail and Beauty app\n'+link+'\n'+apps+'Email: '+d.email+'\nStarting password: '+d.password+'\nYou choose your own password when you first sign in.\n\nแอป Karahill Nail and Beauty\n'+link+'\nอีเมล: '+d.email+'\nรหัสผ่านเริ่มต้น: '+d.password+'\nเมื่อเข้าสู่ระบบครั้งแรก ให้ตั้งรหัสผ่านของคุณเอง';
       var ta=h('textarea',{rows:'9',readonly:'',class:'accessmsg'}); ta.value=msg;
       $dlg.replaceChildren(h('div',{class:'billbox'},h('h2',null,'App access for '+d.name),
         h('p',null,'They can sign in now, no email check needed.'),
@@ -13475,6 +13503,7 @@ function giveAccess(kind,row){
         h('p',{class:'sub'},'Shown only now. Give it to them in person or send the message below. When they sign in, the app makes them choose their own password, so this one stops working.'),
         ta,
         h('div',{class:'factions'},h('span'),h('div',{class:'row'},
+          btn('Print',function(){ printLoginCard(d,link); }),
           btn('Copy message',function(){ ta.select(); try{ navigator.clipboard.writeText(msg).then(function(){ toast('Copied.'); },function(){ document.execCommand('copy'); toast('Copied.'); }); }catch(e){ document.execCommand('copy'); toast('Copied.'); } }),
           navigator.share?btn('Share',function(){ navigator.share({text:msg}).catch(function(){}); }):null,
           btn('Done',function(){ close(); reload(kind==='staff'?'staff':'customers'); },'primary')))));
