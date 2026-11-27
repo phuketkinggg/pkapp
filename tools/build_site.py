@@ -253,7 +253,7 @@ def llms_txt(out, snap, made):
          "(herbal sauna, dry sauna, steam room, ice bath, red light). Helps students with the Thailand DTV visa through Muay Thai.", "",
          "- Address: Kathu, Phuket 83120, Thailand (Google Maps: https://maps.google.com/?cid=9002483919313262850)",
          "- Email: hello@phuketking.com",
-         "- WhatsApp and phone: +66 61 515 5947",
+         "- WhatsApp and phone: +66 96 907 6150",
          "- Website: %s/" % DOMAIN,
          "- Booking training: %s/prices" % DOMAIN,
          "- Rooms at Pangea Resort (book direct): %s/book" % DOMAIN,

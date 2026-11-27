@@ -52,7 +52,7 @@ function build(n: { subject: string; preview?: string; body: string }, p: { name
 <tr><td style="padding:28px 28px 8px;font-size:16px;line-height:1.6">${toHtml(body)}</td></tr>
 <tr><td style="padding:8px 28px 28px"><a href="${SITE}" style="display:inline-block;background:#D8001B;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:4px">Visit Phuket King</a></td></tr>
 <tr><td style="background:#F9F3ED;padding:18px 28px;font-size:12px;line-height:1.6;color:#5E6470">
-Phuket King Muay Thai, Kathu, Phuket, Thailand. Reply to this email or WhatsApp +66 61 515 5947.<br>
+Phuket King Muay Thai, Kathu, Phuket, Thailand. Reply to this email or WhatsApp +66 96 907 6150.<br>
 You get this because you trained, stayed or bought with us. <a href="${unsub}" style="color:#5E6470">Unsubscribe</a></td></tr>
 </table></td></tr></table></body></html>`;
   const text = toText(body) + `\n\n--\nPhuket King Muay Thai, Kathu, Phuket\nUnsubscribe: ${unsub}`;
