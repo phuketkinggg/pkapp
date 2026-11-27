@@ -30,7 +30,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=261"></script>
+<script src="changelog.js?v=262"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -425,6 +425,7 @@ body.till #view{max-width:none}
 .qr{width:220px;background:#fff;padding:8px;border-radius:8px}
 .storeqrs{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin:10px 0}.storeqr{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.storeqr .qr{width:170px}.kapp{margin-top:14px;text-align:center}
 #printcard{display:none}
+.poster .pname{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase}.poster .pstep{font-weight:700;font-size:20px;margin-top:6px}.poster .pstep .th{font-weight:600}
 .qr svg{display:block;width:100%;height:auto}
 @media print{
   body.print-card>*:not(#printcard){display:none!important}
@@ -433,6 +434,11 @@ body.till #view{max-width:none}
   #printcard h1{font-size:10mm;margin:0 0 2mm}#printcard h2{font-size:6.5mm;margin:7mm 0 2mm}#printcard .qr{width:45mm;padding:0}#printcard .storeqrs{justify-content:flex-start;gap:10mm}
   #printcard .pcrow{display:flex;justify-content:space-between;gap:6mm;border-bottom:0.3mm solid #999;padding:2.5mm 0}#printcard .pwbig{font-size:7mm;letter-spacing:0.5mm}#printcard .sub{color:#333}
   body.print-poster{background:#fff}
+  body.print-poster .poster .pname{font-size:11mm;color:#000}body.print-poster .poster .pstep{font-size:8mm;margin-top:3mm}body.print-poster .poster .storeqrs{gap:14mm;margin:1mm 0}body.print-poster .poster .storeqr .qr{width:42mm}body.print-poster .pstore{gap:2mm!important}body.print-poster .pstore>.qr{width:58mm}body.print-poster .pstore .plogo{width:22mm;height:22mm}body.print-poster .pstore .p2{font-size:14mm}body.print-poster .pstore .pth{font-size:6mm;margin-top:0}body.print-poster .pstore .pname{font-size:9mm}body.print-poster .pstore .ganote{font-size:4mm}body.print-poster .poster .storeqr b{font-size:6mm}
+  #printcard.stickers{display:grid!important;grid-template-columns:1fr 1fr;gap:0;max-width:none;padding:0;margin:0}
+  #printcard .sticker{height:88mm;border:0.3mm dashed #999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1mm;text-align:center;break-inside:avoid;padding:3mm}
+  #printcard .sticker img{width:13mm;height:13mm;border-radius:2mm}#printcard .sticker .st1{font-size:7mm;font-weight:800;text-transform:uppercase}#printcard .sticker .st2{font-size:5mm;font-weight:700}#printcard .sticker .st3{font-size:3.6mm}
+  #printcard .sticker .storeqrs{gap:5mm;margin:1.5mm 0 0;justify-content:center}#printcard .sticker .qr{width:30mm}#printcard .sticker b{font-size:3.8mm}#printcard .sticker .sub{font-size:3mm}
   body.print-poster .side,body.print-poster #banner,body.print-poster #toast,body.print-poster .noprint,body.print-poster #view>*:not(.posterwrap){display:none!important}
   body.print-poster main{padding:0}
   body.print-poster #view{max-width:none}
@@ -1156,7 +1162,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=197; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=198; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -10882,6 +10888,14 @@ function storeQrs(){ var s=window.PK_STORE||{}, l=[];
   if(s.ios) l.push(['iPhone','App Store',s.ios]); if(s.android) l.push(['Android','Google Play',s.android]);
   if(!l.length) return null;
   return h('div',{class:'storeqrs'},l.map(function(x){ return h('div',{class:'storeqr'},qrNode(x[2]),h('b',null,x[0]),h('span',{class:'sub'},x[1])); })); }
+/* the app's name as people see it on their phone */
+function appTitle(){ if(window.MF_MULTI) return BIZ_MAIN; var m=document.querySelector('meta[name="apple-mobile-web-app-title"]'); return (m&&m.content)||BIZ_MAIN; }
+/* small Get our app stickers for tables and windows: 6 on a sheet of A4, cut them out */
+function printStickers(){ if(!storeQrs()){ toast('Add your App Store or Google Play link first: Settings, Look, App in the stores.'); return; }
+  var old=document.getElementById('printcard'); if(old) old.remove();
+  var one=function(){ return h('div',{class:'sticker'},h('img',{src:'icons/icon-512.png',alt:''}),h('div',{class:'st1'},'Get our app'),h('div',{class:'st2'},appTitle()+' App'),h('div',{class:'st3'},'ดาวน์โหลดแอปของเรา'),storeQrs()); };
+  var sheet=h('div',{id:'printcard',class:'notr stickers'},[1,2,3,4,5,6].map(one));
+  document.body.appendChild(sheet); document.body.classList.add('print-card'); window.print(); }
 /* a printed card for a new app login: how to get the app and the starting password */
 function printLoginCard(d,link){
   var old=document.getElementById('printcard'); if(old) old.remove();
@@ -10902,8 +10916,16 @@ function posterSection(){
   return h('section',{class:'sec posterwrap'},
     h('div',{class:'sechead noprint'},h('h2',null,'Check in QR code'),h('div',{class:'row'},
       qr?btn('Print poster',printPoster,'primary small'):null,
+      storeQrs()?btn('Print small app stickers',printStickers,'small'):null,
       CODE?btn(ui.armCode?'Tap again. The old poster stops working':'Make a new code',newCode,'small'+(ui.armCode?' danger':'')):null)),
     !CODE?h('div',{class:'panel empty'},'The check in code could not be loaded. Reload the page.'):
+    storeQrs()?h('div',{class:'panel pad poster pstore notr'},h('img',{class:'plogo',src:'icons/icon-512.png',alt:appTitle()}),
+      h('div',{class:'p2'},'Get our app'),h('div',{class:'pth'},'ดาวน์โหลดแอปของเรา'),h('div',{class:'pname'},appTitle()+' App'),
+      h('div',{class:'pstep'},'1. Check in here',h('span',{class:'th'},'เช็คอินที่นี่')),
+      qr||h('p',{class:'sub'},'The QR picture could not be drawn. Reload the page with a connection.'),
+      h('div',{class:'pstep'},'2. Then get the app here',h('span',{class:'th'},'จากนั้นดาวน์โหลดแอปที่นี่')),
+      storeQrs(),
+      h('div',{class:'ganote'},'Open your phone camera and point it at a code. Sign in once with your email and password.',h('span',{class:'th'},'เปิดกล้องมือถือแล้วส่องที่โค้ด ลงชื่อเข้าใช้ครั้งเดียวด้วยอีเมลและรหัสผ่าน'))):
     h('div',{class:'panel pad poster'},h('img',{class:'plogo',src:'icons/icon-512.png',alt:'Massage Mate Demo Spa'}),
       h('div',{class:'p2'},'Scan to check in'),h('div',{class:'pth'},'สแกนเพื่อเช็คอิน'),
       qr||h('p',{class:'sub'},'The QR picture could not be drawn. Reload the page with a connection.'),
