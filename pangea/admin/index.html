@@ -29,7 +29,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=262"></script>
+<script src="changelog.js?v=263"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1161,7 +1161,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=198; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=199; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -11260,7 +11260,7 @@ function navEdit(){
 /* Settings: a front page (what is new, the essentials) and folders. Tap a folder to open it, Back to return. The open folder is remembered on this device */
 var SETT={tab:pref('pk_settab')||'home'};
 function setTabs(){ var mgr=me.role==='manager'; if(OWN===undefined) ownLoad(); var deep=!(OWN&&OWN.locked&&!OWN.me);
-  return [['general','General','Clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],deep?['features','Features','Switch parts of the app on or off, languages']:null,
+  return [['general','General','Contact info, clean up, booking emails, backups, check in QR code, AI use'],['news',"What's new",'Every change to the app'],['menu','Menu','Order and groups of the menu'],deep?['features','Features','Switch parts of the app on or off, languages']:null,
     mgr&&window.MF_MULTI?['plan','Your plan','Your plan, upgrade, card and bills']:null,histOk()?['activity','Activity','Who did what, and when']:null,mgr?['look','Look','App colours, desk mode screen']:null,mgr&&deep?['money','Money','Ways to pay, PromptPay, card fee and tax']:null,mgr?['messages','Messages','Phone notifications, welcome, review and renewal messages']:null,
     ['website','Website','Photos, text and blog'],featOn('stays')?['rooms','Rooms and stays','Rooms, mini bar, prices, extras, map']:null,featOn('privates')?['privates','Privates','Booking sources and their prices']:null].filter(Boolean)
     .filter(function(t){ return (platCfg().hide_set||[]).indexOf(t[0])<0; }).concat(PLAT.owner?[['master','Master control','For you as the owner of the app: what this business sees and what things are called']]:[]); }
@@ -11446,7 +11446,7 @@ function vSettings(){
       {label:'You receive per private',num:true,cell:function(s){return thb(s.price_thb);}},
       {label:'Local and Thai',num:true,cell:function(s){return thb(s.price_local_thb);}}],
       sortBy(S.sources,'name'),'No sources yet. Add Direct with your standard price, then each agent with their net price.')),privAddonsSection(),mgr&&featOn('gyg_connect')?gygSection():null];
-  else body=[mgr?stepsSection():null,mgr?regionSection():null,mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
+  else body=[mgr?stepsSection():null,mgr?contactSection():null,mgr?regionSection():null,mgr?migrSection():null,!mgr&&featOn('notify_choice')?notifySection():null,ownerSection(),healthSection(),cleanupSection(),bookingMailSection(),backupSection(),posterSection(),mgr?aiUsageSection():null];
   return [h('div',{class:'row'},btn('‹ Settings',function(){ setGo('home'); },'small')),pageHead(cur[1],cur[2])].concat(body);
 }
 var VIEWS={askai:function(){ return vAskAi(); },emails:function(){ return vEmails(); },custview:function(){ return vCustView(); },affiliates:function(){ return [pageHead('Affiliates','Their own links to any page, package or course, and what they have earned.')].concat(vAff()); },board:function(){ var v=vSpaBoard(); if(Array.isArray(v)&&v.length) v.splice(1,0,stepsBanner()); return v; },spasetup:function(){ return vSpaSetup(); },c_spa:function(){ return vCSpa(); },sitestats:function(){ return vSiteStats(); },accounts:function(){ return vAccounts(); },webpages:function(){ return vWebPages(); },coaching:function(){ return vCoaching(); },c_coach:function(){ return vCoachMe(); },social:function(){ return vSocial(); },email:function(){ return vNews(); },courses:function(){ return vCourses(); },c_learn:function(){ return vLearn(); },contacts:vContacts,receipts:vReceipts,work:vWork,jobs:vJobs,actions:vActions,investor:vInvestor,housekeeping:vHousekeeping,clock:vClock,hours:vHours,chat:vChat,fights:vFights,shop:vShop,kitchen:function(){ return vKitchen(); },c_food:function(){ return vCFood(); },hk:function(){ return vHK(); },stays:vStays,today:vToday,customers:vCustomers,packages:vPackages,timetable:vTimetable,privates:vPrivates,staff:vStaff,commission:vCommission,coach:vCoach,settings:vSettings,kiosk:function(){ return vKiosk(); },mine:function(){ return vMine(); },c_home:function(){ return vCHome(); },c_ready:function(){ return vCReady(); },c_classes:function(){ return vCClasses(); },c_buy:function(){ return vCBuy(); },c_pt:function(){ return vCPt(); }};
@@ -12546,6 +12546,38 @@ function planSection(){
           PLANCYC==='year'?h('p',{class:'sub'},h('span',{class:'notr'},money(p,true)),' a year, paid upfront. You save ',h('span',{class:'notr'},money(p,false,2)),'.'):null,h('p',{class:'sub'},p.d),
           h('div',{class:'row'},btn('Choose '+p.n,function(e){ var b=e.currentTarget; b.disabled=true; billing({action:'checkout',plan:p.k,cycle:PLANCYC,currency:PLANCUR}).catch(function(x){ b.disabled=false; toast(errText(x)); }); },'primary small'))); })),
       h('p',{class:'sub'},'You pay on Stripe\'s secure page by card. Your plan switches on as soon as you have paid.')))); }
+/* contact info (Settings, General): phone, WhatsApp, email, LINE, more numbers, address and social pages, in one place.
+   The website reads it (rpc contact_info), so a change here shows on every page. */
+var CONTACT=null, CT_EXTRA=3;
+function loadContact(){ return sb.rpc('contact_info').then(function(r){ CONTACT=(!r.error&&r.data)||{}; schedule(); },function(){ CONTACT={}; schedule(); }); }
+function lineLink(id){ id=String(id||'').trim(); if(!id) return ''; if(/^https:\/\//i.test(id)) return id; return id.charAt(0)==='@'?'https://line.me/R/ti/p/'+encodeURIComponent(id):'https://line.me/ti/p/~'+encodeURIComponent(id); }
+function contactSection(){
+  if(CONTACT===null){ loadContact(); return section('Contact info',null,h('div',{class:'panel empty'},'Loading.')); }
+  var c=CONTACT, ex=(c.extra||[]).filter(function(x){ return x&&x.phone; });
+  function row(k,v){ return v?h('p',null,k+': ',h('b',{class:'notr'},v)):null; }
+  return section('Contact info',btn('Change',contactDlg,'small'),h('div',{class:'panel pad'},
+    h('p',{class:'sub'},'How customers reach you. Your website shows these on every page, in the WhatsApp and call buttons and at the bottom.'),
+    row('Phone',c.phone),row('WhatsApp',c.whatsapp),row('Email',c.email),row('LINE',c.line),
+    ex.map(function(x){ return row(x.label||'Other number',x.phone+(x.whatsapp?' (WhatsApp)':'')); }),
+    row('Address',c.address),
+    !c.phone&&!c.whatsapp&&!c.email?h('p',{class:'sub'},'Nothing added yet. Tap Change.'):null)); }
+function contactDlg(){ var c=CONTACT||{}, ex=c.extra||[], vals={phone:c.phone,whatsapp:c.whatsapp,email:c.email,line:c.line,address:c.address,instagram:c.instagram,facebook:c.facebook,youtube:c.youtube,tiktok:c.tiktok};
+  var fields=[{key:'phone',label:'Phone',hint:'As people should see it, with the country code. For example +66 81 234 5678.'},
+    {key:'whatsapp',label:'WhatsApp number',hint:'With the country code. Leave empty if it is the same as the phone.'},
+    {key:'email',label:'Email',type:'email'},
+    {key:'line',label:'LINE',hint:'Your LINE ID, for example @yourbusiness, or a line.me link.'}];
+  for(var i=0;i<CT_EXTRA;i++){ var x=ex[i]||{}; vals['xl'+i]=x.label; vals['xp'+i]=x.phone; vals['xw'+i]=!!x.whatsapp;
+    fields.push({key:'xl'+i,label:'Another number '+(i+1)+', what it is for',hint:i===0?'For example Thai speakers, or Resort front desk. Leave the number empty to leave it out.':null},
+      {key:'xp'+i,label:'Another number '+(i+1)},{key:'xw'+i,label:'Another number '+(i+1)+' is on WhatsApp',type:'checkbox'}); }
+  fields.push({key:'address',label:'Address'},{key:'instagram',label:'Instagram link'},{key:'facebook',label:'Facebook link'},{key:'youtube',label:'YouTube link'},{key:'tiktok',label:'TikTok link'});
+  openForm({title:'Contact info',values:vals,fields:fields,doneMsg:'Saved. Your website uses it straight away.',
+    onSave:function(v){ var s=function(k){ return String(v[k]||'').trim(); }, out={phone:s('phone'),whatsapp:s('whatsapp'),email:s('email'),line:s('line'),address:s('address'),instagram:s('instagram'),facebook:s('facebook'),youtube:s('youtube'),tiktok:s('tiktok'),extra:[]};
+      if(out.email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(out.email)) return 'Check the email address.';
+      var bad=['phone','whatsapp'].filter(function(k){ return out[k]&&String(out[k]).replace(/\D/g,'').length<8; });
+      if(bad.length) return bad[0]==='phone'?'Check the phone number, with the country code.':'Check the WhatsApp number, with the country code.';
+      if(['instagram','facebook','youtube','tiktok'].some(function(k){ return out[k]&&!/^https:\/\//i.test(out[k]); })) return 'Social links start with https://';
+      for(var i=0;i<CT_EXTRA;i++) if(s('xp'+i)) out.extra.push({label:s('xl'+i),phone:s('xp'+i),whatsapp:!!v['xw'+i]});
+      return sb.from('app_settings').upsert({key:'contact_info',value:JSON.stringify(out),updated_at:new Date().toISOString()}).select('key').then(must).then(function(d){ if(!d||!d.length) throw {message:'Only a manager can change this.'}; CONTACT=out; schedule(); }); }}); }
 function storeSection(){ var s=window.PK_STORE||{};
   return section('App in the stores',null,h('div',{class:'panel pad'},
     h('p',{class:'sub'},'If your business has its own app in Google Play or the App Store, add the links here. Your website shows Get it on Google Play and Download on the App Store buttons, and the Install button in the app sends phones to the store.'),

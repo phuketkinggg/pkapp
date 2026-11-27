@@ -301,6 +301,38 @@ def app_banner(out, snap):
                 h = re.sub(r'("@id":"[^"]*#gym".*?"sameAs":\[)', lambda x: x.group(1) + "".join(json.dumps(u) + "," for u in links if u not in h), h, count=1, flags=re.S)
             open(p, "w", encoding="utf-8").write(h)
 
+# the phone, WhatsApp and email written in the pages; the built site uses Settings, General, Contact info instead
+CONTACT_DEF = {"phone": "+66 96 907 6150", "local": "096 907 6150", "tel": "+66969076150", "wa": "66969076150", "email": "hello@phuketking.com"}
+
+def contact_pass(out, snap):
+    c = (snap or {}).get("contact") or {}
+    phone = str(c.get("phone") or "").strip()
+    tel = re.sub(r"[^\d+]", "", phone)
+    wa = re.sub(r"\D", "", str(c.get("whatsapp") or phone or ""))
+    email = str(c.get("email") or "").strip()
+    swaps = []
+    if len(re.sub(r"\D", "", tel)) >= 8:
+        swaps += [("tel:" + CONTACT_DEF["tel"], "tel:" + tel), ('"telephone":"%s"' % CONTACT_DEF["tel"], '"telephone":"%s"' % tel),
+                  ('"telephone": "%s"' % CONTACT_DEF["tel"], '"telephone": "%s"' % tel), (CONTACT_DEF["phone"], esc_attr(phone)), (CONTACT_DEF["local"], esc_attr(phone))]
+    if len(wa) >= 8:
+        swaps += [("wa.me/" + CONTACT_DEF["wa"], "wa.me/" + wa), ("WA='%s'" % CONTACT_DEF["wa"], "WA='%s'" % wa)]
+    if re.match(r"^[^@\s\"'<>]+@[^@\s\"'<>]+\.[^@\s\"'<>]+$", email):
+        swaps += [(CONTACT_DEF["email"], email)]
+    swaps = [s for s in swaps if s[0] != s[1]]
+    if not swaps:
+        return
+    for dp, _, fs in os.walk(out):
+        for f in fs:
+            if not f.endswith((".html", ".js", ".txt")):
+                continue
+            p = os.path.join(dp, f)
+            h = open(p, encoding="utf-8").read()
+            n = h
+            for a, b in swaps:
+                n = n.replace(a, b)
+            if n != h:
+                open(p, "w", encoding="utf-8").write(n)
+
 def main():
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
@@ -327,6 +359,7 @@ def main():
     app_banner(OUT, snap)
     if snap and LIVE:
         llms_txt(OUT, snap, made)
+    contact_pass(OUT, snap)
     short = {u[1:] for u, _ in made}
     # old WordPress addresses forward permanently to the new pages (Cloudflare Pages reads this file)
     r = [

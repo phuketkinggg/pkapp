@@ -122,6 +122,10 @@ def main():
         snap["store"] = {"ios": st.get("ios") or "", "android": st.get("android") or ""}
     except Exception as e:
         errors.append("store links: %s" % e)
+    try:
+        snap["contact"] = get(REST + "rpc/contact_info") or {}
+    except Exception as e:
+        errors.append("contact info: %s" % e)
 
     snap["problems"] = [e[:300] for e in errors]
     snap["found"] = {"posts": len(posts), "pages": len(pages)}

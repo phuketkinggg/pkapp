@@ -26950,5 +26950,85 @@
 "Print small app stickers": [
 "พิมพ์สติกเกอร์แอปขนาดเล็ก",
 "အက်ပ် စတစ်ကာအသေးများ ပရင့်ထုတ်ရန်"
+],
+" is on WhatsApp": [
+" มี WhatsApp",
+" တွင် WhatsApp ရှိသည်"
+],
+", what it is for": [
+", ใช้สำหรับอะไร",
+", ဘာအတွက်လဲ"
+],
+"Another number ": [
+"เบอร์อื่น ",
+"အခြားနံပါတ် "
+],
+"Check the phone number, with the country code.": [
+"ตรวจสอบเบอร์โทรศัพท์ พร้อมรหัสประเทศ",
+"နိုင်ငံကုဒ်ပါသော ဖုန်းနံပါတ်ကို စစ်ဆေးပါ။"
+],
+"Check the WhatsApp number, with the country code.": [
+"ตรวจสอบเบอร์ WhatsApp พร้อมรหัสประเทศ",
+"နိုင်ငံကုဒ်ပါသော WhatsApp နံပါတ်ကို စစ်ဆေးပါ။"
+],
+"As people should see it, with the country code. For example +66 81 234 5678.": [
+"แบบที่ลูกค้าจะเห็น พร้อมรหัสประเทศ เช่น +66 81 234 5678",
+"လူများမြင်ရမည့်အတိုင်း နိုင်ငံကုဒ်နှင့်တကွ။ ဥပမာ +66 81 234 5678။"
+],
+"Check the email address.": [
+"ตรวจสอบที่อยู่อีเมล",
+"အီးမေးလ်လိပ်စာကို စစ်ဆေးပါ။"
+],
+"Contact info": [
+"ข้อมูลติดต่อ",
+"ဆက်သွယ်ရန် အချက်အလက်"
+],
+"Contact info, clean up, booking emails, backups, check in QR code, AI use": [
+"ข้อมูลติดต่อ, ล้างข้อมูล, อีเมลการจอง, สำรองข้อมูล, QR เช็คอิน, การใช้ AI",
+"ဆက်သွယ်ရန် အချက်အလက်၊ ရှင်းလင်းခြင်း၊ ဘွတ်ကင် အီးမေးလ်များ၊ အရန်သိမ်းခြင်း၊ ချက်အင် QR ကုဒ်၊ AI အသုံးပြုမှု"
+],
+"Facebook link": [
+"ลิงก์ Facebook",
+"Facebook လင့်ခ်"
+],
+"For example Thai speakers, or Resort front desk. Leave the number empty to leave it out.": [
+"เช่น สำหรับคนไทย หรือ ฟรอนต์รีสอร์ท เว้นเบอร์ว่างไว้ถ้าไม่ต้องการแสดง",
+"ဥပမာ ထိုင်းစကားပြောသူများ သို့မဟုတ် ရီဆော့ ရှေ့ကောင်တာ။ မထည့်လိုပါက နံပါတ်ကို ဗလာထားပါ။"
+],
+"How customers reach you. Your website shows these on every page, in the WhatsApp and call buttons and at the bottom.": [
+"ช่องทางที่ลูกค้าติดต่อคุณ เว็บไซต์ของคุณแสดงข้อมูลนี้ทุกหน้า ในปุ่ม WhatsApp และปุ่มโทร และด้านล่างสุด",
+"ဖောက်သည်များ သင့်ကို ဆက်သွယ်ပုံ။ သင့်ဝက်ဘ်ဆိုက်သည် စာမျက်နှာတိုင်းတွင် WhatsApp နှင့် ဖုန်းခေါ်ရန် ခလုတ်များ၌ နှင့် အောက်ခြေတွင် ပြသပါသည်။"
+],
+"Instagram link": [
+"ลิงก์ Instagram",
+"Instagram လင့်ခ်"
+],
+"Nothing added yet. Tap Change.": [
+"ยังไม่ได้เพิ่มอะไร แตะ เปลี่ยน",
+"ဘာမှ မထည့်ရသေးပါ။ ပြောင်းရန် ကို နှိပ်ပါ။"
+],
+"Other number": [
+"เบอร์อื่น",
+"အခြားနံပါတ်"
+],
+"Saved. Your website uses it straight away.": [
+"บันทึกแล้ว เว็บไซต์ของคุณใช้ข้อมูลนี้ทันที",
+"သိမ်းပြီးပါပြီ။ သင့်ဝက်ဘ်ဆိုက်က ချက်ချင်း အသုံးပြုပါသည်။"
+],
+"Social links start with https://": [
+"ลิงก์โซเชียลต้องขึ้นต้นด้วย https://",
+"ဆိုရှယ် လင့်ခ်များသည် https:// ဖြင့် စရပါမည်"
+],
+"TikTok link": [
+"ลิงก์ TikTok",
+"TikTok လင့်ခ်"
+],
+"With the country code. Leave empty if it is the same as the phone.": [
+"พร้อมรหัสประเทศ เว้นว่างไว้ถ้าเป็นเบอร์เดียวกับเบอร์โทร",
+"နိုင်ငံကုဒ်နှင့်တကွ။ ဖုန်းနံပါတ်နှင့် တူပါက ဗလာထားပါ။"
+],
+"Your LINE ID, for example @yourbusiness, or a line.me link.": [
+"LINE ID ของคุณ เช่น @yourbusiness หรือลิงก์ line.me",
+"သင့် LINE ID၊ ဥပမာ @yourbusiness သို့မဟုတ် line.me လင့်ခ်"
 ]
 }
