@@ -2,6 +2,7 @@
    Newest at the top. feature: the switch in Settings, Features, when it can be turned on or off.
    Write for any business: no business names, no em dashes, no "&". */
 window.CHANGELOG = [
+  {date: '2026-11-27', title: 'Your App Store app on your website', what: 'When you add your App Store link in Settings, Look, App in the stores, iPhone visitors to your website see a bar at the top to open or get your app, and Google is told the app is yours. The Download on the App Store button in the footer and the Install button in the app use the same link.'},
   {date: '2026-11-26', title: 'Safety net for updates', what: 'If a new version of the app ever fails to start on a phone, that phone goes straight back to the last version that worked on it, until a fixed version arrives. Errors anyone hits are logged in Settings, Activity, App errors, so they are found and fixed early.', feature: 'error_log'},
   {date: '2026-11-26', title: 'Undo a delete', what: 'Everything deleted is kept for 60 days: packages, privates, stays, check ins, payments, shop sales and room charges. Settings, Activity, Recently deleted lists each delete, and Undo puts it back exactly as it was, with the check ins, payments and visits that changed because of it.', feature: 'undo_delete'},
   {date: '2026-11-26', title: 'Change the date a package was bought', what: 'Edit on a package now has Bought on, for managers. Change it and the payments taken on the old date move with it, so Accounts shows the money on the day it really came in.', feature: 'redate_purchase'},

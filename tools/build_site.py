@@ -281,6 +281,26 @@ def llms_txt(out, snap, made):
     L += ["## More", "", "- [About](%s/about)" % DOMAIN, "- [Wellness and recovery](%s/wellness)" % DOMAIN, "- [Education: free Muay Thai technique videos and online courses](%s/education)" % DOMAIN, "- [Shop](%s/shop)" % DOMAIN, "- [Blog](%s/blog)" % DOMAIN]
     open(os.path.join(out, "llms.txt"), "w", encoding="utf-8").write("\n".join(x for x in L if x is not None).replace("\n\n\n", "\n\n") + "\n")
 
+def app_banner(out, snap):
+    """The business's own App Store app (app Settings, App in the stores): iPhones get Safari's Open or Get bar on every page,
+    and Google sees the store pages as the gym's own."""
+    st = (snap or {}).get("store") or {}
+    m = re.search(r"/id(\d{6,12})", st.get("ios") or "")
+    links = [u for u in (st.get("ios"), st.get("android")) if u and re.match(r"^https://(apps\.apple\.com|play\.google\.com)/", u)]
+    if not m and not links:
+        return
+    for dp, _, fs in os.walk(out):
+        for f in fs:
+            if not f.endswith(".html") or f == "404.html":
+                continue
+            p = os.path.join(dp, f)
+            h = open(p, encoding="utf-8").read()
+            if m and 'name="apple-itunes-app"' not in h:
+                h = h.replace("</head>", '<meta name="apple-itunes-app" content="app-id=%s">\n</head>' % m.group(1), 1)
+            if f == "index.html" and dp == out and links:
+                h = re.sub(r'("@id":"[^"]*#gym".*?"sameAs":\[)', lambda x: x.group(1) + "".join(json.dumps(u) + "," for u in links if u not in h), h, count=1, flags=re.S)
+            open(p, "w", encoding="utf-8").write(h)
+
 def main():
     if os.path.isdir(OUT):
         shutil.rmtree(OUT)
@@ -304,6 +324,7 @@ def main():
     for f in ("resort-aerial.jpg", "mango-grove-5.mp4", "mango-grove-5.jpg"):
         shutil.copy2(os.path.join(ROOT, "img", f), os.path.join(OUT, "img", f))
     made, snap = build_static(OUT)
+    app_banner(OUT, snap)
     if snap and LIVE:
         llms_txt(OUT, snap, made)
     short = {u[1:] for u, _ in made}
