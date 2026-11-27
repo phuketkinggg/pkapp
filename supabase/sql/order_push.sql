@@ -1,6 +1,6 @@
 -- Phone notification for every food or drink order from the app (feature: order_push).
 -- When a guest orders in the app (to their room or pay at the counter), staff who turned on notifications on their phone get it:
--- by default managers, front desk, resort and kitchen staff (app_settings order_push_roles, a list of roles).
+-- by default managers, admins, front desk, resort and kitchen staff (app_settings order_push_roles, a list of roles).
 
 create or replace function public.order_push_targets(p_order uuid) returns jsonb language plpgsql stable security definer set search_path to '' as $f$
 declare o public.shop_orders; who text; room text; items text; roles text[];
@@ -9,7 +9,7 @@ begin
   select * into o from public.shop_orders where id = p_order;
   if o.id is null or o.source <> 'app' then return null; end if;
   roles := coalesce((select array(select jsonb_array_elements_text(a.value::jsonb)) from public.app_settings a where a.key = 'order_push_roles' and a.value ~ '^\s*\['),
-    array['manager','front_desk','resort','kitchen']);
+    array['manager','admin','front_desk','resort','kitchen']);
   select name into who from public.customers where id = o.customer_id;
   select r.name into room from public.stays s join public.rooms r on r.id = s.room_id where s.id = o.stay_id;
   select string_agg(i.qty || ' x ' || i.name, ', ' order by i.name) into items from public.shop_order_items i where i.order_id = o.id;

@@ -30,7 +30,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=258"></script>
+<script src="changelog.js?v=259"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1036,7 +1036,7 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'meal_bills',g:'Selling',n:'Meal plans held until served, cafe meal bills',d:'Money paid for a meal plan comes in as Meal plans held for the business that sold it, not as cafe sales, so it can always be refunded. The kitchen or the cafe till ticks each meal as it is served, and sends a bill for the meals served, for example once a week. A manager marks the bill paid: only then does Accounts show it as cafe sales. Meal plans bought before this was switched on stay as they were.',def:false,spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
-  {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, front desk, resort and kitchen staff who turned notifications on. Tapping it opens the kitchen screen.',spa:false},
+  {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, admins, front desk, resort and kitchen staff who turned notifications on. Each person can turn it on or off in Messages, My notifications. Tapping it opens the kitchen screen.',spa:false},
   {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'shop_tabs',g:'Selling',n:'Tabs at the till',d:'Running tabs for tables or people: put an order on Table 1, the kitchen gets it and the till is free for the next customer. Add more to the tab any time, then bring it up at the end, print the bill and take payment. A line added in the last 10 minutes can be taken off; after that a manager uses their PIN.'},
@@ -1147,7 +1147,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=194; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=195; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -4533,25 +4533,27 @@ function fbDisconnect(){ if(!confirm('Disconnect the Facebook page? Messages and
   metaCall({mode:'fb_disconnect'}).then(function(d){ fbDone(); toast(d.still?'Disconnected. The page set up for you before is used again.':'Facebook and Instagram disconnected.'); }).catch(function(e){ toast(errText(e)); }); }
 // new bookings not made by the team (feature booking_push): who gets the phone notification, and for what
 var NKINDS=[['private','Privates booked by customers'],['stay','Rooms booked online'],['package','Packages bought and paid online'],['order','Packages ordered in the app, to pay at the desk'],['class','Group class guests from agencies'],
-  ['sale_package','Packages sold by the team'],['sale_stay','Rooms booked by the team'],['sale_till','Every till sale (shop, cafe and drinks)']];
-function nkindsFor(){ var l=featOn('notify_choice')?NKINDS:NKINDS.filter(function(k){ return !/^(sale_|order)/.test(k[0]); });
+  ['sale_package','Packages sold by the team'],['sale_stay','Rooms booked by the team'],['sale_till','Every till sale (shop, cafe and drinks)'],['food','Food and drink orders from the app, to rooms or the counter']];
+/* who gets app food orders when they have not chosen for themselves (server: private.order_push_roles) */
+var FOODROLES=['manager','admin','front_desk','resort','kitchen'];
+function nkindsFor(){ var l=featOn('notify_choice')?NKINDS:NKINDS.filter(function(k){ return !/^(sale_|order|food)/.test(k[0]); }); if(!featOn('order_push')) l=l.filter(function(k){ return k[0]!=='food'; });
   /* Know your students: coaches and managers, the evening before new students arrive (feature brief_push) */
   if(featOn('brief_push')&&me&&(me.role==='coach'||me.role==='manager')) l=[['brief','Know your students: new students arriving tomorrow (6pm)']].concat(l);
   return l; }
 function bookPushForm(){
   sb.rpc('booking_push_settings').then(must).then(function(c){ c=c||{}; var ppl=c.people||{}, roles0=c.roles||['manager','front_desk'], kinds0=c.kinds||['private','stay','package','class'];
     var per=featOn('notify_choice')?(c.staff||[]).filter(function(st){ return st.role!=='coach'||ppl[st.id]; }):[];
-    function roleDef(st){ return roles0.indexOf(st.role)>=0?kinds0.slice():[]; }
+    function roleDef(st){ return (roles0.indexOf(st.role)>=0?kinds0.slice():[]).concat(FOODROLES.indexOf(st.role)>=0&&featOn('order_push')?['food']:[]); }
     openForm({title:'Notifications',saveLabel:'Save',doneMsg:'Saved.',
       note:'Choose who gets a phone notification for what. Each person turns notifications on once on their own phone: Messages, Turn on notifications on this phone. Messages and a coach\'s own privates always notify.',
-      fields:[{key:'kinds',label:'Everyone in these roles gets',type:'checks',def:kinds0,options:nkindsFor()},
+      fields:[{key:'kinds',label:'Everyone in these roles gets',type:'checks',def:kinds0,options:nkindsFor().filter(function(k){ return k[0]!=='food'; })},
         {key:'roles',label:'Roles',type:'checks',def:roles0,options:[['manager','Managers'],['admin','Admins'],['front_desk','Front desk'],['resort','Resort staff'],['kitchen','Kitchen']]}].concat(
         per.length?[{key:'per_info',label:'Each person',type:'info',def:'Tick exactly what each person gets. This wins over the roles above. A person can also change their own in Messages, My notifications.'}]:[],
         per.map(function(st){ return {key:'pp_'+st.id,label:st.name+' ('+(ROLES&&ROLES[st.role]||st.role)+')'+(st.phone?'':', notifications not turned on yet'),type:'checks',def:ppl[st.id]||roleDef(st),options:nkindsFor()}; }),
         [{key:'email',label:'Also email every new customer booking to',type:'email',def:c.email||'',hint:'Optional. For example your business email. Leave empty for phone notifications only.'}]),
       onSave:function(v){ var em=String(v.email||'').trim(); if(em&&!/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(em)) return 'Check the email address, or leave it empty.';
         var people={}, nr=v.roles||[], nk=v.kinds||[];
-        per.forEach(function(st){ var pick=(v['pp_'+st.id]||[]).slice().sort(), def=(nr.indexOf(st.role)>=0?nk:[]).slice().sort();
+        per.forEach(function(st){ var pick=(v['pp_'+st.id]||[]).slice().sort(), def=(nr.indexOf(st.role)>=0?nk:[]).concat(FOODROLES.indexOf(st.role)>=0&&featOn('order_push')?['food']:[]).slice().sort();
           if(ppl[st.id]||pick.join()!==def.join()) people[st.id]=pick; });
         return sb.rpc('booking_push_settings_save',{p:{kinds:nk,roles:nr,email:em,people:featOn('notify_choice')?people:undefined}}).then(must); }});
   }).catch(function(e){ toast(errText(e)); });
@@ -4604,7 +4606,7 @@ function myPushForm(){
   sb.rpc('my_push_kinds').then(must).then(function(c){ c=c||{}; var coach=c.role==='coach';
     openForm({title:'My notifications',saveLabel:'Save',doneMsg:'Saved. Your phone gets what you ticked.',
       note:(coach?'You always get your messages and a notification when a private is booked with you, moved or cancelled. ':'You always get your messages. ')+'Tick anything else you want on your phone. Notifications must be on for this phone: Messages, Turn on notifications on this phone.',
-      fields:[{key:'kinds',label:'Also notify me for',type:'checks',def:c.kinds||[],options:nkindsFor()},
+      fields:[{key:'kinds',label:'Also notify me for',type:'checks',def:(c.kinds||[]).concat(!c.own&&FOODROLES.indexOf(c.role)>=0&&featOn('order_push')?['food']:[]),options:nkindsFor()},
         {key:'reset',label:'Use the normal settings for my role instead',type:'checkbox',hide:!c.own}],
       onSave:function(v){ return sb.rpc('my_push_kinds_save',{p_kinds:v.reset?null:(v.kinds||[])}).then(must); }});
   }).catch(function(e){ toast(errText(e)); });
