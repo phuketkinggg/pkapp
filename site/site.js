@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/site';
-var WA='66615155947';
+var WA='66969076150';
 /* referral links: ?ref=<code> is remembered with the time of the click, and the booking and buying pages send both.
    The server decides if it still counts (Affiliates, how many days a link counts). A few seconds later the code is taken
    out of the address bar, so a copied or shared address does not carry someone else's code. */

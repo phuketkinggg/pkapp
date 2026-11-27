@@ -4,7 +4,7 @@
 'use strict';
 if(window.__pkChat) return; window.__pkChat=true;
 var FN='https://jijnshwduhgegacfvpkh.supabase.co/functions/v1/chat', KEY='sb_publishable_Y-ecbe3vlPAa6QipGHD1zQ_W-sh8V4i';
-var WA='https://wa.me/66615155947?text='+encodeURIComponent('Hi Phuket King, I have a question.');
+var WA='https://wa.me/66969076150?text='+encodeURIComponent('Hi Phuket King, I have a question.');
 var css=[
 '.pkc-b{position:fixed;right:16px;bottom:16px;z-index:90;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;background:#D8001B;color:#fff;font:600 15px Rubik,system-ui,sans-serif;padding:0 18px 0 14px;height:54px;box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer}',
 '.pkc-b svg{width:24px;height:24px;flex:none}.pkc-b .dot{position:absolute;top:6px;left:36px;width:12px;height:12px;border-radius:6px;background:#2ecc71;border:2px solid #D8001B}',
