@@ -29,7 +29,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=259"></script>
+<script src="changelog.js?v=260"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -194,7 +194,8 @@ body.chatting{overflow:hidden}
 .chatbox{width:100%;max-width:720px;display:flex;flex-direction:column;height:100%;height:100dvh}
 .chathead{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--surface)}
 .chattitle{flex:1;min-width:0;display:flex;flex-direction:column}
-.card.hkin{border:3px solid #d32f2f;background:rgba(211,47,47,.08)}.card.hkout{border:3px solid #7e3fbf;background:rgba(126,63,191,.09)}
+.card.hkin{border:3px solid #d32f2f;background:rgba(211,47,47,.08)}
+#viewasBar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:8px max(16px,env(safe-area-inset-left,0px));background:#7e3fbf;color:#fff;font-size:14px}#viewasBar .btn{background:#fff;color:#4a1f78;border-color:#fff}.card.hkout{border:3px solid #7e3fbf;background:rgba(126,63,191,.09)}
 .hktag{display:inline-block;font-weight:800;font-size:13px;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:6px;color:#fff;margin-right:8px}
 .hkin .hktag{background:#d32f2f}.hkout .hktag{background:#7e3fbf}.hkroom{font-size:20px}
 .hkcalw{overflow-x:auto}.hkcal{border-collapse:collapse;font-size:13px;min-width:100%}.hkcal th,.hkcal td{border:1px solid var(--line);padding:6px 4px;text-align:center;min-width:44px}
@@ -1010,6 +1011,7 @@ var FEATURES=[
   {k:'fighter_apply',g:'Training',n:'Fighter applications',d:'A Fighters page on your website where people apply to fight for your gym: their record, weight, experience, social media and when they want to come. Applications show in Customers, Fighters, where you accept them (they become a customer marked as a fighter) or decline.',spa:false},
   {k:'aff_welcome',g:'Selling',n:'Partner welcome pack',d:'A Welcome pack button on each partner (Referrals): one email with their link, what they earn, links to your main pages, how to sign in to the app to see their bookings and earnings, and tips for using their link. Their app account is made from their email if they have none. You read it and press Send. Change the wording in Referrals, Welcome email.'},
   {k:'custom_deals',g:'Selling',n:'Custom deals',d:'Managers can sell a package as a custom deal: their own length (for example 4 months) and their own price, with Fitness Zone included if they like, starting on the first visit, today or a chosen date. In Sell a package, tick Custom deal.',def:true,spa:true},
+  {k:'view_as',g:'Team',n:'View the app as someone on the team',d:'Managers get View as at the top: pick a coach, housekeeper, kitchen or front desk login and see the app exactly as they see it, with their own jobs, privates and rooms, to check how everything works for them. Nothing can be changed while viewing.'},
   {k:'support_access',g:'Team',n:'Tech support access',d:'The app support team can open your back office to help you, without you making them a login. They show in Staff as Tech support while they are in, and you can remove them there. Turn this off and they are taken off straight away and cannot come in.'},
   {k:'wallet_card',g:'Customers',n:'Member card in Apple Wallet and Google Wallet',d:'Members add their card to Apple Wallet or Google Wallet: their name, package, classes left and end date, with a QR code. The front desk scans it on the check in screen (Scan card). It updates by itself on iPhones when a package is sold or a class is used. Members who only train can use the card instead of the app. Needs the Apple pass certificate and the Google Wallet account in the server settings.',def:false,spa:false},
   {k:'onboard_steps',g:'Team',n:'Start in easy steps',d:'A new business starts with only the basics: check ins for members and staff in the first week. When you are happy, tap Next step and the next part comes in: selling, then accounting, messages, privates and coaches, and growing your business. The menu only shows the steps you have reached, so nothing is overwhelming. You choose when to move on, and See everything opens it all at any time. Settings, General, Getting started in steps.'},
@@ -1146,7 +1148,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=195; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=196; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -13522,6 +13524,12 @@ function enter(user){
     if(!staff||asMember) return enterCustomer();
     if(window.MF_MULTI) setTimeout(function(){ loadMyPlan().catch(function(){}); },0);
     if(row.role!=='investor') loadAccStruct();
+    if(row.role==='manager'&&featOn('view_as')) $who.lastChild.insertBefore(viewAsBtn(),$who.lastChild.firstChild);
+    return startStaff(row);
+  }).catch(function(e){ noDb('The gym database could not be reached. '+((e&&e.message)||'')+' Reload the page to try again.'); });
+}
+/* the back office for one staff login: the tabs and data for their role (also used by View as) */
+function startStaff(row){
     if(row.role==='investor'){ document.getElementById('mode').textContent='Investors'; me=row; db=makeDb(); TABS=[['investor','Overview']]; ui.tab='investor'; allReady=true; schedule(); return; }
     if(row.role==='kitchen'){ document.getElementById('mode').textContent='Kitchen'; me=row; db=makeDb(); TABS=[['kitchen','Kitchen'],['clock','Clock']]; ui.tab=staffCodeOk()?'clock':'kitchen'; allReady=true; schedule(); return loadKitchen(); }
     if(row.role==='housekeeping'){ document.getElementById('mode').textContent='Housekeeping'; me=row; db=makeDb(); ui.tab=staffCodeOk()?'clock':'hk'; setHkLang(hkLang()); return loadHK().then(function(){ allReady=true; schedule(); }); }
@@ -13532,9 +13540,40 @@ function enter(user){
     TABS=staffTabs(row); loadPlatform().catch(function(){}); loadOnboard(); if(SPA&&ui.tab==='today') ui.tab='board';
     if(staffCodeOk()&&row.role!=='manager') ui.tab='clock';
     if(!TABS.some(function(t){return t[0]===ui.tab;})&&!(ui.tab==='chat'&&ui.openChatId)) ui.tab=TABS[0][0];
-    return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1') enterKiosk(); else schedule(); });
-  }).catch(function(e){ noDb('The gym database could not be reached. '+((e&&e.message)||'')+' Reload the page to try again.'); });
+    return loadAll().then(function(){ allReady=true; if(pref('pk_kiosk')==='1'&&!VIEWAS) enterKiosk(); else schedule(); });
 }
+
+/* ---------- View as (feature view_as): a manager sees the app as one person on the team, to check what they see.
+   Reading runs as that person (staff_view_as on the server); every change is refused while viewing. ---------- */
+var VIEWAS=null;
+function viewAsBtn(){ return btn('View as',viewAsPick,'small'); }
+function viewAsPick(){ if(VIEWAS){ viewAsEnd(); return; }
+  sb.rpc('staff_view_list').then(must).then(function(list){ list=list||[];
+    if(!list.length){ toast('Nobody else on the team has a login yet.'); return; }
+    openForm({title:'View the app as',saveLabel:'View',note:'See the app exactly as this person sees it, with their own jobs, privates and rooms. Nothing can be changed while you view. Tap Back to my view at the top when you are done.',
+      fields:[{key:'id',label:'Person',type:'select',required:true,def:list[0].id,options:list.map(function(p){ return [p.id,p.name+' ('+(ROLES[p.role]||p.role)+')']; })}],
+      onSave:function(v){ return viewAsStart(v.id); }});
+  }).catch(function(e){ toast(errText(e)); });
+}
+function viewAsStart(id){
+  return sb.from('staff').select(STAFF_COLS).eq('id',id).maybeSingle().then(must).then(function(row){
+    if(!row) throw {plain:true,message:'Person not found.'};
+    var R={rpc:sb.rpc,from:sb.from,inv:sb.functions&&sb.functions.invoke}, NO='Viewing only: changes are off while you view as '+row.name+'.';
+    function blocked(){ var p={then:function(a,b){ return Promise.resolve({data:null,error:{message:NO}}).then(a,b); },catch:function(b){ return p.then(null,b); }};
+      ['select','eq','neq','in','is','gt','gte','lt','lte','order','limit','single','maybeSingle','match','filter','not','or','range'].forEach(function(k){ p[k]=function(){ return p; }; }); return p; }
+    VIEWAS={row:row,R:R};
+    sb.rpc=function(fn,args){ return R.rpc.call(sb,'staff_view_as',{p_staff:row.id,p_fn:fn,p_args:args||{}}); };
+    sb.from=function(t){ var q=R.from.call(sb,t); ['insert','update','upsert','delete'].forEach(function(m){ q[m]=blocked; }); return q; };
+    if(sb.functions) sb.functions.invoke=function(){ return Promise.resolve({data:null,error:{message:NO}}); };
+    CO=null; HK=null; HKCAL=null; ACT=null; KITCHEN=null; KINFO=null; S={}; COLS.forEach(function(c){ S[c]=[]; }); allReady=false; closeChat(); CHAT.list=null;
+    var bar=document.getElementById('viewasBar')||document.body.insertBefore(h('div',{id:'viewasBar'}),document.body.firstChild);
+    bar.replaceChildren(h('span',null,'Viewing as ',h('b',{class:'notr'},row.name),', ',ROLES[row.role]||row.role,'. ','Nothing can be changed.'),btn('Back to my view',viewAsEnd,'small'));
+    var r=startStaff(row);
+    if(ui.tab==='clock'&&TABS.length>1) ui.tab=TABS.filter(function(t){ return t[0]!=='clock'; })[0][0];
+    schedule(); return r;
+  });
+}
+function viewAsEnd(){ if(!VIEWAS) return; var R=VIEWAS.R; sb.rpc=R.rpc; sb.from=R.from; if(R.inv) sb.functions.invoke=R.inv; VIEWAS=null; location.reload(); }
 
 var start=(location.hash||'').slice(1); if(VIEWS[start]) ui.tab=start;
 /* the 6pm arrivals notice opens Coaching, Arriving soon */

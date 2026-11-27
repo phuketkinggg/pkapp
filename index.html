@@ -29,7 +29,7 @@
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=259"></script>
+<script src="changelog.js?v=260"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -1148,7 +1148,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=195; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=196; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -13547,7 +13547,7 @@ function startStaff(row){
    Reading runs as that person (staff_view_as on the server); every change is refused while viewing. ---------- */
 var VIEWAS=null;
 function viewAsBtn(){ return btn('View as',viewAsPick,'small'); }
-function viewAsPick(){
+function viewAsPick(){ if(VIEWAS){ viewAsEnd(); return; }
   sb.rpc('staff_view_list').then(must).then(function(list){ list=list||[];
     if(!list.length){ toast('Nobody else on the team has a login yet.'); return; }
     openForm({title:'View the app as',saveLabel:'View',note:'See the app exactly as this person sees it, with their own jobs, privates and rooms. Nothing can be changed while you view. Tap Back to my view at the top when you are done.',
@@ -13567,7 +13567,7 @@ function viewAsStart(id){
     if(sb.functions) sb.functions.invoke=function(){ return Promise.resolve({data:null,error:{message:NO}}); };
     CO=null; HK=null; HKCAL=null; ACT=null; KITCHEN=null; KINFO=null; S={}; COLS.forEach(function(c){ S[c]=[]; }); allReady=false; closeChat(); CHAT.list=null;
     var bar=document.getElementById('viewasBar')||document.body.insertBefore(h('div',{id:'viewasBar'}),document.body.firstChild);
-    bar.replaceChildren(h('span',null,'Viewing as ',h('b',{class:'notr'},row.name),' ('+(ROLES[row.role]||row.role)+'). Nothing can be changed.'),btn('Back to my view',viewAsEnd,'small'));
+    bar.replaceChildren(h('span',null,'Viewing as ',h('b',{class:'notr'},row.name),', ',ROLES[row.role]||row.role,'. ','Nothing can be changed.'),btn('Back to my view',viewAsEnd,'small'));
     var r=startStaff(row);
     if(ui.tab==='clock'&&TABS.length>1) ui.tab=TABS.filter(function(t){ return t[0]!=='clock'; })[0][0];
     schedule(); return r;
