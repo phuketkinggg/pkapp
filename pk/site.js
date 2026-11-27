@@ -79,6 +79,9 @@ PK.contact=PK.rest('rpc/contact_info').then(function(c){ c=c||{}; var e=PK.esc;
   if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) document.querySelectorAll('a[href^="mailto:"]').forEach(function(a){ var was=a.href.replace(/^mailto:/i,''); a.href='mailto:'+em; if(a.textContent.trim()===was) a.textContent=em; });
   var box=document.querySelector('footer a[href^="mailto:"]'); box=box&&box.parentNode; if(!box) return c;
   var add=function(html){ var x=document.createElement('span'); x.innerHTML=html; while(x.firstChild) box.appendChild(x.firstChild); };
+  [['instagram','instagram.com','Instagram'],['facebook','facebook.com','Facebook'],['youtube','youtube.com','YouTube'],['tiktok','tiktok.com','TikTok']].forEach(function(s){
+    var u=String(c[s[0]]||'').trim(); if(!/^https:\/\//i.test(u)) return; var a=box.querySelector('a[href*="'+s[1]+'"]');
+    if(a) a.href=u; else add('<a href="'+e(u)+'" target="_blank" rel="noopener">'+s[2]+'</a>'); });
   var line=String(c.line||'').trim();
   if(line) add('<a href="'+e(/^https:\/\//i.test(line)?line:line.charAt(0)==='@'?'https://line.me/R/ti/p/'+encodeURIComponent(line):'https://line.me/ti/p/~'+encodeURIComponent(line))+'" target="_blank" rel="noopener">LINE '+(/^https:/i.test(line)?'':e(line))+'</a>');
   (c.extra||[]).forEach(function(x){ var n=String(x&&x.phone||'').trim(), d=n.replace(/\D/g,''); if(d.length<8) return;
