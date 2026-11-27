@@ -70,6 +70,20 @@ if(b&&n) b.addEventListener('click',function(){ var o=n.classList.toggle('open')
   fit(); window.addEventListener('resize',fit); if(document.fonts&&document.fonts.ready) document.fonts.ready.then(fit); window.addEventListener('load',fit); })();
 if(n) n.addEventListener('click',function(e){ if(e.target.closest('a')&&n.classList.contains('open')){ n.classList.remove('open'); b.textContent=mLabel; b.setAttribute('aria-expanded','false'); } });
 document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); a.target='_blank'; a.rel='noopener'; });
+/* contact info from the app (Settings, General, Contact info): the phone, WhatsApp and email on every page follow it,
+   and LINE and any other numbers are added at the bottom. The built pages already carry it; this catches a change made since. */
+PK.contact=PK.rest('rpc/contact_info').then(function(c){ c=c||{}; var e=PK.esc;
+  var ph=String(c.phone||'').trim(), tel=ph.replace(/[^\d+]/g,''), wa=String(c.whatsapp||c.phone||'').replace(/\D/g,''), em=String(c.email||'').trim();
+  if(wa.length>=8){ WA=wa; document.querySelectorAll('[data-wa]').forEach(function(a){ a.href=PK.wa(a.getAttribute('data-wa')); }); }
+  if(tel.length>=8) document.querySelectorAll('a[href^="tel:"]').forEach(function(a){ if(a.hasAttribute('data-ct')) return; a.href='tel:'+tel; if(/^\+?[\d\s()-]{8,}$/.test(a.textContent.trim())) a.textContent=ph; });
+  if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) document.querySelectorAll('a[href^="mailto:"]').forEach(function(a){ var was=a.href.replace(/^mailto:/i,''); a.href='mailto:'+em; if(a.textContent.trim()===was) a.textContent=em; });
+  var box=document.querySelector('footer a[href^="mailto:"]'); box=box&&box.parentNode; if(!box) return c;
+  var add=function(html){ var x=document.createElement('span'); x.innerHTML=html; while(x.firstChild) box.appendChild(x.firstChild); };
+  var line=String(c.line||'').trim();
+  if(line) add('<a href="'+e(/^https:\/\//i.test(line)?line:line.charAt(0)==='@'?'https://line.me/R/ti/p/'+encodeURIComponent(line):'https://line.me/ti/p/~'+encodeURIComponent(line))+'" target="_blank" rel="noopener">LINE '+(/^https:/i.test(line)?'':e(line))+'</a>');
+  (c.extra||[]).forEach(function(x){ var n=String(x&&x.phone||'').trim(), d=n.replace(/\D/g,''); if(d.length<8) return;
+    add('<a data-ct href="tel:'+e(n.replace(/[^\d+]/g,''))+'">'+(x.label?e(x.label)+': ':'')+e(n)+'</a>'+(x.whatsapp?'<a href="https://wa.me/'+d+'" target="_blank" rel="noopener">WhatsApp'+(x.label?' ('+e(x.label)+')':'')+'</a>':'')); });
+  return c; }).catch(function(){ return {}; });
 /* Google Ads: the Google tag on the live site, and two conversions: a package bought on the website, and a tap on WhatsApp */
 var GADS='AW-11225515762', GLAB={purchase:'CT-OCO2_9YQdEPKN3-gp',whatsapp:'sP0UCJ2cu7QdEPKN3-gp'};
 if(/(^|\.)phuketking\.com$/.test(location.hostname)){ window.dataLayer=window.dataLayer||[]; window.gtag=function(){ window.dataLayer.push(arguments); };
