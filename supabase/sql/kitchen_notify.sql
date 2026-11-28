@@ -5,8 +5,9 @@
 
 -- who gets the order: managers, admins, front desk, resort and kitchen by default, or each person's own choice
 create or replace function private.kitchen_gets(p_staff uuid, p_role text) returns boolean language sql stable security definer set search_path = '' as $f$
-  select case when coalesce(private.booking_push_cfg()->'people', '{}'::jsonb) ? p_staff::text
-    then (private.booking_push_cfg()->'people'->p_staff::text) ? 'food' else p_role = any (private.order_push_roles()) end
+  with c as (select coalesce((select case when value ~ '^\s*\{' then value::jsonb end from public.app_settings where key = 'booking_push'), '{}'::jsonb) v)
+  select case when coalesce(c.v->'people', '{}'::jsonb) ? p_staff::text
+    then (c.v->'people'->p_staff::text) ? 'food' else p_role = any (private.order_push_roles()) end from c
 $f$;
 revoke all on function private.kitchen_gets(uuid, text) from public, anon, authenticated;
 
@@ -88,7 +89,7 @@ begin
   if s.id is null then raise exception 'Person not found.'; end if;
   c := coalesce((select case when value ~ '^\s*\{' then value::jsonb end from public.app_settings where key = 'booking_push'), '{}'::jsonb);
   k := case when coalesce(c->'people', '{}'::jsonb) ? s.id::text then c->'people'->s.id::text
-    when (private.booking_push_cfg()->'roles') ? s.role then private.booking_push_cfg()->'kinds' else '[]'::jsonb end;
+    when coalesce(c->'roles', '["manager","front_desk"]'::jsonb) ? s.role then coalesce(c->'kinds', '["private","stay","package","class"]'::jsonb) else '[]'::jsonb end;
   k := coalesce((select jsonb_agg(distinct x) from jsonb_array_elements_text(k) x where x <> 'food'), '[]'::jsonb) || case when p_on then '["food"]'::jsonb else '[]'::jsonb end;
   c := jsonb_set(c, '{people}', coalesce(c->'people', '{}'::jsonb) || jsonb_build_object(s.id::text, k));
   insert into public.app_settings(key, value) values ('booking_push', c::text) on conflict (key) do update set value = excluded.value;

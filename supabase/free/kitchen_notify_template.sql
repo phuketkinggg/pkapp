@@ -1,7 +1,8 @@
 delete from mf.template where name like 'kitchen_notify:%';
 insert into mf.template (ord, phase, kind, name, sql) values (406401, 4, 'patch', 'kitchen_notify:406401', $TPL$create or replace function __Q__.kitchen_gets(p_staff uuid, p_role text) returns boolean language sql stable security definer set search_path = '' as $f$
-  select case when coalesce(__Q__.booking_push_cfg()->'people', '{}'::jsonb) ? p_staff::text
-    then (__Q__.booking_push_cfg()->'people'->p_staff::text) ? 'food' else p_role = any (__Q__.order_push_roles()) end
+  with c as (select coalesce((select case when value ~ '^\s*\{' then value::jsonb end from __P__.app_settings where key = 'booking_push'), '{}'::jsonb) v)
+  select case when coalesce(c.v->'people', '{}'::jsonb) ? p_staff::text
+    then (c.v->'people'->p_staff::text) ? 'food' else p_role = any (__Q__.order_push_roles()) end from c
 $f$;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (1199996, 11, 'patch', 'kitchen_notify:1199996', $TPL$revoke all on function __Q__.kitchen_gets(uuid, text) from public, anon, authenticated;$TPL$);
 insert into mf.template (ord, phase, kind, name, sql) values (406402, 4, 'patch', 'kitchen_notify:406402', $TPL$create or replace function __P__.order_push_targets(p_order uuid) returns jsonb language plpgsql stable security definer set search_path to '' as $f$
@@ -76,7 +77,7 @@ begin
   if s.id is null then raise exception 'Person not found.'; end if;
   c := coalesce((select case when value ~ '^\s*\{' then value::jsonb end from __P__.app_settings where key = 'booking_push'), '{}'::jsonb);
   k := case when coalesce(c->'people', '{}'::jsonb) ? s.id::text then c->'people'->s.id::text
-    when (__Q__.booking_push_cfg()->'roles') ? s.role then __Q__.booking_push_cfg()->'kinds' else '[]'::jsonb end;
+    when coalesce(c->'roles', '["manager","front_desk"]'::jsonb) ? s.role then coalesce(c->'kinds', '["private","stay","package","class"]'::jsonb) else '[]'::jsonb end;
   k := coalesce((select jsonb_agg(distinct x) from jsonb_array_elements_text(k) x where x <> 'food'), '[]'::jsonb) || case when p_on then '["food"]'::jsonb else '[]'::jsonb end;
   c := jsonb_set(c, '{people}', coalesce(c->'people', '{}'::jsonb) || jsonb_build_object(s.id::text, k));
   insert into __P__.app_settings(key, value) values ('booking_push', c::text) on conflict (key) do update set value = excluded.value;
