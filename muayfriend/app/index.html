@@ -38,7 +38,7 @@ window.MF_MULTI=true;(function(){ var g=null,ok=/^[a-z][a-z0-9_]{1,40}$/,hg=wind
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="pk/privpick.js?v=7"></script>
 <script src="invdoc.js?v=3"></script>
-<script src="changelog.js?v=263"></script>
+<script src="changelog.js?v=264"></script>
 <style>
 /* Layout: a fixed side list of sections and one working column of tables and forms; on a phone the sections become a scrolling strip. */
 :root{
@@ -432,6 +432,7 @@ body.till #view{max-width:none}
 .poster .ganote{margin-top:8px;text-align:center;color:var(--muted)}
 .qr{width:220px;background:#fff;padding:8px;border-radius:8px}
 .storeqrs{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;margin:10px 0}.storeqr{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.storeqr .qr{width:170px}.kapp{margin-top:14px;text-align:center}
+.kteam{margin-top:12px}.kteamlist{display:grid;gap:6px}.kteamrow{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer}div.kteamrow{cursor:default}.kteamrow.on{border-color:var(--ok,#2e7d32)}.kteamrow .tick{flex:none;position:relative;width:22px;height:22px;border:2px solid var(--line);border-radius:6px}.kteamrow .tick.on{background:var(--ok,#2e7d32);border-color:var(--ok,#2e7d32)}
 #printcard{display:none}
 .poster .pname{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase}.poster .pstep{font-weight:700;font-size:20px;margin-top:6px}.poster .pstep .th{font-weight:600}
 .qr svg{display:block;width:100%;height:auto}
@@ -1059,7 +1060,7 @@ var FEATURES=[
   {k:'coaching',g:'Training',n:'Online coaching',d:'Programmes, check ins and messages with coaching clients.',tabs:['coaching','c_coach'],spa:false},
   {k:'meal_bills',g:'Selling',n:'Meal plans held until served, cafe meal bills',d:'Money paid for a meal plan comes in as Meal plans held for the business that sold it, not as cafe sales, so it can always be refunded. The kitchen or the cafe till ticks each meal as it is served, and sends a bill for the meals served, for example once a week. A manager marks the bill paid: only then does Accounts show it as cafe sales. Meal plans bought before this was switched on stay as they were.',def:false,spa:false},
   {k:'food_plans',g:'Rooms',n:'Food plans',d:'Meal plans, breakfast and other food plans on each customer, with the days they run. Cafe extras on room bookings and meal packages add them by themselves. The kitchen screen and Stays show who has a plan today, with their room.',spa:false},
-  {k:'order_push',g:'Selling',n:'Phone notification for app orders',d:'Every food or drink order from the app (to a room or pay at the counter) sends a phone notification to managers, admins, front desk, resort and kitchen staff who turned notifications on. Each person can turn it on or off in Messages, My notifications. Tapping it opens the kitchen screen.',spa:false},
+  {k:'order_push',g:'Selling',n:'Kitchen notifications',d:'Every new kitchen order (from a room, the app, the till, a tab or a delivery app) sends a phone notification to the people on the list on the Kitchen screen. Managers and admins add or take people off there. By default: managers, admins, front desk, resort and kitchen. Tapping it opens the kitchen screen.',spa:false},
   {k:'shop_top',g:'Selling',n:'Most used row on the till',d:'The till shows the products sold most at that shop in the last 30 days as one row at the top, so staff find them in one tap.'},
   {k:'shop_modifiers',g:'Selling',n:'Modifiers',d:'Choices with their own price, asked when a product is added at the till or in the app: milk (oat +20), hot or iced, extras (add cheese +30), sweetness. Some must be chosen, some allow several. The kitchen and the receipt show them after the name.'},
   {k:'shop_tabs',g:'Selling',n:'Tabs at the till',d:'Running tabs for tables or people: put an order on Table 1, the kitchen gets it and the till is free for the next customer. Add more to the tab any time, then bring it up at the end, print the bill and take payment. A line added in the last 10 minutes can be taken off; after that a manager uses their PIN.'},
@@ -1170,7 +1171,7 @@ function langSection(){ langLoadAll();
 }
 /* ---------- app language: English, Thai or Myanmar. Every text the app draws is looked up in i18n-th.js or i18n-my.js
    (English to that language, made from the app's own words); fixes from Settings, Languages win. Text people write (chat, notes, lessons) is left as written. */
-var I18N_V=199; /* bump when i18n-th.js or i18n-my.js change */
+var I18N_V=200; /* bump when i18n-th.js or i18n-my.js change */
 var I18N={l:'en',d:null,part:{},fix:{},c:{},rx:null,seen:new WeakMap(),obs:null};
 function uiLang(){ var l=pref('pk_ui_lang'); if(!l&&!pref('pk_ui_lang_set')){ var n=String(navigator.language||'').toLowerCase(); l=n.indexOf('th')===0?'th':n.indexOf('my')===0?'my':n.indexOf('ru')===0?'ru':'en'; }
   return (l==='th'&&featOn('lang_th'))||(l==='my'&&featOn('lang_my'))||(l==='ru'&&featOn('lang_ru'))?l:'en'; }
@@ -8851,6 +8852,24 @@ function foodToday(){ if(!featOn('food_plans')||!me||['manager','front_desk','re
 /* a phone notification for every app order (staff who turn it on here, or in Messages) */
 function orderPushRow(){ if(!ui.pushAsked){ ui.pushAsked=true; pushState(); }
   return h('div',{class:'row wrap',style:'margin-top:12px;align-items:center'},h('span',{class:'sub'},'A phone notification for every food and drink order from the app:'),pushBtn()); }
+/* kitchen notifications: who gets a phone notification for every kitchen order (room, app, till, tabs, delivery apps).
+   A manager or admin taps a name to add or take them off; everyone can turn it on or off for themselves. */
+var KTEAM=null;
+function loadKTeam(){ return sb.rpc('kitchen_team').then(function(r){ KTEAM=(!r.error&&r.data)||{people:[]}; schedule(); },function(){ KTEAM={people:[]}; schedule(); }); }
+function kTeamSet(p,on){ return sb.rpc('kitchen_team_set',{p_staff:p.id,p_on:on}).then(must).then(function(d){ KTEAM=d; toast(on?p.name+' now gets kitchen orders.':p.name+' no longer gets kitchen orders.'); schedule(); }).catch(function(e){ toast(errText(e)); }); }
+function kitchenTeamPanel(){
+  if(!ui.pushAsked){ ui.pushAsked=true; pushState(); }
+  if(KTEAM===null){ loadKTeam(); return h('div',{class:'panel pad'},h('h3',null,'Kitchen notifications'),h('p',{class:'sub'},'Loading.')); }
+  var ppl=KTEAM.people||[], can=!!KTEAM.can, mine=ppl.filter(function(p){ return p.id===KTEAM.me; })[0];
+  return h('div',{class:'panel pad kteam'},h('h3',null,'Kitchen notifications'),
+    h('p',{class:'sub'},'Everyone ticked here gets a phone notification for every new kitchen order: rooms, the app, the till, tabs and delivery apps.'+(can?' Tap a name to add or take them off.':'')),
+    h('div',{class:'row wrap',style:'align-items:center;margin:6px 0 10px'},h('span',{class:'sub'},'This phone:'),pushBtn(),
+      mine&&!can?btn(mine.on?'Stop kitchen notifications for me':'Send me kitchen notifications',function(){ kTeamSet(mine,!mine.on); },mine.on?'small':'primary small'):null),
+    h('div',{class:'kteamlist'},ppl.filter(function(p){ return can||p.on; }).map(function(p){
+      var lab=h('span',null,h('b',{class:'notr'},p.name),' ',h('span',{class:'sub'},ROLES[p.role]||p.role),p.on&&!p.phone?h('span',{class:'chip warn',style:'margin-left:6px'},'Phone not set up'):null);
+      return can?h('button',{type:'button',class:'kteamrow'+(p.on?' on':''),onclick:function(){ kTeamSet(p,!p.on); }},h('span',{class:'tick'+(p.on?' on':'')}),lab)
+        :h('div',{class:'kteamrow on'},h('span',{class:'tick on'}),lab); })),
+    can?h('p',{class:'sub'},'Phone not set up: that person opens the app on their phone, goes to Messages and taps Turn on notifications on this phone.'):null); }
 /* coffee and drinks: their own hours and switch, like the kitchen; when closed the app takes no drink orders */
 function barMode(mode,mins){ return sb.rpc('bar_set_mode',{p_mode:mode,p_minutes:mins||null}).then(must).then(function(){ toast(mode==='auto'?'Coffee and drinks follow their hours again.':mode==='closed'?'Coffee and drinks closed. The app takes no drink orders.':mode==='busy'?'Busy: guests see drinks take about 15 minutes.':'Coffee and drinks open.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); }
 function barClose(){
@@ -8898,19 +8917,19 @@ function kitchenHours(){
 }
 function kitchenControls(){
   if(!KINFO) return null;
-  var k=KINFO.now||{}, cls=!k.open?'bad':k.busy?'warn':'ok', lab=!k.open?'Closed':k.busy?'Busy':'Open';
+  var k=KINFO.now||{}, cls=!k.open?'bad':k.busy?'warn':'ok', lab=!k.open?'Closed, not taking orders':k.busy?'Busy, taking orders slowly':'Open, taking orders';
   var dishes=KINFO.dishes||[], out=dishes.filter(function(x){ return x.sold_out; }).length;
-  return h('div',{class:'panel pad'},
+  return h('div',null,h('div',{class:'panel pad'},
     h('div',{class:'kstat'},h('span',{class:'kst '+cls},'Kitchen: '+lab),h('span',{class:'sub'},k.text||(k.no_hours?'No hours set yet, so the kitchen counts as open.':''))),
     h('div',{class:'row wrap'},k.open&&!k.busy?btn('Busy',function(){ kitchenMode('busy',120); },'small'):null,
-      k.open?btn('Close kitchen',kitchenClose,'small'):btn('Open now',function(){ kitchenMode('open',240); },'primary small'),
+      k.open?btn('Stop orders',kitchenClose,'small'):btn('Take orders now',function(){ kitchenMode('open',240); },'primary small'),
       k.mode&&k.mode!=='auto'?btn('Back to normal hours',function(){ kitchenMode('auto'); },'small'):null,
       KINFO.manager?btn('Kitchen hours',kitchenHours,'small'):null),
     barControls(),
-    featOn('order_push')?orderPushRow():null,
     dishes.length?h('details',{style:'margin-top:10px'},h('summary',null,'Sold out today'+(out?' ('+out+')':'')),
       h('p',{class:'sub'},'Tap a dish to mark it sold out. It comes back by itself tomorrow.'),
-      h('div',{class:'soldgrid'},dishes.map(function(x){ return btn(x.name,function(){ sb.rpc('kitchen_sold_out',{p_product:x.id,p_out:!x.sold_out}).then(must).then(function(){ toast(x.sold_out?x.name+' is back on.':x.name+' is sold out today.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); },x.sold_out?'small out':'small'); }))):null);
+      h('div',{class:'soldgrid'},dishes.map(function(x){ return btn(x.name,function(){ sb.rpc('kitchen_sold_out',{p_product:x.id,p_out:!x.sold_out}).then(must).then(function(){ toast(x.sold_out?x.name+' is back on.':x.name+' is sold out today.'); return loadKInfo(); }).catch(function(e){ toast(errText(e)); }); },x.sold_out?'small out':'small'); }))):null),
+    featOn('order_push')?kitchenTeamPanel():null);
 }
 
 /* ---------- spa and salon mode (Massage Mate): shops, the room board, treatments, rooms, walk-ins, setup and the customer booking ---------- */

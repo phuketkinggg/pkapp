@@ -1,6 +1,6 @@
 // Keeps the app installable and opens the last copy when there is no signal.
 // Always tries the network first, so updates show up straight away. Data calls are never cached.
-const CACHE = 'pk-shell-v392';
+const CACHE = 'pk-shell-v393';
 // the last version that started properly on this phone, and a mark when a newer one failed to start
 const GOOD = CACHE.replace(/v\d+$/, 'good');
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/apple-touch-icon.png', './vendor/supabase-js-2.117.2.js', './vendor/qrcode-generator-1.4.4.js'];
